@@ -31,6 +31,8 @@ retracted and corrected).
 
 | **I-257** | The REXX full-screen package (FSEWRITE ...) and FULIST fail under the EC CMS (`IPL 290`): `DMSSVT121S UNSUPPORTED SVC 201` | 10 Oct. The package (RXFNCMGR on 19E) waits for the 3270 with its own S/370 **BC** PSWs: it puts a BC I/O new PSW at X'78', loads a BC wait PSW, and resumes with `LPSW X'38'`. Its next SVC 202 then comes from BC mode: the SVC old PSW is BC, the code is in it, and X'8A', which the EC CMS reads (XA0051DK), still held 201 from DMSITS's own CMSRET SVC. DMSITS took the SVC for an OS SVC 201. Found with CP TRACE ALL PRINTER: the return PSW `FF040000 60E7C62C` (byte 1 = 04: BC). Fixed (DMSITS XA0051DK, SVCINT): a BC SVC old PSW is made an EC PSW at entry -- code and ILC to X'8A'/X'89', CC and program mask to byte 2, channel masks to the EC I/O mask -- and the caller is resumed in EC mode. Verified fx3: FULIST under 290 (list, PF5, PF8, browse, edit); IPL CMS unchanged; CHAT under 290. | **closed** |
 | **I-258** | MECAFF (EE, FSVIEW, FSLIST) under the EC CMS: specification exception | 10 Oct. MECAFF (C, fsio.c) and the full-screen package enable with `SSM =X'FF'`; in an EC PSW bits 0 and 2-4 must be zero and bit 5 is DAT, so CP reflected a specification exception (EE$S at 0547E0). Fixed in CP (DMKPRV XA0054DK, SETMASK): for an EC-mode System/370 machine (not ESA/390), a system mask with any of bits 0, 2-4 set is taken as a BC mask -- channel masks 0-6 become the EC I/O mask, bit 7 stays external; a valid EC mask is unchanged. A deviation from S/370, where such an SSM is a specification exception, kept to the case no EC program uses. Verified fx3: FSVIEW and EE under 290 and under IPL CMS. | **closed** |
+| **I-265** | **Linux from the reader (`LINUX READER`, `CP IPL 00C` of the kernel deck) ends in a PROGRAM INTERRUPT LOOP** | 11 Oct. Also with a nucleus from before any of 11 October's changes, and with a 15 MB machine (so not M7.10's DMKVMI placement). After the IPL, guest location 0 holds `02000140 800003C0` -- a CCW of the second card, not the IPL PSW `00080000 800003C0` -- and the CCW at X'08' shows X'FF' in its zero byte. The `INVALID OPTION - KEEP` that comes first appears to be the Linux IPL code's own DIAG 8 (a z/VM spool option) and harmless. Disk IPL (`CP IPL LINUX`, the standard since M7.10) is not affected. | open |
+| **I-266** | **`CP IPL LINUX` gives every user the same IP address** | 11 Oct. The address is in the disk's own kernel parameters (vmzipl), so a second user's copy comes up as 10.1.1.2 on a CTC whose PC side is 10.1.2.1. LXPARM sets it per user only on the reader path (I-265). Needs a per-user parameter for the disk IPL (IPL PARM, or the initramfs asking CP for the userid). | open |
 
 ## Environment — documented, not ours to fix
 
@@ -308,7 +310,7 @@ retracted and corrected).
 | fixed | 107 |
 | documented | 19 |
 | closed | 23 |
-| open | 22 |
+| open | 24 |
 | **z390 only** | 2 |
 | fix known | 10 |
 | worked around | 1 |
