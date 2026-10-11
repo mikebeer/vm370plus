@@ -1,0 +1,27 @@
+TDISK                                                     (VM/370plus) CMS EXEC
+Use the TDISK command to get a temporary disk (TDISK) in one step: CP
+defines it, CMS formats it and, if you give a file mode, accesses it.
++----------+------------------------------------------------------------------+
+| TDISK    | [cyls] [fm]                                                      |
++----------+------------------------------------------------------------------+
+cyls     the size in 3350 cylinders, 1 to 100.  The default is 10 (about
+         5 MB).
+fm       the file mode to access the disk as.  Without it the disk is
+         formatted but not accessed; ACCESS it later yourself.
+The two operands may be given in either order.
+
+The disk gets the first free virtual address from D00 to D1F and the label
+TMPvaddr.  Its contents are lost when you log off or DETACH it.
+
+Examples
+   TDISK              10 cylinders, formatted, not accessed
+   TDISK T            10 cylinders, accessed as T
+   TDISK 30 T         30 cylinders, accessed as T
+   TDISK 5            5 cylinders, not accessed
+
+Return codes
+   0    the disk is ready
+   24   invalid operands
+   28   a disk is already accessed with that file mode
+   32   no free virtual address, or no TEMP space for that size
+   other  FORMAT's return code (the disk stays defined)

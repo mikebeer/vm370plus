@@ -20,7 +20,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**11 October 2026, afternoon.** `SHUTDOWN` saves warm start data again and the next IPL warm-starts by itself, spool intact (I-267, I-268); each Linux user’s address follows his CTC pair (9.12a); ATTACH of a CTC next to another no longer stops CP (I-269).',
+B(['**11 October 2026, late afternoon.** `TDISK` (a temporary disk in one step); Linux IPLs from the reader again (I-265); `LPSW`/SVC fast paths for PSWs above 16 MB.',
+   '**11 October 2026, afternoon.** `SHUTDOWN` saves warm start data again and the next IPL warm-starts by itself, spool intact (I-267, I-268); each Linux user’s address follows his CTC pair (9.12a); ATTACH of a CTC next to another no longer stops CP (I-269).',
    '**11 October 2026, late morning.** Two Debian systems at once (M4b.3 complete); ESA/390 access registers saved per virtual machine.',
    '**11 October 2026, morning.** Guest pages in real frames above 16 MB (M4b.3): with `MAINSIZE` above 16, the frames from 16 MB up to 160 MB hold virtual machine pages directly.',
    '**11 October 2026.** GLOBALV.',
@@ -410,6 +411,10 @@ TABLE(['Key', 'Action'], [
   ['PF11', 'edit the file at the cursor'], ['PF12', 'cursor to the command line and back'],
 ], [2400, 7238], 'FULIST keys');
 P('On the command line (`====>`): QUIT, TOP, BOTTOM, REFRESH, SORT NAME|TYPE|DATE|SIZE, FULIST pattern, or any CMS or CP command.');
+H2('TDISK');
+SCREEN(['TDISK [cyls] [fm]'], 'TDISK');
+P('On MAINT 19D (new). A temporary disk in one step: CP defines it (`DEFINE T3350`) at the first free address from D00 to D1F, CMS formats it with the label TMPvaddr and, if a file mode is given, accesses it. **cyls** is 1 to 100 cylinders, default 10 (about 5 MB); without **fm** the disk is formatted but not accessed. The operands may come in either order. Return codes: 24 invalid operands, 28 the file mode is in use, 32 no free address or no TEMP space; otherwise FORMAT’s. The contents are lost at LOGOFF or DETACH. `HELP TDISK` describes it.');
+SCREEN(['tdisk 5 t', 'DASD D00 DEFINED 0005 CYL', 'TDISK: disk D00 is ready as T, 5 cylinders, label TMPD00', 'Ready;'], 'TDISK');
 H2('GLOBALV');
 SCREEN(['GLOBALV [SELECT group] SET|SETS|SETL|SETP name value', 'GLOBALV [SELECT group] PUT|PUTS|PUTL|PUTP name ...', 'GLOBALV [SELECT group] GET|STACK name ...', 'GLOBALV [SELECT group] LIST [name ...]|PURGE', 'GLOBALV GRPLIST'], 'GLOBALV');
 P('New; a subset of z/VM’s GLOBALV. Variables live in groups (UNNAMED unless SELECT names one). **SET** keeps a value until the next IPL of CMS, **SETS** also in `SESSION GLOBALV A` (erased at the next IPL), **SETL** in `LASTING GLOBALV A` (read again at every IPL), **SETP** both. **PUT** takes the values of the calling EXEC’s REXX variables, **GET** sets them, **STACK** puts values on the console stack. A null value drops a variable. Names up to 32 characters, values up to 255, 128 variables. GLOBALV is a nucleus extension, loaded at IPL by the system profile.');

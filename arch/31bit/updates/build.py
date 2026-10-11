@@ -4656,6 +4656,18 @@ def m4b3decks():
                  limit=next_seq(src('DMKVDA'), seq), lines=[
             "         N     %s,XRIGHT24 I-269: DMKVDC FLAGS IN BYTE 0" % reg])
     decks['DMKVDA'] = d
+
+    # I-265: a spool read (or write) whose data area crosses a page took
+    # the next page's address from `L R1,VSPCCW` -- the CCW's first word,
+    # op code in byte 0 -- and LA in AMODE 31 kept that byte: 0x02010000
+    # for a read into 0x0000FFF0+.  TRANS masks it only for a 24-bit
+    # guest, so a Linux guest's reader IPL put the second part of every
+    # page-crossing card 32 MB too high: the kernel image had holes.
+    d = Deck(XA55)
+    d.insert('02449000', first='02449100', inc=100,
+             limit=next_seq(src('DMKVSP'), '02449000'), lines=[
+        "         N     R1,XRIGHT24    I-265: NOT THE OP CODE"])
+    decks['DMKVSP'] = d
     return decks
 
 

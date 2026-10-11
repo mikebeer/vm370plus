@@ -1,0 +1,104 @@
+/* TDISK EXEC -- VM/370plus: a temporary disk in one command          */
+/*                                                                    */
+/*   TDISK [cyls] [fm]        (either order)                          */
+/*                                                                    */
+/* cyls  size in 3350 cylinders, 1 to 100; default 10 (about 5 MB).   */
+/* fm    the file mode to access it as.  The disk is formatted and    */
+/*       accessed.  Without fm it is formatted but not accessed       */
+/*       (ACCESS vaddr fm later).                                     */
+/*                                                                    */
+/* The disk gets the first free virtual address from D00 to D1F.      */
+/* It is temporary: its contents are gone at LOGOFF (or DETACH).      */
+parse upper arg a1 a2 a3 .
+cyls = 10
+fm = ''
+if a3 <> '' then call usage
+if datatype(a1, 'W') then do
+  cyls = a1
+  fm = a2
+end
+else do
+  fm = a1
+  if a2 <> '' then do
+    if \datatype(a2, 'W') then call usage
+    cyls = a2
+  end
+end
+if cyls < 1 | cyls > 100 then do
+  say 'TDISK: the size is 1 to 100 cylinders'
+  exit 24
+end
+if fm <> '' then do
+  if length(fm) <> 1 | verify(fm, 'ABCDEFGHIJKLMNOPQRTUVWXZ') <> 0 then do
+    say 'TDISK: the file mode is one letter, A to Z (not S or Y)'
+    exit 24
+  end
+  'SET CMSTYPE HT'
+  'STATE * *' fm
+  src = rc
+  'SET CMSTYPE RT'
+  if src <> 36 then do
+    say 'TDISK: a disk is already accessed as' fm '(RELEASE' fm 'first)'
+    exit 28
+  end
+end
+/* a free virtual address: DEFINE fails on one in use */
+'CP SET EMSG OFF'
+vaddr = ''
+do i = 0 to 31
+  v = d2x(x2d('D00') + i)
+  'CP DEFINE T3350' v 'CYL' cyls
+  if rc = 0 then do
+    vaddr = v
+    leave
+  end
+end
+'CP SET EMSG ON'
+if vaddr = '' then do
+  say 'TDISK: no temporary disk -- D00 to D1F in use,',
+      'or no TEMP space for' cyls 'cylinders'
+  exit 32
+end
+/* format it: under the given mode, or a free one released after */
+mode = fm
+if mode = '' then do
+  do j = 1 to 24
+    m = substr('ZXWVUTRQPONMLKJIHGFEDCBA', j, 1)
+    'SET CMSTYPE HT'
+    'STATE * *' m
+    src = rc
+    'SET CMSTYPE RT'
+    if src = 36 then do
+      mode = m
+      leave
+    end
+  end
+end
+if mode = '' then do
+  say 'TDISK: disk' vaddr 'defined,' cyls 'cylinders, not formatted',
+      '(no free file mode)'
+  exit 0
+end
+label = 'TMP' || vaddr
+queue 'YES'
+queue label
+'SET CMSTYPE HT'
+'FORMAT' vaddr mode
+frc = rc
+'SET CMSTYPE RT'
+if frc <> 0 then do
+  say 'TDISK: FORMAT' vaddr 'ended with rc' frc '-- the disk stays defined'
+  exit frc
+end
+if fm = '' then do
+  'RELEASE' mode
+  say 'TDISK: disk' vaddr 'is ready,' cyls 'cylinders, label' label,
+      '(not accessed: ACCESS' vaddr 'fm)'
+end
+else say 'TDISK: disk' vaddr 'is ready as' fm',' cyls 'cylinders,',
+         'label' label
+exit 0
+
+usage:
+say 'TDISK: TDISK [cyls] [fm] -- e.g. TDISK, TDISK 20, TDISK T, TDISK 5 T'
+exit 24

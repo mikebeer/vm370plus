@@ -71,6 +71,8 @@ and the work after 64-bit is **M11**.
 | M9 | 9.13e | Games | Game disk: VM/370 games tape (IBM VS BASIC runtime removed), WIOS SNAKE/SLASH, CALL-OS BASIC TREK2, Zork/Dungeon | Planned |  |  |
 | M9 | 9.13f | Workshop | VM Workshop 1985/86 tools that run on R6: CARD, FCOPY, CLUST/TERM macros; check DISKPRY, LEDIT, IEBCOPY, JSCAN | Planned |  | CPWATCH (85 M0083) is 4c |
 | M9 | 9.14 | TELL | TELL everywhere: CMS TELL EXEC (CP MSG local, RSCS/NJE remote), Linux tell (vmcp, kernel CONFIG_VMCP) with incoming MSG captured, PC client through BORDER (CHATBOT-style gateway) | Planned |  | Owner request 11 Oct |
+| M9 | 9.15 | Python | Python on CMS: the C89 implementation from mikebeer/python (in creation), built with GCC for CMS; Debian uses standard wheezy python 2.7/3.2 packages | Planned |  | Owner request 11 Oct |
+| M9 | 9.16 | TDISK | TDISK EXEC: TDISK [cyls] [fm] defines, formats and (with fm) accesses a temporary disk; HELP TDISK | In progress | 11 Oct | Owner request 11 Oct |
 | M10 |  | 64-bit | z/Architecture (64-bit) | Planned |  |  |
 | M10 | 10.1 | Documentation | Migration documentation 31 -> 64 bit |  |  |  |
 | M10 | 10.2 | Documentation | Manual Update |  |  |  |

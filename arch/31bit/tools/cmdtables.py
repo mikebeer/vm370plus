@@ -183,6 +183,7 @@ CMSDESC = {
     'CHAT': '**+** ask the CHATBOT service machine',
     'LINUX': '**+** IPL the Debian disk (`LINUX`, `LINUX READER`)',
     'FULIST': '**+** full-screen file list in the manner of FILELIST',
+    'TDISK': '**+** temporary disk in one step (`TDISK [cyls] [fm]`)',
     'FL': '**+** synonym of FULIST', 'RXBVM8': '**+** cREXX VM (native CMS)',
     'UNHEX': '**+** hex text to binary', 'HELP': 'HELP (19D copy)', 'HELPFS': 'full-screen HELP',
 }
