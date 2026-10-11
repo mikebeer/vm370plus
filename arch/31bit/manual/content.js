@@ -20,7 +20,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**11 October 2026, late afternoon.** `TDISK` (a temporary disk in one step); Linux IPLs from the reader again (I-265); `LPSW`/SVC fast paths for PSWs above 16 MB.',
+B(['**11 October 2026, evening.** Larger minidisks: CMS under `IPL 290` reads, writes and formats IBM’s Enhanced Disk Format (4 KB blocks): `FORMAT vaddr fm (BLKSIZE 4096`, a full 3380 as one disk, files with more than 65,535 records.',
+   '**11 October 2026, late afternoon.** `TDISK` (a temporary disk in one step); Linux IPLs from the reader again (I-265); `LPSW`/SVC fast paths for PSWs above 16 MB.',
    '**11 October 2026, afternoon.** `SHUTDOWN` saves warm start data again and the next IPL warm-starts by itself, spool intact (I-267, I-268); each Linux user’s address follows his CTC pair (9.12a); ATTACH of a CTC next to another no longer stops CP (I-269).',
    '**11 October 2026, late morning.** Two Debian systems at once (M4b.3 complete); ESA/390 access registers saved per virtual machine.',
    '**11 October 2026, morning.** Guest pages in real frames above 16 MB (M4b.3): with `MAINSIZE` above 16, the frames from 16 MB up to 160 MB hold virtual machine pages directly.',
@@ -102,6 +103,7 @@ H2('CMS');
 B(['The ordinary CMS (`IPL CMS`, `IPL 190`) is unchanged: a System/370 BC-mode CMS with 16 MB of addressable storage.',
    'An EC-mode CMS is on MAINT’s 290 disk (`IPL 290`). With it, the HIGHSTOR nucleus extension (loaded by the system profile) manages storage from 16 MB to the end of the virtual machine; SVC 120 (GETMAIN/FREEMAIN RU) gives programs storage above the line.',
    'GCC380, the AMODE 31 build of the Community Edition’s GCC, runs above 16 MB; GCCLIB31 is a C library for programs that run in 31-bit mode with their heap above 16 MB.',
+   'Under the EC-mode CMS (`IPL 290`), minidisks can use IBM’s Enhanced Disk Format (EDF, 4 KB blocks) besides the 800-byte format: a disk up to the size of a full 3380 (518 MB), files with any number of records. `FORMAT vaddr fm (BLKSIZE 4096` makes one; ACCESS tells the formats apart by the label. The DMSEFS nucleus extension does the work and is loaded by the system profile.',
    'New commands on MAINT 19D: `FULIST` (`FL`), a full-screen file list in the manner of FILELIST; `WAKEUP`; `CHAT`; `LINUX`. `GLOBALV`, global variables as in z/VM, is loaded at IPL. Appendix A; Appendix D lists all CP and CMS commands.',
    'Programs written for System/370 BC mode (MECAFF’s EE and FSVIEW, the REXX full-screen package) run under the EC-mode CMS too: CMS turns an SVC from BC mode into an EC call, and CP takes a BC-style system mask (`SSM =X\'FF\'`) in an EC-mode System/370 machine as the BC mask it is.',
    'CPWATCH is not autologged: it is an S/370 monitor that loops under this CP. The two lines in AUTOLOG1’s PROFILE EXEC are commented out.']);
@@ -370,7 +372,8 @@ TABLE(['Area', 'Restriction'], [
   ['Linux disk I/O', 'The initramfs still limits disk requests to 128 KB (from the time of the 64-CCW limit, now gone); `echo 760 > /sys/block/dasda/queue/max_sectors_kb` allows larger ones.'],
   ['Shared systems', 'The models of a shared named system are not freed when the last user leaves; they stay until CP is IPLed.'],
   ['CP dump', 'DMKDMP cannot write its dump under ESA/390 (I-201); after an abend the registers must be taken from Hercules.'],
-  ['CMS', 'The CMS nucleus is 24-bit; programs above 16 MB use HIGHSTOR and SVC 120 (milestone M6 will change this).'],
+  ['CMS', 'The CMS nucleus is 24-bit; programs above 16 MB use HIGHSTOR and SVC 120.'],
+  ['EDF disks', 'Only under `IPL 290` (the 190 CMS sees an EDF disk as unknown). A V-format file can only be extended at its end. Commands that take record numbers (TYPE, COPYFILE FROM/FOR) reach records 1 to 65,535 directly; beyond that only in sequence. LISTFILE shows counts above 99,999 in thousands (`1400K`). The A-disk accessed at IPL must be in 800-byte format. DISK DUMP/LOAD, TAPE, MOVEFILE and FULIST are not yet checked on EDF disks.'],
   ['CPWATCH', 'Loops under this CP; not autologged.'],
   ['QUERY VIRTUAL STORAGE', 'Shows five digits.'],
   ['Multiprocessing', 'One CPU only.'],
@@ -415,6 +418,10 @@ H2('TDISK');
 SCREEN(['TDISK [cyls] [fm]'], 'TDISK');
 P('On MAINT 19D (new). A temporary disk in one step: CP defines it (`DEFINE T3350`) at the first free address from D00 to D1F, CMS formats it with the label TMPvaddr and, if a file mode is given, accesses it. **cyls** is 1 to 100 cylinders, default 10 (about 5 MB); without **fm** the disk is formatted but not accessed. The operands may come in either order. Return codes: 24 invalid operands, 28 the file mode is in use, 32 no free address or no TEMP space; otherwise FORMAT’s. The contents are lost at LOGOFF or DETACH. `HELP TDISK` describes it.');
 SCREEN(['tdisk 5 t', 'DASD D00 DEFINED 0005 CYL', 'TDISK: disk D00 is ready as T, 5 cylinders, label TMPD00', 'Ready;'], 'TDISK');
+H2('FORMAT (BLKSIZE 4096)');
+SCREEN(['FORMAT vaddr fm [cyls] (BLKSIZE 4096|4K|800'], 'FORMAT');
+P('Under `IPL 290` (changed). **BLKSIZE 4096** formats the disk in IBM’s Enhanced Disk Format: 4096-byte blocks, the file directory and the allocation map kept as files, records counted in fullwords. Without **cyls** the whole minidisk is used, whatever its size (FORMAT’s usual 800-byte limit, 121 cylinders on a 3380, does not apply). 3350 and 3380 disks. FORMAT asks for confirmation and a label as usual and then accesses the disk. **BLKSIZE 800** is the usual format. A disk written by `tools/edf.py` on the PC can be accessed too, and the reverse.');
+SCREEN(['format 1b0 y (blksize 4096', 'DMSFOR603R FORMAT WILL ERASE ALL FILES ON DISK \'Y(1B0)\'. DO YOU WISH TO CONTINUE? (YES|NO):', 'yes', 'DMSFOR605R ENTER DISK LABEL:', 'edf002', 'FORMATTING DISK \'Y\'.', 'Ready;', 'q disk y', 'Label  CUU M  Stat  Cyl Type Blksize   Files  Blks Used-(%) Blks Left  Blk Total', 'EDF002 1B0 Y   R/W  885 3380 4096          0         10-00     132740     132750', 'Ready;'], 'FORMAT (BLKSIZE 4096)');
 H2('GLOBALV');
 SCREEN(['GLOBALV [SELECT group] SET|SETS|SETL|SETP name value', 'GLOBALV [SELECT group] PUT|PUTS|PUTL|PUTP name ...', 'GLOBALV [SELECT group] GET|STACK name ...', 'GLOBALV [SELECT group] LIST [name ...]|PURGE', 'GLOBALV GRPLIST'], 'GLOBALV');
 P('New; a subset of z/VM’s GLOBALV. Variables live in groups (UNNAMED unless SELECT names one). **SET** keeps a value until the next IPL of CMS, **SETS** also in `SESSION GLOBALV A` (erased at the next IPL), **SETL** in `LASTING GLOBALV A` (read again at every IPL), **SETP** both. **PUT** takes the values of the calling EXEC’s REXX variables, **GET** sets them, **STACK** puts values on the console stack. A null value drops a variable. Names up to 32 characters, values up to 255, 128 variables. GLOBALV is a nucleus extension, loaded at IPL by the system profile.');
