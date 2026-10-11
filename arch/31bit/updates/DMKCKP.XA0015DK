@@ -21,6 +21,8 @@
 *  MEANS "UNTIL THE DEVICE IS CLEAR", AND XATIO CONSUMES       XA0015DK         
 *  STATUS WITH TSCH JUST AS TIO DID, SO THE LOOP STILL         XA0015DK         
 *  TERMINATES. *-4 BECOMES A LABEL. R-26.                      XA0015DK         
+         XATIO R1                  I-267: FIND ITS SSID        XA0015DK         
+         MVC   IOSSID(4),XAIOSSID  WHAT A REAL IPL LEAVES      XA0015DK         
          XASIO R1                  Issue the read ipl CCW      XA0015DK         
          BC    4,LOADCK            CSW stored; check status    XA0015DK         
          BC    7,IPLLOAD           Error on SIO, wait PSW      XA0015DK         

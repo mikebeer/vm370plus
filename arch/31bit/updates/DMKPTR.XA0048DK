@@ -14,23 +14,29 @@
          SR    R1,R1           CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R1,B'0111',1(R4) ACCESS AP BACK POCKET          XA0048DK         
 ./ R 01006000          $ 01006100 100                                           
-         SR    R5,R5           CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R5,B'0111',CORSWPNT+1 GET SWAP TABLE ENTRY      XA0048DK         
+         SLL   R5,8 CLEAN BYTE 0, I-268                        XA0048DK         
+         SRL   R5,8 (SHIFTS KEEP THE CC)                       XA0048DK         
 ./ R 01195000          $ 01195100 100                                           
-         SR    R9,R9           CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R9,B'0111',CORPGPNT+1 GET PTE POINTER           XA0048DK         
+         SLL   R9,8 CLEAN BYTE 0, I-268                        XA0048DK         
+         SRL   R9,8 (SHIFTS KEEP THE CC)                       XA0048DK         
 ./ R 01269000          $ 01269100 100                                           
-         SR    R5,R5           CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R5,B'0111',CORSWPNT+1 SWAP TABLE ENTRY POINTER  XA0048DK         
+         SLL   R5,8 CLEAN BYTE 0, I-268                        XA0048DK         
+         SRL   R5,8 (SHIFTS KEEP THE CC)                       XA0048DK         
 ./ R 01412000          $ 01412100 100                                           
          SR    R2,R2           CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R2,B'0111',VMMADDR VM ASSIST ON FOR USER?       XA0048DK         
 ./ R 01913000          $ 01913100 100                                           
-         SR    R2,R2           CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R2,B'0111',VMMADDR VM ASSIST OF FOR USER?       XA0048DK         
+         SLL   R2,8 CLEAN BYTE 0, I-268                        XA0048DK         
+         SRL   R2,8 (SHIFTS KEEP THE CC)                       XA0048DK         
 ./ R 01943000          $ 01943100 100                                           
-         SR    R2,R2           CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R2,B'0111',PAGSHR+1 NAMED SYSTEM POINTER?       XA0048DK         
+         SLL   R2,8 CLEAN BYTE 0, I-268                        XA0048DK         
+         SRL   R2,8 (SHIFTS KEEP THE CC)                       XA0048DK         
 ./ R 01982000          $ 01982100 100                                           
-         SR    R5,R5           CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R5,B'0111',CORSWPNT+1 SWAP TABLE POINTER        XA0048DK         
+         SLL   R5,8 CLEAN BYTE 0, I-268                        XA0048DK         
+         SRL   R5,8 (SHIFTS KEEP THE CC)                       XA0048DK         

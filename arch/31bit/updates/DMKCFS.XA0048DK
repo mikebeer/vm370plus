@@ -8,5 +8,6 @@
          SR    R15,R15         CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R15,B'0111',VMMADDR DOES MICBLOK STILL EXIST?   XA0048DK         
 ./ R 00940000          $ 00940100 100                                           
-         SR    R1,R1           CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R1,B'0111',VMMADDR CURRENTLY USING VM ASSIST?   XA0048DK         
+         SLL   R1,8 CLEAN BYTE 0, I-268                        XA0048DK         
+         SRL   R1,8 (SHIFTS KEEP THE CC)                       XA0048DK         

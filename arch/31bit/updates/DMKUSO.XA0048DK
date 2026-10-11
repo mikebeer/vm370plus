@@ -1,3 +1,4 @@
 ./ R 00522100          $ 00522110 010                                           
-         SR    R1,R1           CLEAN BYTE 0, I-233             XA0048DK         
          ICM   R1,B'0111',VMSWPMIG+1 PSUEDO MEMORY?            XA0048DK         
+         SLL   R1,8 CLEAN BYTE 0, I-268                        XA0048DK         
+         SRL   R1,8 (SHIFTS KEEP THE CC)                       XA0048DK         

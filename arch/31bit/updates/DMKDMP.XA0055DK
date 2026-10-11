@@ -1,2 +1,4 @@
 ./ I 00723000 $ 00723100 100                                                    
          XATIO R15            I-201: TSCH, THE CSW             XA0055DK         
+./ I 00787000 $ 00787100 100                                                    
+         MVC   IOSSID(4),XAIOSSID I-267: AS A REAL IPL         XA0055DK         

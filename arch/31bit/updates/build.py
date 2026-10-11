@@ -4607,6 +4607,16 @@ def m4b3decks():
              limit=next_seq(src('DMKDMP'), '00723000'), lines=[
         "         XATIO R15            I-201: TSCH, THE CSW",
     ])
+    # I-267: DMKCKP's bootstrap (CKP001) takes the IPL device from the
+    # subsystem id at X'B8', which only a real IPL leaves there.  After
+    # this read X'B8' still named the last device to interrupt, so the
+    # checkpoint read DMKSAV from the wrong pack: WAIT 17 at every
+    # SHUTDOWN, and never any warm start data.  XAIOFIND cached the IPL
+    # device's id for the reads above; hand it on as an IPL would.
+    d.insert('00787000', first='00787100', inc=100,
+             limit=next_seq(src('DMKDMP'), '00787000'), lines=[
+        "         MVC   IOSSID(4),XAIOSSID I-267: AS A REAL IPL",
+    ])
     decks['DMKDMP'] = d
 
     # THE reason CP was not in AMODE 31 after all: SAVEPROC, the
@@ -5016,6 +5026,13 @@ def dmkckp():
         "WAIT LOOP KEEPS ITS SHAPE -- BC 7 MEANS \"UNTIL THE DEVICE IS CLEAR\", "
         "AND XATIO CONSUMES STATUS WITH TSCH JUST AS TIO DID, SO THE LOOP "
         "STILL TERMINATES. *-4 BECOMES A LABEL. R-26.") + [
+        # I-267: the bootstrap's CKP001 takes the IPL device from the
+        # subsystem id at X'B8'.  A real IPL leaves it there; this SSCH does
+        # not, so X'B8' still named the last interrupting device (06B1) and
+        # the warm start read DMKSAV from the wrong pack: WAIT 17.  XATIO
+        # finds and caches the IPL device's id; it goes to X'B8' first.
+        "         XATIO R1                  I-267: FIND ITS SSID",
+        "         MVC   IOSSID(4),XAIOSSID  WHAT A REAL IPL LEAVES",
         "         XASIO R1                  Issue the read ipl CCW",
         "         BC    4,LOADCK            CSW stored; check status",
         "         BC    7,IPLLOAD           Error on SIO, wait PSW",
@@ -10702,6 +10719,29 @@ ICM3_SKIP = {('DMKPER', '00628000'),   # R1 came from L R1,PERADDR, an address
              ('DMKCPS', '01358000'),   # SLL R3,24 then ICM: packed on purpose
              ('DMKVDE', '00813000')}   # same
 
+def icm3base(L, i, rx, opnd):
+    """True when the ICM at L[i] addresses its operand through rx itself:
+    explicitly, `9(R4)` / `0(,R4)`, or through a USING on rx in force."""
+    n = rx[1:]
+    m = re.search(r"\(([^)]*)\)", opnd)
+    if m:
+        return any(re.sub(r'^R', '', b.strip()) == n
+                   for b in m.group(1).split(',') if b.strip())
+    for j in range(i - 1, -1, -1):
+        p = L[j][:72]
+        if p.startswith('*'):
+            continue
+        w = p.split()
+        op = w[1] if not p.startswith(' ') and len(w) > 1 else (w[0] if w else '')
+        args = (w[2] if not p.startswith(' ') and len(w) > 2 else
+                (w[1] if len(w) > 1 else ''))
+        if op in ('USING', 'DROP'):
+            regs = [re.sub(r'^R', '', a) for a in args.split(',')]
+            regs = regs[1:] if op == 'USING' else regs
+            if n in regs:
+                return op == 'USING'
+    return False
+
 def icm3cards():
     sys.path.insert(0, TOOLS)
     import strips, replchk
@@ -10771,6 +10811,17 @@ def icm3cards():
             icm = '         %-5s %s' % (parts[0], parts[1])
             if len(parts) > 2:
                 icm = ('%-30s %s' % (icm, parts[2].strip()))[:61].rstrip()
+            if icm3base(L, i, rx, m.group(3)):
+                # I-268: the ICM's own base is Rx (`ICM R4,7,ACNTNEXT+1`
+                # under USING ACNTBLOK,R4), so an SR in front zeroes the
+                # base and the ICM reads location 9.  Clean byte 0 after
+                # the ICM instead: logical shifts leave the CC alone.
+                lab = '%-8s %s' % (label, icm.strip()) if label else icm
+                out.setdefault(mod, []).append((r['seq'], [
+                    lab[:61],
+                    '         SLL   %s,8 CLEAN BYTE 0, I-268' % rx,
+                    '         SRL   %s,8 (SHIFTS KEEP THE CC)' % rx]))
+                continue
             sr = ('%-30s CLEAN BYTE 0, I-233'
                   % ('%-8s SR    %s,%s' % (label, rx, rx)))
             out.setdefault(mod, []).append((r['seq'], [sr, icm]))
