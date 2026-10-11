@@ -1,0 +1,192 @@
+END TITLE 'CPWEND -                  INITIALIZATION/TERMINATION MODULE' CPW00010
+         COPY  CPWPRM                                                   CPW00020
+END      MODULE PRINT=YES                                               CPW00030
+         EJECT                                                          CPW00040
+*********************************************************************** CPW00050
+*              INITIALIZATION.                                          CPW00060
+*********************************************************************** CPW00070
+         SPACE 1                                                        CPW00080
+         PRINT GEN                                                      CPW00090
+CPWINT   PROC  BEGIN,INITIAL=YES                                        CPW00100
+         PRINT NOGEN                                                    CPW00110
+         SPACE 3                                                        CPW00120
+*              GRAB CONTROL OF THE MACHINE.                             CPW00130
+         SPACE 1                                                        CPW00140
+         DATA                                                           CPW00150
+INIT     DC    A(0),V(EXTINTER)  EXTERNAL NEW PSW.                      CPW00160
+         DC    A(0),V(SVCINTER)                                         CPW00170
+         DC    A(0),V(PGMINTER)                                         CPW00180
+         DC    XL8'0002000000F00030'       MCH NEW                      CPW00190
+         DC    A(0),V(IOINTER)                                          CPW00200
+         PROC                                                           CPW00210
+         MVC   EXTNPSW(40),INIT                                         CPW00220
+         SPACE 2                                                        CPW00230
+*---------------------------------------------------------------------- CPW00240
+*        S T O R A G E   I N I T I A L I Z A T I O N                    CPW00250
+*---------------------------------------------------------------------- CPW00260
+         SPACE 1                                                        CPW00270
+*              HOW BIG ARE WE ?                                         CPW00280
+         DIAG  R2,R3,X'60'    VM SIZE.                                  CPW00290
+         ST    R2,AHICORE                                               CPW00300
+         SPACE 1                                                        CPW00310
+*              FREE UP EVERYTHING WE CAN.                               CPW00320
+         S     R2,F04096       LAST REAL PAGE.                          CPW00330
+         SPACE 1                                                        CPW00340
+         L     R3,AHICSECT   FIRST PAGE AVAILABLE.                      CPW00350
+         LA    R3,4095(,R3)                                             CPW00360
+         N     R3,FM04096     ROUND UP.                                 CPW00370
+         SPACE 1                                                        CPW00380
+         DIAG  R3,R2,X'10'    RELPAGES.                                 CPW00390
+         SPACE 1                                                        CPW00400
+*              SET UP CONTROLLED STORAGE.                               CPW00410
+         L     R1,AHICSECT    FIRST AVAIL SEGMENT                       CPW00420
+         L     R0,AHICORE                                               CPW00430
+         SR    R0,R1          LENGTH TO FREE.                           CPW00440
+         SVC   SVCFREEM       GIVE IT TO THE BOSS.                      CPW00450
+         SPACE 1                                                        CPW00460
+*              NOW TAKE BACK DYNAMIC STORAGE                            CPW00470
+         L     R0,=A(&DYNAM*1024)                                       CPW00480
+         SVC   SVCGETM                                                  CPW00490
+         ST    R1,ASAVECH+4                                             CPW00500
+         L     R13,ASAVECH+4                                            CPW00510
+         USING CPWINTS,R13                                              CPW00520
+         AR    R1,R0                                                    CPW00530
+         ST    R1,ASAVECH     LAST SAVE BYTE.                           CPW00540
+         SPACE 1                                                        CPW00550
+*              SET UP NEXT AVAILABLE SAVEAREA.                          CPW00560
+         LR    R15,R13                                                  CPW00570
+         A     R15,16(,R11)                                             CPW00580
+         ST    R15,4(,R13)                                              CPW00590
+         LA    R15,ASAVECH                                              CPW00600
+         ST    R15,8(,R13)                                              CPW00610
+         MVC   0(4,R13),ASAVECH                                         CPW00620
+         SPACE 3                                                        CPW00630
+*              NOW WE CAN RUN NORMALLY.                                 CPW00640
+         SSM   HEXFS          ENABLE INTERRUPTS - WE'RE READY.          CPW00650
+         SPACE 1                                                        CPW00660
+*              FIX UP TIMER.                                            CPW00670
+         CMD   'SET TIMER REAL'                                         CPW00680
+         SPACE 1                                                        CPW00690
+*              DEFINE DEVICES.                                          CPW00700
+         L     R1,ADEVICES                                              CPW00710
+         USING DEVSECT,R1                                               CPW00720
+         DO WHILE,CLC,DEVADDR,HEXFS,NE                                  CPW00730
+            IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                              CPW00740
+               LH  R2,DEVADDR                                           CPW00750
+               DIAG R2,R3,X'24'         DEVICE TYPE AND FEATURES.       CPW00760
+               IF B'0001',THEN                                          CPW00770
+*                             DEFINE DEVICE.                            CPW00780
+               DATA                                                     CPW00790
+DEFGRAF        DC    C'DEFINE GRAF XXX'                                 CPW00800
+               ORG   *-3                                                CPW00810
+DEFADDR        DS    CL3                                                CPW00820
+               ORG                                                      CPW00830
+               PROC                                                     CPW00840
+               MVC DEFADDR,DEVCADDR                                     CPW00850
+               LA  R2,DEFGRAF                                           CPW00860
+               LA  R3,L'DEFGRAF                                         CPW00870
+               DIAG R2,R3,8                                             CPW00880
+               IF END                                                   CPW00890
+            IF END                                                      CPW00900
+            LA  R1,DEVNEXT                                              CPW00910
+         DO END                                                         CPW00920
+         DROP  R1                                                       CPW00930
+         SPACE 3                                                        CPW00940
+*---------------------------------------------------------------------- CPW00950
+*              SAY HELLO                                                CPW00960
+*---------------------------------------------------------------------- CPW00970
+         WTO   'CPWATCH ACTIVE'                                         CPW00980
+         SPACE 3                                                        CPW00990
+*---------------------------------------------------------------------- CPW01000
+*        AND FETCH MAINLINE.                                            CPW01010
+*---------------------------------------------------------------------- CPW01020
+         CALL  MAIN                                                     CPW01030
+         SPACE 3                                                        CPW01040
+*---------------------------------------------------------------------- CPW01050
+*              LOG OUT STORAGE MANAGEMENT ACTION.                       CPW01060
+*---------------------------------------------------------------------- CPW01070
+*              NOTE THAT THE FOLLOWING IS ONE-TIME CODE.                CPW01080
+         DATA                                                           CPW01090
+ENDMSG1  EQU   *                                                        CPW01100
+GETCNT   DC    X'402020206B2020206B2020206B2020206B202120'              CPW01110
+         DC    C' GETMAINS,'                                            CPW01120
+         DC    X'15'                                                    CPW01130
+FRECNT   DC    X'402020206B2020206B2020206B2020206B202120'              CPW01140
+         DC    C' FREEMAINS.'                                           CPW01150
+ENDMSG1L EQU   *-ENDMSG1                                                CPW01160
+         PROC                                                           CPW01170
+         ED    GETCNT,GETMAINS                                          CPW01180
+         ED    FRECNT,FREMAINS                                          CPW01190
+         SPACE 1                                                        CPW01200
+         LM    R0,R1,=A(ENDMSG1L,ENDMSG1)                               CPW01210
+         SVC   SVCWTO                                                   CPW01220
+         SPACE 3                                                        CPW01230
+*---------------------------------------------------------------------- CPW01240
+*              SHUTTING DOWN CLEANUP.                                   CPW01250
+*---------------------------------------------------------------------- CPW01260
+         L     R1,ADEVICES                                              CPW01270
+         USING DEVSECT,R1                                               CPW01280
+         DO WHILE,CLC,DEVADDR,HEXFS,NE                                  CPW01290
+            IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                              CPW01300
+*              DETACH DEVICES.                                          CPW01310
+               DATA                                                     CPW01320
+DETGRAF        DC  C'DETACH XXX'                                        CPW01330
+               ORG *-3                                                  CPW01340
+DETADDR        DS  CL3                                                  CPW01350
+               ORG                                                      CPW01360
+               PROC                                                     CPW01370
+               MVC DETADDR,DEVCADDR                                     CPW01380
+               LA  R2,DETGRAF                                           CPW01390
+               LA  R3,L'DETGRAF                                         CPW01400
+               DIAG R2,R3,8                                             CPW01410
+            IF END                                                      CPW01420
+            LA  R1,DEVNEXT                                              CPW01430
+         DO END                                                         CPW01440
+         DROP R1                                                        CPW01450
+         SPACE 3                                                        CPW01460
+*---------------------------------------------------------------------- CPW01470
+*              QUIESCE CONSOLE.                                         CPW01480
+*---------------------------------------------------------------------- CPW01490
+         SPACE 1                                                        CPW01500
+         L     R5,=V(CONSOLE)                                           CPW01510
+         USING DEVSECT,R5                                               CPW01520
+         DO WHILE,CLC,DEVBEGST,ZEROS,NZ                                 CPW01530
+               SETIME 1                                                 CPW01540
+               WAIT                                                     CPW01550
+         DO END                                                         CPW01560
+         SPACE 3                                                        CPW01570
+*---------------------------------------------------------------------- CPW01580
+*              AND PACK IT IN.                                          CPW01590
+*---------------------------------------------------------------------- CPW01600
+         LA    R2,=CL8'IPL CMS'                                         CPW01610
+         LA    R3,8                                                     CPW01620
+         DIAG  R2,R3,8                                                  CPW01630
+         SPACE 1                                                        CPW01640
+         PROC  END            SHOULD NEVER BE EXECUTED.                 CPW01650
+         LTORG                                                          CPW01660
+         SPENDCHK                                                       CPW01670
+         EJECT                                                          CPW01680
+*********************************************************************** CPW01690
+*              V M / 3 7 0   D S E C T S.                             * CPW01700
+*********************************************************************** CPW01710
+         SPACE 1                                                        CPW01720
+         PSA                                                            CPW01730
+         COPY  RBLOKS                                                   CPW01740
+         COPY  VMBLOK                                                   CPW01750
+         AGO   .DONT          SUPPRESS DSECTS UNTIL NEEDED.             CPW01760
+         SYSLOCS                                                        CPW01770
+.DONT    ANOP                                                           CPW01780
+         EJECT                                                          CPW01790
+*---------------------------------------------------------------------- CPW01800
+*              DEFINE TOP OF USED STORAGE.                              CPW01810
+*---------------------------------------------------------------------- CPW01820
+HICSECT  CSECT                MUST NOT BE USED FOR ANYTHING ELSE.       CPW01830
+         SPACE 12                                                       CPW01840
+         SPENDCHK             ARE WE CLEAN ?                            CPW01850
+         END   CPWINT                                                   CPW01860
+
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+USERID MAINT    CLASS A NAME CPWMAN      ASSEMBLE         10/11/26  15:00:43

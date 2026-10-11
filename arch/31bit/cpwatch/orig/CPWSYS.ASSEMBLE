@@ -1,0 +1,842 @@
+SYS      TITLE '                                        CPWATCH'        CPW00010
+         COPY  CPWPRM                                                   CPW00020
+SYS      MODULE PRINT=YES                                               CPW00030
+         EJECT                                                          CPW00040
+*********************************************************************** CPW00050
+*              DISPLAY LOW CORE AND SYSTEM STUFF.                       CPW00060
+*********************************************************************** CPW00070
+         SPACE 1                                                        CPW00080
+SYSDCP   PROC  BEGIN                                                    CPW00090
+         L     R8,ACPWSECT                                              CPW00100
+         USING CPWSECT,R8                                               CPW00110
+         IF R8,Z,THEN  IF DATA AREA NOT ALLOCATED, ALLOCATE & INIT.     CPW00120
+            LA   R0,CPWSECTL                                            CPW00130
+            SVC  SVCGETM                                                CPW00140
+            LR   R8,R1                                                  CPW00150
+            ST   R8,ACPWSECT                                            CPW00160
+            SPACE 1                                                     CPW00170
+            XC   CPWSECT(256),CPWSECT                                   CPW00180
+            XC   CPWSECT+256(CPWSECTL-256),CPWSECT+256                  CPW00190
+            ZAP  CPACTV,=P'0'                                           CPW00200
+            ZAP  CPINACT,=P'0'                                          CPW00210
+            ZAP  CPSLEEP,=P'0'                                          CPW00220
+            ZAP  CPQ1,=P'0'                                             CPW00230
+            ZAP  CPQ2,=P'0'                                             CPW00240
+            ZAP  CPQ3,=P'0'                                             CPW00250
+            ZAP  CPEL,=P'0'                                             CPW00260
+            SPACE 3                                                     CPW00270
+*              PICK UP ADDRESSES FROM SYM TABLE.                        CPW00280
+            L   R4,ASYMBUFF                                             CPW00290
+            USING SYMTAB,R4                                             CPW00300
+            DO WHILE,CLC,SYMNAME,ZEROS,NE                               CPW00310
+               IF CLC,SYMNAME,=C'DMKPTRPR',EQ,THEN                      CPW00320
+                  MVC CPAPTRPR,SYMADDR                                  CPW00330
+               IF END                                                   CPW00340
+               IF CLC,SYMNAME,=C'DMKPTRFF',EQ,THEN                      CPW00350
+                  MVC CPAPTRFF,SYMADDR                                  CPW00360
+               IF END                                                   CPW00370
+               IF CLC,SYMNAME,=C'DMKPTRSS',EQ,THEN                      CPW00380
+                  MVC CPAPTRSS,SYMADDR                                  CPW00390
+               IF END                                                   CPW00400
+               IF CLC,SYMNAME,=C'DMKPTRSC',EQ,THEN                      CPW00410
+                  MVC CPAPTRSC,SYMADDR                                  CPW00420
+               IF END                                                   CPW00430
+               SPACE 1                                                  CPW00440
+               LA  R4,SYMLEN(,R4)                                       CPW00450
+            DO END                                                      CPW00460
+            DROP R4                                                     CPW00470
+         IF END                                                         CPW00480
+         EJECT                                                          CPW00490
+*              PICK UP ONLY OR MAIN PROCESSOR PSA DATA.                 CPW00500
+PAG      DCPLIST PSA,(PFXA,PREFIXA),(PFXB,PREFIXB),(XAPP,APSTAT1),     +CPW00510
+               (CPIDL,IDLEWAIT),(,IDLEWAIT+4),                         +CPW00520
+               (CPPAG,PAGEWAIT),(,PAGEWAIT+4),                         +CPW00530
+               (CPION,IONTWAIT),(,IONTWAIT+4),                         +CPW00540
+               (CPROB,PROBTIME),(,PROBTIME+4),                         +CPW00550
+               (CPPGRI,PGREAD),(CPPGWRI,PGWRITE),                      +CPW00560
+               (CPSVC,PSASVCCT)                                         CPW00570
+         DCP   PAG,BASE=0                                               CPW00580
+         SPACE 1                                                        CPW00590
+*              SAVE ATTACHED PROCESSOR STATUS AND LOCATION, IF ANY.     CPW00600
+         MVC   XPREFIXA,PFXA                                            CPW00610
+         MVC   XPREFIXB,PFXB                                            CPW00620
+         MVC   OAPSTAT1,XAPSTAT1        SAVE LAST SNAP ONE.             CPW00630
+         MVC   XAPSTAT1,XAPP                                            CPW00640
+         MVC   XAPSTAT2,XAPP+(APSTAT2-APSTAT1)                          CPW00650
+         SPACE 1                                                        CPW00660
+         LM  R0,R1,CPIDLED                                              CPW00670
+         DSUB R0,CPIDL                                                  CPW00680
+         MVC CPIDLED,CPIDL                                              CPW00690
+         SRDL R0,12                                                     CPW00700
+         ST   R1,CPIDLEF                                                CPW00710
+         SPACE 1                                                        CPW00720
+         LM  R0,R1,CPPAGED                                              CPW00730
+         DSUB R0,CPPAG                                                  CPW00740
+         MVC CPPAGED,CPPAG                                              CPW00750
+         SRDL R0,12                                                     CPW00760
+         ST  R1,CPPAGEF                                                 CPW00770
+         SPACE 1                                                        CPW00780
+         LM  R0,R1,CPIONTD                                              CPW00790
+         DSUB R0,CPION                                                  CPW00800
+         MVC CPIONTD,CPION                                              CPW00810
+         SRDL  R0,12                                                    CPW00820
+         ST    R1,CPIONTF                                               CPW00830
+         SPACE 1                                                        CPW00840
+         LM    R0,R1,CPPROBD                                            CPW00850
+         DSUB  R0,CPROB                                                 CPW00860
+         MVC   CPPROBD,CPROB                                            CPW00870
+         SRDL  R0,12                                                    CPW00880
+         ST    R1,CPPROBF                                               CPW00890
+         SPACE 1                                                        CPW00900
+         L     R1,CPSVC                                                 CPW00910
+         S     R1,CPSVCCT                                               CPW00920
+         ST    R1,CPSVCF                                                CPW00930
+         MVC   CPSVCCT,CPSVC                                            CPW00940
+         SPACE 3                                                        CPW00950
+         L     R1,CPPGRI      TOTAL PAGE READS TO DATE.                 CPW00960
+         L     R2,CPGREAD                                               CPW00970
+         ST    R1,CPGREAD                                               CPW00980
+         SR    R1,R2                                                    CPW00990
+         ST    R1,CPDPGR      INCREASE IN PAGE READS                    CPW01000
+         SPACE 1                                                        CPW01010
+         L     R1,CPPGWRI     TOTAL PAGE WRITES TO DATE.                CPW01020
+         L     R2,CPGWRITE                                              CPW01030
+         ST    R1,CPGWRITE                                              CPW01040
+         SR    R1,R2                                                    CPW01050
+         ST    R1,CPDPGW      INCREASE                                  CPW01060
+         SPACE 3                                                        CPW01070
+*              PICK UP STUFF FROM ABSOLUTE PSA.                         CPW01080
+*        NOTE PREFIXA = 0 IF RUNNING UNIPROCESSOR;                      CPW01090
+*   IF RUNNING ATTACHED PROCESSOR, ALLOWS ACCESS TO ABSOLUTE PAGE 0     CPW01100
+*   FOR STUFF WHICH IS IN ABSOLUTE PAGE 0(ABSOLUTE PSA), USE PREFIXA    CPW01110
+*   REGARDLESS OF WHETHER WE ARE RUNNING AP OR UP - THEN IT WILL ALWAYS CPW01120
+*   WORK.                                                               CPW01130
+ABSPSA   DCPLIST PSA,(PGW,PAGELOAD)                                     CPW01140
+         L     R4,XPREFIXA                                              CPW01150
+         DCP   ABSPSA,BASE=(R4)                                         CPW01160
+         SPACE 1                                                        CPW01170
+         MVC CPGLOAD,PGW                                                CPW01180
+         MVC CPGRATE,PGW+2                                              CPW01190
+         SPACE 3                                                        CPW01200
+*                             PICK UP ATTACHED PROCESSOR GOOD STUFF.    CPW01210
+         IF TM,XAPSTAT1,APUOPER,O,THEN                                  CPW01220
+            L   R4,XPREFIXB   A(AP PSA)                                 CPW01230
+            SPACE 1                                                     CPW01240
+            DCP   PAG,BASE=(R4)                                         CPW01250
+            SPACE 1                                                     CPW01260
+            LM  R0,R1,APIDLED                                           CPW01270
+            DSUB R0,CPIDL                                               CPW01280
+            MVC APIDLED,CPIDL                                           CPW01290
+            SRDL R0,12                                                  CPW01300
+            ST   R1,APIDLEF                                             CPW01310
+            SPACE 1                                                     CPW01320
+            LM  R0,R1,APPAGED                                           CPW01330
+            DSUB R0,CPPAG                                               CPW01340
+            MVC APPAGED,CPPAG                                           CPW01350
+            SRDL R0,12                                                  CPW01360
+            ST  R1,APPAGEF                                              CPW01370
+            SPACE 1                                                     CPW01380
+            LM  R0,R1,APIONTD                                           CPW01390
+            DSUB R0,CPION                                               CPW01400
+            MVC APIONTD,CPION                                           CPW01410
+            SRDL  R0,12                                                 CPW01420
+            ST    R1,APIONTF                                            CPW01430
+            SPACE 1                                                     CPW01440
+            LM    R0,R1,APPROBD                                         CPW01450
+            DSUB  R0,CPROB                                              CPW01460
+            MVC   APPROBD,CPROB                                         CPW01470
+            SRDL  R0,12                                                 CPW01480
+            ST    R1,APPROBF                                            CPW01490
+            SPACE 1                                                     CPW01500
+            L     R1,CPSVC                                              CPW01510
+            S     R1,APSVCCT                                            CPW01520
+            ST    R1,APSVCF                                             CPW01530
+            MVC   APSVCCT,CPSVC                                         CPW01540
+            SPACE 1                                                     CPW01550
+         IF END                                                         CPW01560
+         IF TM,XAPSTAT1,APUOPER,Z,OR,                                  +CPW01570
+               TM,OAPSTAT1,APUOPER,Z,THEN NO VALID DIFFERENCES.         CPW01580
+            XC  APIDLEF,APIDLEF CLEAR ANY DIFFERENCES - THEY'RE WRONG.  CPW01590
+            XC  APPAGEF,APPAGEF                                         CPW01600
+            XC  APIONTF,APIONTF                                         CPW01610
+            XC  APPROBF,APPROBF                                         CPW01620
+            XC  APSVCF,APSVCF                                           CPW01630
+         IF END                                                         CPW01640
+         SPACE 3                                                        CPW01650
+         L     R7,AASYSLC                                               CPW01660
+LOCLST   DCPLIST SYSLOCS,(NON,DMKSYSNM),(NMA,DMKSYSMA),                +CPW01670
+               (NMU,DMKSYSMU),(NDI,DMKSYSND)                            CPW01680
+         DCP   LOCLST,BASE=(R7)                                         CPW01690
+         SPACE 1                                                        CPW01700
+         MVC   CPUSRS,NON                                               CPW01710
+         MVC   CPDIAL,NDI                                               CPW01720
+         MVC   CPMAXA,NMA                                               CPW01730
+         MVC   CPMAXU,NMU                                               CPW01740
+         SPACE 1                                                        CPW01750
+         MVC CPFREE,ADSPNP    FETCH FREE PAGES.                         CPW01760
+         OI  CPFREE,X'80'                                               CPW01770
+         LA  R0,0                                                       CPW01780
+         LA  R1,CPFREE                                                  CPW01790
+         SVC SVCDCP                                                     CPW01800
+         SPACE 3                                                        CPW01810
+*              PAGING STUFF                                             CPW01820
+         MVC CPDPTRPR,CPTPTRPR          SAVE OLD TOTAL                  CPW01830
+         MVC CPTPTRPR,CPAPTRPR          MOVE IN  ADDRESS                CPW01840
+         MVC CPDPTRFF,CPTPTRFF                                          CPW01850
+         MVC CPTPTRFF,CPAPTRFF                                          CPW01860
+         MVC CPDPTRSS,CPTPTRSS                                          CPW01870
+         MVC CPTPTRSS,CPAPTRSS                                          CPW01880
+         MVC CPTPTRSC,CPAPTRSC                                          CPW01890
+         SPACE 1                                                        CPW01900
+         XC    CPTPTR00,CPTPTR00        ZERO OFFSET                     CPW01910
+         OI  CPTPTRSC,X'80'   MARK END.                                 CPW01920
+         SR  R0,R0                                                      CPW01930
+         LA  R1,CPTPTR00                                                CPW01940
+         SVC SVCDCP                                                     CPW01950
+         SPACE 1                                                        CPW01960
+*                             CALCULATE DIFFERENCES WHERE SIGNIFICANT.  CPW01970
+         L   R1,CPTPTRPR                                                CPW01980
+         S   R1,CPDPTRPR                                                CPW01990
+         ST  R1,CPDPTRPR                                                CPW02000
+         SPACE 1                                                        CPW02010
+         L   R1,CPTPTRFF                                                CPW02020
+         S   R1,CPDPTRFF                                                CPW02030
+         ST  R1,CPDPTRFF                                                CPW02040
+         SPACE 1                                                        CPW02050
+         L   R1,CPTPTRSS                                                CPW02060
+         S   R1,CPDPTRSS                                                CPW02070
+         ST  R1,CPDPTRSS                                                CPW02080
+         SPACE 1                                                        CPW02090
+         SPACE 3                                                        CPW02100
+         IF CP,SNAPS,=P'1',EQ,THEN (SOME THINGS WON'T BE REAL)          CPW02110
+            XC  CPIDLEF,CPIDLEF         MAIN PROCESSOR                  CPW02120
+            XC  CPPAGEF,CPPAGEF                                         CPW02130
+            XC  CPIONTF,CPIONTF                                         CPW02140
+            XC  CPPROBF,CPPROBF                                         CPW02150
+            SPACE 1                                                     CPW02160
+            XC  APIDLEF,APIDLEF         ATTACHED PROCESSOR              CPW02170
+            XC  APPAGEF,APPAGEF                                         CPW02180
+            XC  APIONTF,APIONTF                                         CPW02190
+            XC  APPROBF,APPROBF                                         CPW02200
+            SPACE 1                                                     CPW02210
+            XC  CPDPTRPR,CPDPTRPR                                       CPW02220
+            XC  CPDPTRFF,CPDPTRFF                                       CPW02230
+            XC  CPDPTRSS,CPDPTRSS                                       CPW02240
+            XC  CPDPGR,CPDPGR                                           CPW02250
+            XC  CPDPGW,CPDPGW                                           CPW02260
+         IF END                                                         CPW02270
+         PROC  END                                                      CPW02280
+         EJECT                                                          CPW02290
+*********************************************************************** CPW02300
+*              B U I L D   S Y S T E M   P A G E                        CPW02310
+*********************************************************************** CPW02320
+*              SYSTEM PAGE.                                             CPW02330
+SYSPAGE  PROC  BEGIN                                                    CPW02340
+         L     R8,ACPWSECT                                              CPW02350
+         USING CPWSECT,R8                                               CPW02360
+         SPACE 1                                                        CPW02370
+   DATA                                                                 CPW02380
+SCRSECT  DSECT                                                          CPW02390
+         ORG   SCRLINE3                                                 CPW02400
+         SPACE 1                                                        CPW02410
+*              CPU USAGE COLUMN                                         CPW02420
+CPUCOL   DS    CL21                                                     CPW02430
+         ORG   CPUCOL+2*L'SCRLINE                                       CPW02440
+OPROB    DS    CL17'Problem 999% 999%'                                  CPW02450
+         ORG   CPUCOL+3*L'SCRLINE                                       CPW02460
+OPAG     DS    CL17'Page Wait 999%'                                     CPW02470
+         ORG   CPUCOL+4*L'SCRLINE                                       CPW02480
+OIO      DS    CL17'I/O Wait 999%'                                      CPW02490
+         ORG   CPUCOL+5*L'SCRLINE                                       CPW02500
+OIDL     DS    CL17'Idle Wait 999%'                                     CPW02510
+         ORG   CPUCOL+6*L'SCRLINE                                       CPW02520
+OVERH    DS    CL17'Overhead 999%'                                      CPW02530
+         SPACE 1                                                        CPW02540
+         ORG   CPUCOL+8*L'SCRLINE                                       CPW02550
+OCPUB    DS    CL17'CPU Busy 999%'                                      CPW02560
+         ORG   CPUCOL+9*L'SCRLINE                                       CPW02570
+OCPUI    DS    CL17'CPU Idle 999%'                                      CPW02580
+         SPACE 1                                                        CPW02590
+         ORG   CPUCOL+11*L'SCRLINE                                      CPW02600
+OTOTLI   DS    CL17'TOTAL, APU+CPU:'                                    CPW02610
+         ORG   OTOTLI+L'SCRLINE                                         CPW02620
+OPROBF   DS    CL17'PROB 999%'                                          CPW02630
+         ORG   OPROBF+L'SCRLINE                                         CPW02640
+OTOTF    DS    CL17'BUSY 999%'                                          CPW02650
+         SPACE 1                                                        CPW02660
+         ORG   CPUCOL+15*L'SCRLINE                                      CPW02670
+SVCRATE  DS    CL17'SVC      99999'                                     CPW02680
+         ORG                                                            CPW02690
+         SPACE 6                                                        CPW02700
+*        STORAGE COLUMN                                                 CPW02710
+         ORG   CPUCOL+L'CPUCOL                                          CPW02720
+STORCOL  DS    CL21                                                     CPW02730
+         ORG   STORCOL+2*L'SCRLINE                                      CPW02740
+REALCORE DS    CL18'REAL CORE 99999'                                    CPW02750
+         ORG   STORCOL+3*L'SCRLINE                                      CPW02760
+FREECORE DS    CL18'FREE CORE 99999'                                    CPW02770
+         ORG   STORCOL+5*L'SCRLINE                                      CPW02780
+PAGER    DS    CL17'PAGE TURN 9999/S'                                   CPW02790
+         ORG   STORCOL+6*L'SCRLINE                                      CPW02800
+PAGEL    DS    CL17'PAGE LOAD 999%'                                     CPW02810
+         ORG   STORCOL+8*L'SCRLINE                                      CPW02820
+PAGEREQ  DS    CL17'PAGE REQ 999.9/S'                                   CPW02830
+         ORG   STORCOL+9*L'SCRLINE                                      CPW02840
+STEALS   DS    CL17'STEALS 999.9/S'                                     CPW02850
+         ORG   STORCOL+10*L'SCRLINE                                     CPW02860
+FLUSHES  DS    CL17'FLUSHES 999.9/S'                                    CPW02870
+         ORG   STORCOL+11*L'SCRLINE                                     CPW02880
+PAGEREC  DS    CL17'RECLAIMS 999.9/S'                                   CPW02890
+         ORG   STORCOL+13*L'SCRLINE                                     CPW02900
+SRES     DS    CL17'RES SHARE 99999K'                                   CPW02910
+         ORG                                                            CPW02920
+         SPACE 6                                                        CPW02930
+*              QUEUES COLUMN                                            CPW02940
+         ORG   STORCOL+L'STORCOL                                        CPW02950
+QUECOL   DS    CL21                                                     CPW02960
+         ORG   QUECOL+2*L'SCRLINE                                       CPW02970
+LOGGON   DS    CL17'LOGGED ON 9999'                                     CPW02980
+         ORG   QUECOL+3*L'SCRLINE                                       CPW02990
+DIALLED  DS    CL17'DIALLED 9999'                                       CPW03000
+         ORG   QUECOL+5*L'SCRLINE                                       CPW03010
+ACTIVE   DS    CL17'ACTIVE 9999'                                        CPW03020
+         ORG   QUECOL+6*L'SCRLINE                                       CPW03030
+INACTIVE DS    CL17'INACTIVE 9999'                                      CPW03040
+         ORG   QUECOL+7*L'SCRLINE                                       CPW03050
+ASLEEP   DS    CL17'ASLEEP 9999'                                        CPW03060
+         ORG   QUECOL+9*L'SCRLINE                                       CPW03070
+QUE1     DS    CL17'QUEUE1 99999'                                       CPW03080
+         ORG   QUECOL+10*L'SCRLINE                                      CPW03090
+QUE2     DS    CL17'QUEUE2 99999'                                       CPW03100
+         ORG   QUECOL+11*L'SCRLINE                                      CPW03110
+QUE3     DS    CL17'QUEUE3 99999'                                       CPW03120
+         ORG   QUECOL+12*L'SCRLINE                                      CPW03130
+QUEL     DS    CL17'ELIGIBLE 99999'                                     CPW03140
+         ORG                                                            CPW03150
+         SPACE 6                                                        CPW03160
+*              CHANNELS COLUMN                                          CPW03170
+         ORG   QUECOL+L'QUECOL                                          CPW03180
+CHANCOL  DS    CL17'CHANNELS'                                           CPW03190
+         ORG   CHANCOL+2*L'SCRLINE                                      CPW03200
+CHAN0L   DS    CL17'CHAN 0   9999/S'                                    CPW03210
+         ORG                                                            CPW03220
+*        (NOTE THAT CHANNELS COULD EXTEND DOWN FOR 16 LINES)            CPW03230
+         SPACE 6                                                        CPW03240
+*              CPU IDENTIFICATION MESSAGE.                              CPW03250
+         ORG   SCREEND-2*L'SCRLINE                                      CPW03260
+         DS    CL26                                                     CPW03270
+CPUI     DC    C'CPU MODEL XXXX SERIAL XXXXXX'                          CPW03280
+         ORG   CPUI+10                                                  CPW03290
+CPUMODL  DS    CL4                                                      CPW03300
+         DS    CL8                                                      CPW03310
+CPUSERL  DS    CL6                                                      CPW03320
+         SPACE 2                                                        CPW03330
+*              VM IDENTIFICATION MESSAGE.                               CPW03340
+         ORG   SCREEND-L'SCRLINE                                        CPW03350
+         DS    CL14                                                     CPW03360
+CPSYSREL DS    CL(L'CPREL)                                              CPW03370
+CPUP     DC    C' HAS BEEN UP .... DAYS .. HOURS .. MIN'                CPW03380
+         ORG   CPUP+13                                                  CPW03390
+CPUPD    DS    CL4                                                      CPW03400
+         DS    CL6                                                      CPW03410
+CPUPH    DS    CL2                                                      CPW03420
+         DS    CL7                                                      CPW03430
+CPUPM    DS    CL2                                                      CPW03440
+         ORG                                                            CPW03450
+         SPACE 3                                                        CPW03460
+         PROC                                                           CPW03470
+         L     R9,=V(DSPSYS)                                            CPW03480
+         USING DSPSECT,R9                                               CPW03490
+         SR    R10,R10                                                  CPW03500
+         IF CP,LISTNRS,=P'0',GT,THEN                                    CPW03510
+            OI  DSPFLAGS,DSPNEW                                         CPW03520
+            SPACE 1                                                     CPW03530
+            LR  R1,R9                                                   CPW03540
+            LR  R0,R10                                                  CPW03550
+            CALL NEWSCR                                                 CPW03560
+            LR  R10,R0        NEW SCREEN.                               CPW03570
+            USING SCRSECT,R10                                           CPW03580
+            DATA                                                        CPW03590
+SYSTIT      DC  C'CPWATCH SYSTEM STATUS'                                CPW03600
+SYSOFS      EQU  (80-L'SYSTIT)/2                                        CPW03610
+            PROC                                                        CPW03620
+            MVC SCREEN+SYSOFS(L'SYSTIT),SYSTIT                          CPW03630
+            EJECT                                                       CPW03640
+*              CPU USAGE COLUMN.                                        CPW03650
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     CPW03660
+               MVC CPUCOL,=CL(L'CPUCOL)'USAGE:   APU  CPU'              CPW03670
+            IF ELSE                                                     CPW03680
+               MVC CPUCOL,=CL(L'CPUCOL)'CPU USAGE'                      CPW03690
+            IF END                                                      CPW03700
+            SPACE 1                                                     CPW03710
+            MVC OPROB,=CL(L'OPROB)'PROBLEM'                             CPW03720
+            L   R1,CPPROBF    PROBLEM STATE, IN USEC.                   CPW03730
+            SR  R0,R0                                                   CPW03740
+            D   R0,SNAPINT    / CLOCK, IN MILLISECONDS                  CPW03750
+            SR  R0,R0                                                   CPW03760
+            A   R1,=F'5'      ROUND OFF TENTHS OF PERCENT               CPW03770
+            D   R0,=F'10'                                               CPW03780
+            CALL DECIT                                                  CPW03790
+            MVC OPROB+L'OPROB-3-1(3),28-3(R13)                          CPW03800
+            MVI OPROB+L'OPROB-1,C'%'                                    CPW03810
+            SPACE 1                                                     CPW03820
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     CPW03830
+               L   R1,APPROBF                                           CPW03840
+               SR  R0,R0                                                CPW03850
+               D   R0,SNAPINT                                           CPW03860
+               SR  R0,R0                                                CPW03870
+               A   R1,=F'5'                                             CPW03880
+               D   R0,=F'10'                                            CPW03890
+               CALL DECIT                                               CPW03900
+               MVC OPROB+L'OPROB-5-3(3),28-3(R13)                       CPW03910
+            IF END                                                      CPW03920
+            SPACE 1                                                     CPW03930
+            MVC OPAG,=CL(L'OPAG)'PAGE WAIT'                             CPW03940
+            L   R1,CPPAGEF                                              CPW03950
+            SR  R0,R0                                                   CPW03960
+            D   R0,SNAPINT                                              CPW03970
+            SR  R0,R0                                                   CPW03980
+            A   R1,=F'5'                                                CPW03990
+            D   R0,=F'10'                                               CPW04000
+            CALL DECIT                                                  CPW04010
+            MVC OPAG+L'OPAG-3-1(3),28-3(R13)                            CPW04020
+            MVI OPAG+L'OPAG-1,C'%'                                      CPW04030
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     CPW04040
+               L   R1,APPAGEF                                           CPW04050
+               SR  R0,R0                                                CPW04060
+               D   R0,SNAPINT                                           CPW04070
+               SR  R0,R0                                                CPW04080
+               A   R1,=F'5'                                             CPW04090
+               D   R0,=F'10'                                            CPW04100
+               CALL DECIT                                               CPW04110
+               MVC OPAG+L'OPAG-5-3(3),28-3(R13)                         CPW04120
+            IF END                                                      CPW04130
+            SPACE 1                                                     CPW04140
+            MVC OIO,=CL(L'OPROB)'I/O WAIT'                              CPW04150
+            L   R1,CPIONTF                                              CPW04160
+            SR  R0,R0                                                   CPW04170
+            D   R0,SNAPINT                                              CPW04180
+            SR  R0,R0                                                   CPW04190
+            A   R1,=F'5'                                                CPW04200
+            D   R0,=F'10'                                               CPW04210
+            CALL DECIT                                                  CPW04220
+            MVC OIO+L'OIO-3-1(3),28-3(R13)                              CPW04230
+            MVI OIO+L'OIO-1,C'%'                                        CPW04240
+            SPACE 1                                                     CPW04250
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     CPW04260
+               L   R1,APIONTF                                           CPW04270
+               SR  R0,R0                                                CPW04280
+               D   R0,SNAPINT                                           CPW04290
+               SR  R0,R0                                                CPW04300
+               A   R1,=F'5'                                             CPW04310
+               D   R0,=F'10'                                            CPW04320
+               CALL DECIT                                               CPW04330
+               MVC OIO+L'OIO-5-3(3),28-3(R13)                           CPW04340
+            IF END                                                      CPW04350
+            SPACE 1                                                     CPW04360
+            MVC OIDL,=CL(L'OIDL)'IDLE WAIT'                             CPW04370
+            L   R1,CPIDLEF                                              CPW04380
+            SR  R0,R0                                                   CPW04390
+            D   R0,SNAPINT                                              CPW04400
+            SR  R0,R0                                                   CPW04410
+            A   R1,=F'5'                                                CPW04420
+            D   R0,=F'10'                                               CPW04430
+            CALL DECIT                                                  CPW04440
+            MVC OIDL+L'OIDL-3-1(3),28-3(R13)                            CPW04450
+            MVI OIDL+L'OIDL-1,C'%'                                      CPW04460
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     CPW04470
+               SPACE 1                                                  CPW04480
+               L   R1,APIDLEF                                           CPW04490
+               SR  R0,R0                                                CPW04500
+               D   R0,SNAPINT                                           CPW04510
+               SR  R0,R0                                                CPW04520
+               A   R1,=F'5'                                             CPW04530
+               D   R0,=F'10'                                            CPW04540
+               CALL DECIT                                               CPW04550
+               MVC OIDL+L'OIDL-5-3(3),28-3(R13)                         CPW04560
+            IF END                                                      CPW04570
+            SPACE 1                                                     CPW04580
+            MVC OVERH,=CL(L'OVERH)'OVERHEAD'                            CPW04590
+            SPACE 1                                                     CPW04600
+            L   R1,SNAPINT    WALL CLOCK TIME                           CPW04610
+            M   R0,=F'1000'   CONVERT TO USEC                           CPW04620
+            S   R1,CPPROBF    LESS PROBLEM STATE                        CPW04630
+            S   R1,CPPAGEF    LESS PAGE WAIT                            CPW04640
+            S   R1,CPIONTF    LESS I/O WAIT                             CPW04650
+            S   R1,CPIDLEF    LESS IDLE WAIT                            CPW04660
+            A   R1,=F'5'      ROUND                                     CPW04670
+            D   R0,=F'10'     BACK TO MSEC*100                          CPW04680
+            SR  R0,R0                                                   CPW04690
+            D   R0,SNAPINT    EXPRESS AS A PERCENTAGE.                  CPW04700
+            CALL DECIT                                                  CPW04710
+            MVC OVERH+L'OVERH-3-1(3),28-3(R13)                          CPW04720
+            MVI OVERH+L'OVERH-1,C'%'                                    CPW04730
+            SPACE 1                                                     CPW04740
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     CPW04750
+               L   R1,SNAPINT    WALL CLOCK TIME                        CPW04760
+               M   R0,=F'1000'   CONVERT TO USEC                        CPW04770
+               S   R1,APPROBF    LESS PROBLEM STATE                     CPW04780
+               S   R1,APPAGEF    LESS PAGE WAIT                         CPW04790
+               S   R1,APIONTF    LESS I/O WAIT                          CPW04800
+               S   R1,APIDLEF    LESS IDLE WAIT                         CPW04810
+               A   R1,=F'5'      ROUND                                  CPW04820
+               D   R0,=F'10'     BACK TO MSEC*100                       CPW04830
+               SR  R0,R0                                                CPW04840
+               D   R0,SNAPINT    EXPRESS AS A PERCENTAGE.               CPW04850
+               CALL DECIT                                               CPW04860
+               MVC OVERH+L'OVERH-5-3(3),28-3(R13)                       CPW04870
+            IF END                                                      CPW04880
+            SPACE 3                                                     CPW04890
+            MVC OCPUI,=CL(L'OCPUI)'CPU IDLE'                            CPW04900
+            L   R3,CPPAGEF    LESS PAGE WAIT                            CPW04910
+            A   R3,CPIONTF    LESS I/O WAIT                             CPW04920
+            A   R3,CPIDLEF    LESS IDLE WAIT                            CPW04930
+            A   R3,=F'5'      ROUND                                     CPW04940
+            SR  R2,R2                                                   CPW04950
+            D   R2,=F'10'     BACK TO MSEC*100                          CPW04960
+            SR  R2,R2                                                   CPW04970
+            D   R2,SNAPINT    EXPRESS AS A PERCENTAGE.                  CPW04980
+            LR  R1,R3                                                   CPW04990
+            CALL DECIT                                                  CPW05000
+            MVC OCPUI+L'OCPUI-3-1(3),28-3(R13)                          CPW05010
+            MVI OCPUI+L'OCPUI-1,C'%'                                    CPW05020
+            SPACE 3                                                     CPW05030
+            MVC OCPUB,=CL(L'OCPUB)'CPU BUSY'                            CPW05040
+            LA  R1,100        COMPLEMENT IDLE PCT.                      CPW05050
+            SR  R1,R3                                                   CPW05060
+            CALL DECIT                                                  CPW05070
+            MVC OCPUB+L'OCPUB-3-1(3),28-3(R13)                          CPW05080
+            MVI OCPUB+L'OCPUB-1,C'%'                                    CPW05090
+            SPACE 1                                                     CPW05100
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     CPW05110
+               L   R3,APPAGEF    LESS PAGE WAIT                         CPW05120
+               A   R3,APIONTF    LESS I/O WAIT                          CPW05130
+               A   R3,APIDLEF    LESS IDLE WAIT                         CPW05140
+               A   R3,=F'5'      ROUND                                  CPW05150
+               SR  R2,R2                                                CPW05160
+               D   R2,=F'10'     BACK TO MSEC*100                       CPW05170
+               SR  R2,R2                                                CPW05180
+               D   R2,SNAPINT    EXPRESS AS A PERCENTAGE.               CPW05190
+               LR  R1,R3                                                CPW05200
+               CALL DECIT                                               CPW05210
+               MVC OCPUI+L'OCPUI-5-3(3),28-3(R13)                       CPW05220
+               SPACE 1                                                  CPW05230
+               LA  R1,100        COMPLEMENT IDLE PCT.                   CPW05240
+               SR  R1,R3                                                CPW05250
+               CALL DECIT                                               CPW05260
+               MVC OCPUB+L'OCPUB-5-3(3),28-3(R13)                       CPW05270
+               SPACE 3                                                  CPW05280
+            IF END                                                      CPW05290
+            L   R1,CPSVCF                                               CPW05300
+            A   R1,APSVCF                                               CPW05310
+            IF R1,NZ,THEN                                               CPW05320
+               MVC SVCRATE,=CL(L'SVCRATE)'SVC'                          CPW05330
+               MVC SVCRATE+L'SVCRATE-2(2),=C'/s'                        CPW05340
+               SPACE 1                                                  CPW05350
+               L   R1,CPSVCF                                            CPW05360
+               M   R0,=F'20000'                                         CPW05370
+               D   R0,SNAPINT                                           CPW05380
+               LA  R1,1(,R1)                                            CPW05390
+               SRA R1,1                                                 CPW05400
+               CALL DECIT1D                                             CPW05410
+               MVC SVCRATE+L'SVCRATE-6-2(5),28-6(R13)                   CPW05420
+               SPACE 1                                                  CPW05430
+               IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                  CPW05440
+                  L   R1,APSVCF                                         CPW05450
+                  M   R0,=F'20000'                                      CPW05460
+                  D   R0,SNAPINT                                        CPW05470
+                  LA  R1,1(,R1)                                         CPW05480
+                  SRA R1,1                                              CPW05490
+                  CALL DECIT1D                                          CPW05500
+                  MVC SVCRATE+L'SVCRATE-8-1-6(6),28-6(R13)              CPW05510
+               IF END                                                   CPW05520
+            IF END                                                      CPW05530
+            SPACE 3                                                     CPW05540
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     CPW05550
+               MVC OTOTLI,=CL(L'OTOTLI)'TOTAL, APU+CPU:'                CPW05560
+               MVC OPROBF,=CL(L'OPROBF)'PROBLEM'                        CPW05570
+               L   R1,CPPROBF    PROBLEM STATE, IN USEC.                CPW05580
+               A   R1,APPROBF                                           CPW05590
+               SR  R0,R0                                                CPW05600
+               D   R0,SNAPINT    / CLOCK, IN MILLISECONDS               CPW05610
+               SR  R0,R0                                                CPW05620
+               A   R1,=F'5'      ROUND OFF TENTHS OF PERCENT            CPW05630
+               D   R0,=F'10'                                            CPW05640
+               CALL DECIT                                               CPW05650
+               MVC OPROBF+L'OPROBF-3-1(3),28-3(R13)                     CPW05660
+               MVI OPROBF+L'OPROBF-1,C'%'                               CPW05670
+               SPACE 1                                                  CPW05680
+               MVC OTOTF,=CL(L'OTOTF)'BUSY'                             CPW05690
+*                             CALCULATE IDLE TIME                       CPW05700
+               L   R3,SNAPINT (ONCE FOR MAIN PROCESSOR)                 CPW05710
+               AR  R3,R3      (ONCE FOR ATTACHED PROCESSOR)             CPW05720
+               M   R2,=F'1000'          CONVERT TO MICROSECONDS.        CPW05730
+               SPACE 1                                                  CPW05740
+               SL  R3,CPPAGEF    LESS PAGE WAIT                         CPW05750
+               SL  R3,APPAGEF                                           CPW05760
+               SL  R3,CPIONTF    LESS I/O WAIT                          CPW05770
+               SL  R3,APIONTF                                           CPW05780
+               SL  R3,CPIDLEF    LESS IDLE WAIT                         CPW05790
+               SL  R3,APIDLEF                                           CPW05800
+               SPACE 1                                                  CPW05810
+               AL  R3,=F'5'      ROUND                                  CPW05820
+               SR  R2,R2                                                CPW05830
+               D   R2,=F'10'     BACK TO MSEC*100                       CPW05840
+               SR  R2,R2                                                CPW05850
+               D   R2,SNAPINT    EXPRESS AS A PERCENTAGE (MAX 200%)     CPW05860
+               LR  R1,R3                                                CPW05870
+               CALL DECIT                                               CPW05880
+               MVC OTOTF+L'OTOTF-3-1(3),28-3(R13)                       CPW05890
+               MVI OTOTF+L'OTOTF-1,C'%'                                 CPW05900
+            IF END                                                      CPW05910
+            SPACE 3                                                     CPW05920
+*                 STORAGE COLUMN.                                       CPW05930
+            MVC   STORCOL,=CL(L'STORCOL)'STORAGE'                       CPW05940
+            SPACE 1                                                     CPW05950
+            MVC   REALCORE,=CL(L'REALCORE)'REAL CORE'                   CPW05960
+            L     R1,CORESIZE                                           CPW05970
+            SRL R1,10            CONVERT TO K                           CPW05980
+            CALL DECIT                                                  CPW05990
+            MVC   REALCORE+L'REALCORE-6-1(6),28-6(R13)                  CPW06000
+*           MVI   REALCORE+L'REALCORE-1,C'K'                            CPW06010
+            SPACE 1                                                     CPW06020
+            MVC   FREECORE,=CL(L'FREECORE)'FREE CORE'                   CPW06030
+            L     R1,CPFREE                                             CPW06040
+            SLA   R1,2        CONVERT PAGES -->K                        CPW06050
+            CALL DECIT                                                  CPW06060
+            MVC   FREECORE+L'FREECORE-6-1(6),28-6(R13)                  CPW06070
+*           MVI FREECORE+L'FREECORE-1,C'K'                              CPW06080
+            SPACE 1                                                     CPW06090
+            MVC PAGER,=CL(L'PAGER)'PAGE RATE'                           CPW06100
+            LH  R1,CPGRATE                                              CPW06110
+            CALL DECIT                                                  CPW06120
+            MVC PAGER+L'PAGER-4-2(4),28-4(R13)                          CPW06130
+            MVC PAGER+L'PAGER-2(2),=CL2'/S'                             CPW06140
+            SPACE 6                                                     CPW06150
+            MVC PAGEL,=CL(L'PAGEL)'PAGE LOAD'                           CPW06160
+            LH  R1,CPGLOAD                                              CPW06170
+            CALL DECIT                                                  CPW06180
+            MVC PAGEL+L'PAGEL-3-1(3),28-3(R13)                          CPW06190
+            MVI PAGEL+L'PAGEL-1,C'%'                                    CPW06200
+            SPACE 1                                                     CPW06210
+            MVC PAGEREQ,=CL(L'PAGEREQ)'PAGE REQ'                        CPW06220
+            L   R1,CPDPGR     PAGE READS EXECUTED.                      CPW06230
+            A   R1,CPDPTRPR   PAGES RECLAIMED FROM FLUSH LIST           CPW06240
+            M   R0,=F'20000'                                            CPW06250
+            D   R0,SNAPINT                                              CPW06260
+            LA  R1,1(,R1)                                               CPW06270
+            SRA R1,1                                                    CPW06280
+            CALL DECIT1D                                                CPW06290
+            MVC PAGEREQ+L'PAGEREQ-7-2(7),28-7(R13)                      CPW06300
+            MVC PAGEREQ+L'PAGEREQ-2(2),=C'/S'                           CPW06310
+            SPACE 3                                                     CPW06320
+            MVC STEALS,=CL(L'STEALS)'STEALS'                            CPW06330
+            L   R1,CPDPTRSS                                             CPW06340
+            M   R0,=F'20000'                                            CPW06350
+            D   R0,SNAPINT                                              CPW06360
+            LA  R1,1(,R1)                                               CPW06370
+            SRA R1,1                                                    CPW06380
+            CALL DECIT1D                                                CPW06390
+            MVC STEALS+L'STEALS-7-2(7),28-7(R13)                        CPW06400
+            MVC STEALS+L'STEALS-2(2),=C'/S'                             CPW06410
+            SPACE 1                                                     CPW06420
+            MVC FLUSHES,=CL(L'FLUSHES)'FLUSHES'                         CPW06430
+            L   R1,CPDPTRFF                                             CPW06440
+            M   R0,=F'20000'                                            CPW06450
+            D   R0,SNAPINT                                              CPW06460
+            LA  R1,1(,R1)                                               CPW06470
+            SRA R1,1                                                    CPW06480
+            CALL DECIT1D                                                CPW06490
+            MVC FLUSHES+L'FLUSHES-7-2(7),28-7(R13)                      CPW06500
+            MVC FLUSHES+L'FLUSHES-2(2),=C'/S'                           CPW06510
+            SPACE 1                                                     CPW06520
+            MVC PAGEREC,=CL(L'PAGEREC)'RECLAIMED'                       CPW06530
+            L   R1,CPDPTRPR                                             CPW06540
+            M   R0,=F'20000'                                            CPW06550
+            D   R0,SNAPINT                                              CPW06560
+            LA  R1,1(,R1)                                               CPW06570
+            SRA R1,1                                                    CPW06580
+            CALL DECIT1D                                                CPW06590
+            MVC PAGEREC+L'PAGEREC-5-2(5),28-5(R13)                      CPW06600
+            MVC PAGEREC+L'PAGEREC-2(2),=C'/S'                           CPW06610
+            SPACE 1                                                     CPW06620
+            MVC SRES,=CL(L'SRES)'SHARE RES'                             CPW06630
+            L   R1,CPTPTRSC                                             CPW06640
+            SLA R1,2          PAGES -> K                                CPW06650
+*           A    R1,=F'4'                                               CPW06660
+            CALL DECIT                                                  CPW06670
+            MVC SRES+L'SRES-7-1(7),28-7(R13)                            CPW06680
+            MVI SRES+L'SRES-1,C'K'                                      CPW06690
+            SPACE 1                                                     CPW06700
+            EJECT                                                       CPW06710
+*              QUEUES COLUMN.                                           CPW06720
+            MVC QUECOL,=CL(L'QUECOL)'QUEUES'                            CPW06730
+            SPACE 1                                                     CPW06740
+            MVC LOGGON,=CL(L'LOGGON)'LOGGED ON'                         CPW06750
+            L   R1,CPUSRS                                               CPW06760
+            CALL DECIT                                                  CPW06770
+            MVC LOGGON+L'LOGGON-4(4),28-4(R13)                          CPW06780
+            SPACE 1                                                     CPW06790
+            MVC DIALLED,=CL(L'DIALLED)'DIALLED'                         CPW06800
+            L   R1,CPDIAL                                               CPW06810
+            CALL DECIT                                                  CPW06820
+            MVC DIALLED+L'DIALLED-4(4),28-4(R13)                        CPW06830
+            SPACE 1                                                     CPW06840
+            MVC ACTIVE,=CL(L'ACTIVE)'ACTIVE'                            CPW06850
+            CVB R1,CPACTV                                               CPW06860
+            CALL DECIT                                                  CPW06870
+            MVC ACTIVE+L'ACTIVE-4(4),28-4(R13)                          CPW06880
+            SPACE 1                                                     CPW06890
+            MVC INACTIVE,=CL(L'INACTIVE)'INACTIVE'                      CPW06900
+            CVB R1,CPINACT                                              CPW06910
+            CALL DECIT                                                  CPW06920
+            MVC INACTIVE+L'INACTIVE-4(4),28-4(R13)                      CPW06930
+            SPACE 1                                                     CPW06940
+            MVC ASLEEP,=CL(L'ASLEEP)'ASLEEP'                            CPW06950
+            CVB R1,CPSLEEP                                              CPW06960
+            CALL DECIT                                                  CPW06970
+            MVC ASLEEP+L'ASLEEP-4(4),28-4(R13)                          CPW06980
+            SPACE 1                                                     CPW06990
+            MVC QUE1,=CL(L'QUE1)'QUEUE 1'                               CPW07000
+            EDITD QUE1,CPQ1,LENGTH=5                                    CPW07010
+            MVC QUE2,=CL(L'QUE2)'QUEUE 2'                               CPW07020
+            EDITD QUE2,CPQ2,LENGTH=5                                    CPW07030
+         AIF   (NOT &BSEP).NBSEP1                                       CPW07040
+            MVC QUE3,=CL(L'QUE3)'QUEUE 3'                               CPW07050
+            EDITD QUE3,CPQ3,LENGTH=5                                    CPW07060
+.NBSEP1  ANOP                                                           CPW07070
+            MVC QUEL,=CL(L'QUEL)'ELIGIBLE'                              CPW07080
+            EDITD QUEL,CPEL,LENGTH=5                                    CPW07090
+         SPACE 3                                                        CPW07100
+*              CHANNELS.                                                CPW07110
+            MVC CHANCOL,=CL(L'CHANCOL)'CHANNEL SIOS'                    CPW07120
+            SPACE 1                                                     CPW07130
+            LA  R4,CHAN0L                                               CPW07140
+            SR  R5,R5         OFFSET INTO CHANNEL BUCKETS               CPW07150
+            SR  R6,R6         CHANNEL COUNTER                           CPW07160
+            SR  R7,R7         TOTAL SIO ACCUMULATOR                     CPW07170
+            DO WHILE,CH,R6,=Y(16),LT                                    CPW07180
+               L  R1,CPCHF(R5)          ACCUMULATE.                     CPW07190
+               A  R1,CPCHT(R5)                                          CPW07200
+               ST R1,CPCHT(R5)                                          CPW07210
+*NORRIE        IF R1,NZ,THEN                                            CPW07220
+                  MVC 0(L'CHAN0L,R4),=CL(L'CHAN0L)'CHAN 0'              CPW07230
+                  EX  R6,OI   OR IN CHANNEL                             CPW07240
+OI                OI  5(R4),0 EXECUTED.                                 CPW07250
+                  SPACE 1                                               CPW07260
+*                 DISPLAY DIFFERENCE.                                   CPW07270
+                  CL  R6,=X'0000000A'                                   CPW07280
+                  BNE  XX1                                              CPW07290
+                  MVI  5(R4),X'C1'                                      CPW07300
+XX1               CNOP 0,4                                              CPW07310
+                  CL  R6,=X'0000000B'                                   CPW07320
+                  BNE  XX2                                              CPW07330
+                  MVI  5(R4),X'C2'                                      CPW07340
+XX2               CNOP 0,4                                              CPW07350
+                  CL  R6,=X'0000000C'                                   CPW07360
+                  BNE  XX3                                              CPW07370
+                  MVI  5(R4),X'C3'                                      CPW07380
+XX3               CNOP 0,4                                              CPW07390
+                  CL  R6,=X'0000000D'                                   CPW07400
+                  BNE  XX4                                              CPW07410
+                  MVI  5(R4),X'C4'                                      CPW07420
+XX4               CNOP 0,4                                              CPW07430
+                  CL  R6,=X'0000000E'                                   CPW07440
+                  BNE  XX5                                              CPW07450
+                  MVI  5(R4),X'C5'                                      CPW07460
+XX5               CNOP 0,4                                              CPW07470
+                  CL  R6,=X'0000000F'                                   CPW07480
+                  BNE  XX6                                              CPW07490
+                  MVI  5(R4),X'C6'                                      CPW07500
+XX6               CNOP 0,4                                              CPW07510
+                  L   R1,CPCHF(R5)                                      CPW07520
+                  AR  R7,R1   ACCUMULATE                                CPW07530
+                  SPACE 1                                               CPW07540
+                  M   R0,=F'2000'     1000 - MSEC, 2 FOR ROUNDING       CPW07550
+*                 IF C,R0,SNAPINT,LT,THEN                               CPW07560
+                     D   R0,SNAPINT                                     CPW07570
+*                 IF ELSE                                               CPW07580
+*                    SR  R1,R1                                          CPW07590
+*                 IF END                                                CPW07600
+                  LA  R1,1(,R1)                                         CPW07610
+                  SRA R1,1                                              CPW07620
+                  SPACE 1                                               CPW07630
+                  CALL DECIT                                            CPW07640
+                  MVC L'CHAN0L-4-2(4,R4),28-4(R13)                      CPW07650
+                  MVC L'CHAN0L-2(2,R4),=C'/S'                           CPW07660
+                  SPACE 1                                               CPW07670
+                  LA  R4,L'SCRLINE(,R4) NEXT LINE.                      CPW07680
+*              IF END                                                   CPW07690
+               SPACE 1                                                  CPW07700
+               LA  R5,4(,R5)  NEXT CHANNEL BUCKET OFFSET                CPW07710
+               LA  R6,1(,R6)  NEXT CHANNEL NUMBER.                      CPW07720
+            DO END                                                      CPW07730
+            SPACE 1                                                     CPW07740
+*              SYSTEM SIO'S                                             CPW07750
+            LA  R4,L'SCRLINE(,R4)     ONE BLANK LINE.                   CPW07760
+            MVC 0(L'CHAN0L,R4),=CL(L'CHAN0L)'SYSTEM'                    CPW07770
+            MVC L'CHAN0L-2(2,R4),=C'/S'                                 CPW07780
+            LR  R1,R7                                                   CPW07790
+            M   R0,=F'2000'                                             CPW07800
+            D   R0,SNAPINT                                              CPW07810
+            LA  R1,1(,R1)                                               CPW07820
+            SRA R1,1                                                    CPW07830
+            CALL DECIT                                                  CPW07840
+            MVC L'CHAN0L-4-2(4,R4),28-4(R13)                            CPW07850
+            LA  R4,L'SCRLINE(,R4)       NEXT LINE                       CPW07860
+            SPACE 6                                                     CPW07870
+*              CP UP TIME MSG.                                          CPW07880
+            MVC   CPSYSREL,CPREL                                        CPW07890
+            MVC CPUP,=C' HAS BEEN UP .... DAYS .. HOURS .. MIN'         CPW07900
+            SPACE 1                                                     CPW07910
+            LM    R0,R1,THISCLOK                                        CPW07920
+            SL    R0,CPSTART                                            CPW07930
+            SL    R1,CPSTART+4                                          CPW07940
+            BC    B'0011',*+6                                           CPW07950
+            BCTR  R0,0                                                  CPW07960
+            SRDL  R0,12           CP WAS UP FOR N USEC                  CPW07970
+            D     R0,=F'60000000' UP FOR N MINUTES.                     CPW07980
+            SPACE 1                                                     CPW07990
+            SR  R0,R0                                                   CPW08000
+            D   R0,=F'60'     MIN, HOURS                                CPW08010
+            CVD R0,DWORK                                                CPW08020
+            UNPK CPUPM,DWORK                                            CPW08030
+            OI   CPUPM+L'CPUPM-1,C'0'                                   CPW08040
+            SPACE 1                                                     CPW08050
+            SR  R0,R0                                                   CPW08060
+            D   R0,=F'24'     DAYS, HOURS.                              CPW08070
+            CVD R0,DWORK                                                CPW08080
+            UNPK CPUPH,DWORK                                            CPW08090
+            OI  CPUPH+L'CPUPH-1,C'0'                                    CPW08100
+            SPACE 1                                                     CPW08110
+            CALL DECIT                                                  CPW08120
+            STCM R1,B'1111',CPUPD                                       CPW08130
+            SPACE 1                                                     CPW08140
+*              CPU ID                                                   CPW08150
+            MVC CPUI,=C'CPU MODEL XXXX SERIAL XXXXXX'                   CPW08160
+            MVC CPUMODL,CPUMOD                                          CPW08170
+            MVC CPUSERL,CPUSER#                                         CPW08180
+            SPACE 1                                                     CPW08190
+            LR  R0,R10                                                  CPW08200
+            LR  R1,R9                                                   CPW08210
+            CALL LASTSCR                                                CPW08220
+         IF END                                                         CPW08230
+         PROC  END                                                      CPW08240
+         EJECT                                                          CPW08250
+*********************************************************************** CPW08260
+*              V M / 3 7 0   D S E C T S.                             * CPW08270
+*********************************************************************** CPW08280
+         SPACE 1                                                        CPW08290
+         PSA                                                            CPW08300
+         COPY  RBLOKS                                                   CPW08310
+         COPY  VMBLOK                                                   CPW08320
+         SYSLOCS                                                        CPW08330
+         SPACE 12                                                       CPW08340
+         END                                                            CPW08350
+                                                                        CPW08360
+
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+USERID MAINT    CLASS A NAME CPWUSR      ASSEMBLE         10/11/26  15:00:51

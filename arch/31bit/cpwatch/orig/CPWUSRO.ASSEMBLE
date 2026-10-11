@@ -1,0 +1,753 @@
+USR      TITLE '                                        CPWATCH'        CPW00010
+         COPY  CPWPRM                                                   CPW00020
+USR      MODULE PRINT=YES                                               CPW00030
+         EJECT                                                          CPW00040
+*********************************************************************** CPW00050
+*              DISPLAY USER STUFF.                                    * CPW00060
+*********************************************************************** CPW00070
+         SPACE 1                                                        CPW00080
+USRDCP   PROC  BEGIN                                                    CPW00090
+         SPACE 1                                                        CPW00100
+*              FIND BEGIN OF USER CHAIN.                                CPW00110
+         STORAGE                                                        CPW00120
+AFRSTUSR DS    F              A(MY VMBLOK)                              CPW00130
+USRCT    DS    F              # LOGGED ON USERS                         CPW00140
+         SPACE 1                                                        CPW00150
+USRINC   DS    F              COUNT OF USERS FOUND, THIS LOOP.          CPW00160
+         PROC                                                           CPW00170
+USRSTART EQU   *                                                        CPW00180
+         L     R1,ACPWSECT                                              CPW00190
+         USING CPWSECT,R1                                               CPW00200
+         ZAP   CPACTV,=P'0'                                             CPW00210
+         ZAP   CPINACT,=P'0'                                            CPW00220
+         ZAP   CPSLEEP,=P'0'                                            CPW00230
+         SPACE 1                                                        CPW00240
+         ZAP CPQ1,=P'0'                                                 CPW00250
+         ZAP   CPQ2,=P'0'                                               CPW00260
+         ZAP   CPQ3,=P'0'                                               CPW00270
+         ZAP   CPEL,=P'0'                                               CPW00280
+         DROP  R1                                                       CPW00290
+         SPACE 1                                                        CPW00300
+         MVC   AFRSTUSR,=A(RUNUSER-PSA)                                 CPW00310
+         L     R0,AASYSLC                                               CPW00320
+         A     R0,=A(DMKSYSNM-DMKSYSDT)                                 CPW00330
+         ST    R0,USRCT                                                 CPW00340
+         OI    USRCT,X'80'                                              CPW00350
+         LA    R1,AFRSTUSR                                              CPW00360
+         SR    R0,R0                                                    CPW00370
+         SVC   SVCDCP                                                   CPW00380
+         SPACE 3                                                        CPW00390
+         MVC   USRINC,ZEROS                                             CPW00400
+         SPACE 1                                                        CPW00410
+         L     R10,AFRSTUSR                                             CPW00420
+         DO UNTIL,C,R10,AFRSTUSR,EQ                                     CPW00430
+USRDCPL     DCPLIST VMBLOK,(USRDNXT,VMPNT),(USRDID,VMUSER),(,VMUSER+4),+CPW00440
+               (USRDACNT,VMACNT),(,VMACNT+4),(USRDPRI,VMUPRIOR-2),     +CPW00450
+               (USRNETID,VMTRMID-2),                                   +CPW00460
+               (USRSTAT,VMRSTAT),(,VMPSTAT),(,VMQLEVEL),               +CPW00470
+               (USRPGR,VMPGREAD),(USRPGW,VMPGWRIT),                    +CPW00480
+               (USRIOC,VMIOCNT),(USRPDR,VMPDRUM),                      +CPW00490
+               (USRPAG,VMPAGES),(USRWSP,VMWSPROJ),                     +CPW00500
+               (USRVTIM,VMVTIME),(,VMVTIME+4),                         +CPW00510
+               (USRTTIM,VMTTIME),(,VMTTIME+4),                         +CPW00520
+               (USRDCON,VMTERM)                                         CPW00530
+            DCP USRDCPL,BASE=(R10),ERROR=USRSTART                       CPW00540
+            SPACE 1                                                     CPW00550
+*              FIND HIS SLOT.                                           CPW00560
+            LA  R8,AUSRTAB-(USRNEXT-USRSECT)                            CPW00570
+            L   R9,AUSRTAB                                              CPW00580
+            USING USRSECT,R9                                            CPW00590
+            DO WHILE,R9,NZ,AND,CLC,USRID,USRDID,LT                      CPW00600
+               LR  R8,R9      SAVE OLD ONE.                             CPW00610
+               L   R9,USRNEXT                                           CPW00620
+            DO END                                                      CPW00630
+            SPACE 1                                                     CPW00640
+            IF R9,Z,OR,CLC,USRID,USRDID,NE,THEN  MAKE ONE FOR HIM.      CPW00650
+*              GET ONE FROM AVAIL                                       CPW00660
+               L   R9,AUSRFREE                                          CPW00670
+               IF R9,NZ,THEN                                            CPW00680
+                  MVC AUSRFREE,USRNEXT     DROP OFF CHAIN.              CPW00690
+               IF ELSE                                                  CPW00700
+                  LA  R0,USRSECTL                                       CPW00710
+                  SVC SVCGETM                                           CPW00720
+                  LR  R9,R1                                             CPW00730
+               IF END                                                   CPW00740
+               SPACE 1                                                  CPW00750
+*              FLAG AS A NEW ENTRY.                                     CPW00760
+               MVC USRBA,HEXFS                                          CPW00770
+               SPACE 1                                                  CPW00780
+*              CHAIN IT IN.                                             CPW00790
+               MVC USRNEXT,USRNEXT-USRSECT(R8)                          CPW00800
+               ST  R9,USRNEXT-USRSECT(,R8)                              CPW00810
+            IF END                                                      CPW00820
+         SPACE 3                                                        CPW00830
+*---------------------------------------------------------------------- CPW00840
+*              INITIALIZE A USER ENTRY.                                 CPW00850
+*---------------------------------------------------------------------- CPW00860
+            IF C,R10,USRBA,NE,THEN HE'S LOGGED OFF AND ON AGAIN,        CPW00870
+*                             OR IT'S A NEW ENTRY.                      CPW00880
+               XC  USRDAT(USRDATL),USRDAT   CLEAR USER DATA AREA        CPW00890
+               MVC USRID,USRDID                                         CPW00900
+               MVC USRACNT,USRDACNT                                     CPW00910
+               MVC USROTTIM,USRTTIM     SET NEW=OLD SUPVR TIME.         CPW00920
+               MVC USROVTIM,USRVTIM     SET NEW=OLD VIRTUAL TIME.       CPW00930
+               L   R1,USRPGR                                            CPW00940
+               A   R1,USRPGW                                            CPW00950
+               ST  R1,USRTURNS          CUM PAGES TURNED                CPW00960
+               MVC USRSIOS,USRIOC       CUM SIOS                        CPW00970
+               ST  R10,USRBA                                            CPW00980
+*              ZAP COUNTER.                                             CPW00990
+*              ETC.                                                     CPW01000
+               MVI USRFLAGS,USRACTV                                     CPW01010
+               SPACE 2                                                  CPW01020
+            IF ELSE HE'S AN OLD ENTRY.                                  CPW01030
+               OI  USRFLAGS,USR2TIM (AT LEAST SECOND TIME THROUGH).     CPW01040
+            IF END                                                      CPW01050
+               SPACE 3                                                  CPW01060
+*---------------------------------------------------------------------- CPW01070
+*              C O U N T   H I M                                        CPW01080
+*---------------------------------------------------------------------- CPW01090
+            L   R2,ACPWSECT          COUNT HIM.                         CPW01100
+            USING CPWSECT,R2                                            CPW01110
+            IF TM,USRFLAGS,USRFND,O,THEN HE'S THROUGH AGAIN             CPW01120
+*              WTO 'SECOND TIME THROUGH'                                CPW01130
+            IF ELSE                                                     CPW01140
+               IF TM,VMRSTAT-VMRSTAT+USRSTATS,VMLOGON+VMLOGOFF,Z,THEN   CPW01150
+                  IF TM,VMOSTAT-VMRSTAT+USRSTATS,VMSLEEP,O,THEN         CPW01160
+                     AP  CPSLEEP,=P'1'                                  CPW01170
+                  IF ELSE                                               CPW01180
+                     IF CLC,USRTTIM(8),USROTTIM,EQ,AND,                +CPW01190
+               CLC,USRVTIM(8),USROVTIM,EQ,THEN                          CPW01200
+                        AP  CPACTV,=P'1'                                CPW01210
+                     IF ELSE                                            CPW01220
+                        AP  CPINACT,=P'1'                               CPW01230
+                     IF END                                             CPW01240
+                  IF END                                                CPW01250
+               IF END                                                   CPW01260
+               IF TM,VMDSTAT-VMRSTAT+USRSTATS,VMELIG+VMINQ,NZ,THEN      CPW01270
+                  IF TM,VMDSTAT-VMRSTAT+USRSTATS,VMINQ,O,THEN           CPW01280
+         AIF   (&BSEP).BSEP1                                            CPW01290
+                     IF TM,VMQLEVEL-VMRSTAT+USRSTATS,VMQ1,Z,THEN        CPW01300
+                        AP CPQ2,=P'1'                                   CPW01310
+                     IF ELSE                                            CPW01320
+                        AP CPQ1,=P'1'                                   CPW01330
+                     IF END                                             CPW01340
+         AGO   .BSEP1B                                                  CPW01350
+.BSEP1   ANOP                                                           CPW01360
+                     IF TM,VMQLEVEL-VMRSTAT+USRSTATS,VMQ1+VMQ3,Z,THEN   CPW01370
+                        AP CPQ2,=P'1'                                   CPW01380
+                     IF ELSE                                            CPW01390
+                        IF TM,VMQLEVEL-VMRSTAT+USRSTAT,VMQ1,O,THEN      CPW01400
+                           AP CPQ1,=P'1'                                CPW01410
+                        IF ELSE                                         CPW01420
+                           AP CPQ3,=P'1'                                CPW01430
+                        IF END                                          CPW01440
+                     IF END                                             CPW01450
+.BSEP1B  ANOP                                                           CPW01460
+                  IF ELSE HE MUST BE ELIGIBLE.                          CPW01470
+                     AP  CPEL,=P'1'                                     CPW01480
+                  IF END                                                CPW01490
+               IF END                                                   CPW01500
+            IF END                                                      CPW01510
+            DROP R2                                                     CPW01520
+            SPACE 3                                                     CPW01530
+*---------------------------------------------------------------------- CPW01540
+*              PROCESS USER                                             CPW01550
+*---------------------------------------------------------------------- CPW01560
+            OI  USRFLAGS,USRFND      FLAG AS FOUND (FOR CLEANUP).       CPW01570
+            SPACE 1                                                     CPW01580
+            MVC USRACNT,USRDACNT        CHARGE CODE.                    CPW01590
+            SPACE 1                                                     CPW01600
+            ICM R2,B'1111',USRDCON                                      CPW01610
+            ST  R2,USRTERM                                              CPW01620
+            SPACE 1                                                     CPW01630
+            IF LTR,R2,R2,Z,OR,C,R2,HIFIXED,GE,THEN                      CPW01640
+*              NOT A REAL DEVICE.  NOT CONN, OR VM PASSTHROUGH.         CPW01650
+               IF LTR,R2,R2,NZ,THEN                                     CPW01660
+                  MVC USRCADDR,=CL4'VMPT'                               CPW01670
+               IF ELSE                                                  CPW01680
+                  MVC USRCADDR,=CL4' '                                  CPW01690
+               IF END                                                   CPW01700
+               SPACE 1                                                  CPW01710
+            IF ELSE    IT'S A REAL DEVICE.                              CPW01720
+               S   R2,AARIODV    OFFSET ON RDEVBLOK TABLE.              CPW01730
+               SRDL R2,32                                               CPW01740
+               D   R2,=A(RDEVSIZE*8)                                    CPW01750
+               MH  R3,=Y(RDVSECTL) OFFSET INTO MY RDEV TABLE            CPW01760
+               A   R3,ARDVTAB    ADDR IN MY TABLE.                      CPW01770
+               USING RDVSECT,R3                                         CPW01780
+               SPACE 1                                                  CPW01790
+               IF CLC,RDVTYPC(2),=AL1(CLASTERM,TYPBSC),EQ,THEN          CPW01800
+*                 REMOTE 327X. USE NETWORK ID.                          CPW01810
+                  LH  R1,USRNETID+2                                     CPW01820
+                  CALL HEXIT                                            CPW01830
+                  STCM R1,B'1111',USRCADDR                              CPW01840
+                  SPACE 1                                               CPW01850
+               IF ELSE USE DEVICE ADDRESS.                              CPW01860
+                  MVI USRCADDR,C' '                                     CPW01870
+                  MVC USRCADDR+1(L'USRCADDR-1),RDVCADDR                 CPW01880
+               IF END                                                   CPW01890
+               DROP R3                                                  CPW01900
+            IF END                                                      CPW01910
+            SPACE 1                                                     CPW01920
+*           IS HE AN ACTIVE USER ?                                      CPW01930
+            IF CLC,USRTTIM(8),USROTTIM,EQ,AND,                         +CPW01940
+               CLC,USRVTIM(8),USROVTIM,EQ,AND,                         +CPW01950
+               TM,USRFLAGS,USR2TIM,O,THEN                               CPW01960
+               NI  USRFLAGS,255-USRACTV                                 CPW01970
+               XC  USRTPCT,USRTPCT                                      CPW01980
+               XC  USRVPCT,USRVPCT                                      CPW01990
+               SPACE 1                                                  CPW02000
+            IF ELSE                                                     CPW02010
+               OI  USRFLAGS,USRACTV                                     CPW02020
+               SPACE 1                                                  CPW02030
+*              SUPERVISOR TIME.                                         CPW02040
+               LM  R0,R1,USROTTIM SUPVR TIME IS POSITIVE AND DECREASING CPW02050
+         DSUB  R0,USRTTIM                                               CPW02060
+               SPACE 1                                                  CPW02070
+               SRDL R0,12     CONVERT TO MICROSECONDS.                  CPW02080
+               SPACE 1                                                  CPW02090
+               IF C,R0,SNAPINT,LT,AND,                                 +CPW02100
+               CLC,SNAPINT,ZEROS,NZ,THEN                                CPW02110
+                  D   R0,SNAPINT MICROSECONDS/MILLISECONDS = % * 10     CPW02120
+               IF ELSE      (IT WOULD HAVE OVERFLOWED).                 CPW02130
+                  L  R1,=F'-1'                                          CPW02140
+               IF END                                                   CPW02150
+               ST  R1,USRTPCT                                           CPW02160
+               SPACE 1                                                  CPW02170
+*              VIRTUAL TIME.                                            CPW02180
+               LM  R0,R1,USRVTIM VIRTUAL TIME IS POSITIVE INCREASING.   CPW02190
+         DSUB  R0,USROVTIM                                              CPW02200
+               SPACE 1                                                  CPW02210
+               SRDL R0,12     CONVERT TO MICROSECONDS.                  CPW02220
+               SPACE 1                                                  CPW02230
+               IF C,R0,SNAPINT,LT,AND,                                 +CPW02240
+               CLC,SNAPINT,ZEROS,NZ,THEN                                CPW02250
+                  D   R0,SNAPINT MICROSECONDS/MILLISECONDS = % * 10     CPW02260
+               IF ELSE      (IT WOULD HAVE OVERFLOWED).                 CPW02270
+                  L  R1,=F'-1'                                          CPW02280
+               IF END                                                   CPW02290
+            IF END                                                      CPW02300
+            ST  R1,USRVPCT                                              CPW02310
+            SPACE 1                                                     CPW02320
+            MVC USROTTIM,USRTTIM                                        CPW02330
+            MVC USROVTIM,USRVTIM                                        CPW02340
+            SPACE 1                                                     CPW02350
+            MVC USRSTATS,USRSTAT                                        CPW02360
+            SPACE 1                                                     CPW02370
+*           PRIORITY                                                    CPW02380
+            MVC USRPRIOR,USRDPRI+2                                      CPW02390
+            SPACE 3                                                     CPW02400
+*              PAGE TURNS                                               CPW02410
+            L   R1,USRPGR                                               CPW02420
+            A   R1,USRPGW     NEW CUM TURNS                             CPW02430
+            L   R0,USRTURNS                                             CPW02440
+            ST  R1,USRTURNS                                             CPW02450
+            SR  R1,R0         NEW DIFFERENCE                            CPW02460
+            ST  R1,USRTURND                                             CPW02470
+            SPACE 3                                                     CPW02480
+*              START I/O (NON-SPOOLED)                                  CPW02490
+            L   R1,USRIOC                                               CPW02500
+            S   R1,USRSIOS                                              CPW02510
+            MVC USRSIOS,USRIOC                                          CPW02520
+            ST  R1,USRSIOD                                              CPW02530
+            SPACE 3                                                     CPW02540
+*              PAGES RESIDENT                                           CPW02550
+            MVC USRRPAG,USRPAG                                          CPW02560
+            SPACE 3                                                     CPW02570
+*              PAGES NON-RESIDENT                                       CPW02580
+            LH  R1,USRPDR                                               CPW02590
+            AH  R1,USRPDR+2                                             CPW02600
+            STH R1,USRAPAG                                              CPW02610
+            SPACE 3                                                     CPW02620
+*              PROJ WORKING SET.                                        CPW02630
+            MVC USRWS,USRWSP                                            CPW02640
+            SPACE 3                                                     CPW02650
+*              SELECT NEXT USER.                                        CPW02660
+            IF TM,USRSTATS,VMLOGON+VMLOGOFF,Z,THEN HE'S REAL.           CPW02670
+               L   R0,USRINC     COUNT HIM.                             CPW02680
+               AH  R0,=H'1'                                             CPW02690
+               ST  R0,USRINC                                            CPW02700
+            IF END                                                      CPW02710
+            IF CLI,USRDNXT,0,NE,OR,                                    +CPW02720
+               CLC,USRDNXT,ZEROS,EQ,OR,CLC,USRDNXT,CORESIZE,GT,OR,     +CPW02730
+               CLC,USRINC,USRCT,GT,THEN                                 CPW02740
+               SPACE 1                                                  CPW02750
+               WTO 'VMBLOK CHAIN FAILURE'                               CPW02760
+               SPACE 1                                                  CPW02770
+               AP  USERFAIL,=P'1'       CHAIN HAS FAILED.  COUNT IT.    CPW02780
+               B   USRSTART   AND RESTART                               CPW02790
+            IF ELSE                                                     CPW02800
+               L   R10,USRDNXT          JUST CONTINUE W/ NEXT ONE.      CPW02810
+            IF END                                                      CPW02820
+            SPACE 3                                                     CPW02830
+         DO END                                                         CPW02840
+         DROP  R9                                                       CPW02850
+         SPACE 1                                                        CPW02860
+*        DROP ANY DEAD ENTRIES.                                         CPW02870
+         LA    R8,AUSRTAB-(USRNEXT-USRSECT)                             CPW02880
+         L   R9,AUSRTAB                                                 CPW02890
+         USING USRSECT,R9                                               CPW02900
+         DO WHILE,R9,NZ                                                 CPW02910
+            IF TM,USRFLAGS,USRFND,O,THEN HE'S STILL THERE..             CPW02920
+               NI  USRFLAGS,255-USRFND  CLEAR FOR NEXT TRIP AROUND.     CPW02930
+               LR  R8,R9                                                CPW02940
+               L   R9,USRNEXT           TRY NEXT ONE.                   CPW02950
+            IF ELSE           HE'S GONE - DROP HIM.                     CPW02960
+*              DECHAIN ENTRY.                                           CPW02970
+               LR  R7,R9      SAVE HIS ADDR.                            CPW02980
+               L   R9,USRNEXT                                           CPW02990
+               ST  R9,USRNEXT-USRSECT(,R8)                              CPW03000
+               SPACE 1                                                  CPW03010
+*              CLEAR IT.                                                CPW03020
+               MVC 0(USRSECTL,R7),HEXFS                                 CPW03030
+               SPACE 1                                                  CPW03040
+*              ENCHAIN ENTRY AT BEGINNING OF FREE LIST.                 CPW03050
+               MVC USRNEXT-USRSECT(,R7),AUSRFREE                        CPW03060
+               ST   R7,AUSRFREE                                         CPW03070
+            IF END                                                      CPW03080
+         DO END                                                         CPW03090
+         DROP R9                                                        CPW03100
+         PROC  END                                                      CPW03110
+         EJECT                                                          CPW03120
+*---------------------------------------------------------------------- CPW03130
+*              ALL USER DISPLAY.                                        CPW03140
+*---------------------------------------------------------------------- CPW03150
+*  REGISTERS                                                            CPW03160
+*        R10 - PANEL BASE                                               CPW03170
+*        R9 - DISPLAY BASE                                              CPW03180
+*        R8 - SLOT COUNTER                                              CPW03190
+*        R7 - USER TABLE ENTRY BASE                                     CPW03200
+*        R6 - SLOT BASE                                                 CPW03210
+*---------------------------------------------------------------------- CPW03220
+*              ALL USER DISPLAY PAGE STRUCTURE.                         CPW03230
+*---------------------------------------------------------------------- CPW03240
+         SPACE 1                                                        CPW03250
+ALLSECT  DSECT                                                          CPW03260
+ALLUSRID DS    CL8                                                      CPW03270
+         DS    C                                                        CPW03280
+ALLSTAT  DS    C                                                        CPW03290
+ALLCONAD DS    CL4                                                      CPW03300
+         DS    C                                                        CPW03310
+ALLFAV   DS    0C             FAVOR INDICATOR                           CPW03320
+ALLPRIO  DS    CL3                                                      CPW03330
+ALLRES   DS    C                                                        CPW03340
+         AIF   (NOT &COMINCO).NOCHG                                     CPW03350
+         DS    C                                                        CPW03360
+ALLCHG   DS    CL6                                                      CPW03370
+.NOCHG   ANOP                                                           CPW03380
+ALLPAD   DS    CL1                                                      CPW03390
+ALLLEN   EQU   *-ALLSECT                                                CPW03400
+         SPACE 1                                                        CPW03410
+ALLREP   EQU   (80+L'ALLPAD)/(ALLLEN)                                   CPW03420
+         SPACE 1                                                        CPW03430
+ALLUSR   PROC  BEGIN                                                    CPW03440
+         DATA                                                           CPW03450
+ALLTIT   DC    C'CPWATCH ALL USERS'                                     CPW03460
+ALLOFS   EQU   (80-L'ALLTIT)/2                                          CPW03470
+ALLBEG   EQU   SCRLINE3                                                 CPW03480
+ALLEND   EQU   SCREEND                                                  CPW03490
+ALLLINES EQU   (ALLEND-ALLBEG)/80      TOTAL LINES ON SCR.              CPW03500
+         SPACE 1                                                        CPW03510
+         PROC                                                           CPW03520
+         L     R9,=V(DSPALL)                                            CPW03530
+         USING DSPSECT,R9                                               CPW03540
+         SR    R10,R10        START W/NEW PAGE.                         CPW03550
+         USING SCRSECT,R10                                              CPW03560
+         SPACE 1                                                        CPW03570
+         IF CP,LISTNRS,=P'0',GT,THEN                                    CPW03580
+            OI  DSPFLAGS,DSPNEW                                         CPW03590
+            SPACE 1                                                     CPW03600
+*              USER LOOP INITIALIZE                                     CPW03610
+            LA  R8,ALLREP*ALLLINES FORCE FAIL OF SCREEN SPACE TEST.     CPW03620
+            SPACE 1                                                     CPW03630
+            L     R7,AUSRTAB  BEGIN OF USERTABLE.                       CPW03640
+            USING USRSECT,R7                                            CPW03650
+            SPACE 1                                                     CPW03660
+*           USER LOOP                                                   CPW03670
+            DO WHILE,R7,NZ                                              CPW03680
+               LA  R8,1(,R8)  NEXT SLOT.                                CPW03690
+               SPACE 1                                                  CPW03700
+*              NEW PAGE ?                                               CPW03710
+               IF C,R8,=A(ALLREP*ALLLINES),GE,THEN                      CPW03720
+                  LR  R0,R10                                            CPW03730
+                  LR  R1,R9                                             CPW03740
+                  CALL NEWSCR                                           CPW03750
+                  LR  R10,R0                                            CPW03760
+                  MVC SCREEN+ALLOFS(L'ALLTIT),ALLTIT                    CPW03770
+                  SR  R8,R8                                             CPW03780
+               IF END                                                   CPW03790
+               SPACE 1                                                  CPW03800
+*                             SLOT AS COLUMN/ROW, FROM ZERO.            CPW03810
+               SR  R14,R14                                              CPW03820
+               LR  R15,R8                                               CPW03830
+               D   R14,=A(ALLLINES) (COL IN R15, LINE IN R14)           CPW03840
+               SPACE 1                                                  CPW03850
+*                             CALCULATE LOCATION OF COL HEADINGS,      +CPW03860
+                              AND INSERT IF NECESSARY.                  CPW03870
+               MH  R14,=Y(L'SCRLINE)     BYTE OFFSET FOR LINE.          CPW03880
+               MH  R15,=Y(ALLLEN)        BYTE OFFSET FOR COLUMN.        CPW03890
+               LA  R6,SCRLINE2(R15)      LOCATION OF COL. HEADINGS.     CPW03900
+               USING ALLSECT,R6                                         CPW03910
+               IF LTR,R14,R14,Z,THEN STARTING NEW COLUMN.               CPW03920
+                  MVC ALLUSRID,=CL8'USERID'                             CPW03930
+                  MVI ALLSTAT,C'S'                                      CPW03940
+                  MVC ALLCONAD,=CL4' CON'                               CPW03950
+                  MVC ALLPRIO,=CL4'PRIO'                                CPW03960
+                  AIF (NOT &COMINCO).NOCHG2                             CPW03970
+                  MVC ALLCHG,=CL6'CHARGE'                               CPW03980
+                  SPACE 1                                               CPW03990
+.NOCHG2           ANOP                                                  CPW04000
+                  IF R15,NZ,THEN STARTING SECOND OR SUCC. COL.          CPW04010
+                     LA  R4,SCRLINE2-((L'ALLPAD+1)/2)(R15) BEGIN        CPW04020
+                     LA  R2,L'SCRLINE  INCREMENT                        CPW04030
+                     LA  R3,ALLEND                                      CPW04040
+ALLMVIL              MVI 0(R4),C' '  SEPARATOR                          CPW04050
+                     BXLE R4,R2,ALLMVIL                                 CPW04060
+                  IF END                                                CPW04070
+               IF END                                                   CPW04080
+               SPACE 1                                                  CPW04090
+*                             NOW CALCULATE ACTUAL SLOT FOR USER LINE.  CPW04100
+               LA  R6,SCRLINE3(R14)                                     CPW04110
+               AR  R6,R15                                               CPW04120
+*                             NOTE R14, R15 ARE FREE NOW.               CPW04130
+               SPACE 1                                                  CPW04140
+*              NOW BUILD USER LINE.                                     CPW04150
+               MVC ALLUSRID,USRID                                       CPW04160
+               SPACE 1                                                  CPW04170
+               IF TM,USRSTATS+2,VMSLEEP,O,THEN (VMOSTAT)                CPW04180
+                  MVI ALLSTAT,C'S'                                      CPW04190
+               IF ELSE                                                  CPW04200
+                  IF TM,USRFLAGS,USRACTV,O,THEN                         CPW04210
+                     MVI ALLSTAT,C'A'                                   CPW04220
+                  IF ELSE                                               CPW04230
+                     MVI ALLSTAT,C'I'                                   CPW04240
+                  IF END                                                CPW04250
+               IF END                                                   CPW04260
+               SPACE 1                                                  CPW04270
+               MVC ALLCONAD,USRCADDR                                    CPW04280
+               SPACE 1                                                  CPW04290
+               SR  R1,R1                                                CPW04300
+               IC  R1,USRPRIOR                                          CPW04310
+               CALL DECIT                                               CPW04320
+               STCM R1,B'0011',ALLPRIO+1                                CPW04330
+               IF TM,USRSTATS+VMQLEVEL-VMRSTAT,VMAEX+VMAEXP,NZ,THEN     CPW04340
+                  IF TM,USRSTATS+VMQLEVEL-VMRSTAT,VMAEXP,O,THEN         CPW04350
+                     MVI ALLFAV,C'%'                                    CPW04360
+                  IF ELSE                                               CPW04370
+                     MVI ALLFAV,C'F'                                    CPW04380
+                  IF END                                                CPW04390
+               IF ELSE                                                  CPW04400
+                  MVI ALLFAV,C' '                                       CPW04410
+               IF END                                                   CPW04420
+               SPACE 1                                                  CPW04430
+               IF TM,USRSTATS+VMPSTAT-VMRSTAT,VMRPAGE,O,THEN            CPW04440
+                  MVI ALLRES,C'R'                                       CPW04450
+               IF ELSE                                                  CPW04460
+                  MVI ALLRES,C' '                                       CPW04470
+               IF END                                                   CPW04480
+               AIF (NOT &COMINCO).NOCHG3                                CPW04490
+               SPACE 1                                                  CPW04500
+               IF CLC,USRACNT,USRID,NE,THEN                             CPW04510
+                  MVC ALLCHG,USRACNT+2                                  CPW04520
+               IF END                                                   CPW04530
+.NOCHG3        ANOP                                                     CPW04540
+               SPACE 1                                                  CPW04550
+*              NEXT USER, PLEASE.                                       CPW04560
+               SPACE 1                                                  CPW04570
+               L   R7,USRNEXT                                           CPW04580
+            DO END                                                      CPW04590
+            SPACE 1                                                     CPW04600
+            LR  R1,R9                                                   CPW04610
+            LR  R0,R10                                                  CPW04620
+            CALL LASTSCR                                                CPW04630
+            SPACE 1                                                     CPW04640
+         IF END                                                         CPW04650
+         SPACE 1                                                        CPW04660
+         PROC END                                                       CPW04670
+         EJECT                                                          CPW04680
+*---------------------------------------------------------------------- CPW04690
+*              ACTIVE USERS DISPLAY.                                    CPW04700
+*---------------------------------------------------------------------- CPW04710
+*              ACTIVE USERS DISPLAY STRUCTURE.                          CPW04720
+*---------------------------------------------------------------------- CPW04730
+         SPACE 1                                                        CPW04740
+ACTSECT  DSECT                                                          CPW04750
+ACTUSRID DS    CL8                                                      CPW04760
+         DS    C                                                        CPW04770
+ACTCONAD DS    CL4                                                      CPW04780
+ACTVT    DS    CL6            VIRT  CPU, %                              CPW04790
+ACTOT    DS    CL6            TOTAL CPU, %                              CPW04800
+         DS    C                                                        CPW04810
+ACTQ     DS    CL1            QUEUE / EL                                CPW04820
+         DS    C                                                        CPW04830
+ACTFAV   DS    CL1            FAVOURED ?                                CPW04840
+         DS    C                                                        CPW04850
+ACTRUN   DS    CL4            RUNNING (VIRTUAL) STATUS                  CPW04860
+         DS    C                                                        CPW04870
+ACTDISP  DS    CL4            DISPATCHING STATUS.                       CPW04880
+         DS    C                                                        CPW04890
+ACTSIO   DS    CL5            SIO/S, NON-SPOOLED                        CPW04900
+ACTPGR   DS    CL5            PAGE TURNS/SEC                            CPW04910
+ACTRESK  DS    CL7            K REAL CORE OCCUPIED.                     CPW04920
+ACTRES   DS    CL1            RESERVED PAGES ?                          CPW04930
+ACTPWS   DS    CL7            K PROJ WORKING SET.                       CPW04940
+         DS    CL2                                                      CPW04950
+ACTNEXT  EQU   *                                                        CPW04960
+ACTLEN   EQU   ACTNEXT-ACTSECT                                          CPW04970
+ACTREP   EQU   (80/ACTLEN)                                              CPW04980
+ACTNXTLN EQU   ACTSECT+80                                               CPW04990
+         EJECT                                                          CPW05000
+         SPACE 1                                                        CPW05010
+ACTUSR   PROC  BEGIN                                                    CPW05020
+         SPACE 1                                                        CPW05030
+         DATA                                                           CPW05040
+ACTTIT   DC    C'CPWATCH ACTIVE USERS'                                  CPW05050
+ACTOFS   EQU   (80-L'ACTTIT)/2                                          CPW05060
+ACTBEG   EQU   SCRLINE2                                                 CPW05070
+ACTEND   EQU   SCREEND                                                  CPW05080
+         SPACE 1                                                        CPW05090
+         PROC                                                           CPW05100
+         L     R9,=V(DSPACT)                                            CPW05110
+         USING DSPSECT,R9                                               CPW05120
+         SR    R10,R10                                                  CPW05130
+         SPACE 1                                                        CPW05140
+         IF CP,LISTNRS,=P'0',GT,THEN                                    CPW05150
+            OI    DSPFLAGS,DSPNEW                                       CPW05160
+            SPACE 1                                                     CPW05170
+*              BUILD LIST OF ACTIVE USERS.                              CPW05180
+            L   R6,AUSRTAB                                              CPW05190
+            USING USRSECT,R6                                            CPW05200
+            DO WHILE,R6,NZ                                              CPW05210
+               IF TM,USRFLAGS,USRACTV,O,THEN                            CPW05220
+                  IF R10,Z,OR,R8,R7,GE,THEN                             CPW05230
+                     LR  R1,R9                                          CPW05240
+                     LR  R0,R10                                         CPW05250
+                     CALL NEWSCR                                        CPW05260
+                     LR  R10,R0                                         CPW05270
+                     USING SCRSECT,R10                                  CPW05280
+                     SPACE 1                                            CPW05290
+                     MVC SCREEN+ACTOFS(L'ACTTIT),ACTTIT                 CPW05300
+                     SPACE 1                                            CPW05310
+                     LA  R8,ACTBEG                                      CPW05320
+                     USING ACTSECT,R8                                   CPW05330
+                     LA  R7,ACTEND                                      CPW05340
+                     SPACE 1                                            CPW05350
+                     MVC ACTUSRID,=CL8'USERID'                          CPW05360
+                     MVC ACTCONAD,=CL4' CON'                            CPW05370
+                     MVC ACTVT,=CL(L'ACTVT)'  VRT%'                     CPW05380
+                     MVC ACTOT,=CL(L'ACTOT)'  TOT%'                     CPW05390
+                     MVI ACTQ,C'Q'                                      CPW05400
+                     MVI ACTFAV,C'F'                                    CPW05410
+                     MVC ACTRUN,=CL4'RUN'                               CPW05420
+                     MVC ACTDISP,=CL4'DISP'                             CPW05430
+                     MVC ACTSIO,=CL5' SIOS'                             CPW05440
+                     MVC ACTPGR,=CL5' PGRT'                             CPW05450
+                     MVC ACTRESK,=CL7'   CORE'                          CPW05460
+                     MVC ACTPWS,=CL7'  PR.WS'                           CPW05470
+                     SPACE 1                                            CPW05480
+                     LA  R8,ACTNXTLN                                    CPW05490
+                  IF END                                                CPW05500
+                  SPACE 1                                               CPW05510
+*                 INITIALIZE HIS ENTRY.                                 CPW05520
+                  MVC ACTUSRID,USRID                                    CPW05530
+                  MVC ACTCONAD,USRCADDR                                 CPW05540
+                  SPACE 1                                               CPW05550
+                  IF TM,USRSTATS+1,VMELIG,O,THEN (VMDSTAT)              CPW05560
+                     MVI ACTQ,C'E'                                      CPW05570
+                  IF ELSE                                               CPW05580
+                     IF TM,USRSTATS+1,VMINQ,O,THEN                      CPW05590
+                        MVI ACTQ,C'2'                                   CPW05600
+                        IF TM,USRSTATS+8,VMQ1,O,THEN (VMQLEVEL)         CPW05610
+                           MVI ACTQ,C'1'                                CPW05620
+                        IF END                                          CPW05630
+         AIF   (NOT &BSEP).NBSEP1                                       CPW05640
+                        IF TM,USRSTATS+8,VMQ3,O,THEN                    CPW05650
+                           MVI ACTQ,C'3'                                CPW05660
+                        IF END                                          CPW05670
+.NBSEP1  ANOP                                                           CPW05680
+                     IF END                                             CPW05690
+                  IF END                                                CPW05700
+                  IF TM,USRSTATS+VMQLEVEL-VMRSTAT,VMAEX+VMAEXP,NZ,THEN  CPW05710
+                     IF TM,USRSTATS+VMQLEVEL-VMRSTAT,VMAEXP,O,THEN      CPW05720
+                        MVI ACTFAV,C'%'                                 CPW05730
+                     IF ELSE                                            CPW05740
+                        MVI ACTFAV,C'F'                                 CPW05750
+                     IF END                                             CPW05760
+                  IF ELSE                                               CPW05770
+                     MVI ACTFAV,C' '                                    CPW05780
+                  IF END                                                CPW05790
+                  SPACE 1                                               CPW05800
+*                 VIRTUAL PERCENTAGE                                    CPW05810
+                  IF CLC,USRVPCT,HEXFS,NE,THEN                          CPW05820
+                     L   R1,USRVPCT (PCT OF VIRT  CPU)                  CPW05830
+                     IF R1,NZ,THEN                                      CPW05840
+                        CALL DECIT1D                                    CPW05850
+                        MVC ACTVT,28-L'ACTVT(R13)                       CPW05860
+                     IF END                                             CPW05870
+                  IF ELSE                                               CPW05880
+                     MVC ACTVT,=CL5'*****'                              CPW05890
+                  IF END                                                CPW05900
+                  SPACE 1                                               CPW05910
+*                 TOTAL PERCENTAGE                                      CPW05920
+                  IF CLC,USRTPCT,HEXFS,NE,AND,CLC,USRVPCT,HEXFS,NE,THEN CPW05930
+                     L   R1,USRTPCT (PCT OF CPU, SUPERVISOR)            CPW05940
+                     A   R1,USRVPCT                                     CPW05950
+                     IF R1,NZ,THEN                                      CPW05960
+                        CALL DECIT1D                                    CPW05970
+                        MVC ACTOT,28-L'ACTOT(R13)                       CPW05980
+                     IF END                                             CPW05990
+                  IF ELSE                                               CPW06000
+                     MVC ACTOT,=CL5'*****'                              CPW06010
+                  IF END                                                CPW06020
+                  EJECT                                                 CPW06030
+*                 RUNNING STATUS. (INTERNAL TO VIRTUAL MACHINE)         CPW06040
+                  IF TM,VMDSTAT-VMRSTAT+USRSTATS,VMRUN,O,THEN           CPW06050
+                     MVC ACTRUN,=CL4'RUN'                               CPW06060
+                  IF END                                                CPW06070
+                  IF TM,USRSTATS,VMIOWAIT,O,THEN                        CPW06080
+                     MVC ACTRUN,=CL4'SIO'                               CPW06090
+                  IF END                                                CPW06100
+                  IF TM,USRSTATS,VMPSWAIT,O,THEN                        CPW06110
+                     MVC ACTRUN,=CL4'WAIT'                              CPW06120
+                  IF END                                                CPW06130
+                  IF TM,USRSTATS+1,VMTIO,O,THEN                         CPW06140
+                     MVC ACTRUN,=CL4'TIOB'                              CPW06150
+                  IF END                                                CPW06160
+                  SPACE 6                                               CPW06170
+*                 DISPATCHING STATUS (SPECIFIC TO CP)                   CPW06180
+                  IF TM,USRSTATS+1,VMDSP,O,THEN (VMDSTAT)               CPW06190
+                     MVC ACTDISP,=CL4'DISP'                             CPW06200
+                  IF END                                                CPW06210
+                  IF TM,VMQLEVEL-VMRSTAT+USRSTATS,VMCOMP,O,THEN         CPW06220
+                     MVC ACTDISP,=CL4'CMPB'                             CPW06230
+                  IF END                                                CPW06240
+                  IF TM,USRSTATS,VMEXWAIT,O,AND,                       +CPW06250
+               TM,USRSTATS+1,VMRUN,Z,THEN                               CPW06260
+                     MVC ACTDISP,=CL4'PRIV'                             CPW06270
+                  IF END                                                CPW06280
+                  IF TM,USRSTATS,VMPGWAIT,O,THEN  (VMRSTAT)             CPW06290
+                     MVC ACTDISP,=CL4'PGWT'                             CPW06300
+                  IF END                                                CPW06310
+                  IF TM,USRSTATS,VMIOWAIT,O,THEN                        CPW06320
+                     MVC ACTDISP,=CL4'IOWT'                             CPW06330
+                  IF END                                                CPW06340
+*                 IF TM,USRSTATS,VMPSWAIT,O,THEN                        CPW06350
+*                    IF TM,USRSTATS,VMIDLE,O,THEN                       CPW06360
+*                       MVC ACTDISP,=CL4'IDLE'                          CPW06370
+*                    IF ELSE                                            CPW06380
+*                       MVC ACTDISP,=CL4'PSWT'                          CPW06390
+*                    IF END                                             CPW06400
+*                 IF END                                                CPW06410
+                  IF TM,USRSTATS+2,VMSLEEP,O,THEN                       CPW06420
+                     MVC ACTDISP,=CL4'SL'                               CPW06430
+                  IF END                                                CPW06440
+                  SPACE 1                                               CPW06450
+*                     START I/O COUNT.                                  CPW06460
+                  L   R1,USRSIOD                                        CPW06470
+                  M   R0,=F'10000' MILLISECONDS, *10                    CPW06480
+                  IF CLC,SNAPINT,=F'0',NZ,THEN                          CPW06490
+                      D   R0,SNAPINT                                    CPW06500
+                  IF ELSE                                               CPW06510
+                      SR  R1,R1                                         CPW06520
+                  IF END                                                CPW06530
+                  IF R1,NZ,THEN                                         CPW06540
+                     CALL DECIT1D                                       CPW06550
+                     MVC ACTSIO,28-L'ACTSIO(R13)                        CPW06560
+                  IF END                                                CPW06570
+                  SPACE 3                                               CPW06580
+*                     PAGE RATE                                         CPW06590
+                  L   R1,USRTURND                                       CPW06600
+                  M   R0,=F'10000' MILLISECONDS, *10                    CPW06610
+                  IF CLC,SNAPINT,=F'0',NZ,THEN                          CPW06620
+                      D   R0,SNAPINT                                    CPW06630
+                  IF ELSE                                               CPW06640
+                      SR  R1,R1                                         CPW06650
+                  IF END                                                CPW06660
+                  IF R1,NZ,THEN                                         CPW06670
+                     CALL DECIT1D                                       CPW06680
+                     MVC ACTPGR,28-L'ACTPGR(R13)                        CPW06690
+                  IF END                                                CPW06700
+                  SPACE 1                                               CPW06710
+*                 K OF CORE OCCUPIED.                                   CPW06720
+                  LH  R1,USRRPAG        PAGES.                          CPW06730
+                  IF R1,NZ,THEN                                         CPW06740
+                     SLA R1,2    *4 = LK                                CPW06750
+                     CALL DECIT                                         CPW06760
+                     MVC ACTRESK,28-L'ACTRESK+1(R13)                    CPW06770
+                     MVI ACTRESK+L'ACTRESK-1,C'K'                       CPW06780
+                  IF END                                                CPW06790
+                  IF TM,USRSTATS+VMPSTAT-VMRSTAT,VMRPAGE,O,THEN         CPW06800
+                     MVI ACTRES,C'R'                                    CPW06810
+                  IF ELSE                                               CPW06820
+                     MVI ACTRES,C' '                                    CPW06830
+                  IF END                                                CPW06840
+                  SPACE 1                                               CPW06850
+*                 K PROJECTED WORKING SET.                              CPW06860
+                  LH  R1,USRWS                                          CPW06870
+                  IF R1,NZ,THEN                                         CPW06880
+                     SLA R1,2                                           CPW06890
+                     CALL DECIT                                         CPW06900
+                     MVC ACTPWS,28-L'ACTRESK+1(R13)                     CPW06910
+                     MVI ACTPWS+L'ACTPWS-1,C'K'                         CPW06920
+                  IF END                                                CPW06930
+                  SPACE 3                                               CPW06940
+                  LA  R8,ACTNXTLN                                       CPW06950
+               IF END                                                   CPW06960
+               SPACE 1                                                  CPW06970
+*              NOW GET THE NEXT ONE.                                    CPW06980
+               L   R6,USRNEXT                                           CPW06990
+            DO END                                                      CPW07000
+            SPACE 1                                                     CPW07010
+            LR  R1,R9                                                   CPW07020
+            LR  R0,R10                                                  CPW07030
+            CALL LASTSCR                                                CPW07040
+         IF END                                                         CPW07050
+         SPACE 1                                                        CPW07060
+         PROC  END                                                      CPW07070
+         SPENDCHK                                                       CPW07080
+         EJECT                                                          CPW07090
+*********************************************************************** CPW07100
+*              BUILD USER TABLE.                                      * CPW07110
+*********************************************************************** CPW07120
+*        BUILDS LINKED LIST OF AVAILABLE USER TABLE ENTRIES.            CPW07130
+         SPACE 1                                                        CPW07140
+USRBLD   PROC  BEGIN                                                    CPW07150
+         XC    AUSRTAB,AUSRTAB          NO ACTIVE ENTRIES YET.          CPW07160
+         SPACE 1                                                        CPW07170
+         LA    R3,&USRTABS                                              CPW07180
+         M     R2,=A(USRSECTL)                                          CPW07190
+         LA    R3,4095(,R3)   FORCE UP TO PAGE BOUNDARY.                CPW07200
+         N     R3,FM04096                                               CPW07210
+         LR    R0,R3          LENGTH FOR GETMAIN.                       CPW07220
+         D     R2,=A(USRSECTL)          ACTUAL NUMBER OF ENTRIES.       CPW07230
+         SPACE 1                                                        CPW07240
+         SVC   SVCGETM+SVCPAGE                                          CPW07250
+         SPACE 1                                                        CPW07260
+         LA    R2,AUSRFREE-(USRNEXT-USRSECT)                            CPW07270
+         USING USRSECT,R2                                               CPW07280
+         LR    R4,R1          NEXT ITEM IS THE FIRST.                   CPW07290
+USRBLDLP EQU   *                                                        CPW07300
+         ST    R4,USRNEXT     CHAIN FROM PRECEDING ITEM.                CPW07310
+         LR    R2,R4          SWITCH TO CURRENT ITEM.                   CPW07320
+         MVC   USRSECT(USRSECTL),HEXFS                                  CPW07330
+         LA    R4,USRSECT+USRSECTL      START SEQ ALLOC.                CPW07340
+         BCT   R3,USRBLDLP                                              CPW07350
+         SPACE 1                                                        CPW07360
+         XC    USRNEXT,USRNEXT          NO ONE FOLLOWS.                 CPW07370
+         SPACE 1                                                        CPW07380
+         PROC END                                                       CPW07390
+         EJECT                                                          CPW07400
+         SPENDCHK                                                       CPW07410
+         EJECT                                                          CPW07420
+*********************************************************************** CPW07430
+*              V M / 3 7 0   D S E C T S.                             * CPW07440
+*********************************************************************** CPW07450
+         SPACE 1                                                        CPW07460
+         PSA                                                            CPW07470
+         COPY  RBLOKS                                                   CPW07480
+         COPY DEVTYPES                                                  CPW07490
+         COPY  VMBLOK                                                   CPW07500
+         SYSLOCS                                                        CPW07510
+         SPACE 12                                                       CPW07520
+         END                                                            CPW07530

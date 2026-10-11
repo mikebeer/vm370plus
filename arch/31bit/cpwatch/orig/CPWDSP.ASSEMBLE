@@ -1,0 +1,671 @@
+DSP TITLE 'CPWDSP -                                DISPLAY CHAIN, ETC.' CPW00010
+         COPY  CPWPRM                                                   CPW00020
+DSP      MODULE                                                         CPW00030
+*---------------------------------------------------------------------- CPW00040
+*              SET DATE IN MENU PANEL                                   CPW00050
+*---------------------------------------------------------------------- CPW00060
+         SPACE 1                                                        CPW00070
+IMENU    PROC BEGIN                                                     CPW00080
+         L     R1,=A(CPWDSPDT)                                          CPW00090
+         L     R2,=V(CPWASM)  LAST ASSEMBLY DATE AND TIME               CPW00100
+         MVC   0(L'CPWDSPDT,R1),0(R2)                                   CPW00110
+         PROC END                                                       CPW00120
+         SPACE 3                                                        CPW00130
+         EJECT                                                          CPW00140
+*********************************************************************** CPW00150
+*              SERVICE ROUTINES.                                        CPW00160
+*********************************************************************** CPW00170
+         SPACE 2                                                        CPW00180
+*        GET THE NEXT SCREEN (EMPTY) OF A DISPLAY.                      CPW00190
+*        ENTER WITH R1 -> DSPSECT FOR THIS DISPLAY.                     CPW00200
+*              R0 -> CURRENT SCRSECT, OR = 0 IF FIRST.                  CPW00210
+*        EXIT WITH R0 -> NEW SCRSECT FOR THIS DISPLAY.                  CPW00220
+NEWSCR   PROC  BEGIN                                                    CPW00230
+         LR    R9,R1          SAVE DSPSECT                              CPW00240
+         USING DSPSECT,R9                                               CPW00250
+         LR    R8,R0         SAVE SCRSECT.                              CPW00260
+         IF R8,NZ,THEN ADDING ANOTHER SCREEN..                          CPW00270
+            USING SCRSECT,R8                                            CPW00280
+            L   R10,SCRNEXT                                             CPW00290
+            DROP R8                                                     CPW00300
+         IF ELSE                                                        CPW00310
+            L   R10,DSPFSCR                                             CPW00320
+            ZAP DSPSCRC,=P'0' ZERO PAGES SO FAR.                        CPW00330
+         IF END                                                         CPW00340
+         IF R10,Z,THEN WE NEED ANOTHER PAGE.                            CPW00350
+            ICM R10,B'1111',ADSPFREE     GET ONE OFF FREE CHAIN.        CPW00360
+            IF NZ,THEN THERE IS ONE.                                    CPW00370
+*              UNHOOK IT FROM FREE CHAIN.                               CPW00380
+               MVC ADSPFREE,SCRNEXT-SCRSECT(R10)                        CPW00390
+               SPACE 1                                                  CPW00400
+            IF ELSE  WE HAVE TO MAKE ANOTHER FROM FREE STORAGE.         CPW00410
+*                    GET SPACE.                                         CPW00420
+               LA  R0,SCRSECTL                                          CPW00430
+               SVC SVCGETM                                              CPW00440
+               LR  R10,R1                                               CPW00450
+            IF END                                                      CPW00460
+            USING SCRSECT,R10                                           CPW00470
+            XC  SCRNEXT,SCRNEXT                                         CPW00480
+            DROP R10                                                    CPW00490
+         IF END                                                         CPW00500
+         SPACE 1                                                        CPW00510
+*              CHAIN OFF OLD SCREEN, IF ANY.                            CPW00520
+         IF R8,NZ,THEN                                                  CPW00530
+            ST  R10,SCRNEXT-SCRSECT(,R8)                                CPW00540
+            MVC SCRMORE-SCRSECT(L'SCRMORE,R8),=CL(L'SCRMORE)'MORE'      CPW00550
+         IF ELSE                                                        CPW00560
+            ST  R10,DSPFSCR                                             CPW00570
+         IF END                                                         CPW00580
+         MVC SCRMORE-SCRSECT(L'SCRMORE,R10),BLANKL                      CPW00590
+         SPACE 1                                                        CPW00600
+*              BUILD TOP LINE.                                          CPW00610
+         USING SCRSECT,R10                                              CPW00620
+         LA    R2,SCREEN                                                CPW00630
+         LA    R3,L'SCREEN                                              CPW00640
+         IF R8,NZ,THEN                                                  CPW00650
+            L   R4,DSPFSCR                                              CPW00660
+            LA  R4,SCREEN-SCRSECT(,R4)                                  CPW00670
+            LA  R5,SCRMORE-SCREEN       PROPAGATE LINE 1.               CPW00680
+         IF ELSE                                                        CPW00690
+            SR  R4,R4                                                   CPW00700
+            SR  R5,R5                                                   CPW00710
+         IF END                                                         CPW00720
+         ICM R5,B'1000',=X'40'          PAD WITH BLANKS.                CPW00730
+         MVCL  R2,R4                                                    CPW00740
+*              MOVE IN TIME, ETC.                                       CPW00750
+         MVC   SCRTIME,CTIME                                            CPW00760
+         MVC   SCRDATE,CDATE                                            CPW00770
+         MVC   SCRINTVL,INTVL                                           CPW00780
+         SPACE 1                                                        CPW00790
+*              COUNT IT AND DISPLAY COUNT                               CPW00800
+         AP    DSPSCRC,=P'1'                                            CPW00810
+         MVC   SCRPAGN,=X'40202120'                                     CPW00820
+         ED    SCRPAGN,DSPSCRC                                          CPW00830
+         SPACE 1                                                        CPW00840
+         LR    R0,R10                                                   CPW00850
+         PROC  END,RETURN=(0)                                           CPW00860
+         EJECT                                                          CPW00870
+*---------------------------------------------------------------------- CPW00880
+*        DROP REMAINING SCREENS FROM DISPLAY.                           CPW00890
+*---------------------------------------------------------------------- CPW00900
+*        ENTER WITH R1 -> DSPSECT,                                      CPW00910
+*              R0 -> LAST CCWSECT USED, OR = 0 IF NONE.                 CPW00920
+*        RETURN REGS UNCHANGED,                                         CPW00930
+*              REMAINING SCREENS RETURNED TO FREE CHAIN,                CPW00940
+*              NO DEVICE CCW POINTERS POINTING TO DELETED SCREENS.      CPW00950
+LASTSCR  PROC  BEGIN                                                    CPW00960
+         LR    R9,R1                                                    CPW00970
+         USING DSPSECT,R9                                               CPW00980
+         LR    R10,R0                                                   CPW00990
+         USING SCRSECT,R10                                              CPW01000
+         SPACE 1                                                        CPW01010
+         IF R10,Z,THEN KNOCK ALL LISTNERS OFF THIS DISPLAY.             CPW01020
+         IF ELSE              JUST OFF SCREENS.                         CPW01030
+            LR  R8,R10        SAVE LAST SCREEN ADDRESS.                 CPW01040
+            L   R10,SCRNEXT                                             CPW01050
+            LR  R6,R10        LAST DROPPED SCREEN ADDRESS.              CPW01060
+            DO WHILE,R10,NZ                                             CPW01070
+*                   MAKE SURE NOBODY'S POINTING TO HIM.                 CPW01080
+  AGO .NODROP                                                           CPW01090
+              LA    R7,DEVICES                                          CPW01100
+              USING DEVSECT,R7                                          CPW01110
+              DO WHILE,CLC,DEVADDR,HEXFS,NE                             CPW01120
+                 IF C,R10,DEVPAG,EQ,THEN                                CPW01130
+*                   NOTE THAT DEVPAG IS NORMALLY MANIPULATED BY IOINTER CPW01140
+*                   WHICH MAY INTERRUPT US.                             CPW01150
+                    LR  R2,R10          GO BACK TO LAST REMAINING PAGE. CPW01160
+                    LR  R3,R8                                           CPW01170
+                    CS  R2,R3,DEVPAG (IF IT DOESN'T GO, IGNORE)         CPW01180
+                  IF END                                                CPW01190
+                  LA  R7,DEVNEXT                                        CPW01200
+               DO END                                                   CPW01210
+               DROP R7                                                  CPW01220
+.NODROP ANOP                                                            CPW01230
+               LR  R6,R10     HE'S DONE SUCCESSFULLY.                   CPW01240
+               L   R10,SCRNEXT   AND PROCESS NEXT ONE.                  CPW01250
+            DO END                                                      CPW01260
+            DROP R10                                                    CPW01270
+            IF R6,NZ,THEN WE HAVE DROPPED SOME SCREENS                  CPW01280
+*              ATTACH CHAIN, ENTIRE, AT HEAD OF FREE CHAIN.             CPW01290
+               MVC SCRNEXT-SCRSECT(L'SCRNEXT,R6),ADSPFREE               CPW01300
+               MVC ADSPFREE,SCRNEXT-SCRSECT(R8)                         CPW01310
+            IF END                                                      CPW01320
+            USING SCRSECT,R8                                            CPW01330
+            XC SCRNEXT,SCRNEXT                                          CPW01340
+         IF END                                                         CPW01350
+         SPACE 3                                                        CPW01360
+         PROC  END                                                      CPW01370
+         EJECT                                                          CPW01380
+*********************************************************************** CPW01390
+*              BUILD CLOCK SCREEN.                                      CPW01400
+*********************************************************************** CPW01410
+         SPACE 1                                                        CPW01420
+CLOCK    PROC  BEGIN                                                    CPW01430
+         SPACE 1                                                        CPW01440
+         L     R9,=A(DSPCLOCK)                                          CPW01450
+         USING DSPSECT,R9                                               CPW01460
+         L     R10,DSPFSCR                                              CPW01470
+         USING SCRSECT,R10                                              CPW01480
+         SPACE 1                                                        CPW01490
+         IF (CLC,SCRTIME(5),CTIME,NE,OR,                               +CPW01500
+               TM,DSPFLAGS,DSPNEW,O),AND,                              +CPW01510
+               CP,LISTNRS,=P'0',GT,THEN                                 CPW01520
+            SPACE 1                                                     CPW01530
+            OI    DSPFLAGS,DSPNEW FLAG AS NEW SCREEN.                   CPW01540
+            SPACE 1                                                     CPW01550
+*              INITIALIZE SCREEN.                                       CPW01560
+            LA    R2,SCREEN                                             CPW01570
+            LA    R3,L'SCREEN                                           CPW01580
+            SR    R4,R4                                                 CPW01590
+            SR    R5,R5                                                 CPW01600
+            ICM   R5,B'1000',BLANKL                                     CPW01610
+            MVCL R2,R4                                                  CPW01620
+            MVC SCRTIME(5),CTIME                                        CPW01630
+            MVC SCRDATE,CDATE                                           CPW01640
+            SPACE 3                                                     CPW01650
+            SR    R1,R1          REL LINE NUMBER.                       CPW01660
+            LA    R3,SCRTIME       SOURCE                               CPW01670
+            LA    R4,5           NUMBER OF BYTES.                       CPW01680
+            LA    R8,SCREEN+400+6          BEGIN OF OUTPUT AREA.        CPW01690
+*              IF LEADING BLANK, RE-CENTRE OUTPUT.                      CPW01700
+            IF CLI,0(R3),C' ',EQ,THEN                                   CPW01710
+               LA  R3,1(,R3)                                            CPW01720
+               BCTR R4,0                                                CPW01730
+               LA  R8,7(,R8)                                            CPW01740
+            IF END                                                      CPW01750
+            LA    R9,12          LOOP CONTROL - NUMBER OF LINES.        CPW01760
+CLOOP       EQU   *                                                     CPW01770
+               CALL BLOKLTR,LOCAL=YES                                   CPW01780
+               SPACE 1                                                  CPW01790
+               LA  R1,1(,R1)     NEXT LINE                              CPW01800
+               LA  R8,80(,R8)                                           CPW01810
+            BCT   R9,CLOOP                                              CPW01820
+            SPACE 1                                                     CPW01830
+         IF END                                                         CPW01840
+         SPACE 1                                                        CPW01850
+         PROC  END                                                      CPW01860
+         SPACE 12                                                       CPW01870
+*                                                                       CPW01880
+* OPERATION OF THE BLOCK LETTER GENERATION SUBROUTINE -                 CPW01890
+*                                                                       CPW01900
+* ENTRY CONDITIONS -                                                    CPW01910
+*                                                                       CPW01920
+*        GPR1  = RELATIVE LINE NUMBER OF THE 12 LINE MATRIX (0-11)      CPW01930
+*        GPR3  = ADDRESS OF THE CHARACTER STRING TO BE TRANSLATED       CPW01940
+*        GPR4  = NUMBER OF CHARACTERS TO BE TRANSLATED                  CPW01950
+*        GPR6  = RETURN ADDRESS                                         CPW01960
+*  RETURN ADDRESS CHANGED TO R14. GEO.                                  CPW01970
+*        GPR8  = ADDRESS OF OUTPUT AREA FOR TRANSLATION                 CPW01980
+*                                                                       CPW01990
+*        UPON ENTRY, THE OUTPUT AREA POINTED TO BY GPR8 SHOULD HAVE     CPW02000
+*        BEEN CLEARED TO BLANKS BY THE CALLER.  THE OUTPUT AREA MUST BE CPW02010
+*        LONG ENOUGH TO HOLD 12 CHARACTERS FOR EACH CHARACTER           CPW02020
+*        TRANSLATED, PLUS 2 SPACES BETWEEN EACH BLOK LETTER. FOR        CPW02030
+*        EXAMPLE, IF 5 CHARACTERS ARE TO BE TRANSLATED, THE OUTPUT AREA CPW02040
+*        FOR THE TRANSLATOR MUST BE AT LEAST (5*12)+(4*2)= 68 BYTES     CPW02050
+*        LONG.  IT IS THE RESPONSIBILITY OF THE CALLER TO INSURE THAT   CPW02060
+*        THE OUTPUT AREAS FOR THE 12 LINES ARE VERTICALLY ALIGNED ON    CPW02070
+*        THE PAGE WHEN THEY ARE FINALLY PRINTED                         CPW02080
+*                                                                       CPW02090
+* EXIT CONDITIONS -                                                     CPW02100
+*                                                                       CPW02110
+*        NORMAL -                                                       CPW02120
+*        THE OUTPUT AREA IS FILLED WITH A LINE OF CHARACTERS, ONE       CPW02130
+*        GROUP OF 12 FOR EACH OF THE LETTERS TRANSLATED                 CPW02140
+*                                                                       CPW02150
+*        ERROR -                                                        CPW02160
+*        NONE                                                           CPW02170
+*                                                                       CPW02180
+* REGISTER USAGE -                                                      CPW02190
+*                                                                       CPW02200
+*        GPR0  = CHARACTER REGISTER - HOLDS THE CHARACTER TO BE TRANS-  CPW02210
+*                LATED                                                  CPW02220
+*        GPR1  = RELATIVE LINE NUMBER (0-11) IN MATRIX                  CPW02230
+*        GPR2  - NOT USED                                               CPW02240
+*        GPR3  = ADDRESS OF NEXT LETTER TO TRANSLATE                    CPW02250
+*        GPR4  = NUMBER OF LETTERS REMAINING TO BE TRANSLATED           CPW02260
+*        GPR5  = SHIFT REGISTER FOR PATTERN DETERMINATION               CPW02270
+*        GPR6  = RETURN ADDRESS                                         CPW02280
+*        GPR7  - NOT USED                                               CPW02290
+*        GPR8  = ADDRESS OF LOCATION FOR NEXT 12 BYTE PATTERN           CPW02300
+*        GPR9  = INDEX REGISTER FOR LINE AND PATTERN TABLES             CPW02310
+*        GPR10 = INDEX FOR NEXT BYTE STORE ADDRESS                      CPW02320
+*        GPR11-13 - NOT USED                                            CPW02330
+*        GPR14,15 - BXLE LOOP CONTROL                                   CPW02340
+*                                                                       CPW02350
+*        NOTE THAT GPR14-0 ARE SAVED AND RESTORED, REGISTERS 3-5 AND    CPW02360
+*        8-10 WILL BE DESTROYED, AND THE OTHERS WILL BE UNCHANGED       CPW02370
+*   NOTE THAT NO REGS ARE NOW DESTROYED. GEO.                           CPW02380
+*                                                                       CPW02390
+         EJECT                                                          CPW02400
+*                                                                       CPW02410
+* NOTES -                                                               CPW02420
+*                                                                       CPW02430
+*        THIS ROUTINE IS AN ADAPTATION OF THE OS/360 MODULE 'IEFSD095   CPW02440
+*        BLOCK LETTER AND NUMBER ROUTINE'                               CPW02450
+*                                                                       CPW02460
+* OPERATION -                                                           CPW02470
+*                                                                       CPW02480
+*        1. THE PATTERN TO BE STORED FOR A GIVEN LETTER                 CPW02490
+*           OR NUMBER IS DETERMINED BY INDEXING INTO A PATTERN TABLE    CPW02500
+*           BASED ON THE HEXADECIMAL VALUE OF THE CHARACTER.  WHEN      CPW02510
+*           THE PROPER ENTRY IS FOUND, IT IS FURTHER INDEXED BY THE     CPW02520
+*           RELATIVE LINE NUMBER THAT IS BEING PRODUCED.  THE RESULTING CPW02530
+*           NUMBER IS USED TO INDEX INTO A BIT TABLE WHERE EACH ENTRY   CPW02540
+*           IS TWELVE BITS LONG AND INDICATES VIA A ONE OR ZERO BIT     CPW02550
+*           WHETHER OR NOT A CHARACTER IS TO BE STORED IN A COLUMN OF   CPW02560
+*           OF THAT ROW OF THE MATRIX                                   CPW02570
+*                                                                       CPW02580
+*        2. THE BIT MAP IS INSERTED INTO THE HIGH ORDER HALFWORD        CPW02590
+*           OF A REGISTER, WHICH IS THEN SHIFTED AND TESTED VIA A BXH   CPW02600
+*           LOOP.  IF A ONE BIT IS SHIFTED INTO THE HIGH ORDER (0)      CPW02610
+*           POSITION OF THE REGISTER, A CHARACTER IS STORED IN THE      CPW02620
+*           CORRESPONDING COLUMN OF THE MATRIX; IF NO BIT IS SHIFTED,   CPW02630
+*           NO CHARACTER IS STORED                                      CPW02640
+*                                                                       CPW02650
+*        3. AS THE REGISTER IS SHIFTED AND TESTED, THE COLUMN INDEX IS  CPW02660
+*           INCREMENTED AND ALWAYS POINTS TO THE NEXT POSITION TO BE    CPW02670
+*           FILLED; THEREFOR, IF NO CHARACTER IS STORED, THE COLUMN     CPW02680
+*           REMAINS BLANK                                               CPW02690
+*                                                                       CPW02700
+*        4. AFTER THE 12TH COLUMN HAS BEEN PROCESSED, THE TRANSLATION   CPW02710
+*           COUNT IS DECREMENTED AND TESTED AND ANY FURTHER LETTERS ARE CPW02720
+*           TRANSLATED IN THE SAME MANNER                               CPW02730
+*                                                                       CPW02740
+*.                                                                      CPW02750
+         EJECT                                                          CPW02760
+BLOKLTR  PROC  BEGIN      GENERATE BLOCK LETTERS FOR THE PAGE SEPARATOR CPW02770
+         SPACE 2                                                        CPW02780
+* GEO    STM   R14,R0,SAVEWRK2     SAVE REGS 14, 15, AND 0              CPW02790
+*        STM   R14,R12,12(R13)                                    GEO   CPW02800
+         SR    R0,R0               CLEAR CHARACTER REGISTER             CPW02810
+         LA    R14,1               GENERAL INCREMENT REGISTER           CPW02820
+         LA    R15,11              OFFSET OF LAST MATRIX CHARACTER      CPW02830
+GETCHAR  SR    R10,R10             OFFSET OF 1ST MATRIX CHARACTER       CPW02840
+         IC    R0,0(,R3)           PICK UP NEXT CHARACTER               CPW02850
+         LR    R9,R0               AND SAVE IT                          CPW02860
+         O     R9,=A(X'C0')        FORCE INTO THE RANGE OF UPPER CASE   CPW02870
+         S     R9,=A(X'C0')   AND BACK UP FOR IT.                       CPW02880
+         IC    R9,CHARTABL(R9)       GET OFFSET FOR CHARACTER PATTERN   CPW02890
+*        IC    R9,CHARTABL-X'C0'(R9) GET OFFSET FOR CHARACTER PATTERN   CPW02900
+         LTR   R5,R9               WAS CHARACTER A BLANK?               CPW02910
+         BZ    NEXTCHAR            YES -- SKIP TO NEXT CHARACTER        CPW02920
+         AR    R5,R5               MULTIPLY OFFSET BY 2                 CPW02930
+         LA    R5,CHARPATN-12(R5)  AND POINT TO CHARACTER PATTERN       CPW02940
+         IC    R9,0(R1,R5)         GET OFFSET INTO LINE PATTERN TABLE   CPW02950
+         LH    R5,LINEPATN(R9)     AND GET LINE PATTERN IN R5           CPW02960
+         SLL   R5,19               SHIFT LINE PATTERN INTO BITS 1-12    CPW02970
+         AR    R5,R14              AND INSERT LOW ORDER 1               CPW02980
+         SPACE 3                                                        CPW02990
+BLOKLOOP BXH   R5,R5,*+8           TEST FOR A ONE BIT SHIFTED INTO HIGH CPW03000
+*              ORDER POSITION -- IF BIT WAS SHIFTED, BRANCH WILL NOT    CPW03010
+*              BE TAKEN, SINCE RESULTING SUM IS NEGATIVE, AND A CHAR-   CPW03020
+*        ACTER WILL BE STORED. IF BIT WAS NOT SHIFTED, SUM WILL BE POS- CPW03030
+*        ITIVE, AND ONE GREATER THAN LAST VALUE IN R5                   CPW03040
+         STC   R0,0(R10,R8)        STORE MATRIX CHARACTER               CPW03050
+         BXLE  R10,R14,BLOKLOOP    POINT TO SLOT FOR NEXT CHAR          CPW03060
+*                                  ACTER, AND LOOP 11 MORE TIMES        CPW03070
+NEXTCHAR AR    R3,R14              POINT TO NEXT CHARACTER TO TRANSLATE CPW03080
+         LA    R8,14(,R8)          POINT TO NEXT SLOT IN WORKAREA       CPW03090
+         BCT   R4,GETCHAR          GET NEXT CHARACTER, IF THERE IS ONE  CPW03100
+         SPACE 2                                                        CPW03110
+* GEO    LM    R14,R15,SAVEWRK2    RESTORE REGISTERS 14 AND 15          CPW03120
+* GEO    BR    R6                  AND RETURN TO CALLER                 CPW03130
+*        LM    R14,R12,12(R13)                                    GEO   CPW03140
+*        BR    R14                                                GEO   CPW03150
+         EJECT                                                          CPW03160
+         DATA                                                           CPW03170
+CHARTABL EQU   *  TABLE OF OFFSETS INTO CHARPATN TABLE --               CPW03180
+*              SINCE EACH ENTRY IN THE CHARPATN TABLE IS 12 BYTES,      CPW03190
+*              THESE INDICES ARE REALLY ONLY HALF AS BIG AS THE ACTUAL  CPW03200
+*              OFFSET.  AFTER THE INDEX IS FOUND, IT IS MULTIPLIED BY 2 CPW03210
+         SPACE 3                                                        CPW03220
+         DC    X'00'               BLANK                                CPW03230
+         DC    AL1(((A-XX)/2),((B-XX)/2),((C-XX)/2),((D-XX)/2))         CPW03240
+         DC    AL1(((E-XX)/2),((F-XX)/2),((G-XX)/2),((H-XX)/2))         CPW03250
+         DC    AL1((I-XX)/2)                                            CPW03260
+         DC    7X'00'              UNDEFINED GRAPHICS - FORCED TO       CPW03270
+*                                  BLANKS                               CPW03280
+         DC    AL1(((J-XX)/2),((K-XX)/2),((L-XX)/2),((M-XX)/2))         CPW03290
+         DC    AL1(((N-XX)/2),((O-XX)/2),((P-XX)/2),((Q-XX)/2))         CPW03300
+         DC    AL1((R-XX)/2)                                            CPW03310
+         DC    8X'00'              UNDEFINED GRAPHICS - FORCED TO       CPW03320
+*                                  BLANKS                               CPW03330
+         DC    AL1(((S-XX)/2),((T-XX)/2),((U-XX)/2),((V-XX)/2))         CPW03340
+         DC    AL1(((W-XX)/2),((X-XX)/2),((Y-XX)/2),((Z-XX)/2))         CPW03350
+         DC    6X'00'              UNDEFINED GRAPHICS - FORCED TO       CPW03360
+*                                  BLANKS                               CPW03370
+         DC    AL1(((ZERO-XX)/2),((ONE-XX)/2),((TWO-XX)/2))             CPW03380
+         DC    AL1(((THREE-XX)/2),((FOUR-XX)/2),((FIVE-XX)/2))          CPW03390
+         DC    AL1(((SIX-XX)/2),((SEVEN-XX)/2),((EIGHT-XX)/2))          CPW03400
+         DC    AL1((NINE-XX)/2)                                         CPW03410
+         DC    AL1((COLON-XX)/2)                                  GEO   CPW03420
+         DC    5X'00'                                             GEO   CPW03430
+* GEO    DC    6X'00'              UNDEFINED GRAPHICS - FORCED TO       CPW03440
+*                                  BLANKS                               CPW03450
+         SPACE 3                                                        CPW03460
+*********************************************************************** CPW03470
+*                                                                     * CPW03480
+*        FOLLOWING IS THE CHARACTER PARM LIST CONTAINING 444 BYTES    * CPW03490
+*        WHERE EACH BYTE IS THE OFF SET FROM L1 IN THE LINE PARAMETER * CPW03500
+*        LIST WHERE ONE LINE PATTERN OF A PARTICULAL CHARACTER IS     * CPW03510
+*        STORED . A CHARACTER IS REPRESENTED BY 12 ORDERED LINE       * CPW03520
+*        PATTERNS .FOR EXAMPLE A IS REPRESENTED BY THE  FOLLOWING     * CPW03530
+*        ORDERED LINE PATTERNS  L2,L1,L5,L5,L5,L1,L1,L5,L5,L5,L5,L5   * CPW03540
+*        AND WILL APPEAR ON THE PRINTER AS FOLLOWS                    * CPW03550
+*                                                                     * CPW03560
+*                             AAAAAAAAAA                              * CPW03570
+*                            AAAAAAAAAAAA                             * CPW03580
+*                            AA        AA                             * CPW03590
+*                            AA        AA                             * CPW03600
+*                            AA        AA                             * CPW03610
+*                            AAAAAAAAAAAA                             * CPW03620
+*                            AAAAAAAAAAAA                             * CPW03630
+*                            AA        AA                             * CPW03640
+*                            AA        AA                             * CPW03650
+*                            AA        AA                             * CPW03660
+*                            AA        AA                             * CPW03670
+*                            AA        AA                             * CPW03680
+*                                                                     * CPW03690
+*********************************************************************** CPW03700
+CHARPATN EQU   *                                                        CPW03710
+XX       EQU   *-12                JUST FOR EASE OF TYPING              CPW03720
+A        DC    X'020008080800000808080808'                              CPW03730
+B        DC    X'2C000808322A2A320808002C'                              CPW03740
+C        DC    X'020008262626262626080002'                              CPW03750
+D        DC    X'282A32080808080808322A28'                              CPW03760
+E        DC    X'000026262668682626260000'                              CPW03770
+F        DC    X'000026262668682626262626'                              CPW03780
+G        DC    X'020008262626343408080002'                              CPW03790
+H        DC    X'080808080800000808080808'                              CPW03800
+I        DC    X'020214141414141414140202'                              CPW03810
+J        DC    X'66660A0A0A0A0A0A3A3A686A'                              CPW03820
+K        DC    X'08322E3C3A36363A3C2E3208'                              CPW03830
+L        DC    X'262626262626262626260000'                              CPW03840
+M        DC    X'083E40424446080808080808'                              CPW03850
+N        DC    X'086C6E484A464E5052540876'                              CPW03860
+O        DC    X'000008080808080808080000'                              CPW03870
+P        DC    X'2C00080808002C2626262626'                              CPW03880
+Q        DC    X'020008080808084E50522C56'                              CPW03890
+R        DC    X'2C00080808002C3A3C2E3208'                              CPW03900
+S        DC    X'02000826585A5C5E64080002'                              CPW03910
+T        DC    X'000014141414141414141414'                              CPW03920
+U        DC    X'080808080808080808080002'                              CPW03930
+V        DC    X'080808080808083062206014'                              CPW03940
+W        DC    X'080808080808464442403E08'                              CPW03950
+X        DC    X'080830622060602062300808'                              CPW03960
+Y        DC    X'080830622060141414141414'                              CPW03970
+Z        DC    X'00001070120A147216742400'                              CPW03980
+ZERO     DC    X'040208080808080808080204'                              CPW03990
+ONE      DC    X'140C0E141414141414140202'                              CPW04000
+TWO      DC    X'020008646410121416180000'                              CPW04010
+THREE    DC    X'02000864641A1A6464080002'                              CPW04020
+FOUR     DC    X'061C1E202224001212121212'                              CPW04030
+FIVE     DC    X'0000262626282A106464002C'                              CPW04040
+SIX      DC    X'02000826262C000808080002'                              CPW04050
+SEVEN    DC    X'002C2E120A14141414141414'                              CPW04060
+EIGHT    DC    X'020008083004043008080002'                              CPW04070
+NINE     DC    X'020008080800006464080002'                              CPW04080
+COLON    DC    X'4C4C4C60604C4C60604C4C4C'                        GEO   CPW04090
+         SPACE 3                                                        CPW04100
+*********************************************************************** CPW04110
+*                                                                     * CPW04120
+*        FOLLOWING IS THE LINE PARAMETER LIST CONTAINING 60           * CPW04130
+*        DISTINCT LINE PATTERNS . IF THE BIT IS ON THE CHARACTER      * CPW04140
+*        WILL BE PRINTED, AND IF THE BIT IS OFF THE PRINTING OF         CPW04150
+*        THE CHARACTER IS SUPPRESSED . A COMBINATION OF 12 LINE       * CPW04160
+*        PATTERNS ( AS SPECIFIED IN THE CHARACTER REPRESENTATION      * CPW04170
+*        LIST ) REPRESENTS EITHER A BLANK , A LETTER FROM A TO Z,     * CPW04180
+*        OR A NUMBER FROM 0 TO 9 .                                    * CPW04190
+*                                                                     * CPW04200
+*********************************************************************** CPW04210
+LINEPATN DS    0F                                                       CPW04220
+L1       DC    BL2'111111111111'                                        CPW04230
+L2       DC    BL2'011111111110'                                        CPW04240
+L3       DC    BL2'001111111100'                                        CPW04250
+L4       DC    BL2'000000111000'                                        CPW04260
+L5       DC    BL2'110000000011'                                        CPW04270
+L6       DC    BL2'000000110000'                                        CPW04280
+L7       DC    BL2'000011100000'                                        CPW04290
+L8       DC    BL2'000111100000'                                        CPW04300
+L9       DC    BL2'000000000110'                                        CPW04310
+L10      DC    BL2'000000011000'                                        CPW04320
+L11      DC    BL2'000001100000'                                        CPW04330
+L12      DC    BL2'000110000000'                                        CPW04340
+L13      DC    BL2'011000000000'                                        CPW04350
+L14      DC    BL2'000000011110'                                        CPW04360
+L15      DC    BL2'000001111000'                                        CPW04370
+L16      DC    BL2'000011011000'                                        CPW04380
+L17      DC    BL2'000110011000'                                        CPW04390
+L18      DC    BL2'001100011000'                                        CPW04400
+L19      DC    BL2'011111111111'                                        CPW04410
+L20      DC    BL2'110000000000'                                        CPW04420
+L21      DC    BL2'111111111000'                                        CPW04430
+L22      DC    BL2'111111111100'                                        CPW04440
+L23      DC    BL2'111111111110'                                        CPW04450
+L24      DC    BL2'110000001100'                                        CPW04460
+L25      DC    BL2'011000000110'                                        CPW04470
+L26      DC    BL2'110000000110'                                        CPW04480
+L27      DC    BL2'110000011111'                                        CPW04490
+L28      DC    BL2'111111100000'                                        CPW04500
+L29      DC    BL2'110001100000'                                        CPW04510
+L30      DC    BL2'110000110000'                                        CPW04520
+L31      DC    BL2'110000011000'                                        CPW04530
+L32      DC    BL2'111000000111'                                        CPW04540
+L33      DC    BL2'111100001111'                                        CPW04550
+L34      DC    BL2'110110011011'                                        CPW04560
+L35      DC    BL2'110011110011'                                        CPW04570
+L36      DC    BL2'110001100011'                                        CPW04580
+L37      DC    BL2'110110000011'                                        CPW04590
+L38      DC    BL2'110011000011'                                        CPW04600
+L39      DC    BL2'000000000000'                                        CPW04610
+L40      DC    BL2'110000110011'                                        CPW04620
+L41      DC    BL2'110000011011'                                        CPW04630
+L42      DC    BL2'110000001111'                                        CPW04640
+L43      DC    BL2'110000000111'                                        CPW04650
+L44      DC    BL2'011111111011'                                        CPW04660
+L45      DC    BL2'111000000000'                                        CPW04670
+L46      DC    BL2'011111111100'                                        CPW04680
+L47      DC    BL2'001111111110'                                        CPW04690
+L48      DC    BL2'000000000111'                                        CPW04700
+L49      DC    BL2'000011110000'                                        CPW04710
+L50      DC    BL2'001100001100'                                        CPW04720
+L51      DC    BL2'000000000011'                                        CPW04730
+L52      DC    BL2'001111111111'                                        CPW04740
+L53      DC    BL2'111111110000'                                        CPW04750
+L54      DC    BL2'011111100000'                                        CPW04760
+L55      DC    BL2'111000000011'                                        CPW04770
+L56      DC    BL2'111100000011'                                        CPW04780
+L57      DC    BL2'000000001100'                                        CPW04790
+L58      DC    BL2'000011000000'                                        CPW04800
+L59      DC    BL2'001100000000'                                        CPW04810
+L60      DC    BL2'110000000001'                                        CPW04820
+         PROC                                                           CPW04830
+         SPACE 3                                                        CPW04840
+         PROC END                                                       CPW04850
+         EJECT                                                          CPW04860
+CPWDSP   CSECT                                                          CPW04870
+*---------------------------------------------------------------------- CPW04880
+*              SERVICE ROUTINES                                         CPW04890
+*---------------------------------------------------------------------- CPW04900
+*  MUST BE CALLED FROM MAIN LINE.                                       CPW04910
+         SPACE 3                                                        CPW04920
+*              BITIT                                                    CPW04930
+*        CONVERT BYTE IN LOW ORDER POSITION OF R1                       CPW04940
+*        TO CHARACTER BIT EQUIVALENT IN R0, R1.                         CPW04950
+         SPACE 1                                                        CPW04960
+         ENTRY BITIT                                                    CPW04970
+         DS    0H                                                       CPW04980
+BITIT    EQU   *-20                                                     CPW04990
+         USING BITIT,R15                                                CPW05000
+         N     R1,F00255                                                CPW05010
+         SLDL  R0,31          BIT 7                                     CPW05020
+         SRL   R1,7                                                     CPW05030
+         SRDL  R0,1           BIT 6                                     CPW05040
+         SRL   R1,7                                                     CPW05050
+         SRDL  R0,1           BIT 5                                     CPW05060
+         SRL   R1,7                                                     CPW05070
+         SRDL  R0,4           LEAVE BIT 0                               CPW05080
+         SLL   R0,7                                                     CPW05090
+         SLDL  R0,1           BIT 1                                     CPW05100
+         SLL   R0,7                                                     CPW05110
+         SLDL  R0,1           BIT 2                                     CPW05120
+         SLL   R0,7                                                     CPW05130
+         SLDL  R0,1           BIT 3 (R0 FINISHED)                       CPW05140
+         SRL   R1,7           REPOSITION AND FINISH R1                  CPW05150
+         SPACE 1                                                        CPW05160
+         STM   R14,R1,12(R13)                                           CPW05170
+         OC    20(8,R13),CZEROS                                         CPW05180
+         LM    R0,R1,20(R13)                                            CPW05190
+         SPACE 1                                                        CPW05200
+         BR    R14                                                      CPW05210
+         DROP  R15                                                      CPW05220
+         SPACE 3                                                        CPW05230
+*              CONVERT BINARY NUMBER IN R1 TO EXTERNAL HEX REPRESENTATN CPW05240
+*        ENTER R1 = VALUE TO BE CONVERTED.                              CPW05250
+*        EXIT R0,R1=CHARACTER HEX EQUIVALENT.                           CPW05260
+         ENTRY HEXIT                                                    CPW05270
+         DS    0H                                                       CPW05280
+HEXIT    EQU   *-20                                                     CPW05290
+         USING HEXIT,R15                                                CPW05300
+         ST    R1,12(,R13)                                              CPW05310
+         UNPK  20(9,R13),12(5,R13)                                      CPW05320
+         TR    20(8,R13),HEXTAB                                         CPW05330
+         SPACE 1                                                        CPW05340
+         STM   R14,R15,12(R13)                                          CPW05350
+         LM    R0,R1,20(R13)                                            CPW05360
+         BR    R14                                                      CPW05370
+         DROP  R15                                                      CPW05380
+         EJECT                                                          CPW05390
+*              CONVERT BINARY NUMBER IN R1 TO EXTERNAL DECIMAL.         CPW05400
+*        ENTER R1 = VALUE TO BE CONVERTED.                              CPW05410
+*        EXIT R0,R1 CONTAIN CHARACTER VALUE.                            CPW05420
+         ENTRY DECIT,DECIT1D,DECIT2D                                    CPW05430
+         DS    0H                                                       CPW05440
+DECIT    EQU   *-20                                                     CPW05450
+         USING DECIT,R15                                                CPW05460
+         IF R2,=F'9999999',GT,OR,R2,=F'-999999',LT,THEN                 CPW05470
+            MVC   20(8,R13),=8C'*'                                      CPW05480
+         IF ELSE                                                        CPW05490
+            CVD R1,28(,R13)                                             CPW05500
+            MVC 19(9,R13),=X'40202020206B202120'                        CPW05510
+            LA  R1,19+9-1(,R13)                                         CPW05520
+            EDMK 19(9,R13),28+8-4(R13)                                  CPW05530
+            IF M,THEN                                                   CPW05540
+               BCTR R1,0                                                CPW05550
+               MVI 0(R1),C'-'                                           CPW05560
+            IF END                                                      CPW05570
+         IF END                                                         CPW05580
+         SPACE 1                                                        CPW05590
+         STM   R14,R15,12(R13)          FOR THE RECORD.                 CPW05600
+         LM    R0,R1,20(R13)  DROP LEADING BLANK.                       CPW05610
+         SPACE 1                                                        CPW05620
+         BR    R14                                                      CPW05630
+         DROP  R15                                                      CPW05640
+         SPACE 3                                                        CPW05650
+         DS    0H                                                       CPW05660
+DECIT1D  EQU *-20             WITH ONE DECIMAL PLACE.                   CPW05670
+         USING DECIT1D,R15                                              CPW05680
+         MVC 19(9,R13),=X'402020202021204B20'                           CPW05690
+         CVD R1,28(,R13)                                                CPW05700
+         LA  R1,19+9-3(,R13)                                            CPW05710
+         EDMK 19(9,R13),28+8-4(R13)                                     CPW05720
+         IF M,THEN                                                      CPW05730
+            BCTR R1,0                                                   CPW05740
+            MVI 0(R1),C'-'                                              CPW05750
+         IF END                                                         CPW05760
+         STM R14,R15,12(R13)                                            CPW05770
+         LM  R0,R1,20(R13)                                              CPW05780
+         BR    R14                                                      CPW05790
+         DROP  R15                                                      CPW05800
+         SPACE 3                                                        CPW05810
+         DS    0H                                                       CPW05820
+DECIT2D  EQU *-20             WITH TWO DECIMAL PLACES.                  CPW05830
+         USING DECIT2D,R15                                              CPW05840
+         MVC 19(9,R13),=X'4020202021204B2020'                           CPW05850
+         CVD R1,28(,R13)                                                CPW05860
+         LA  R1,19+9-3(,R13)                                            CPW05870
+         EDMK 19(9,R13),28+8-4(R13)                                     CPW05880
+         IF M,THEN                                                      CPW05890
+            BCTR R1,0                                                   CPW05900
+            MVI 0(R1),C'-'                                              CPW05910
+         IF END                                                         CPW05920
+         STM R14,R15,12(R13)                                            CPW05930
+         LM  R0,R1,20(R13)                                              CPW05940
+         BR    R14                                                      CPW05950
+         DROP  R15                                                      CPW05960
+         SPACE 3                                                        CPW05970
+*              LITERAL POOL FOR SERVICE ROUTINES.                       CPW05980
+         LTORG                                                          CPW05990
+         EJECT                                                          CPW06000
+*********************************************************************** CPW06010
+*              DISPLAY CHAIN.                                           CPW06020
+*********************************************************************** CPW06030
+         SPACE 1                                                        CPW06040
+CPWDSPS  CSECT                                                          CPW06050
+         ENTRY DSPLAYS                                                  CPW06060
+DSPLAYS  DS    0D                                                       CPW06070
+DSPBEGIN DSPENTRY SCRMENU,FLAGS=DSPNC                                   CPW06080
+DSPSYS   DSPENTRY ,                                                     CPW06090
+DSPTRM   DSPENTRY ,                                                     CPW06100
+DSPSDV   DSPENTRY ,                                                     CPW06110
+DSPALL   DSPENTRY ,                                                     CPW06120
+         PRINT GEN                                                      CPW06130
+DSPACT   DSPENTRY ,DSPBEGIN                                             CPW06140
+DSPSYA   DSPENTRY ,DSPSYA,FLAGS=DSPNC     FREE STANDING                 CPW06150
+DSPSYX   DSPENTRY ,DSPSYX,FLAGS=DSPNC     FREE STANDING                 CPW06160
+         PRINT NOGEN                                                    CPW06170
+DSPCLOCK DSPENTRY SCRCLOCK,DSPBEGIN     FREE STANDING                   CPW06180
+         EJECT                                                          CPW06190
+*********************************************************************** CPW06200
+*              S C R E E N   B U F F E R S                              CPW06210
+*********************************************************************** CPW06220
+         SPACE 1                                                        CPW06230
+*              MENU PAGE.                                               CPW06240
+         ENTRY SCRMENU                                                  CPW06250
+SCRMENU  DC    A(0,0)         NO OTHER CHAINS.                          CPW06260
+MENU     DS    CL1920                                                   CPW06270
+         ORG   MENU                                                     CPW06280
+M1       DC    CL80' '                                                  CPW06290
+M2       DC    CL80'CPWATCH &V..&M MENU '                               CPW06300
+M3       DC    CL80' '                                                  CPW06310
+M4       DC    CL80' KEY   COMMAND             ACTION    '              CPW06320
+M5       DC    CL80' '                                                  CPW06330
+M6       DC    CL80'CLEAR   DISC         Release Screen.'               CPW06340
+M7       DC    CL80' PA1    HOLD         Lock/Unlock screen against upd+CPW06350
+               ates.'                                                   CPW06360
+M8       DC    CL80' PA2    PAGE         Step through frames of one Dis+CPW06370
+               play.'                                                   CPW06380
+M9       DC    CL80' '                                                  CPW06390
+M10      DC    CL80' PF1    MENU         Return to this page.'          CPW06400
+M11      DC    CL80' PF2    SYS          System Status Page.'           CPW06410
+M12      DC    CL80' PF3    TERM         Terminal Device Page.'         CPW06420
+M13      DC    CL80' PF4    DEV          Non-Terminal Device Page.'     CPW06430
+M14      DC    CL80' PF5    ALL          All Users Status.  '           CPW06440
+M15      DC    CL80' PF6    ACT          Active Users Resource Usage.'  CPW06450
+M16      DC    CL80' PF7    SYM          CP/370 System Synonym Table, n+CPW06460
+               ame order.'                                              CPW06470
+M17      DC    CL80' PF8    SYMX         CP/370 System Synonym Table, a+CPW06480
+               ddress order.'                                           CPW06490
+M18      DC    CL80' '                                                  CPW06500
+M19      DC    CL80' PF12   CLOCK        Digital Clock Display.'        CPW06510
+M20      DC    CL80' '                                                  CPW06520
+M21      DC    CL80'ENTER                Go To Next Screen.'            CPW06530
+M22      DC    CL80' '                                                  CPW06540
+M23      DC    CL80' (Use the Enter Key with the Command Form.)'        CPW06550
+M24      DC    CL80' '                                                  CPW06560
+         ORG                                                            CPW06570
+         SPACE 3                                                        CPW06580
+         ORG   M2+L'M2-25                                               CPW06590
+CPWDSPDT DC    CL25'ASSEMBLED &SYSDATE &SYSTIME'                        CPW06600
+         ORG                                                            CPW06610
+         EJECT                                                          CPW06620
+SCRCLOCK DC    A(0,0)                                                   CPW06630
+         DS    CL1920                                                   CPW06640
+         END                                                            CPW06650
+
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+USERID MAINT    CLASS A NAME CPWEND      ASSEMBLE         10/11/26  15:00:41

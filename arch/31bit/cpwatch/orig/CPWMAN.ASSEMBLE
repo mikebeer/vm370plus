@@ -1,0 +1,376 @@
+CPW      TITLE '                                        CPWATCH'        CPW00010
+         COPY  CPWPRM                                                   CPW00020
+MAN      MODULE PRINT=YES                                               CPW00030
+         EJECT                                                          CPW00040
+*********************************************************************** CPW00050
+*        SYMBOL TABLE ON PAGES 4,5,AND 6                              * CPW00060
+*********************************************************************** CPW00070
+         SPACE 1                                                        CPW00080
+SYMBLD   PROC  BEGIN                                                    CPW00090
+         SPACE 1                                                        CPW00100
+*              FETCH SYSTEM SYMBOL TABLE .                              CPW00110
+         SPACE 1                                                        CPW00120
+         L     R0,F04096                                                CPW00130
+         SVC   SVCGETM+SVCPAGE                                          CPW00140
+         ST    R1,ASYMBUFF    PAGE ALIGNED BLOCK.                       CPW00150
+         DIAG  R1,0,X'38'     READ SYSTEM SYMBOL TABLE.                 CPW00160
+         SPACE 3                                                        CPW00170
+         STORAGE                                                        CPW00180
+CPEID    DS    2A                                                       CPW00190
+         PROC                                                           CPW00200
+         SPACE 1                                                        CPW00210
+*              GET MISC. STUFF OUT OF IT.                               CPW00220
+         XC  CORESIZE,CORESIZE                                          CPW00230
+         MVC ADSPNP,=A(0)                                               CPW00240
+         SPACE 3                                                        CPW00250
+         L     R4,ASYMBUFF                                              CPW00260
+         USING SYMTAB,R4                                                CPW00270
+         DO WHILE,CLC,SYMNAME,ZEROS,NE                                  CPW00280
+            IF CLC,SYMNAME,=C'DMKSYSRM',EQ,THEN                         CPW00290
+               MVC DWORK(4),SYMADDR                                     CPW00300
+               OI  DWORK,X'80'                                          CPW00310
+               SR  R0,R0                                                CPW00320
+               LA  R1,DWORK                                             CPW00330
+               SVC SVCDCP                                               CPW00340
+               MVC CORESIZE,DWORK                                       CPW00350
+            IF END                                                      CPW00360
+            SPACE 3                                                     CPW00370
+            IF CLC,SYMNAME,=C'DMKCPEID',EQ,THEN                         CPW00380
+               L   R1,SYMADDR                                           CPW00390
+               ST  R1,CPEID                                             CPW00400
+               LA  R1,4(,R1)                                            CPW00410
+               ST  R1,CPEID+4                                           CPW00420
+               OI  CPEID+4,X'80'                                        CPW00430
+               LA  R1,CPEID                                             CPW00440
+               SR  R0,R0                                                CPW00450
+               SVC SVCDCP                                               CPW00460
+               MVC CPREL,=CL12'CP R 00.0.00'                            CPW00470
+               MVC CPREL+5(2),CPEID                                     CPW00480
+               MVC CPREL+8(1),CPEID+4                                   CPW00490
+               MVC CPREL+9(1),CPEID+5                                   CPW00500
+               MVC CPREL+10(2),CPEID+6                                  CPW00510
+               IF CLI,CPREL+5,C'0',EQ,THEN                              CPW00520
+                  MVI CPREL+5,C' '                                      CPW00530
+               IF END                                                   CPW00540
+            IF END                                                      CPW00550
+            SPACE 3                                                     CPW00560
+            IF CLC,SYMNAME,=CL8'DMKDSPNP',EQ,THEN                       CPW00570
+               MVC ADSPNP,SYMADDR      ADDRESS OF FREE PAGE COUNT.      CPW00580
+            IF END                                                      CPW00590
+            SPACE 3                                                     CPW00600
+            LA  R4,SYMNAME+SYMLEN                                       CPW00610
+         DO END                                                         CPW00620
+         DROP R4                                                        CPW00630
+         SPACE 1                                                        CPW00640
+*              SORT SYMBOL TABLE.                                       CPW00650
+         L     R9,=V(DSPSYA)                                            CPW00660
+         USING DSPSECT,R9                                               CPW00670
+         SPACE 1                                                        CPW00680
+SYMSORT  EQU   *                                                        CPW00690
+         L     R2,ASYMBUFF                                              CPW00700
+         DO WHILE,CLC,SYMLEN(L'SYMNAME,R2),ZEROS,NE                     CPW00710
+            LA    R3,SYMLEN(,R2)                                        CPW00720
+            DO WHILE,CLC,0(L'SYMNAME,R3),ZEROS,NE                       CPW00730
+               IF (C,R9,=V(DSPSYA),EQ,AND,                             +CPW00740
+               CLC,0(L'SYMNAME,R2),0(R3),GT),OR,                       +CPW00750
+               (C,R9,=V(DSPSYX),EQ,AND,CLC,8(4,R2),8(R3),GT),THEN       CPW00760
+*              IF CLC,0(L'SYMNAME,R2),0(R3),GT,THEN                     CPW00770
+                  XC  0(SYMLEN,R2),0(R3)                                CPW00780
+                  XC  0(SYMLEN,R3),0(R2)                                CPW00790
+                  XC  0(SYMLEN,R2),0(R3)                                CPW00800
+               IF END                                                   CPW00810
+               LA  R3,SYMLEN(,R3)                                       CPW00820
+            DO END                                                      CPW00830
+            LA  R2,SYMLEN(,R2)                                          CPW00840
+         DO END                                                         CPW00850
+         SPACE 3                                                        CPW00860
+*              NOW, START BUILDING SCREENS.                             CPW00870
+         DATA                                                           CPW00880
+SYMTIT   DC    C'CPWATCH SYMBOL TABLE DMKSYM'                           CPW00890
+SYMTITO  EQU   (80-L'SYMTIT)/2                                          CPW00900
+         PROC                                                           CPW00910
+         SPACE 1                                                        CPW00920
+*        L     R9,=V(DSPSYA)                                            CPW00930
+*        USING DSPSECT,R9                                               CPW00940
+         SPACE 1                                                        CPW00950
+         SR  R10,R10          NO SCREENS YET.                           CPW00960
+         SPACE 1                                                        CPW00970
+         OI  DSPFLAGS,DSPNC   NEVER-CHANGE PAGES.                       CPW00980
+         SPACE 1                                                        CPW00990
+         L     R5,ASYMBUFF                                              CPW01000
+         USING SYMTAB,R5                                                CPW01010
+         DO WHILE,CLC,SYMNAME,ZEROS,NE                                  CPW01020
+*              GET ANOTHER PAGE.                                        CPW01030
+            LR    R0,R10                                                CPW01040
+            LR    R1,R9                                                 CPW01050
+            CALL  NEWSCR                                                CPW01060
+            LR    R10,R0                                                CPW01070
+            USING SCRSECT,R10                                           CPW01080
+            SPACE 1                                                     CPW01090
+            MVC   SCRTIME,BLANKL TIME IS WRONG.                         CPW01100
+            MVC   SCRDATE,BLANKL                                        CPW01110
+            MVC   SCREEN+SYMTITO(L'SYMTIT),SYMTIT                       CPW01120
+            SPACE 1                                                     CPW01130
+*              NOW START BUILDING TABLE.                                CPW01140
+            LA    R2,SCRLINE2                                           CPW01150
+            USING SYMOSECT,R2                                           CPW01160
+            LA    R4,SYMOLAST(,R2)   BEGIN OF LAST COLUMN.              CPW01170
+            DO WHILE,CR,R2,R4,LE,AND,CLC,SYMNAME,ZEROS,NE               CPW01180
+               LA  R3,L'SCREEN-80(,R2)        END OF COLUMN.            CPW01190
+               DO WHILE,CR,R2,R3,LT,AND,CLC,SYMNAME,ZEROS,NE            CPW01200
+                  MVC SYMONAME,SYMNAME                                  CPW01210
+                  UNPK SYMOADDR,SYMADDR+1                               CPW01220
+                  TR  SYMOADDR,HEXTAB                                   CPW01230
+                  MVI SYMOADDR+L'SYMOADDR-1,C' '                        CPW01240
+                  SPACE 1                                               CPW01250
+                  LA  R5,SYMLEN(,R5)   NEXT INPUT                       CPW01260
+                  LA  R2,80(,R2)   NEXT OUTPUT LINE (MAYBE).            CPW01270
+               DO END                                                   CPW01280
+               SH  R2,=Y(L'SCREEN-80-SYMOLEN)   NEXT COLUMN.            CPW01290
+            DO END                                                      CPW01300
+         DO END                                                         CPW01310
+         SPACE 1                                                        CPW01320
+         C     R9,=V(DSPSYX)                                            CPW01330
+         BE    OUT                                                      CPW01340
+         L     R9,=V(DSPSYX)                                            CPW01350
+         B     SYMSORT                                                  CPW01360
+OUT      EQU   *                                                        CPW01370
+         SPACE 1                                                        CPW01380
+         LR  R1,R9                                                      CPW01390
+         LR  R0,R10                                                     CPW01400
+         CALL LASTSCR                                                   CPW01410
+         SPACE 1                                                        CPW01420
+         PROC  END                                                      CPW01430
+         EJECT                                                          CPW01440
+*********************************************************************** CPW01450
+*              MAIN LINE PROGRAM                                      * CPW01460
+*********************************************************************** CPW01470
+         SPACE 1                                                        CPW01480
+MAIN     PROC  BEGIN                                                    CPW01490
+         SPACE 1                                                        CPW01500
+*              BUILD DIAGNOSE AREA.                                     CPW01510
+         L     R0,=F'4096'                                              CPW01520
+         SVC   SVCGETM+SVCPAGE                                          CPW01530
+         ST    R1,AEXDIAG                                               CPW01540
+         MVC   0(4,R1),=X'83230004'     DIAG R2,R3,X'4'                 CPW01550
+         SPACE 3                                                        CPW01560
+*              GET VM IPL TIME.                                         CPW01570
+         MVC   CPSTART,=A(STARTIME-PSA,STARTIME-PSA+4)                  CPW01580
+         OI    CPSTART+4,X'80'                                          CPW01590
+         SR    R0,R0                                                    CPW01600
+         LA    R1,CPSTART                                               CPW01610
+         SVC   SVCDCP                                                   CPW01620
+         SPACE 1                                                        CPW01630
+*              CURRENT TIME                                             CPW01640
+         STCK  THISCLOK                                                 CPW01650
+         SPACE 1                                                        CPW01660
+*              CPU ID.                                                  CPW01670
+         STIDP DWORK                                                    CPW01680
+         LM    R1,R2,DWORK                                              CPW01690
+         CALL HEXIT                                                     CPW01700
+         STCM R0,B'0011',CPUSER#                                        CPW01710
+         STCM R1,B'1111',CPUSER#+2                                      CPW01720
+         LR    R1,R2                                                    CPW01730
+         CALL HEXIT                                                     CPW01740
+         STCM R0,B'1111',CPUMOD                                         CPW01750
+         SPACE 1                                                        CPW01760
+*              FIND SYSLOCS.                                            CPW01770
+         MVC   AASYSLC,=A(ASYSLC-PSA)                                   CPW01780
+         OI    AASYSLC,X'80'                                            CPW01790
+         SR    R0,R0                                                    CPW01800
+         LA    R1,AASYSLC                                               CPW01810
+         SVC   SVCDCP                                                   CPW01820
+         SPACE 1                                                        CPW01830
+         CALL  SYMBLD          BUILD SYMBOL TABLE DISPLAY.              CPW01840
+         SPACE 1                                                        CPW01850
+         CALL RDVBLD         BUILD RDEV TABLE                           CPW01860
+         SPACE 1                                                        CPW01870
+         CALL USRBLD          BUILD USER TABLE.                         CPW01880
+         SPACE 1                                                        CPW01890
+         CALL IMENU           SET LAST ASSEMBLY TIME                    CPW01900
+         SPACE 6                                                        CPW01910
+*---------------------------------------------------------------------- CPW01920
+*              MAIN LOOP - TAKE SNAPS UNTIL SHUTDOWN IS POSTED.         CPW01930
+*---------------------------------------------------------------------- CPW01940
+         DO WHILE,TM,CPFLAG,CPSHUT1,Z                                   CPW01950
+            SETIME &INTRV                                               CPW01960
+            SPACE 1                                                     CPW01970
+*              COUNT IT                                                 CPW01980
+            AP  SNAPS,=P'1'                                             CPW01990
+            NI  SNAPS,X'0F'   MAKE IT WRAP AROUND.                      CPW02000
+            SPACE 1                                                     CPW02010
+*              INTERVAL.                                                CPW02020
+            MVC LASTCLOK,THISCLOK                                       CPW02030
+            STCK THISCLOK                                               CPW02040
+            LM  R0,R1,THISCLOK                                          CPW02050
+            SL  R0,LASTCLOK                                             CPW02060
+            SL  R1,LASTCLOK+4                                           CPW02070
+            BC B'0011',*+6                                              CPW02080
+               BCTR R0,0                                                CPW02090
+            SRDL R0,12        INTEGER MICROCSECONDS                     CPW02100
+            D   R0,F01000      INTEGER MILLISECONDS.                    CPW02110
+            ST  R1,SNAPINT                                              CPW02120
+            M   R0,F00001                                               CPW02130
+            A   R1,F00500                                               CPW02140
+            D   R0,F01000                                               CPW02150
+            CVD R1,DWORK                                                CPW02160
+            MVC INTVL,=X'40202120'                                      CPW02170
+            ED  INTVL,DWORK+L'DWORK-2                                   CPW02180
+            SPACE 1                                                     CPW02190
+            LA  R1,DWORK                                                CPW02200
+            DIAG R1,0,X'C'    PSEUDO TIMER.                             CPW02210
+            MVC   CDATE,DWORK                                           CPW02220
+            MVC CDATE(2),DWORK+3                                        CPW02230
+            MVC CDATE+3(2),DWORK                                        CPW02240
+            MVC CTIME,DWORK+8                                           CPW02250
+            IF CLI,CTIME,C'0',EQ,THEN                                   CPW02260
+               MVI CTIME,C' '                                           CPW02270
+            IF END                                                      CPW02280
+            SPACE 3                                                     CPW02290
+*---------------------------------------------------------------------- CPW02300
+*              COLLECT OTHER DATA.                                      CPW02310
+*---------------------------------------------------------------------- CPW02320
+            CALL SYSDCP      SYSTEM STUFF.                              CPW02330
+            CALL DEVDCP       DEVICES.                                  CPW02340
+            CALL USRDCP                                                 CPW02350
+            SPACE 3                                                     CPW02360
+*---------------------------------------------------------------------- CPW02370
+*              BUILD SCREENS.                                           CPW02380
+*---------------------------------------------------------------------- CPW02390
+            CALL TRMPAGE                                                CPW02400
+            CALL SDVPAGE                                                CPW02410
+            CALL ALLUSR                                                 CPW02420
+            CALL ACTUSR                                                 CPW02430
+            CALL SYSPAGE                                                CPW02440
+            CALL CLOCK                                                  CPW02450
+            SPACE 3                                                     CPW02460
+*---------------------------------------------------------------------- CPW02470
+*              POST FOR NEW WRITES.                                     CPW02480
+*---------------------------------------------------------------------- CPW02490
+            L   R1,=V(DEVICES)                                          CPW02500
+            USING DEVSECT,R1                                            CPW02510
+            DO WHILE,CLC,DEVADDR,HEXFS,NE                               CPW02520
+               IF TM,DEVFLAGS,DEVREADY,O,AND,                          +CPW02530
+               TM,DEVFLAGS,DEVHOLD,Z,THEN                               CPW02540
+                  L   R2,DEVDSP                                         CPW02550
+                  USING DSPSECT,R2                                      CPW02560
+                  IF TM,DSPFLAGS,DSPNEW,O,THEN                          CPW02570
+                     OI  DEVFLAGS,DEVWRQ                                CPW02580
+                  IF END                                                CPW02590
+                  DROP R2                                               CPW02600
+               IF END                                                   CPW02610
+               SPACE 1                                                  CPW02620
+               LA  R1,DEVNEXT                                           CPW02630
+            DO END                                                      CPW02640
+            DROP R1                                                     CPW02650
+            SPACE 1                                                     CPW02660
+*---------------------------------------------------------------------- CPW02670
+*              TURN OFF 'NEW SCREEN' FLAGS IN SCREEN STATUS.            CPW02680
+*---------------------------------------------------------------------- CPW02690
+            L   R2,ADSPLAY                                              CPW02700
+            USING DSPSECT,R2                                            CPW02710
+            LR    R3,R2                                                 CPW02720
+            DO UNTIL,CR,R2,R3,EQ                                        CPW02730
+               NI  DSPFLAGS,255-DSPNEW                                  CPW02740
+               SPACE 1                                                  CPW02750
+               L   R2,DSPNEXT                                           CPW02760
+            DO END                                                      CPW02770
+            L   R2,ADSPCLOK                                             CPW02780
+            NI  DSPFLAGS,255-DSPNEW                                     CPW02790
+            DROP R2                                                     CPW02800
+            SPACE 2                                                     CPW02810
+*---------------------------------------------------------------------- CPW02820
+*              NOW, ISSUE START I/O'S, AS NECESSARY.                    CPW02830
+*---------------------------------------------------------------------- CPW02840
+            SVC SVCDISP                                                 CPW02850
+            SPACE 2                                                     CPW02860
+*---------------------------------------------------------------------- CPW02870
+*              AND WAIT FOR NEXT TIME THROUGH.                          CPW02880
+*---------------------------------------------------------------------- CPW02890
+            WAIT                                                        CPW02900
+         DO END                                                         CPW02910
+         EJECT                                                          CPW02920
+*---------------------------------------------------------------------- CPW02930
+*              WRITE OUT RESULTS.                                       CPW02940
+*---------------------------------------------------------------------- CPW02950
+         SPACE 1                                                        CPW02960
+         DATA                                                           CPW02970
+MAINM1   EQU   *                                                        CPW02980
+MAINDIAL DC    X'402020206B2020206B2020206B2020206B202120',C' DIALS,'   CPW02990
+         DC    X'15'                                                    CPW03000
+MAINSNAP DC    X'402020206B2020206B2020206B2020206B202120',C' SNAPS.'   CPW03010
+MAINM1L  EQU   *-MAINM1                                                 CPW03020
+         SPACE 1                                                        CPW03030
+MAINM2   EQU   *                                                        CPW03040
+MAINFAIL DC    X'402020206B2020206B2020206B2020206B202120'              CPW03050
+         DC    C' VMBLOK CHAIN FAILURES.'                               CPW03060
+         DC    X'15'                                                    CPW03070
+MAINM2L  EQU   *-MAINM2                                                 CPW03080
+         SPACE 1                                                        CPW03090
+         PROC                                                           CPW03100
+         ED    MAINDIAL,DIALS                                           CPW03110
+         ED    MAINSNAP,SNAPS                                           CPW03120
+         ED    MAINFAIL,USERFAIL                                        CPW03130
+         SPACE 1                                                        CPW03140
+         LM    R0,R1,=A(MAINM1L,MAINM1)                                 CPW03150
+         SVC   SVCWTO                                                   CPW03160
+         SPACE 1                                                        CPW03170
+         LM    R0,R1,=A(MAINM2L,MAINM2)                                 CPW03180
+         SVC   SVCWTO                                                   CPW03190
+         SPACE 3                                                        CPW03200
+         PROC  END                                                      CPW03210
+*********************************************************************** CPW03220
+*              E Q U A T E S                                          * CPW03230
+*********************************************************************** CPW03240
+         SPACE 1                                                        CPW03250
+ENT      EQU   C''''                                                    CPW03260
+CLR      EQU   C'_'                                                     CPW03270
+PA1      EQU   C'%'                                                     CPW03280
+PA2      EQU   C'>'                                                     CPW03290
+PA3      EQU   C','                                                     CPW03300
+TRQ      EQU   X'01' EQU SOH - FIRST BYTE TRANSFERRED.                  CPW03310
+PF1      EQU   C'1'                                                     CPW03320
+PF2      EQU   C'2'                                                     CPW03330
+PF3      EQU   C'3'                                                     CPW03340
+PF4      EQU   C'4'                                                     CPW03350
+PF5      EQU   C'5'                                                     CPW03360
+PF6      EQU   C'6'                                                     CPW03370
+PF7      EQU   C'7'                                                     CPW03380
+PF8      EQU   C'8'                                                     CPW03390
+PF9      EQU   C'9'                                                     CPW03400
+PFA      EQU   C':'                                                     CPW03410
+PFB      EQU   C'#'                                                     CPW03420
+PFC      EQU   C'@'                                                     CPW03430
+         SPACE 1                                                        CPW03440
+         SPACE 1                                                        CPW03450
+TIC      EQU   X'08'                                                    CPW03460
+SENSE    EQU   X'04'                                                    CPW03470
+         SPACE 1                                                        CPW03480
+WRITE    EQU   X'01'          GENERAL WRITE                             CPW03490
+WRITERAS EQU   X'05'          WRITE, ERASING SCREEN.                    CPW03500
+ERASEAU  EQU   X'0F'          ERASE ALL UNPROTECTED FIELDS.             CPW03510
+         SPACE 1                                                        CPW03520
+READ     EQU   X'02'          GENERAL READ.                             CPW03530
+READBUFF EQU   X'02'          READ FULL BUFFER.                         CPW03540
+READMOD  EQU   X'06'          READ MODIFIED FIELDS ONLY.                CPW03550
+READINQ  EQU   X'0A'          READ INQUIRY FROM CONSOLE.                CPW03560
+         SPENDCHK                                                       CPW03570
+         EJECT                                                          CPW03580
+*********************************************************************** CPW03590
+*              V M / 3 7 0   D S E C T S.                             * CPW03600
+*********************************************************************** CPW03610
+         SPACE 1                                                        CPW03620
+         PSA                                                            CPW03630
+         COPY  RBLOKS                                                   CPW03640
+         COPY  VMBLOK                                                   CPW03650
+         AGO   .DONT          SUPPRESS DSECTS UNTIL NEEDED.             CPW03660
+         SYSLOCS                                                        CPW03670
+.DONT    ANOP                                                           CPW03680
+         SPACE 12                                                       CPW03690
+         END                                                            CPW03700
+
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+USERID MAINT    CLASS A NAME CPWMANO     ASSEMBLE         10/11/26  15:00:45

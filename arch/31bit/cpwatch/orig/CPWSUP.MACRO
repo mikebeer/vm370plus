@@ -1,0 +1,168 @@
+         MACRO                                                          00001000
+&NAME    CPWSUP                                                         00002000
+         LCLB  &DSECT                                                   00003000
+&DSECT   SETB  ('&SYSECT' NE 'CPWSUP')                                  00004000
+         AIF   (NOT &DSECT).NODS1                                       00005000
+CPWSUP   DSECT                                                          00006000
+.NODS1   ANOP                                                           00007000
+         USING *,R0                                                     00008000
+*              CPWATCH LOWCORE AND SVC DEFINITIONS.                     00009000
+         SPACE 3                                                        00010000
+*---------------------------------------------------------------------- 00011000
+*              SVC TABLE.                                               00012000
+*---------------------------------------------------------------------- 00013000
+         SPACE 1                                                        00014000
+SVCWAIT  EQU   0              WAIT MAINLINE ON INTERVAL TIMER           00015000
+SVCTIMES EQU   4              SET INTERVAL TIMER                        00016000
+SVCWTO   EQU   8              WRITE TO CONSOLE.                         00017000
+SVCDCP   EQU   12             DISPLAY REAL STORAGE.                     00018000
+SVCGETM  EQU   16             GETMAIN                                   00019000
+SVCPAGE  EQU   01             PAGE ALIGNED(GETMAIN MODIFIER).           00020000
+SVCFREEM EQU   20             FREEMAIN                                  00021000
+SVCMARK  EQU   24             DISPLAY CURRENT PSW ON CONSOLE            00022000
+SVCSTOP  EQU   25             SVCMARK + WAIT ON CONSOLE.                00023000
+SVCDISP  EQU   28             DISPATCH Q'D I/O.                         00024000
+SVCMAX   EQU   48             MAXIMUM SVC GENERATED.                    00025000
+         EJECT                                                          00026000
+*---------------------------------------------------------------------- 00027000
+*              L O W   C O R E   D E F I N I T I O N                    00028000
+*---------------------------------------------------------------------- 00029000
+         SPACE 2                                                        00030000
+RSTNWPSW DS    D                                                        00031000
+         DS    2D                                                       00032000
+EXTOPSW  DS    D                                                        00033000
+SVCOLD   DS    D                                                        00034000
+PGMOPSW  DS    D                                                        00035000
+MCHOPSW  DS    D                                                        00036000
+IOOLD    DS    D                                                        00037000
+CPCSW    DS    D                                                        00038000
+CPCAW    DS    F                                                        00039000
+         DS    F                                                        00040000
+CPTIMER  DS    F                                                        00041000
+         DS    F                                                        00042000
+         DS    0D                                                       00043000
+EXTNPSW  DS    D                                                        00044000
+SVCNEW   DS    D                                                        00045000
+PGMNPSW  DS    D                                                        00046000
+MCHNPSW  DS    D                                                        00047000
+IONEW    DS    D                                                        00048000
+         DS    CL(256-*+CPWSUP)                                         00049000
+         SPACE 3                                                        00050000
+*********************************************************************** 00051000
+*              C O M M O N                                              00052000
+*********************************************************************** 00053000
+         SPACE 1                                                        00054000
+AHICORE  DC    A(16*4096)     UPDATED AT IPL.                           00055000
+AHICSECT DC    V(HICSECT)     HIGHEST LOADED ADDRESS.                   00056000
+         SPACE 1                                                        00057000
+AFREECH  DC    A(*-*,0)       FREE STORAGE ANCHOR ELEMENT.              00058000
+ASAVECH  DC    A(*-*,*-*,0)   BEGIN OF SAVE AREA CHAIN.                 00059000
+         AIF   (&DSECT).DS2                                             00060000
+         ENTRY AFREECH,SVCSAVE                                          00061000
+.DS2     ANOP                                                           00062000
+         SPACE 1                                                        00063000
+ARDVTAB  DC    A(*-*)         A(MY RDEV TABLE)                          00064000
+AARIODV  DC    A(0)           BECOMES A(FIRST RDEVBLOK)                 00065000
+RIODC    DC    A(0)           REPLACED W/DEVICE COUNT AT IPL.           00066000
+         SPACE 1                                                        00067000
+AUSRTAB  DC    A(*-*)         TABLE OF LOGGED ON USER DATA              00068000
+AUSRFREE DC    A(*-*)         AVAILABLE USER TABLE ENTRIES.             00069000
+         SPACE 1                                                        00070000
+ASYMBUFF  DC    A(*-*)        SYMBOL TABLE PAGE BUFFER.                 00071000
+         SPACE 1                                                        00072000
+ADSPLAY  DC    V(DSPLAYS)     DISPLAY TABLE.                            00073000
+ADSPCLOK DC    V(DSPCLOCK)                                              00074000
+ADSPFREE DC    A(*-*)                                                   00075000
+AEXDIAG  DC    A(0)           DIAGNOSE BUFFER.
+         AIF   (&DSECT).DS3                                             00076000
+ADEVICES DC    A(DEVICES)     A(VDEVICE TABLE)                          00077000
+         SPACE 1
+CALL     B     *-*            CALL ROUTINE (FUTURE USE)
+         AGO   .NODS3                                                   00078000
+.DS3     ANOP                                                           00079000
+ADEVICES DS    A              A(VDEVICE TABLE)                          00080000
+         SPACE 1
+CALL     B     *-*            CALL ROUTINE (FUTURE USE)
+.NODS3   ANOP
+         SPACE 1
+         DC    4A(0)          FUTURE
+         SPACE 1                                                        00082000
+CORESIZE DC    F'0'           MAX REAL CORE (@DMKSYSRM)
+AASYSLC  DC    A(*-*)         ASYSLC, A(DMKSYSLC).
+ACPWSECT DC    A(*-*)         SYSTEM STUFF.
+ADSPNP   DC    A(0)           A(DMKDSPNP), FROM SYMBOL TABLE.
+HIFIXED  DC    A(0)           END OF FIXED CP CORE; FROM APAGCP IN PSA
+         DC    A(0)           FOR FUTURE USE
+         SPACE 1                                                        00084000
+MYID     DC    CL8'*'         FILLED IN W/DIAG 0                        00085000
+         SPACE 1                                                        00086000
+         DS    0D                                                       00087000
+*              TOP LINE STUFF..                                         00088000
+CDATE    DC    C'DD/MM/YY'                                              00089000
+CTIME    DC    C'HH:MM:SS'                                              00090000
+INTVL    DS    CL4                                                      00091000
+CPREL    DS    CL12                                                     00092000
+OPAGN    DS    CL4                                                      00093000
+OMORE    DS    CL4                                                      00094000
+         SPACE 1
+CPUSER#  DS    CL6            CPU SERIAL NUMBER
+CPUMOD   DS    CL4            CPW MODEL
+         SPACE 1
+CPSTART  DS    D              TOD CLOCK OF LAST VM/370 IPL.
+CPUPTIME DS    F              MINUTES SINCE LAST VM/370 IPL.
+         SPACE 1                                                        00095000
+CPFLAG   DC    X'00'                                                    00096000
+CPSHUT   EQU   X'80'          PACK IT IN.                               00097000
+CPNOTRAC EQU   X'40'          SUPPRESS TRACEING                         00098000
+         SPACE 1                                                        00099000
+LISTNRS  DC    PL2'0'         PEOPLE DIALLED IN.                        00100000
+SNAPNO   DC    PL1'0'                                                   00101000
+         SPACE 3                                                        00102000
+*              MISCELLANEOUS STATISTICS                                 00103000
+         DS    0D                                                       00104000
+         DC    CL8'*STATS**'                                            00105000
+GETMAINS DC    PL8'0'                                                   00106000
+FREMAINS DC    PL8'0'                                                   00107000
+DIALS    DC    PL8'0'                                                   00108000
+SNAPS    DC    PL8'0'                                                   00109000
+USERFAIL DC    PL8'0'         CHAIN CHASING ON VMBLOKS FAILLED.
+         SPACE 3                                                        00110000
+*              CPU TIMER.                                               00111000
+LASTCLOK DS    D              INIT IN BEGIN, SET IN MAIN.               00112000
+THISCLOK DS    D              INITIINMBEGIN, SET IN MAIN.               00113000
+SNAPINT  DS    F              MILLISECONDS.                             00114000
+         SPACE 1                                                        00115000
+DWORK    DS    4D                                                       00116000
+         SPACE 3                                                        00117000
+*********************************************************************** 00118000
+*              USEFUL CONSTANTS.                                      * 00119000
+*********************************************************************** 00120000
+         SPACE 1                                                        00121000
+ZEROS    DC    XL16'00000000000000000000000000000000'                   00122000
+CZEROS   DC    CL8'00000000'                                            00123000
+HEXFS    DC    0XL48'FF'                                                00124000
+         DC    48X'FF'                                                  00125000
+HEXTAB   EQU   *-240                                                    00126000
+HEXTABS  DC    C'0123456789ABCDEF'                                      00127000
+BLANKL   DC    CL80' '                                                  00128000
+F00001   DC    F'1'                                                     00129000
+F00002   DC    F'2'                                                     00130000
+F00007   DC    F'7'                                                     00131000
+FM00008  DC    F'-8'                                                    00132000
+F00252   DC    F'252'                                                   00133000
+X00FC    EQU   F00252                                                   00134000
+F00255   DC    F'255'         =X'000000FF'                              00135000
+F00500   DC    F'500'                                                   00136000
+F01000   DC    F'1000'                                                  00137000
+F04096   DC    F'4096'                                                  00138000
+FM04096  DC    F'-4096'                                                 00139000
+XF000    EQU   FM04096                                                  00140000
+         EJECT                                                          00141000
+         MEND                                                           00142000
+/  /
+
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+USERID MAINT    CLASS A NAME CPWASM      ASSEMBLE         10/11/26  15:00:33

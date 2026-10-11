@@ -1,0 +1,504 @@
+CPW      TITLE '                                        CPWATCH'        CPW00010
+         COPY  CPWPRM                                                   CPW00020
+DEV      MODULE PRINT=YES                                               CPW00030
+         EJECT                                                          CPW00040
+*********************************************************************** CPW00050
+*              FETCH REAL DEVICE I/O COUNTS.                          * CPW00060
+*********************************************************************** CPW00070
+         SPACE 1                                                        CPW00080
+*  FUNCTION:                                                            CPW00090
+*             EXAMINE ALL RDEVBLOK'S, UPDATING CPWATCH'S EQUIVALENT SDV CPW00100
+         SPACE 1                                                        CPW00110
+*  REGISTER USAGE:                                                      CPW00120
+*        R4: RDEVBLOK GLOBAL BASE                                       CPW00130
+*        R5: RDEVBLOK LOCAL BASE                                        CPW00140
+*        R6: RDVSECT GLOBAL BASE                                        CPW00150
+*        R7: RDVSECT LOCAL BASE                                         CPW00160
+*        R8: RDVSECT LAST ENTRY + 1                                     CPW00170
+*        R9: SVCDCPL BASE                                               CPW00180
+*        R10: SVCDCPL ENDPOINT (LAST ENTRY+1-LENGTH NEEDED FOR 1 RDVBL  CPW00190
+         SPACE 1                                                        CPW00200
+*                                                                       CPW00210
+RDVDCPSC DSECT                DCP FOR EACH DEVICE.                      CPW00220
+RDVDSTAT DS    F              STATUS, ETC                               CPW00230
+RDVDIOCT DS    F              IO COUNTS                                 CPW00240
+RDVDUSER DS    F              A(DEDICATED USER VMBLOK)                  CPW00250
+RDVDSER  DS    2F                                                       CPW00260
+RDVDCPND EQU   *                                                        CPW00270
+RDVDCPLN EQU   RDVDCPND-RDVDCPSC                                        CPW00280
+         SPACE 1                                                        CPW00290
+DEVDCP   PROC  BEGIN                                                    CPW00300
+         SPACE 1                                                        CPW00310
+*              CLEAR CHANNEL COUNTS FOR ACCUMULATION                    CPW00320
+         L     R2,ACPWSECT                                              CPW00330
+         USING CPWSECT,R2                                               CPW00340
+         XC    CPCHF(16*4),CPCHF                                        CPW00350
+         DROP R2                                                        CPW00360
+         SPACE 1                                                        CPW00370
+         L     R4,AARIODV     BEGIN CP TABLE                            CPW00380
+         L     R6,ARDVTAB     BEGIN MY TABLE                            CPW00390
+         L     R8,RIODC       # OF DEVICES                              CPW00400
+         MH    R8,=Y(RDVSECTL)         NO BYTES MY TABLE                CPW00410
+         AR    R8,R6          END + 1 BYTE, MY TABLE.                   CPW00420
+         SPACE 1                                                        CPW00430
+         DO WHILE,CR,R6,R8,LT IE FILL MY TABLE                          CPW00440
+            LR  R5,R4         INNER RDEVBLOK BASE                       CPW00450
+            LR  R7,R6         INNER SDVSECT BASE                        CPW00460
+            L   R9,AEXDIAG    BUILD IN DIAG AREA                        CPW00470
+            LA  R9,4(,R9)     START OF DATA AREA.                       CPW00480
+            LA  R10,1023*4-RDVDCPLN(,R9)                                CPW00490
+            SPACE 1                                                     CPW00500
+            DO WHILE,CR,R7,R8,LT,AND,CR,R9,R10,LT                       CPW00510
+               SPACE 1                                                  CPW00520
+               USING RDVDCPSC,R9        BUILD PLIST HERE.               CPW00530
+               USING RDEVBLOK,R5                                        CPW00540
+               LA  R1,RDEVSTAT                                          CPW00550
+               ST  R1,RDVDSTAT                                          CPW00560
+               SPACE 1                                                  CPW00570
+               LA  R1,RDEVIOCT                                          CPW00580
+               ST  R1,RDVDIOCT                                          CPW00590
+               SPACE 1                                                  CPW00600
+               LA  R1,RDEVUSER                                          CPW00610
+               ST  R1,RDVDUSER                                          CPW00620
+               SPACE 1                                                  CPW00630
+               LA  R1,RDEVSER                                           CPW00640
+               ST  R1,RDVDSER                                           CPW00650
+               LA  R1,RDEVSER+4                                         CPW00660
+               ST  R1,RDVDSER+4                                         CPW00670
+               SPACE 1                                                  CPW00680
+               LA  R5,RDEVBLOK+RDEVSIZE*8                               CPW00690
+               LA  R7,RDVSECTL(,R7)                                     CPW00700
+               LA  R9,RDVDCPND                                          CPW00710
+            DO END                                                      CPW00720
+            DROP R5,R9                                                  CPW00730
+            SPACE 3                                                     CPW00740
+*              DO DIAG 4                                                CPW00750
+            L   R1,AEXDIAG                                              CPW00760
+            LA  R2,4(,R1)                                               CPW00770
+            LR  R4,R2                                                   CPW00780
+            LR  R3,R9                                                   CPW00790
+            SR  R3,R2         NO OF BYTES                               CPW00800
+            SRA R3,2          COUNT OF FULLWORDS.                       CPW00810
+            EX  0,0(,R1)                                                CPW00820
+            SPACE 3                                                     CPW00830
+*              MOVE DATA FOUND INTO RDV TABLE.                          CPW00840
+            LR  R7,R6         RE-INITIALIZE THE LOOP.                   CPW00850
+            L   R9,AEXDIAG                                              CPW00860
+            LA  R9,4(,R9)                                               CPW00870
+*                             R10 STILL SET FROM LAST LOOP,            +CPW00880
+               R5 IS NOT USED IN THIS LOOP. (SAVE FOR END)              CPW00890
+            SPACE 1                                                     CPW00900
+            DO WHILE,CR,R7,R8,LT,AND,CR,R9,R10,LT                       CPW00910
+               USING RDVSECT,R7                                         CPW00920
+               USING RDVDCPSC,R9                                        CPW00930
+               SPACE 1                                                  CPW00940
+               MVC RDVSTAT(4),RDVDSTAT (+ RDEVFLAG,RDEVTYPC,RDEVTYPE)   CPW00950
+               SPACE 1                                                  CPW00960
+               MVC RDVSER,RDVDSER                                       CPW00970
+               SPACE 1                                                  CPW00980
+               L   R1,RDVDIOCT          CURRENT CUM SIOS                CPW00990
+               S   R1,RDVSIOT - LAST CUM SIOS                           CPW01000
+               ST  R1,RDVSIOD - CURRENT DIFFERENCE                      CPW01010
+               MVC RDVSIOT,RDVDIOCT     CURRENT CUM. SIO.               CPW01020
+               SPACE 3                                                  CPW01030
+*              ACCUMULATE FOR CHANNEL                                   CPW01040
+               LH  R1,RDVADDR                                           CPW01050
+               SRA R1,8       SAVE CHANNEL                              CPW01060
+               N   R1,=F'15'  ENSURE RIGHT SIZE.                        CPW01070
+               SLL R1,2       CONVERT TO FULLWORD OFFSET                CPW01080
+               LA  R1,CPCHF-CPWSECT(R1) INTO DSECT                      CPW01090
+               AL  R1,ACPWSECT          ACTUAL WORD                     CPW01100
+               L   R0,0(,R1)                                            CPW01110
+               AL  R0,RDVSIOD           ADD IN CURRENT DIFFERENCE.      CPW01120
+               ST  R0,0(,R1)                                            CPW01130
+               SPACE 3                                                  CPW01140
+               MVC RDVUSER,RDVDUSER                                     CPW01150
+               SPACE 2                                                  CPW01160
+               LA  R7,RDVNEXT                                           CPW01170
+               LA  R9,RDVDCPND                                          CPW01180
+            DO END                                                      CPW01190
+            DROP R7,R9                                                  CPW01200
+            SPACE 3                                                     CPW01210
+            LR  R4,R5         NEXT SET OF RDEVBLOK'S                    CPW01220
+            LR  R6,R7         NEXT SET OF RDVSECT'S                     CPW01230
+         DO END                                                         CPW01240
+DEVDCPND EQU   *                                                        CPW01250
+         SPACE 1                                                        CPW01260
+         PROC  END                                                      CPW01270
+         EJECT                                                          CPW01280
+*********************************************************************** CPW01290
+*              TERMINAL PAGE.                                         * CPW01300
+*********************************************************************** CPW01310
+* REGISTERS                                                             CPW01320
+*        R10 - PANEL BASE.                                              CPW01330
+*        R9 - DISPLAY BASE                                              CPW01340
+*        R8 - DISPLAY SLOT COUNTER.                                     CPW01350
+*        R7 - DISPLAY SLOT ADDRESS                                      CPW01360
+*        R6 - DEVICE TABLE BASE                                         CPW01370
+*        R5 - DEVICE TABLE ENTRY COUNTER.                               CPW01380
+*********************************************************************** CPW01390
+         SPACE 1                                                        CPW01400
+TRMSECT  DSECT                                                          CPW01410
+TRMADD   DS    CL3                                                      CPW01420
+         DS    C                                                        CPW01430
+TRMST    DS    C                                                        CPW01440
+TRMSIO   DS    ZL6                                                      CPW01450
+TRMPAD   DS    CL2            SEPARATE COLUMNS.                         CPW01460
+TRMLN    EQU   *-TRMSECT                                                CPW01470
+         SPACE 2                                                        CPW01480
+TRMREP   EQU   (L'SCRLINE+L'TRMPAD)/TRMLN                               CPW01490
+TRMSTART EQU   SCRLINE3       STARTING ON LINE 3                        CPW01500
+TRMEND   EQU   SCREEND                                                  CPW01510
+TRMLINES EQU   (TRMEND-TRMSTART)/L'SCRLINE                              CPW01520
+TRMNEW   EQU   TRMSTART+(TRMREP*TRMLN)  NEED NEW PAGE NOW               CPW01530
+         SPACE 3                                                        CPW01540
+TRMPAGE  PROC  BEGIN                                                    CPW01550
+         STORAGE                                                        CPW01560
+TRMWRK   DS    D                                                        CPW01570
+         DATA                                                           CPW01580
+TRMTIT   DC    C'CPWATCH TERMINAL STATUS'                               CPW01590
+TRMOFS   EQU   (L'SCRLINE-L'TRMTIT)/2                                   CPW01600
+         SPACE 1                                                        CPW01610
+         PROC                                                           CPW01620
+         L     R9,=V(DSPTRM)                                            CPW01630
+         USING DSPSECT,R9                                               CPW01640
+         SPACE 1                                                        CPW01650
+         IF CP,LISTNRS,=P'0',GT,THEN                                    CPW01660
+            OI  DSPFLAGS,DSPNEW                                         CPW01670
+            SPACE 1                                                     CPW01680
+*           INITIALIZE DEVICE LOOP                                      CPW01690
+            SR  R10,R10       FIRST PAGE                                CPW01700
+            USING SCRSECT,R10                                           CPW01710
+            SPACE 1                                                     CPW01720
+            LA  R8,TRMREP*TRMLINES      FORCE PAGE OVERFLOW.            CPW01730
+            SR  R7,R7                                                   CPW01740
+            USING TRMSECT,R7                                            CPW01750
+            SPACE 1                                                     CPW01760
+            L   R6,ARDVTAB                                              CPW01770
+            USING RDVSECT,R6                                            CPW01780
+            SPACE 1                                                     CPW01790
+            L   R5,RIODC                                                CPW01800
+            SPACE 3                                                     CPW01810
+            DO WHILE,R5,NZ                                              CPW01820
+               IF TM,RDVTYPC,CLASTERM+CLASGRAF,NZ,AND,                 +CPW01830
+               TM,RDVSTAT,RDEVDISA,Z,THEN  (ON LINE)                    CPW01840
+                  LA  R8,1(,R8)                                         CPW01850
+                  IF C,R8,=A(TRMREP*TRMLINES),GE,THEN                   CPW01860
+                     LR  R0,R10                                         CPW01870
+                     LR  R1,R9                                          CPW01880
+                     CALL NEWSCR                                        CPW01890
+                     LR  R10,R0                                         CPW01900
+                     MVC SCREEN+TRMOFS(L'TRMTIT),TRMTIT                 CPW01910
+                     SR  R8,R8      BEGIN WITH FIRST SLOT.              CPW01920
+                  IF END                                                CPW01930
+                  SR  R14,R14         CALC ROW/COL. R14- ROW            CPW01940
+                  LR  R15,R8            COL                             CPW01950
+                  D   R14,=A(TRMLINES)                                  CPW01960
+                  MH  R14,=Y(L'SCRLINE) ROW OFFSET.                     CPW01970
+                  MH  R15,=Y(TRMLN)     COLUMN OFFSET                   CPW01980
+                  IF R14,NZ,THEN STARTING A NEW COLUMN.                 CPW01990
+                      LA  R7,SCRLINE2(R15) COL HDR ADDR                 CPW02000
+                      MVC TRMADD,=CL(L'TRMADD)'ADR' TITLE LINE.         CPW02010
+                      MVC TRMSIO,=CL(L'TRMSIO)' SIO/S'                  CPW02020
+                      SPACE 1                                           CPW02030
+                      IF R15,NZ,THEN STARTING SECOND OR FURTHER COL.    CPW02040
+*                         SO SET UP SEPARATOR LINE.                     CPW02050
+                          LA  R4,SCRLINE2-((L'TRMPAD+1)/2)(R15) BEGIN   CPW02060
+                          LA  R2,L'SCRLINE INCREMENT                    CPW02070
+                          LA  R3,TRMEND    END                          CPW02080
+TRMMVIL                   MVI 0(R4),C' ' SEPARATOR                      CPW02090
+                          BXLE R4,R2,TRMMVIL                            CPW02100
+                      IF END                                            CPW02110
+                  IF END                                                CPW02120
+                  LA  R7,SCRLINE3(R15)                                  CPW02130
+                  AR  R7,R14                                            CPW02140
+*                             REAL ADDR OF SLOT IN R7 NOW.              CPW02150
+                  SPACE 3                                               CPW02160
+*                 NOW BUILD LINE.                                       CPW02170
+                  MVC TRMADD,RDVCADDR                                   CPW02180
+                  SPACE 1                                               CPW02190
+                  IF TM,RDVSTAT,RDEVDED,O,THEN HE'S DEDICATED.          CPW02200
+                     MVI TRMST,C'A'                                     CPW02210
+                  IF ELSE                                               CPW02220
+                     IF TM,RDVTYPE,TYPBSC,O,THEN REM CL, CMS.           CPW02230
+                        MVI TRMST,C'C'                                  CPW02240
+                     IF ELSE                                            CPW02250
+                        MVI TRMST,C' '                                  CPW02260
+                     IF END                                             CPW02270
+                  IF END                                                CPW02280
+                  SPACE 1                                               CPW02290
+                  L   R1,RDVSIOD                                        CPW02300
+*           EDITING ROUTINE.  NOTE THAT  SNAP INTERVAL IS IN MILLISEC,  CPW02310
+*           OUTPUT TENTHS PER SECOND.                                   CPW02320
+                 IF R1,NZ,THEN                                          CPW02330
+                    M  R0,=F'20000' 1000 FOR MSEC, 10 FOR DECIMAL PT,  +CPW02340
+                                AND 2 FOR ROUNDING.                     CPW02350
+                    D   R0,SNAPINT                                      CPW02360
+                    A   R1,=F'1'                                        CPW02370
+                    SRL R1,1                                            CPW02380
+                    CALL DECIT1D                                        CPW02390
+                    MVC TRMSIO,28-L'TRMSIO(R13)                         CPW02400
+                 IF END                                                 CPW02410
+                 SPACE 3                                                CPW02420
+               IF END                                                   CPW02430
+               SPACE 1                                                  CPW02440
+               BCTR R5,0      NEXT DEVICE.                              CPW02450
+               LA  R6,RDVNEXT                                           CPW02460
+            DO END                                                      CPW02470
+            DROP R6                                                     CPW02480
+            SPACE 1                                                     CPW02490
+            LR  R1,R9                                                   CPW02500
+            LR  R0,R10                                                  CPW02510
+            CALL LASTSCR                                                CPW02520
+            DROP R10                                                    CPW02530
+         IF END                                                         CPW02540
+         PROC  END                                                      CPW02550
+         EJECT                                                          CPW02560
+*********************************************************************** CPW02570
+*              REAL DEVICE PAGE.                                      * CPW02580
+*********************************************************************** CPW02590
+*  REGISTERS                                                            CPW02600
+*        R10 - PANEL BASE                                               CPW02610
+*        R9 - DISPLAY BASE                                              CPW02620
+*        R8 - SLOT COUNTER                                              CPW02630
+*        R7 - SLOT BASE                                                 CPW02640
+*        R6 - REAL DEVICE ENTRY BASE                                    CPW02650
+*        R5 - REAL DEVICE COUNTER.                                      CPW02660
+*********************************************************************** CPW02670
+         SPACE 1                                                        CPW02680
+SDVSECT  DSECT                                                          CPW02690
+SDVADD   DS    CL3                                                      CPW02700
+SDVSIO   DS    ZL6                                                      CPW02710
+         DS    CL1' '                                                   CPW02720
+SDVCP    DS    CL2'CP'                                                  CPW02730
+         DS    CL1' '                                                   CPW02740
+SDVSER   DS    CL6                                                      CPW02750
+         ORG   SDVCP                                                    CPW02760
+SDVUSRID DS    CL8                                                      CPW02770
+         ORG                                                            CPW02780
+SDVPAD   DS    CL1            SPACE BETWEEN COLUMNS.                    CPW02790
+SDVLN    EQU   *-SDVSECT                                                CPW02800
+         SPACE 1                                                        CPW02810
+SDVREP   EQU   (L'SCRLINE+L'SDVPAD)/SDVLN       NO OF COLUMNS.          CPW02820
+SDVSTART EQU   SCRLINE3 STARTING ON LINE 3                              CPW02830
+SDVEND   EQU   SCREEND                                                  CPW02840
+SDVLINES EQU   (SDVEND-SDVSTART)/L'SCRLINE NO OF ROWS.                  CPW02850
+         SPACE 3                                                        CPW02860
+SDVPAGE  PROC  BEGIN                                                    CPW02870
+         STORAGE                                                        CPW02880
+SDVWRK   DS    D                                                        CPW02890
+         DATA                                                           CPW02900
+SDVTIT   DC    C'CPWATCH REAL DEVICE STATUS'                            CPW02910
+SDVOFS   EQU   (L'SCRLINE-L'SDVTIT)/2                                   CPW02920
+         SPACE 1                                                        CPW02930
+         PROC                                                           CPW02940
+         L     R9,=V(DSPSDV)                                            CPW02950
+         USING DSPSECT,R9                                               CPW02960
+         SPACE 1                                                        CPW02970
+         IF CP,LISTNRS,=P'0',GT,THEN                                    CPW02980
+            OI  DSPFLAGS,DSPNEW                                         CPW02990
+            SPACE 1                                                     CPW03000
+*           INITIALIZE DEVICE LOOP                                      CPW03010
+            SR  R10,R10       FIRST PAGE                                CPW03020
+            USING SCRSECT,R10                                           CPW03030
+            LA  R8,SDVREP*SDVLINES FOSCE NEW PAGE.                      CPW03040
+            SPACE 1                                                     CPW03050
+            L   R6,ARDVTAB                                              CPW03060
+            USING RDVSECT,R6                                            CPW03070
+            SPACE 1                                                     CPW03080
+            L   R5,RIODC                                                CPW03090
+            SPACE 3                                                     CPW03100
+            DO WHILE,R5,NZ                                              CPW03110
+               IF TM,RDVTYPC,CLASTERM+CLASGRAF,Z,AND,                  +CPW03120
+               TM,RDVSTAT,RDEVDISA,Z,THEN  (ON LINE)                    CPW03130
+                  LA  R8,1(,R8)         NEXT SLOT.                      CPW03140
+                  IF C,R8,=A(SDVREP*SDVLINES),GE,THEN NEW PAGE REQ'D ?  CPW03150
+                     LR  R0,R10                                         CPW03160
+                     LR  R1,R9                                          CPW03170
+                     CALL NEWSCR                                        CPW03180
+                     LR  R10,R0                                         CPW03190
+                     SR  R8,R8                                          CPW03200
+                     MVC SCREEN+SDVOFS(L'SDVTIT),SDVTIT                 CPW03210
+                  IF END                                                CPW03220
+                  SPACE 1                                               CPW03230
+                  LR  R15,R8                                            CPW03240
+                  SR  R14,R14                                           CPW03250
+                  D   R14,=A(SDVLINES)                                  CPW03260
+*                             R14 - ROW#, R15 - COL#                    CPW03270
+                  MH  R14,=Y(L'SCRLINE)  ROW OFFSET                     CPW03280
+                  MH  R15,=Y(SDVLN)      COL OFFSET                     CPW03290
+                  SPACE 1                                               CPW03300
+                  IF R14,Z,THEN STARTING A NEW COLUMN.                  CPW03310
+                      LA  R1,SCRLINE2(R15)                              CPW03320
+                      USING SDVSECT,R1                                  CPW03330
+                      MVC SDVADD,=CL(L'SDVADD)'ADR' TITLE LINE.         CPW03340
+                      MVC SDVSER,=CL(L'SDVSER)'SERIAL'                  CPW03350
+                      MVC SDVSIO,=CL(L'SDVSIO)' SIO/S'                  CPW03360
+                      DROP R1                                           CPW03370
+                      SPACE 1                                           CPW03380
+                      IF R15,NZ,THEN STARTING SECOND OR FURTHER COL.    CPW03390
+*                         SO SET UP SEPARATOR LINE.                     CPW03400
+                          LA  R4,SCRLINE2-((L'SDVPAD+1)/2)(R15)         CPW03410
+                          LA  R2,L'SCRLINE INCREMENT                    CPW03420
+                          LA  R3,SDVEND    END                          CPW03430
+SDVMVIL                   MVI 0(R4),C' ' SEPARATOR                      CPW03440
+                          BXLE R4,R2,SDVMVIL                            CPW03450
+                      IF END                                            CPW03460
+                  IF END                                                CPW03470
+                  SPACE 1                                               CPW03480
+                  LA  R7,SDVSTART(R15)                                  CPW03490
+                  AR  R7,R14                                            CPW03500
+                  USING SDVSECT,R7      REAL SLOT ADDRESS.              CPW03510
+                  SPACE 3                                               CPW03520
+*                 NOW BUILD LINE.                                       CPW03530
+                  MVC SDVADD,RDVCADDR                                   CPW03540
+                  SPACE 1                                               CPW03550
+*        NOTE THE FOLLOWING TEST SHOULD READ                            CPW03560
+*        'IF TM,RDEVTYPC,CLASDASD+CLASFBA,NZ,AND, ...'                  CPW03570
+*        BUT IS EXPRESSED THIS WAY SO THE SAME SOURCE WILL              CPW03580
+*        ASSEMBLE AND WORK UNDER BOTH RELEASE 5 AND 6 OF VM.            CPW03590
+                  IF TM,RDVTYPC,                                       +CPW03600
+               CLASTERM+CLASGRAF+CLASURI+CLASURO+CLASTAPE+CLASSPEC,Z,  +CPW03610
+               AND,TM,RDVFLAG,RDEVSYS+RDEVOWN,NZ,THEN                   CPW03620
+                     MVC SDVSER,RDVSER                                  CPW03630
+                     IF TM,RDVFLAG,RDEVOWN,O,THEN                       CPW03640
+                        MVC SDVCP,=CL(L'SDVCP)'CP'                      CPW03650
+                     IF END                                             CPW03660
+                  IF END                                                CPW03670
+                  SPACE 3                                               CPW03680
+*              USER ID ?                                                CPW03690
+                  IF TM,RDVSTAT,RDEVDED,O,THEN DEDICATED.               CPW03700
+                     L   R1,AUSRTAB                                     CPW03710
+                     USING USRSECT,R1                                   CPW03720
+                     DO WHILE,R1,NZ,AND,CLC,USRBA,RDVUSER,NE            CPW03730
+                        L  R1,USRNEXT                                   CPW03740
+                     DO END                                             CPW03750
+                     IF R1,NZ,AND,CLC,USRBA,RDVUSER,EQ,THEN             CPW03760
+                        MVC SDVUSRID,USRID                              CPW03770
+                     IF END                                             CPW03780
+                     DROP R1                                            CPW03790
+                  IF END                                                CPW03800
+                  SPACE 3                                               CPW03810
+                  L   R1,RDVSIOD                                        CPW03820
+*           EDITING ROUTINE.  NOTE THAT  SNAP INTERVAL IS IN MILLISEC,  CPW03830
+*           OUTPUT TENTHS PER SECOND.                                   CPW03840
+                  IF R1,NZ,THEN                                         CPW03850
+                     M  R0,=F'20000' 1000 FOR MSEC, 10 FOR DECIMAL PT, +CPW03860
+                                 AND 2 FOR ROUNDING.                    CPW03870
+                     D   R0,SNAPINT                                     CPW03880
+                     A   R1,=F'1'                                       CPW03890
+                     SRL R1,1                                           CPW03900
+                     CALL DECIT1D                                       CPW03910
+                     MVC SDVSIO,28-L'SDVSIO(R13)                        CPW03920
+                  IF END                                                CPW03930
+                  SPACE 3                                               CPW03940
+               IF END                                                   CPW03950
+               SPACE 1                                                  CPW03960
+               BCTR R5,0      NEXT DEVICE.                              CPW03970
+               LA  R6,RDVNEXT                                           CPW03980
+            DO END                                                      CPW03990
+            DROP R6                                                     CPW04000
+            SPACE 1                                                     CPW04010
+            LR  R1,R9                                                   CPW04020
+            LR  R0,R10                                                  CPW04030
+            CALL LASTSCR                                                CPW04040
+            DROP R10                                                    CPW04050
+         IF END                                                         CPW04060
+         PROC  END                                                      CPW04070
+         EJECT                                                          CPW04080
+*********************************************************************** CPW04090
+*              BUILD RDEVBLOK TABLE.                                  * CPW04100
+*********************************************************************** CPW04110
+         SPACE 1                                                        CPW04120
+RDVBLD  PROC  BEGIN                                                     CPW04130
+         SPACE 1                                                        CPW04140
+*              GET COUNT OF RDEVBLOKS.                                  CPW04150
+         MVC   RIODC,=A(ARIODC-PSA)     HALFWORD COUNT OF RDVBLOKS      CPW04160
+         OI    RIODC,X'80'                                              CPW04170
+         SR    R0,R0          ZERO BASE                                 CPW04180
+         LA  R1,RIODC                                                   CPW04190
+         SVC   SVCDCP         A(RIODC) IN REAL CORE.                    CPW04200
+         OI    RIODC,X'80'                                              CPW04210
+         SR    R0,R0                                                    CPW04220
+         LA    R1,RIODC                                                 CPW04230
+         SVC   SVCDCP         NOW RIODC.                                CPW04240
+         LH    R0,RIODC       CONVERT DEVICE COUNT TO FULLWORD.         CPW04250
+         ST    R0,RIODC                                                 CPW04260
+         SPACE 1                                                        CPW04270
+*              GET ADDR OF FIRST RDEVBLOK                               CPW04280
+         MVC   AARIODV,=A(ARIODV-PSA)   BEGIN RDEVBLOKS                 CPW04290
+         OI    AARIODV,X'80'                                            CPW04300
+         SR    R0,R0                                                    CPW04310
+         LA    R1,AARIODV                                               CPW04320
+         SVC   SVCDCP         A(FIRST RDEVBLOK IN REAL CORE)            CPW04330
+         SPACE 1                                                        CPW04340
+*              GET CORE FOR MY TABLE OF ANALOGS TO RDEVBLOKS.           CPW04350
+         L     R0,RIODC       DEVICE COUNT.                             CPW04360
+         MH    R0,=Y(RDVSECTL)    TOTAL STORAGE NEEDED.                 CPW04370
+         SVC   SVCGETM+SVCPAGE                                          CPW04380
+         ST    R1,ARDVTAB                                               CPW04390
+         SPACE 1                                                        CPW04400
+*              INITIALIZE MY TABLE.                                     CPW04410
+         L     R6,RIODC                                                 CPW04420
+         L     R7,ARDVTAB    BEGIN MY TABLE.                            CPW04430
+         USING RDVSECT,R7                                               CPW04440
+         L     R8,AARIODV     BEGIN RDEVBLOKS.                          CPW04450
+         DO WHILE,R6,NZ                                                 CPW04460
+            XC 0(RDVSECTL,R7),0(R7)  CLEAR ENTIRE ENTRY.                CPW04470
+            SPACE 1                                                     CPW04480
+RDVBQ       DCPLIST RDEVBLOK,                                          +CPW04490
+               (RDA,RDEVADD),(RCUA,RDEVCUA),(RDIOC,RDEVIOCT),          +CPW04500
+               (RDST,RDEVSTAT),(RDVM,RDEVUSER)                          CPW04510
+            DCP RDVBQ,BASE=(R8)                                         CPW04520
+            OC RDVADDR,RDA    SAVE REAL ADDRESS.                        CPW04530
+            MVC RDVSIOT,RDIOC INITIAL I/O COUNT.                        CPW04540
+            MVC RDVSTAT(4),RDST                                         CPW04550
+            MVC RDVUSER,RDVM                                            CPW04560
+            SPACE 1                                                     CPW04570
+RDVCQ       DCPLIST RCUBLOK,                                           +CPW04580
+               (RDCUA,RCUADD),(RDCUS,RCUSTAT),(RDCHA,RCUCHA)            CPW04590
+            L  R0,RCUA        A(RCUBLOK)                                CPW04600
+            DCP RDVCQ                                                   CPW04610
+            OC RDVADDR,RDCUA                                            CPW04620
+            SPACE 1                                                     CPW04630
+*              IS IT A SUBORDINATE CONTROL UNIT ?                       CPW04640
+            IF TM,RCUTYPE-RCUSTAT+RDCUS,RCUSUB,O,THEN                   CPW04650
+               L  R0,RDCHA     A(MAIN RCUBLOK)                          CPW04660
+               DCP RDVCQ                                                CPW04670
+            IF END                                                      CPW04680
+            SPACE 1                                                     CPW04690
+RDVCHQ      DCPLIST RCHBLOK,(RDCH,RCHADD)                               CPW04700
+            L   R0,RDCHA      A(RCHBLOK)                                CPW04710
+            DCP RDVCHQ                                                  CPW04720
+            OC  RDVADDR,RDCH                                            CPW04730
+            SPACE 1                                                     CPW04740
+         STORAGE                                                        CPW04750
+RDVCWRK  DS    CL4                                                      CPW04760
+         PROC                                                           CPW04770
+            UNPK RDVCWRK,RDVADDR(3)                                     CPW04780
+            TR  RDVCWRK,HEXTAB                                          CPW04790
+            MVC RDVCADDR,RDVCWRK                                        CPW04800
+            SPACE 1                                                     CPW04810
+            BCTR R6,0   COUNT ENTRY.                                    CPW04820
+            LA  R7,RDVNEXT                                              CPW04830
+            LA  R8,RDEVSIZE*8(,R8)                                      CPW04840
+         DO END                                                         CPW04850
+         DROP R7                                                        CPW04860
+         SPACE 1                                                        CPW04870
+         PROC  END                                                      CPW04880
+         EJECT                                                          CPW04890
+*********************************************************************** CPW04900
+*              V M / 3 7 0   D S E C T S.                             * CPW04910
+*********************************************************************** CPW04920
+         SPACE 1                                                        CPW04930
+         PSA                                                            CPW04940
+         COPY  RBLOKS                                                   CPW04950
+         COPY  DEVTYPES                                                 CPW04960
+         SPACE 12                                                       CPW04970
+         END                                                            CPW04980
+
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+USERID MAINT    CLASS A NAME CPWDSE      ASSEMBLE         10/11/26  15:00:37

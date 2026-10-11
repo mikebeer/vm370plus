@@ -1,0 +1,9 @@
+CPWASM   CSECT                                                          CPW00010
+         DC    CL32'ASSEMBLED &SYSDATE &SYSTIME'                        CPW00020
+         END                                                            CPW00030
+
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+USERID MAINT    CLASS A NAME CPWDEV      ASSEMBLE         10/11/26  15:00:35

@@ -1,0 +1,25 @@
+DSE      TITLE 'CPWATCH:                                 * * P S A * *' CPW00010
+         PSA                                                            CPW00020
+         TITLE 'CPWATCH:                    REAL DEVICE CONTROL BLOCKS' CPW00030
+         COPY  RBLOKS                                                   CPW00040
+         TITLE 'CPWATCH:                        NETWORK CONTROL BLOCKS' CPW00050
+         COPY  NETWORK                                                  CPW00060
+         TITLE 'CPWATCH:                           * * V M B L O K * *' CPW00070
+         COPY  VMBLOK                                                   CPW00080
+         TITLE 'CPWATCH:                         * * S Y S L O C S * *' CPW00090
+         SYSLOCS                                                        CPW00100
+         TITLE 'CPWATCH:                                 E Q U A T E S' CPW00110
+         COPY  EQU                                                      CPW00120
+         TITLE 'CPWATCH:                       * * D E V T Y P E S * *' CPW00130
+         COPY  DEVTYPES                                                 CPW00140
+         TITLE 'CPWATCH:                   C P W A T C H   D S E C T S' CPW00150
+         COPY CPWPRM                                                    CPW00160
+         COPY CPWDSC                                                    CPW00170
+         CPWSUP                                                         CPW00180
+         END                                                            CPW00190
+
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+MAINT    MAINT    MAINT    MMMM  AAAA  IIII  NNNN  TTTT
+USERID MAINT    CLASS A NAME CPWDSP      ASSEMBLE         10/11/26  15:00:39
