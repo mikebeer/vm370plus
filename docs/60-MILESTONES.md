@@ -32,7 +32,12 @@ and the work after 64-bit is **M11**.
 | M5 | 5e | CMS | cREXX compiles on the machine | Done | 7 Oct |  |
 | M5 | 5f | CMS | 31-bit C toolchain, cross (GCC 13 -m31, newlib, cmsrt) | Done | 7 Oct |  |
 | M5 | 5g | CMS | Native 31-bit C (GCCLIB31), cREXX built on the machine | Done | 7 Oct |  |
-| M6 |   | CMS | 31-bit CMS proper; larger minidisks (4K blocks) | Planned |  | Before M9 |
+| M6 |   | CMS | 31-bit CMS proper; larger minidisks (4K blocks) | In progress |  | Before M9 |
+| M6 | 6a | CMS | FORMAT (BLKSIZE 4096 writes an EDF label, directory and allocation map | Planned |  |  |
+| M6 | 6b | CMS | EDF disks read: ACCESS, LISTFILE, STATE, TYPE, COPYFILE from (DMSEFS, XA0056DK) | Done | 11 Oct | 86699c4; 100,000-record V and 70,000-record F files read |
+| M6 | 6c | CMS | EDF write, erase, rename; files above 65,535 records | Planned |  |  |
+| M6 | 6d | CMS | Large minidisks (full-volume 3390) | Planned |  |  |
+| M6 | 6e | CMS | Tools across both formats (DISK DUMP/LOAD, TAPE, MOVEFILE, FULIST) | Planned |  |  |
 | M7 | 7.0 | ESA/390 guests | Baseline test guest (STSCH/SSCH/ESA PSW/X'B8') | Done | 7 Oct |  |
 | M7 | 7.1 | ESA/390 guests | SET ESA / machine mode, ESA IPL | Done | 7 Oct |  |
 | M7 | 7.2 | ESA/390 guests | Virtual channel subsystem (DMKVCS) | Done | 7 Oct |  |
@@ -74,6 +79,7 @@ and the work after 64-bit is **M11**.
 | M9 | 9.15 | Python | Python on CMS: the C89 implementation from mikebeer/python (in creation), built with GCC for CMS; Debian uses standard wheezy python 2.7/3.2 packages | Planned |  | Owner request 11 Oct |
 | M9 | 9.16 | TDISK | TDISK EXEC: TDISK [cyls] [fm] defines, formats and (with fm) accesses a temporary disk; HELP TDISK | Done | 11 Oct | Owner request 11 Oct |
 | M9 | 9.17 | Tiny LLM | llama2.c-style inference of a tiny model (stories15M) natively on Debian/390 and on CMS (C, high storage, HFP/BFP and byte order converted): a demonstration; real models via 9.10 | Planned |  | Owner request 11 Oct; llama.cpp itself needs 64-bit, C++17 and GBs |
+| M9 | 9.18 | Mail | SENDMAIL / GETMAIL for CMS via a MAILER service machine (SMTP out through BORDER; POP/IMAP or SMTP in, delivered to the reader in class M) | Planned |  | Owner request 11 Oct; after 9.12 |
 | M10 |  | 64-bit | z/Architecture (64-bit) | Planned |  |  |
 | M10 | 10.1 | Documentation | Migration documentation 31 -> 64 bit |  |  |  |
 | M10 | 10.2 | Documentation | Manual Update |  |  |  |
@@ -86,3 +92,8 @@ and the work after 64-bit is **M11**.
 | M11 | 11.6 | CF | CFSERV |   |  |  |
 | M11 | 11.7 | Documentation | Manual Update |  |  |  |
 | M11 | 11.8 | Snapshot | Kit 9 |  |  |  |
+| M12 | 12a | DOS/VSE | DOS/VS Release 34 installed in a virtual machine (system packs, directory entry, IPL) | Planned |  | Owner request 11 Oct; S/370-mode guest |
+| M12 | 12b | DOS/VSE | DOS/VS under our CP as a regression of the S/370 guest paths (SIO/TIO, CCW translation, V=V) | Planned |  |  |
+| M12 | 12c | DOS/VSE | POWER spooling through VM reader/punch; jobs submitted from CMS | Planned |  |  |
+| M12 | 12d | DOS/VSE | CMS/DOS simulation cross-checked against real DOS/VS | Planned |  |  |
+| M12 | 12e | DOS/VSE | Research: inventory DOS/360 R26 and DOS/VS R34 tapes for source; feasibility of a 31/64-bit DOS | Planned |  | srorso/dos360install |
