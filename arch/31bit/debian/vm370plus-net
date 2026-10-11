@@ -1,0 +1,24 @@
+#!/bin/sh
+# VM/370plus: give ctc0 the address that belongs to its CTC pair (I-266).
+# The PC side of real CTC pair 06xx (Hercules CTCI) is 10.1.n.1 with
+# n = xx/2 + 1: 0600 -> 10.1.1.2/.1, 0602 -> 10.1.2.2/.1, ...  Attach
+# the pair as 62x (read) and 63x (write), x its offset in the 06xx block
+# (600/601 as 620/630, 602/603 as 622/632; DEDICATE 622 602 and 632 603
+# in the directory), or at its real address.  The initramfs set ctc0 from the IPL parameters, which
+# are the same on every copy of the disk; this corrects it.  Run from
+# /etc/rc.local.  ctc0 is never taken down (a CTC restart hangs).
+d=$(readlink /sys/class/net/ctc0/device 2>/dev/null) || exit 0
+dev=${d##*.}
+case $dev in
+  062?) n=$(( (0x$dev - 0x620) / 2 + 1 ));;
+  06[01]?) n=$(( (0x$dev - 0x600) / 2 + 1 ));;
+  *) exit 0;;
+esac
+ip=10.1.$n.2; peer=10.1.$n.1
+cur=$(ifconfig ctc0 | sed -n 's/.*inet addr:\([0-9.]*\).*/\1/p')
+[ "$cur" = "$ip" ] && exit 0
+ifconfig ctc0 $ip pointopoint $peer mtu 1500 up
+route del default 2>/dev/null
+route add default gw $peer
+sed -i "s/^10\.1\.[0-9]*\.2 /$ip /" /etc/hosts
+echo "vm370plus-net: ctc0 $ip (peer $peer), from CTC $dev"

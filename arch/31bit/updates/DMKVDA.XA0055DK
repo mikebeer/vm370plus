@@ -1,0 +1,6 @@
+./ I 00314000 $ 00314100 100                                                    
+         N     R15,XRIGHT24 I-269: DMKVDC FLAGS IN BYTE 0      XA0055DK         
+./ I 01055000 $ 01055100 100                                                    
+         N     R1,XRIGHT24 I-269: DMKVDC FLAGS IN BYTE 0       XA0055DK         
+./ I 01368000 $ 01368100 100                                                    
+         N     R7,XRIGHT24 I-269: DMKVDC FLAGS IN BYTE 0       XA0055DK         

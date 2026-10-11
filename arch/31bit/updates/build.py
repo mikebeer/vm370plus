@@ -4643,6 +4643,19 @@ def m4b3decks():
         "         SRL   R9,8           256 PAGES PER SEGMENT (M4B.3)",
     ])
     decks['DMKCFG'] = d
+
+    # I-269: DMKVDA keeps its work area's address in SAVEWRK5 and then
+    # puts the DMKVDC flags into byte 0 of it (MVC SAVEWRK5(FLAGLEN),
+    # SAVEWRK9).  The I-126 sweep masked eleven of the reloads; three were
+    # left, and ATTACH of a second CTC on the same virtual control unit
+    # (VDERR's message) addressed 20F5DF18: PRG005.
+    d = Deck(XA55)
+    for seq, reg in (('00314000', 'R15'), ('01055000', 'R1'),
+                     ('01368000', 'R7')):
+        d.insert(seq, first='%08d' % (int(seq) + 100), inc=100,
+                 limit=next_seq(src('DMKVDA'), seq), lines=[
+            "         N     %s,XRIGHT24 I-269: DMKVDC FLAGS IN BYTE 0" % reg])
+    decks['DMKVDA'] = d
     return decks
 
 

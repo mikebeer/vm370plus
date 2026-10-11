@@ -50,6 +50,16 @@ for d in /sys/bus/ccw/devices/*; do
   [ "$(cat $d/cutype 2>/dev/null)" = 3088/08 ] && CTC="$CTC ${d##*/}"; done
 set -- $CTC
 if [ $# -ge 2 ]; then
+  # I-266: the PC side of real CTC pair 06xx (Hercules CTCI) is 10.1.n.1,
+  # n = xx/2 + 1 (0600 -> 10.1.1.x, 0602 -> 10.1.2.x).  The pair is
+  # attached as 62x (read) and 63x (write), x being its offset in the
+  # 06xx block (600/601 as 620/630, 602/603 as 622/632), or at its real
+  # address; either names this machine's address.  vmip=/vmpeer= are for
+  # other addresses.  Every user's copy of the disk then works.
+  dev=${1##*.}
+  case $dev in 062?) n=$(( (0x$dev - 0x620) / 2 + 1 ));;
+    06[01]?) n=$(( (0x$dev - 0x600) / 2 + 1 ));; *) n=;; esac
+  [ -n "$n" ] && { VMIP=10.1.$n.2; VMPEER=10.1.$n.1; }
   echo $1,$2 > /sys/bus/ccwgroup/drivers/ctcm/group
   echo 1 > /sys/bus/ccwgroup/drivers/ctcm/$1/online
   ifconfig ctc0 $VMIP pointopoint $VMPEER mtu 1500 up && route add default gw $VMPEER

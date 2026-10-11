@@ -10,7 +10,10 @@
 /* punches them into your own reader, holds whatever else is in    */
 /* the reader, and IPLs the reader as an ESA/390 machine.          */
 /* Debian also needs, in this virtual machine: 64 MB of storage,   */
-/* your own 3390 at 250 and your own CTC pair at 620 and 630.      */
+/* your own 3390 at 250 and your own CTC pair as 62x and 63x, x   */
+/* its offset in the 06xx block (600/601 as 620/630, 602/603 as   */
+/* 622/632): pair 06xx gives the address 10.1.n.2, n = xx/2 + 1,  */
+/* the PC end being 10.1.n.1 (I-266).                             */
 /* Afterwards:  CP CHANGE RDR ALL NOHOLD  gives your files back;   */
 /* your punch stays spooled to your own reader (CP SPOOL PUNCH).   */
 arg opt .

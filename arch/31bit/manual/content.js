@@ -20,7 +20,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**11 October 2026, late morning.** Two Debian systems at once (M4b.3 complete); ESA/390 access registers saved per virtual machine.',
+B(['**11 October 2026, afternoon.** `SHUTDOWN` saves warm start data again and the next IPL warm-starts by itself, spool intact (I-267, I-268); each Linux user’s address follows his CTC pair (9.12a); ATTACH of a CTC next to another no longer stops CP (I-269).',
+   '**11 October 2026, late morning.** Two Debian systems at once (M4b.3 complete); ESA/390 access registers saved per virtual machine.',
    '**11 October 2026, morning.** Guest pages in real frames above 16 MB (M4b.3): with `MAINSIZE` above 16, the frames from 16 MB up to 160 MB hold virtual machine pages directly.',
    '**11 October 2026.** GLOBALV.',
    '**10 October 2026, night.** `SET MACHINE` and `QUERY MACHINE`; FULIST (FL); EE, FSVIEW and the REXX full-screen package under the EC-mode CMS; Appendix D, the CP and CMS command tables.',
@@ -174,7 +175,7 @@ TABLE(['Resource', 'Virtual address', 'How it is provided'], [
 ], [2000, 2400, 5238], 'Resources of a Linux virtual machine');
 P('The operator attaches the devices:');
 SCREEN(['attach 600 to maint as 620', 'attach 601 to maint as 630', 'attach 190 to maint as 250'], 'Attaching a Linux user’s devices (operator)');
-P('Each device must be on its own virtual control unit (620 and 630, not 620 and 621). For a permanent arrangement put `DEDICATE` statements in the user’s directory entry.');
+P('Each device must be on its own virtual control unit (620 and 630, not 620 and 621). The second user’s pair 602/603 goes to 622 and 632, which gives that machine 10.1.2.2. For a permanent arrangement put `DEDICATE` statements in the user’s directory entry.');
 H2('Starting Linux from its disk: IPL LINUX');
 P('The Debian disk carries its own kernel and IPL records, so Linux IPLs straight from it. With 64 MB of storage and the devices attached (the disk at 250), one CP command is enough, from CMS or from CP:');
 SCREEN(['logon cmsuser',
@@ -254,7 +255,7 @@ P('Linux talks to the PC over a channel-to-channel adapter that Hercules connect
 H3('Stopping Linux');
 P('`poweroff` (or `halt`) stops Debian; CP then shows a disabled wait. `CP LOGOFF` releases the attached devices. `IPL CMS` returns to CMS in the same session.');
 H2('Several Linux users');
-P('Each Linux user needs his own copy of the Debian disk, his own CTC pair with a CTCI line in `vm370ce.conf` and his own IP address in `userid LXPARM`. The kit’s example: MAINT on 600/601 and 190, address 10.1.1.2; CMSUSER on 602/603 and 191, address 10.1.2.2.');
+P('Each Linux user needs his own copy of the Debian disk and his own CTC pair with a CTCI line in `vm370ce.conf`. The address follows the pair: real pair 06xx, attached as 62x and 63x (x = xx: 600/601 as 620/630, 602/603 as 622/632) or at its real address, gives the guest 10.1.n.2 with n = xx/2 + 1, and the CTCI line’s PC end is 10.1.n.1. A boot script on the Debian disk (`vm370plus-net`) sets it, so one disk image serves every user. The kit’s example: MAINT on 600/601 and 190, address 10.1.1.2; CMSUSER on 602/603 and 191, address 10.1.2.2.');
 SCREEN(['0600.2  CTCI    10.1.1.2 10.1.1.1', '0602.2  CTCI    10.1.2.2 10.1.2.1', '0190    3390    disks/lnx190.cckd', '0191    3390    disks/lnx191.cckd'], 'Two Linux users in vm370ce.conf');
 P('Make `lnx191.cckd` a copy of the Debian disk. The disks are identical: the address comes from the IPL parameters, not from the disk. Give Hercules enough storage for CP\u2019s paging store: `MAINSIZE 256` (the kit\u2019s value) for two Linux users, more for more. With too little, CP fills its DASD paging space (`DMKPGT400I SYSTEM TEMP SPACE FULL`) and the Linux machines fail.');
 P('Two Debian systems run at the same time: CP gives virtual machine pages frames above 16 MB (with `MAINSIZE 256`, up to 160 MB), so both working sets stay in storage. With `CP IPL LINUX` from the disk, each system takes the IP address in the disk\u2019s own parameters; give the second one its address with `ip addr` (or IPL it from the reader with LINUX EXEC and its LXPARM).');

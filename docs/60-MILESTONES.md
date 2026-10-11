@@ -61,7 +61,7 @@ and the work after 64-bit is **M11**.
 | M9 | 9.12 | Firewall | Network pack: per-user addresses, CP guest LAN, BORDER firewall, inside DHCP/DNS (9.12a-d) | Planned |  | After M4b.3, before M9 |
 | M9 | 9.12a | Addresses | Per-user IP address at disk IPL from the directory (fixes I-266) | Next |  | Done with 9.2 |
 | M9 | 9.12b | Guest LAN | CP virtual NIC per guest on one internal segment (LCS/QETH style, like z/VM Guest LAN) | Planned |  | Needed for DHCP: CTC links are point-to-point |
-| M9 | 9.12c | Firewall | BORDER service machine: only outside link; NAT outbound; port forwards to service machines (httpd 9.5) | Planned |  | Outside link may be bridged (LCS on tap) to get its address from the LAN DHCP |
+| M9 | 9.12c | Firewall | BORDER service machine: only outside link; NAT outbound; port forwards to service machines (httpd 9.5). One network configuration file on MAINT: OUTSIDE DHCP (bridged LCS/tap, address from the LAN) or OUTSIDE STATIC ip/mask gw; inside subnet and addressing; EXPOSE proto port TO user|ip port (default: nothing exposed) | Planned |  | Outside link may be bridged (LCS on tap) to get its address from the LAN DHCP |
 | M9 | 9.12d | DHCP/DNS | DHCP and DNS for the inside segment as a service machine (dnsmasq on Debian, or in BORDER) | Planned |  | Needs 9.12b |
 | M10 |  | 64-bit | z/Architecture (64-bit) | Planned |  |  |
 | M10 | 10.1 | Documentation | Migration documentation 31 -> 64 bit |  |  |  |
