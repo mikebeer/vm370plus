@@ -62,7 +62,7 @@ and the work after 64-bit is **M11**.
 | M9 | 9.8 | APL | APL in C on CMS | In progress |  | Debian 34/34; CMS run pending |
 | M9 | 9.9 | REXX | ooRexx 5 on Debian | Planned |  |  |
 | M9 | 9.10 | AI | AI gateway service machine (ASKSERV): CMS/Linux/TELL clients; the model runs in llama.cpp on the PC (or a cloud API), reached through BORDER | Planned |  |  |
-| M9 | 9.11 | Snapshot | Kit build 7 (distributable snapshot) | Planned |  | After the list above |
+| M9 | 9.11 | Snapshot | Kit build 7 (distributable snapshot) | Done | 11 Oct | b7, 13 parts; verified on a fresh CE (kt16): EDF, TDISK, IPL LINUX |
 | M9 | 9.12 | Firewall | Network pack: per-user addresses, CP guest LAN, BORDER firewall, inside DHCP/DNS (9.12a-d) | Planned |  | After M4b.3, before M9 |
 | M9 | 9.12a | Addresses | Per-user IP address at disk IPL from the directory (fixes I-266) | Done | 11 Oct | Address follows the CTC pair (62x/63x or real); vm370plus-net on both Debian disks; verified 10.1.2.2 by itself |
 | M9 | 9.12b | Guest LAN | CP virtual NIC per guest on one internal segment (LCS/QETH style, like z/VM Guest LAN) | Planned |  | Needed for DHCP: CTC links are point-to-point |

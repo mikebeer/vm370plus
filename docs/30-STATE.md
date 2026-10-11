@@ -8,6 +8,17 @@ Last updated **11 October 2026, 08:00 UTC**. **Read this first in a new session.
 
 ## Current position, 10 October evening -- kit build 6
 
+**Delivered (11 Oct, 20:55):** `dist/VM370PLUS-kit-20261011-b7-part1..13.zip`. It adds:
+- EDF (larger minidisks) under IPL 290.
+- Warm start.
+- TDISK.
+- Per-user Linux IP.
+- The Guide.
+
+Verified on a fresh CE (kt16):
+- CMSUSER: IPL 290 loads DMSEFS. FORMAT (BLKSIZE 4096 works on a T3350, and so do COPYFILE, re-ACCESS, QUERY DISK and TDISK.
+- MAINT: QUERY SET, then `cp ipl linux` reaches the Debian login, then root, uname and poweroff.
+
 **Delivered:** `dist/VM370PLUS-kit-20261010-b6-part1..12.zip` (parts under 30 MB; the Debian disk, a 3390-9, in parts 6-12 with JOINDEB.CMD / joindeb.sh) and the Guide (Chapter 6, Service Machines). Verified on a fresh CE (kt15): QUERY SET, AUTOLOG CHATBOT + CHAT from CMSUSER, `cp ipl linux` to the Debian login on the 3390-9, poweroff, shutdown.
 
 ## Current position, 9 October — kit build 5: Linux (Debian 7.11) for several users, from CMS, side by side with CMS users; the VM/370plus Guide
