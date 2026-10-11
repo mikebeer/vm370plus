@@ -1,0 +1,366 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/cold",
+  "expect": "LOGOFF AS AUTOLOG1|\\?CP",
+  "timeout": 120,
+  "cont": true,
+  "settle": 3
+ },
+ {
+  "send": "/cp disc",
+  "expect": "DISCONNECT AT",
+  "timeout": 60,
+  "cont": false
+ },
+ {
+  "send": "/logon maint cpcms noipl",
+  "expect": "Ready|LOGON AT|RECONNECT",
+  "timeout": 180,
+  "cont": false
+ },
+ {
+  "send": "/cp purge cmsuser rdr all",
+  "expect": "PURGED|Ready|CP",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c io/apl.rdr ebcdic eof",
+  "expect": "HHCPN098I|initialized|HHC",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "RDR FILE|Ready",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c io/aplfiles.txt ascii eof trunc",
+  "expect": "HHCPN098I|initialized|HHC",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "RDR FILE|Ready",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp logoff",
+  "expect": "LOGOFF",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/logon cmsuser cmsuser noipl",
+  "expect": "Ready|LOGON AT|RECONNECT",
+  "timeout": 180,
+  "cont": false
+ },
+ {
+  "send": "/cp def stor 128m",
+  "expect": "STORAGE =",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp link maint 290 290 rr",
+  "expect": "LINKED|Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/ipl 290",
+  "expect": "VM Community|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp q rdr all",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/erase apl * a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase * apl a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/readcard apl text a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/readcard *",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/load apl (clear nomap",
+  "expect": "Ready",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "send": "/genmod aplm",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile apl * a (label",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl ARRAYS.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl BANK.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl BASIC_SM.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl CONTROL.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl EDGE_CAS.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl FUNCTION.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl HELLO.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl LAMBDA.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl LIFE.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl MATRIX_D.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl NESTED.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl OPERATOR.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl PROCS.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl SCALAR.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl STATS.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl STRINGS.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl STRUCTUR.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl TEXT_DEM.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl USEROP.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S10_OPS.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S11_SYS.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S12_CONT.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S13_NEWF.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S14_AP.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S1_FACT.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S2_EA.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S3_QUAD.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S4_LOCAL.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S5_WS.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S6_NESTE.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S7_SCALA.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S8_STRUC.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/apl S9_BRACK.apl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp logoff",
+  "expect": "LOGOFF",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/logon maint cpcms noipl",
+  "expect": "Ready|LOGON AT",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp shutdown",
+  "expect": "HHCCP011I",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]
