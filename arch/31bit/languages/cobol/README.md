@@ -52,11 +52,26 @@ newlib's here). File names map as cmsrt does: `"rel.dat"` is REL DAT A.
 cmsrt now keeps a file's contents when it is opened for writing without
 O_TRUNC (OPEN I-O, EXTEND, "r+").
 
-## CMS, step 2: native -- next
+## CMS, step 2: native -- in progress (11 October 2026)
 
-Goal: compile COBOL natively on CMS.
-- cobc itself as a CMS MODULE (it only has to translate: `cobc -C`), with
-  its generated header names mapped to CMS file ids.
-- The generated C compiled on CMS by GCC380 against libcob and GMP built
-  with GCC380/GCCLIB31, driven by a `COBOL EXEC`: `cobc -C` -> `GCC` ->
-  `LOAD (+ libcob TXTLIB)` -> `GENMOD`.
+Done:
+- **cobc runs on CMS** (COBC MODULE, cross-built; `COBOL EXEC`): 8.3 file
+  names (PROG C, PROG H, PROGL H), DEFAULT CONF from any accessed disk, no
+  computed gotos (GCC380 has an internal error on them). Test cc6: COBOL
+  HELLO on CMS, then GCC380 compiles HELLO C (with LIBCOB H, GMP H) to
+  HELLO TEXT.
+- **EBCDIC-correct C from cobc** (`native/chrpatch.py`): character values
+  are written as C character constants (`memset (b, '0', 4)`), not as
+  ASCII numbers, so GCC380 turns them into EBCDIC.
+- **libcob + GMP for GCC380** (`native/mknative.py`, `mkdeck.py`,
+  `cms/COBNAT EXEC`): 174 files (12 libcob, 1 POSIX layer, 161 GMP)
+  preprocessed on the PC against GCCLIB31's headers and `native/inc`, with
+  GCC380's predefined macros and EBCDIC character constants; all 770
+  external names mapped to 8-character names (`cobmap.h`), since GCC380
+  keeps 8. `cobposix.c`: open/read/lseek/stat/... on CMS files,
+  snprintf, setenv, strcasecmp, dlopen stubs. Packed on 80-column cards.
+
+Blocker: GCC380 (and GCC370) have an internal compiler error on every
+`long long` addition (probe ll2: `a + b` fails, `*`, `/`, `<<`, `<` pass),
+and libcob uses 64-bit integers throughout. Also: GCC380 predefines `cms`
+(a variable named cms is a syntax error).
