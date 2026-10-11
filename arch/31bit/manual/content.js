@@ -48,7 +48,7 @@ TABLE(['Milestone', 'Content', 'Status'], [
   ['M4b', 'real storage up to 2 GB (above 16 MB as CP\u2019s paging store)', 'complete'],
   ['M4b.3', 'CP uses real frames above 16 MB directly', 'guest pages in frames up to 160 MB: complete; two Debians at once: next'],
   ['M5', 'EC-mode CMS with storage above 16 MB (HIGHSTOR), 31-bit C (cross and native)', 'complete'],
-  ['M6', 'a CMS nucleus that is itself 31-bit', 'planned, before M9'],
+  ['M6', 'a CMS nucleus that is itself 31-bit; larger minidisks', 'planned, before M9'],
   ['M7', 'ESA/390 virtual machines, Linux/390, Debian, SSH', 'complete'],
   ['M7.8', 'Linux for several users from a linkable disk (LINUX EXEC); Linux and CMS side by side', 'complete; two Debians at once need M4b.3'],
   ['M7.9', 'channel programs of any length for ESA/390 guests (no 64-CCW limit)', 'complete'],
@@ -59,7 +59,9 @@ TABLE(['Milestone', 'Content', 'Status'], [
   ['M8.2', 'the current cREXX built natively with GCC380', 'compiler, assembler and VM work; the library does not build yet'],
   ['\u2014', 'languages in cREXX for CMS and Linux; Turbo CREXX', 'complete on both'],
   ['\u2014', 'GNU C 4.6, Python 2.7 and 3.2, Regina REXX and THE under Debian', 'complete'],
-  ['M9', 'z/Architecture (64-bit)', 'planned, after all of the above'],
+  ['M9', 'before 64-bit: SET/QUERY MACHINE, FULIST, GLOBALV (done); CP leftovers; C++ on CMS; SQL and SQLSERV; CMS sockets and httpd; xBase/Harbour; MQ and MQTT; APL on CMS; ooRexx 5; AI gateway; firewall guest; kit build 7', 'under way'],
+  ['M10', 'z/Architecture (64-bit); migration documentation; kit build 8', 'planned'],
+  ['M11', 'multiprocessor support; more languages (GNU APL, C++, Java, NetRexx); FreeSWITCH; Node-RED; Docker, QEMU, Bochs; CFSERV; kit build 9', 'planned'],
 ], [1400, 6038, 2200], 'VM/370plus milestones');
 
 // ---------------------------------------------------------------- chapter 2

@@ -1,6 +1,8 @@
 # VM/370plus — where things stand
 
-Last updated **10 October 2026, 07:20 UTC**. **Read this first in a new session.**
+Last updated **11 October 2026, 08:00 UTC**. **Read this first in a new session.**
+
+**The milestone plan of record is `docs/60-MILESTONES.md`** (from the owner's `docs/VM370PLUS-Milestones.xlsx`, adopted 11 October): M9 = the work before 64-bit (9.1-9.12, ending with kit build 7 and the firewall guest), M10 = 64-bit (with migration documentation and kit 8), M11 = after 64-bit (MP, more languages, VoIP, IoT, containers, CFSERV, kit 9). Where this file says "M9" for 64-bit, read M10.
 
 ---
 
