@@ -63,7 +63,7 @@ TABLE(['Milestone', 'Content', 'Status'], [
   ['M8.2', 'the current cREXX built natively with GCC380', 'compiler, assembler and VM work; the library does not build yet'],
   ['\u2014', 'languages in cREXX for CMS and Linux; Turbo CREXX', 'complete on both'],
   ['\u2014', 'GNU C 4.6, Python 2.7 and 3.2, Regina REXX and THE under Debian', 'complete'],
-  ['M9', 'before 64-bit: SET/QUERY MACHINE, FULIST, GLOBALV (done); CP leftovers; C++ on CMS; SQL and SQLSERV; CMS sockets and httpd; xBase/Harbour; MQ and MQTT; APL on CMS; ooRexx 5; AI gateway; firewall guest; kit build 7', 'under way'],
+  ['M9', 'before 64-bit: SET/QUERY MACHINE, FULIST, GLOBALV (done); CP leftovers; C++ on CMS; SQL and SQLSERV; CMS sockets and httpd; xBase/Harbour; MQ and MQTT; APL on CMS; GnuCOBOL on Debian (done) and CMS; ooRexx 5; AI gateway; firewall guest; kit build 7', 'under way'],
   ['M10', 'z/Architecture (64-bit); migration documentation; kit build 8', 'planned'],
   ['M11', 'multiprocessor support; more languages (GNU APL, C++, Java, NetRexx); FreeSWITCH; Node-RED; Docker, QEMU, Bochs; CFSERV; kit build 9', 'planned'],
 ], [1400, 6038, 2200], 'VM/370plus milestones');

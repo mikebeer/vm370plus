@@ -1,0 +1,24 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. HELLO.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-I        PIC 9(4) COMP.
+       01  WS-SUM      PIC 9(18) COMP-3 VALUE 0.
+       01  WS-AMT      PIC S9(7)V99 VALUE 1234.56.
+       01  WS-RATE     PIC 9V9999 VALUE 0.0725.
+       01  WS-RES      PIC S9(9)V99.
+       01  WS-OUT      PIC -(9)9.99.
+       01  WS-BIG      PIC 9(30) VALUE 0.
+       PROCEDURE DIVISION.
+           DISPLAY "HELLO FROM GNUCOBOL ON VM/370PLUS".
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 1000
+               ADD WS-I TO WS-SUM
+           END-PERFORM.
+           DISPLAY "SUM 1..1000 = " WS-SUM.
+           COMPUTE WS-RES ROUNDED = WS-AMT * WS-RATE.
+           MOVE WS-RES TO WS-OUT.
+           DISPLAY "INTEREST = " WS-OUT.
+           COMPUTE WS-BIG = 2 ** 90.
+           DISPLAY "2**90 = " WS-BIG.
+           DISPLAY "SQRT(2) = " FUNCTION SQRT(2).
+           STOP RUN.
