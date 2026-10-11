@@ -63,6 +63,14 @@ and the work after 64-bit is **M11**.
 | M9 | 9.12b | Guest LAN | CP virtual NIC per guest on one internal segment (LCS/QETH style, like z/VM Guest LAN) | Planned |  | Needed for DHCP: CTC links are point-to-point |
 | M9 | 9.12c | Firewall | BORDER service machine: only outside link; NAT outbound; port forwards to service machines (httpd 9.5). One network configuration file on MAINT: OUTSIDE DHCP (bridged LCS/tap, address from the LAN) or OUTSIDE STATIC ip/mask gw; inside subnet and addressing; EXPOSE proto port TO user|ip port (default: nothing exposed) | Planned |  | Outside link may be bridged (LCS on tap) to get its address from the LAN DHCP |
 | M9 | 9.12d | DHCP/DNS | DHCP and DNS for the inside segment as a service machine (dnsmasq on Debian, or in BORDER) | Planned |  | Needs 9.12b |
+| M9 | 9.13 | Tools | Public VM/370 tools for the kit (survey 11 Oct) | Planned |  | Before kit 7 (9.11) |
+| M9 | 9.13a | Pascal | New Stanford Pascal (Oppolzer, github StanfordPascal/Pascal) replaces CE 2021.03 | Planned |  |  |
+| M9 | 9.13b | NJE | RSCS NJE updates (Coghlan) + TCPNJE: VM/370 NJE to MVS/z/OS/Linux | Planned |  | TCPNJE is in SDL Hyperion; we run Hercules 3.13 |
+| M9 | 9.13c | NJE Linux | UnixNJE (FUNET-NJE) in the Debian guest: CMS <-> Linux NJE | Planned |  | Needs 9.13b |
+| M9 | 9.13d | Sockets | NICOF + CMSFTPD (devhawala, public domain): sockets API and FTP for CMS | Planned |  | Test before 9.5 (CMS sockets + httpd) |
+| M9 | 9.13e | Games | Game disk: VM/370 games tape (IBM VS BASIC runtime removed), WIOS SNAKE/SLASH, CALL-OS BASIC TREK2, Zork/Dungeon | Planned |  |  |
+| M9 | 9.13f | Workshop | VM Workshop 1985/86 tools that run on R6: CARD, FCOPY, CLUST/TERM macros; check DISKPRY, LEDIT, IEBCOPY, JSCAN | Planned |  | CPWATCH (85 M0083) is 4c |
+| M9 | 9.14 | TELL | TELL everywhere: CMS TELL EXEC (CP MSG local, RSCS/NJE remote), Linux tell (vmcp, kernel CONFIG_VMCP) with incoming MSG captured, PC client through BORDER (CHATBOT-style gateway) | Planned |  | Owner request 11 Oct |
 | M10 |  | 64-bit | z/Architecture (64-bit) | Planned |  |  |
 | M10 | 10.1 | Documentation | Migration documentation 31 -> 64 bit |  |  |  |
 | M10 | 10.2 | Documentation | Manual Update |  |  |  |
