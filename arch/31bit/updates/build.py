@@ -4598,6 +4598,17 @@ def m4b3decks():
     ])
     decks['DMKUNT'] = d
 
+    # I-201: DMKDMP's dump to DASD waited for ever. Its interrupt
+    # handler names the device by the interruption parameter (XAIO's
+    # ORB now carries the device address) and reads the CSW, which an
+    # ESA/390 interrupt does not store: TEST SUBCHANNEL (XATIO) does.
+    d = Deck(XA55)
+    d.insert('00723000', first='00723100', inc=100,
+             limit=next_seq(src('DMKDMP'), '00723000'), lines=[
+        "         XATIO R15            I-201: TSCH, THE CSW",
+    ])
+    decks['DMKDMP'] = d
+
     # THE reason CP was not in AMODE 31 after all: SAVEPROC, the
     # processor-affinity byte SVC 12 tests, is byte 0 of SAVERETN, so a
     # return address saved from an AMODE 31 SVC old PSW (bit 0 on) looked
