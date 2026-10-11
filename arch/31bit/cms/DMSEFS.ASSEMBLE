@@ -28,6 +28,7 @@ EFS      TITLE 'DMSEFS     (CMS)       VM/370PLUS - EDF DISKS (M6)'
 *          7 SYNC   R1 = ADT (UPDISK): RENAMED FILES GET THEIR NEW
 *                   NAMES IN THE DIRECTORY, ERASED ONES THEIR BLOCKS
 *                   BACK; THEN DIRECTORY, MAP AND LABEL ARE WRITTEN.
+*          8 FMT    R1 = PARAMETERS (FORMAT (BLKSIZE 4096).
 *          9 REL    R1 = ADT.  EVERYTHING EDF OWNS FOR THE DISK BACK.
 *
 *        IN STORAGE A FILE'S 40-BYTE FST CARRIES THE INDEX OF ITS
@@ -130,7 +131,7 @@ EDFENT2  STM   R0,R14,EDSAVE
          L     R15,FUNCTAB(R15)
          BR    R15
 FUNCTAB  DC    A(BADFUNC,FCHK,FFSTS,FREAD,FCLOSE,FWRITE)
-         DC    A(FFINW,FSYNC,BADFUNC,FREL)
+         DC    A(FFINW,FSYNC,FFMT,FREL)
 BADFUNC  LA    R15,99
 *
 *        RETURN, R15 = RC
@@ -352,6 +353,7 @@ FFSTS    LR    R9,R1
          ST    R3,ADTFDA
          OI    ADTFLG1,ADTFFSTF
 FST05    LA    R3,8(,R3)      THE ENTRIES
+         ST    R3,HBSTART
          BAL   R14,CLR808
          LA    R8,1(,R8)
          ST    R3,ADTCHBA
@@ -371,12 +373,12 @@ FST10    C     R5,EDNDIR
          DMSFREE DWORDS=(0),TYPE=NUCLEUS
          LTR   R15,R15
          BNZ   NOSTORE
-         ST    R1,FSTFWDP(,R3)   FORWARD FROM THE OLD ONE
-         ST    R3,FSTBKWD(,R1)   (SET AGAIN AFTER THE CLEAR)
-         LR    R2,R3
+         L     R2,HBSTART     THE OLD ONE'S ENTRIES
+         ST    R1,FSTFWDP(,R2)   FORWARD FROM THE OLD ONE
          LR    R3,R1
          BAL   R14,CLR808
-         ST    R2,FSTBKWD(,R3)
+         ST    R2,FSTBKWD(,R3)   BACK FROM THE NEW ONE
+         ST    R3,HBSTART
          ST    R3,ADTCHBA
          LA    R8,1(,R8)
          LA    R4,20
@@ -1691,6 +1693,306 @@ SY99     SR    R15,R15
          DROP  R9
          EJECT
 ***********************************************************************
+*        8  FMT -- FORMAT A DISK AS EDF (FORMAT ... (BLKSIZE 4096).
+*        R1 -> H DEVICE, X 0, X CMS DEVICE TYPE, F CYLINDERS AT MOST,
+*        CL6 LABEL.  THE TRACKS GET 4096-BYTE RECORDS AFTER R0; THEN
+*        THE LABEL, THE DIRECTORY AND THE ALLOCATION MAP ARE WRITTEN
+*        AS EDF.PY FORMAT WRITES THEM.  RC 255 NOT A 3350/3380, 1 I/O,
+*        25 STORAGE.
+***********************************************************************
+FFMT     LR    R8,R1          R8 = THE PARAMETERS
+         LA    R3,4           3350: 4 BLOCKS A TRACK, 30 TRACKS
+         LA    R4,30
+         CLI   3(R8),X'0B'
+         BE    FM05
+         LA    R3,10          3380: 10 AND 15
+         LA    R4,15
+         CLI   3(R8),X'0E'
+         BE    FM05
+         LA    R15,255
+         B     RETURN
+FM05     STM   R3,R4,GEOM
+         LA    R0,512+EDCBD   A CONTROL BLOCK AND A 4K BUFFER
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=FMNOST
+         LR    R10,R1
+         XC    EDFCB(EDCBL),EDFCB
+         LA    R1,EDCBL(,R10)
+         ST    R1,EDBUF
+         LM    R3,R4,GEOM
+         ST    R3,EDBPT
+         ST    R4,EDHDS
+         MVC   EDDEV,0(R8)
+         MVC   EDBS,F4096
+*        THE CYLINDERS: THE LARGEST C <= THE LIMIT WHOSE LAST
+*        CYLINDER (C-1) CAN BE REACHED
+         L     R5,4(,R8)      HI
+         LTR   R5,R5
+         BP    *+8
+         L     R5,F65535
+         LA    R4,1           LO
+         LR    R1,R5
+         BCTR  R1,0
+         BAL   R14,SEEKOK
+         BZ    FM20           ALL OF IT
+FM10     LA    R1,1(,R4)
+         CR    R1,R5
+         BNL   FM15
+         LR    R1,R4          MID = (LO + HI) / 2
+         AR    R1,R5
+         SRL   R1,1
+         ST    R1,FMMID
+         BCTR  R1,0
+         BAL   R14,SEEKOK
+         L     R1,FMMID
+         BNZ   FM12
+         LR    R4,R1          REACHABLE: LO = MID
+         B     FM10
+FM12     LR    R5,R1          NOT: HI = MID
+         B     FM10
+FM15     LR    R5,R4
+FM20     ST    R5,EDCYL
+         M     R4,EDHDS       TOTAL = CYL * HEADS * BPT
+         M     R4,EDBPT
+         ST    R5,EDTOT
+*        EVERY TRACK: HOME ADDRESS, R0, THEN BPT 4096-BYTE RECORDS
+         SR    R6,R6          CYLINDER
+FM30     SR    R7,R7          HEAD
+FM32     BAL   R14,FMTTRK
+         BNZ   FMIOE
+         LA    R7,1(,R7)
+         C     R7,EDHDS
+         BL    FM32
+         LA    R6,1(,R6)
+         C     R6,EDCYL
+         BL    FM30
+*        THE ALLOCATION MAP: BLOCKS 1-4 AND THOSE PAST THE END IN USE
+         L     R1,EDTOT
+         LA    R1,7(,R1)
+         SRL   R1,3           MAP BYTES
+         A     R1,F4095
+         SRL   R1,12          MAP BLOCKS
+         ST    R1,EDMBN
+         SLL   R1,9
+         ST    R1,EDMAPN
+         LR    R0,R1
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=FMNOST2
+         ST    R1,EDMAPA
+         LR    R0,R1          ZEROS
+         L     R1,EDMAPN
+         SLL   R1,3
+         SR    R14,R14
+         SR    R15,R15
+         MVCL  R0,R14
+         L     R2,EDMAPA
+         MVI   0(R2),X'F0'    BLOCKS 1-4
+         L     R1,EDTOT
+         LR    R3,R1
+         SRL   R3,3           THE BYTE OF THE FIRST BLOCK PAST THE END
+         N     R1,F7
+         LA    R0,X'FF'
+         SRL   R0,0(R1)
+         LA    R3,0(R3,R2)
+         SR    R1,R1
+         IC    R1,0(,R3)
+         OR    R1,R0
+         STC   R1,0(,R3)
+         LA    R3,1(,R3)      AND ALL FURTHER BYTES
+         L     R1,EDMAPN
+         SLL   R1,3
+         AR    R1,R2          (THE END OF THE MAP)
+FM40     CR    R3,R1
+         BNL   FM45
+         MVI   0(R3),X'FF'
+         LA    R3,1(,R3)
+         B     FM40
+FM45     LA    R0,4
+         ST    R0,EDUSED
+         LA    R0,512         A BUFFER FOR WRITING
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=FMNOST2
+         ST    R1,EDWBUF
+*        THE MAP'S BLOCKS (5, 6, ...), AND ITS TREE IF IT HAS SEVERAL
+         L     R0,EDMBN
+         MH    R0,H12
+         AH    R0,=H'7'
+         SRL   R0,3
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=FMNOST2
+         ST    R1,EDMBL       (AS A 12-BYTE LIST HERE)
+         SR    R5,R5
+FM50     C     R5,EDMBN
+         BNL   FM55
+         BAL   R14,ALLOC1
+         BNZ   FMERR
+         LR    R2,R5
+         MH    R2,H12
+         A     R2,EDMBL
+         XC    0(12,R2),0(R2)
+         ST    R1,0(,R2)
+         LTR   R5,R5
+         BNZ   *+8
+         ST    R1,FMAM1       THE FIRST
+         LA    R5,1(,R5)
+         B     FM50
+FM55     MVC   PSZ,F4
+         L     R4,EDMBL
+         L     R5,EDMBN
+         BAL   R14,TREEB
+         BNZ   FMERR
+         ST    R1,FMAMFOP
+         STC   R0,FMAMLVL
+*        THE DIRECTORY: BLOCK 4, TWO ENTRIES
+         L     R0,EDWBUF
+         L     R1,F4096
+         SR    R14,R14
+         SR    R15,R15
+         MVCL  R0,R14
+         L     R1,EDWBUF
+         MVC   0(16,R1),DIRNAME   X'0000000100000000' DIRECTOR
+         LA    R2,2
+         ST    R2,48(,R1)     AIC 2
+         LA    R2,4
+         ST    R2,40(,R1)     FOP 4
+         LA    R2,1
+         ST    R2,44(,R1)     ADBC 1
+         LA    R2,64
+         ST    R2,32(,R1)     LRECL 64
+         BAL   R14,FMENT
+         LA    R1,64(,R1)
+         MVC   0(16,R1),AMNAME    X'0000000200000000' ALLOCMAP
+         L     R2,EDMBN
+         ST    R2,44(,R1)     ADBC
+         ST    R2,48(,R1)     AIC
+         MVC   40(4,R1),FMAMFOP
+         MVC   52(1,R1),FMAMLVL
+         MVC   32(4,R1),F4096 LRECL 4096
+         BAL   R14,FMENT
+         LA    R1,4
+         L     R2,EDWBUF
+         BAL   R14,WRBLK
+         BNZ   FMIOE
+*        THE MAP
+         SR    R5,R5
+FM60     C     R5,EDMBN
+         BNL   FM70
+         L     R1,FMAM1
+         AR    R1,R5
+         LR    R2,R5
+         SLL   R2,12
+         A     R2,EDMAPA
+         BAL   R14,WRBLK
+         BNZ   FMIOE
+         LA    R5,1(,R5)
+         B     FM60
+*        THE LABEL: BLOCK 3
+FM70     L     R0,EDWBUF
+         L     R1,F4096
+         SR    R14,R14
+         SR    R15,R15
+         MVCL  R0,R14
+         L     R1,EDWBUF
+         MVC   0(4,R1),CMS1
+         MVC   4(6,R1),8(R8)
+         MVC   12(4,R1),F4096 BLOCK SIZE
+         MVC   16(4,R1),F4    DOP
+         MVC   20(4,R1),EDCYL CYLINDERS FORMATTED,
+         MVC   24(4,R1),EDCYL AND THE MAXIMUM
+         MVC   28(4,R1),EDTOT
+         MVC   32(4,R1),EDUSED
+         LA    R2,64
+         ST    R2,36(,R1)     FST SIZE
+         ST    R2,40(,R1)     FSTS A BLOCK
+         SH    R1,=H'10'      (BCDDATE WRITES AT 54(R1): +44)
+         BAL   R14,BCDDATE
+         LA    R1,3
+         L     R2,EDWBUF
+         BAL   R14,WRBLK
+         BNZ   FMIOE
+         SR    R15,R15
+         B     FM90
+FMIOE    LA    R15,1
+         B     FM90
+FMERR    DS    0H             (R15 FROM ALLOC1 OR TREEB)
+FM90     ST    R15,RCSAVE
+         L     R1,EDMBL       (12-BYTE ENTRIES HERE)
+         LTR   R1,R1
+         BZ    FM92
+         L     R0,EDMBN
+         MH    R0,H12
+         AH    R0,=H'7'
+         SRL   R0,3
+         DMSFRET DWORDS=(0),LOC=(1)
+         XC    EDMBL,EDMBL
+FM92     BAL   R14,FREECB     (THE MAP, THE BUFFERS, THE BLOCK)
+         L     R15,RCSAVE
+         B     RETURN
+FMNOST2  LA    R15,25
+         B     FM90
+FMNOST   LA    R15,25
+         B     RETURN
+*
+*        FMENT: THE COMMON FIELDS OF DIRECTORY ENTRY R1 (FOP, ADBC,
+*        AIC, LRECL AND LEVELS ALREADY IN IT)
+FMENT    ST    R14,FMR14
+         L     R2,48(,R1)     WP = AIC + 1, RP = 1
+         LA    R2,1(,R2)
+         STH   R2,20(,R1)
+         MVC   22(2,R1),H1
+         MVC   24(2,R1),=C'P0'
+         MVC   26(2,R1),50(R1)    IC (HALFWORD OF AIC)
+         MVC   28(2,R1),42(R1)    FCL (HALFWORD OF FOP)
+         MVI   30(R1),C'F'
+         MVI   31(R1),X'08'
+         MVC   36(2,R1),46(R1)    DBC
+         MVI   53(R1),4
+         BAL   R14,BCDDATE        +54: YY MM DD HH MM SS
+         MVC   16(4,R1),55(R1)    FSTD: MM DD HH MM
+         MVC   38(2,R1),DATEBUF+6 YEAR (EBCDIC)
+         L     R14,FMR14
+         BR    R14
+*
+*        SEEKOK: CAN CYLINDER R1 BE REACHED?  CC 0 YES
+SEEKOK   STM   R14,R5,IOREGS
+         XC    SEEKARG,SEEKARG
+         STH   R1,SEEKARG+2
+         LH    R4,EDDEV
+         LA    R5,PRBCCW
+         DC    X'83450020'
+         LM    R14,R5,IOREGS
+         BR    R14
+*
+*        FMTTRK: FORMAT CYLINDER R6 HEAD R7
+FMTTRK   STM   R14,R5,IOREGS
+         XC    SEEKARG,SEEKARG
+         STH   R6,SEEKARG+2
+         STH   R7,SEEKARG+4
+         MVI   HAREC,0
+         MVC   HAREC+1(4),SEEKARG+2   CC HH
+         XC    R0REC,R0REC
+         MVC   R0REC(4),SEEKARG+2     R0: CC HH 0 0 0008 + 8 ZEROS
+         MVI   R0REC+7,8
+         L     R3,EDBPT
+         LA    R2,FMTRECS     THE RECORDS' CCWS
+         LA    R1,CNTS        AND THEIR COUNT FIELDS
+         LA    R4,1           R
+FT10     MVC   0(4,R1),SEEKARG+2
+         STC   R4,4(,R1)
+         MVI   5(R1),0
+         MVC   6(2,R1),F4096+2
+         ST    R1,0(,R2)      CCW X'1D', THE COUNT, CC+SILI, 8
+         MVI   0(R2),X'1D'
+         MVC   4(4,R2),FTFLGS
+         LA    R1,8(,R1)
+         LA    R2,8(,R2)
+         LA    R4,1(,R4)
+         BCT   R3,FT10
+         SH    R2,=H'8'
+         MVI   4(R2),X'20'    THE LAST: SILI, NO CHAINING
+         LH    R4,EDDEV
+         LA    R5,FMTCCWS
+         DC    X'83450020'
+         LM    R14,R5,IOREGS
+         BR    R14
+         EJECT
+***********************************************************************
 *        BLKOF: BLOCK NUMBER OF DATA BLOCK INDEX R5 OF THE FILE WHOSE
 *        64-BYTE FST IS AT R6 (THROUGH EDBUF).  R1 = BLOCK (0 NULL).
 *        FBLKOF: THE SAME FOR AN OPEN FILE (R6 = ITS EDAFT STATE),
@@ -1830,6 +2132,27 @@ SRCH     CCW   X'31',SEEKARG+2,X'40',5      SEARCH ID EQUAL
          CCW   X'08',SRCH,0,0               TIC
 IODATA   CCW   X'06',0,X'20',4096           READ/WRITE DATA, SILI
 SEEKARG  DC    XL8'00'
+FMTCCWS  CCW   X'07',SEEKARG,X'40',6        SEEK
+         CCW   X'1F',FMASK,X'60',1          SET FILE MASK
+FMTSRCH  CCW   X'31',R0REC,X'60',5          SEARCH ID EQUAL: R0
+         CCW   X'08',FMTSRCH,0,0            TIC (AS DMSFOR, NO HA/R0
+*                                           WRITES: CP REFUSES THEM
+*                                           ON A MINIDISK)
+FMTRECS  DS    12D            WRITE CKD, ONE A RECORD (FMTTRK)
+PRBCCW   CCW   X'07',SEEKARG,X'00',6        SEEK ONLY (SEEKOK)
+CNTS     DS    12D
+R0REC    DS    XL16
+HAREC    DS    XL5
+FMASK    DC    X'C0'          PERMIT WRITES (AS DMSFOR)
+         DS    0F
+FTFLGS   DC    X'60',X'00',H'8'
+DIRNAME  DC    X'0000000100000000',CL8'DIRECTOR'
+AMNAME   DC    X'0000000200000000',CL8'ALLOCMAP'
+FMMID    DS    F
+FMAM1    DS    F
+FMAMFOP  DS    F
+FMR14    DS    F
+FMAMLVL  DS    X
 DBGDW    DC    D'0'
 DBGON    DC    X'00'          X'01': A MESSAGE PER CALL
 DBGTXT   DC    C'MSG * EFS F='
@@ -1859,6 +2182,7 @@ CACHENO  DS    A
 CACHEBUF DS    A
 DIRFST   DS    XL64
 LASTENT  DS    A
+HBSTART  DS    A
 TBR14    DS    F
 TBLVL    DS    F
 TBN      DS    F

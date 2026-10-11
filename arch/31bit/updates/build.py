@@ -8149,6 +8149,78 @@ EDFMODS.update({
             "BWRN2    DS    0H",
         ]),
     ],
+    # FORMAT vaddr mode (BLKSIZE 4096: the disk is formatted as EDF by
+    # DMSEFS (function 8) and then ACCESSed.  BLKSIZE 800 is the usual
+    # format.  (R6 no longer holds the PLIST after the option scan, so
+    # the device address for ACCESS is rebuilt from DEVADDR.)
+    'DMSFOR': [
+        # (R6, the PLIST pointer that ASK and RELDSK use, was the option
+        # scan's counter: 'FORMAT 191 A (LABEL' asked about disk ' (8 )'.)
+        ('00546000', [
+            "SCANOPT  ST    R6,FORR6       M6: KEEP THE PLIST POINTER",
+            "         LR    R5,R6          GET ORIGINAL PLIST POINTER",
+        ]),
+        ('00574000', [
+            "OPTFND   MVC   OPTFLAG(1),0(R1)    THE OPTION INDICATOR",
+            "         L     R6,FORR6       (THE PLIST POINTER AGAIN)",
+            "         CLI   0(R1),C'B'     M6: BLKSIZE N",
+            "         BNE   OPTFND2",
+            "         LA    R1,8(,R1)",
+            "         CLC   0(8,R1),=CL8'4096'",
+            "         BE    OPTFND2",
+            "         CLC   0(8,R1),=CL8'4K'",
+            "         BE    OPTFND2",
+            "         CLC   0(8,R1),=CL8'800'",
+            "         BNE   ERR5",
+            "         MVI   OPTFLAG,0      800: THE USUAL FORMAT",
+            "OPTFND2  DS    0H",
+        ]),
+        ('00667000', [
+            "NORELUFD CLI   OPTFLAG,C'B'   M6: (BLKSIZE 4096: EDF",
+            "         BNE   NORELUF2",
+            "         ICM   R15,15,NUCRSV7 DMSEFS",
+            "         BZ    ERR7           NOT LOADED",
+            "         MVC   EDFPB(4),DEVADDR   DEVICE, TYPE",
+            "         MVC   EDFPB+4(4),LIMCYL  CYLINDERS AT MOST",
+            "         MVC   EDFPB+8(6),INBUF   LABEL",
+            "         LA    R0,8           FUNCTION 8: FMT",
+            "         LA    R1,EDFPB",
+            "         BALR  R14,R15",
+            "         C     R15,=F'255'",
+            "         BE    ERR7           NOT A 3350 OR 3380",
+            "         LTR   R15,R15",
+            "         BZ    EDFACC",
+            "         LA    R15,=C'WRIT'",
+            "         B     ERR9",
+            "EDFACC   LH    R15,DEVADDR    THEN ACCESS IT",
+            "         LA    R2,EDFCUU+2",
+            "         LA    R3,3",
+            "EDFHX    LR    R14,R15",
+            "         N     R14,=F'15'",
+            "         IC    R14,EDFHEXT(R14)",
+            "         STC   R14,0(,R2)",
+            "         SRL   R15,4",
+            "         BCTR  R2,0",
+            "         BCT   R3,EDFHX",
+            "         MVC   EDFMODE(1),ADTM",
+            "         LA    R1,EDFAPL",
+            "         SVC   202",
+            "         DC    AL4(*+4)",
+            "         B     LM1415",
+            "EDFPB    DC    XL16'00'",
+            "FORR6    DC    F'0'",
+            "EDFAPL   DC    CL8'ACCESS'",
+            "EDFCUU   DC    CL8' '",
+            "EDFMODE  DC    CL8' '",
+            "         DC    8X'FF'",
+            "EDFHEXT  DC    C'0123456789ABCDEF'",
+            "NORELUF2 CLI   DEVADDR+3,X'09'     A 3330?",
+        ]),
+        ('00695000', [
+            "         DC    CL8'BLKSIZE'   M6",
+            "NUMOPTS  EQU   (*-OPTIONS)/8",
+        ]),
+    ],
     # UPDISK on an EDF disk: DMSEFS's SYNC (function 7) writes the
     # directory, map and label; the reserving call (R1 = 0) has nothing
     # to do.
