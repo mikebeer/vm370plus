@@ -1,0 +1,38 @@
+#!/bin/sh
+# cmscc -- a gcc-like driver for the M5f CMS target, so that autoconf
+# projects (GMP, GnuCOBOL) can be configured for CMS:
+#   cmscc -c / -E / -S ...   compile with the crt.sh flags and newlib headers
+#   cmscc ... -o prog        link: entry31 + objects + cmsrt + newlib (ELF;
+#                            elf_to_cms turns it into a TEXT deck)
+# Link tests in configure succeed; nothing is run (cross).
+H=$(cd "$(dirname "$0")" && pwd)
+X=s390x-linux-gnu
+NEWLIB=${NEWLIB:-/home/claude/nlbuild}
+NLSRC=${NLSRC:-/home/claude/nlsrc/newlib-4.4.0.20231231/newlib}
+GI=$($X-gcc -m31 -print-file-name=include)
+LIBGCC=$($X-gcc -m31 -print-libgcc-file-name)
+CF="-m31 -mesa -march=z900 -msoft-float -mlong-double-64 -fno-pic -fno-pie -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-stack-protector -ffunction-sections -fdata-sections -nostdinc -isystem $GI -I$H/inc -I$NEWLIB/targ-include -I$NLSRC/libc/include -D__CMS__"
+link=1
+for a in "$@"; do case $a in -c|-E|-S|-M|-MM) link=0;; --version|-v|-V|-qversion|-print-*|-dumpversion|-dumpmachine) exec $X-gcc "$@";; esac; done
+if [ $link = 0 ]; then exec $X-gcc $CF "$@"; fi
+# link: split sources/objects/libs, drop host-only flags
+W=$(mktemp -d); objs=""; out=a.out; libs=""; nxt=""; cfl=""
+for a in "$@"; do
+  if [ "$nxt" = o ]; then out=$a; nxt=""; continue; fi
+  case $a in
+    -o) nxt=o;;
+    *.c) o=$W/$(basename "$a" .c).$$.o; $X-gcc $CF $cfl -c "$a" -o "$o" || { rm -rf $W; exit 1; }; objs="$objs $o";;
+    *.o|*.a) objs="$objs $a";;
+    -L*) libs="$libs $a";;
+    -lm|-lc|-lrt|-lpthread) ;;
+    -l*) libs="$libs $a";;
+    -D*|-I*|-O*|-std=*|-w|-W[a-z]*|-f*) cfl="$cfl $a";;
+    -g*|-m*|-pipe|-static|-s|-rdynamic|-export-dynamic|-Wl,*|-pthread) ;;
+    *) ;;
+  esac
+done
+$X-gcc $CF -c "$H/cmsrt.c" -o $W/cmsrt.o && $X-as -m31 -mesa "$H/entry31.s" -o $W/entry31.o &&
+$X-ld -m elf_s390 -static --emit-relocs --gc-sections -T "$H/image.ld" -o "$out" \
+  $W/entry31.o $objs $W/cmsrt.o $libs \
+  --start-group $NEWLIB/libc.a $NEWLIB/libm.a "$H/softfp/libsoftfp.a" $LIBGCC --end-group
+rc=$?; rm -rf $W; exit $rc

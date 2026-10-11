@@ -350,9 +350,16 @@ int _open(const char *name, int flags, int mode)
         if (rc) { free(f->data); f->used = 0; errno = -rc; return -1; }
     } else {
         f->writing = 1;
-        if (flags & O_APPEND) {
+        /* Without O_TRUNC the file keeps its contents ("r+", "a", and
+           GnuCOBOL's OPEN I-O / EXTEND): read it first, position at 0 or,
+           for O_APPEND, at the end. */
+        if (!(flags & O_TRUNC)) {
             struct cfile g = *f;
-            if (read_whole(&g) == 0) { *f = g; f->writing = 1; f->pos = f->len; }
+            if (!g.fm_given) g.fm[0] = 0x5C;
+            if (read_whole(&g) == 0) {
+                f->data = g.data; f->len = g.len; f->cap = g.cap;
+                f->pos = (flags & O_APPEND) ? f->len : 0;
+            }
         }
     }
     return fd;

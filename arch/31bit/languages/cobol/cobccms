@@ -1,0 +1,16 @@
+#!/bin/sh
+# cobccms prog.cob [sub.cob ...] -- COBOL to a CMS TEXT deck (cross route):
+# the target cobc (-C, static CALLs), then cmscc with libcob, GMP and the
+# CMS shims, then elf_to_cms.  Result: prog.text; on CMS LOAD it, GENMOD it.
+set -e
+H=$(cd "$(dirname "$0")" && pwd)
+W=${COBWORK:-/home/claude/src/cobol}; P=$W/lxc; G=$W/gnucobol-3.1.2
+E2C=${E2C:-/home/claude/m5f/elf_to_cms}
+export COB_CONFIG_DIR=$G/config COB_COPY_DIR=$G/copy LD_LIBRARY_PATH=$W/pc/lib
+main=$(basename "$1" .cob); cs=""; x=-x
+for f in "$@"; do
+  $W/bx/cobc/cobc -C $x -fstatic-call "$f"; x=""; cs="$cs $(basename "$f" .cob).c"
+done
+$H/../../m5f/cmscc -O2 -w -I$G -I$W/bc -I$P/include -o $main.elf $cs \
+  $P/lib/libcob.a $P/lib/libgmp.a $P/lib/libdl.a $P/lib/libcobcms.a 2>&1 | grep -v RWX || true
+$E2C $main.elf $main.text

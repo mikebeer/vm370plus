@@ -38,6 +38,7 @@ rm -rf $W/bw; mkdir $W/bw; cd $W/bw
 # (2**60 -> 0). Also give cobc the paths it will have on Debian.
 sed -i -e 's|^#define COB_LI_IS_LL .*|/* #undef COB_LI_IS_LL (31-bit) */|' \
   -e 's|^#define COB_32_BIT_LONG .*|#define COB_32_BIT_LONG 1|' \
+  -e 's|^#define COB_64_BIT_POINTER .*|/* #undef COB_64_BIT_POINTER */|' \
   -e 's|^#define COB_CFLAGS .*|#define COB_CFLAGS "-pipe -I/usr/local/include -Wno-unused -fsigned-char -Wno-pointer-sign"|' \
   -e 's|^#define COB_LDFLAGS .*|#define COB_LDFLAGS ""|' \
   -e 's|^#define COB_LIBS .*|#define COB_LIBS "-L/usr/local/lib -lcob -lgmp -lm -ldl"|' config.h
