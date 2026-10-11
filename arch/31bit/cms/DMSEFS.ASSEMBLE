@@ -78,6 +78,8 @@ EAFINI   EQU   X'80'          STATE SET UP
 EAFDRT   EQU   X'40'          THE DATA BLOCK IN EADBUF IS CHANGED
 EAFBL    EQU   X'20'          THE BLOCK LIST IS LOADED
 EAFVE    EQU   X'10'          EAVEND IS KNOWN
+EAFLW    EQU   X'08'          EALIT IS KNOWN
+EAFLR    EQU   X'04'          EALRT IS KNOWN
          DS    X
 EARP     DS    F              NEXT RECORD TO READ
 EAWP     DS    F              NEXT RECORD TO WRITE
@@ -93,7 +95,8 @@ EABL     DS    A              WRITING: THE DATA BLOCK LIST, 12 BYTES
 EABLN    DS    F              ITS ENTRIES
 EABLC    DS    F              ITS CAPACITY
 EAVEND   DS    F              V: THE END OF THE DATA (EAFVE)
-         DS    CL4
+EALIT    DS    H              THE CALLER'S LAST ITEM WRITTEN (EAFLW)
+EALRT    DS    H              THE CALLER'S LAST ITEM READ (EAFLR)
 EAL      EQU   *-EDAFT        (80 = L'AFTCLB)
          EJECT
 DMSEFS   CSECT
@@ -455,13 +458,10 @@ FREAD    LR    R8,R1          R8 = AFT
          BNZ   RETURN
 RD10     OI    AFTFLG,AFTRD
          XC    40(4,R7),40(R7)  BYTES READ: NONE YET
-         SR    R4,R4
-         ICM   R4,3,26(R7)    THE ITEM NUMBER
-         BZ    RD14
-         L     R1,EARP        MODULO 65536, NEAR THE READ POINTER
-         BAL   R14,ITEMMOD
-         B     RD15
-RD14     L     R4,EARP        0: THE NEXT ONE
+         LA    R0,EALRT
+         L     R1,EARP
+         LA    R2,EAFLR
+         BAL   R14,ITEMNO     R4 = THE ITEM
 RD15     C     R4,EAAIC       PAST THE END?
          BNH   RD20
 RDEOF    LA    R15,12
@@ -774,13 +774,10 @@ WR06     TM    AFTFLG,AFTWRT  THE FIRST WRITE: AN ACTIVE WRITE NOW
          LH    R1,ADTNACW
          LA    R1,1(,R1)
          STH   R1,ADTNACW
-WR08     SR    R4,R4
-         ICM   R4,3,26(R7)    THE ITEM NUMBER
-         BZ    WR09
-         L     R1,EAWP        A HALFWORD: MODULO 65536, NEAR THE
-         BAL   R14,ITEMMOD    WRITE POINTER
-         B     WR10
-WR09     L     R4,EAWP        0: THE NEXT ONE
+WR08     LA    R0,EALIT
+         L     R1,EAWP
+         LA    R2,EAFLW
+         BAL   R14,ITEMNO     R4 = THE ITEM
 WR10     CLI   AFTFV,C'V'
          BE    WRV
 *        F: N ITEMS OF AFTIL BYTES AT (ITEM-1) * AFTIL
@@ -860,6 +857,47 @@ WRDONE   L     R1,EAAIC
          STH   R1,AFTDBC
          SR    R15,R15
          B     RETURN
+*
+*        ITEMNO: R4 = THE FULLWORD ITEM NUMBER FOR THE HALFWORD ONE IN
+*        THE PLIST (R7).  R1 = THE POINTER (THE NEXT ITEM), R0 -> THE
+*        HALFWORD WHERE THE CALLER'S LAST ITEM IS KEPT, R2 = ITS EAFLG
+*        BIT.  0 IS THE POINTER; THE CALLER'S LAST ITEM + 1 IS THE
+*        POINTER TOO (A SEQUENTIAL CALLER COUNTING IN HALFWORDS, AS
+*        COPYFILE DOES -- ITS COUNT NEED NOT MATCH THE FILE'S); ANY
+*        OTHER IS TAKEN MODULO 65536 NEAREST THE POINTER.
+ITEMNO   ST    R14,ITR14
+         SR    R4,R4
+         ICM   R4,3,26(R7)
+         BZ    IT20
+         EX    R2,ITTM        TM EAFLG,BIT: THE CALLER'S LAST KNOWN?
+         BZ    IT10
+         LR    R15,R0
+         LH    R15,0(,R15)
+         LA    R15,1(,R15)
+         N     R15,F65535
+         CR    R15,R4
+         BE    IT20           ITS NEXT ONE: SEQUENTIAL
+IT10     ST    R0,ITSAVE
+         BAL   R14,ITEMMOD
+         L     R0,ITSAVE
+         B     IT30
+IT20     LR    R4,R1          THE POINTER
+*        THE CALLER'S LAST ITEM NOW: ITS NUMBER + COUNT - 1
+IT30     SR    R15,R15
+         ICM   R15,3,26(R7)
+         SR    R14,R14
+         ICM   R14,3,38(R7)
+         BNZ   *+8
+         LA    R14,1
+         AR    R15,R14
+         BCTR  R15,0
+         LR    R14,R0
+         STH   R15,0(,R14)
+         EX    R2,ITOI        OI EAFLG,BIT
+         L     R14,ITR14
+         BR    R14
+ITTM     TM    EAFLG,0
+ITOI     OI    EAFLG,0
 *
 *        ITEMMOD: R4 = THE ITEM NUMBER CONGRUENT TO R4 MODULO 65536
 *        THAT IS NEAREST TO R1 (A POINTER): PLISTS HOLD HALFWORDS
@@ -1311,6 +1349,11 @@ FFINW    LR    R8,R1
          STC   R0,EALVL
          BAL   R14,FREEBL     (THE LIST IS SPENT)
          XC    EAPBNO,EAPBNO
+*        THE FST'S ITEM COUNT, CAPPED (A CALLER MAY HAVE STORED ITS
+*        OWN HALFWORD COUNT IN AFTIC: COPYFILE DOES)
+         L     R1,EAAIC
+         BAL   R14,CAP
+         STH   R1,26(,R7)
 *        THE DIRECTORY ENTRY: THE FST AS FINIS LEFT IT, AND FULLWORDS
          L     R1,EADIRX
          SLL   R1,6
@@ -2182,6 +2225,8 @@ CACHENO  DS    A
 CACHEBUF DS    A
 DIRFST   DS    XL64
 LASTENT  DS    A
+ITR14    DS    F
+ITSAVE   DS    F
 HBSTART  DS    A
 TBR14    DS    F
 TBLVL    DS    F

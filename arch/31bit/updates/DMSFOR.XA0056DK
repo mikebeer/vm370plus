@@ -15,13 +15,16 @@ OPTFND   MVC   OPTFLAG(1),0(R1)    THE OPTION INDICATOR        XA0056DK
          BNE   ERR5                                            XA0056DK         
          MVI   OPTFLAG,0      800: THE USUAL FORMAT            XA0056DK         
 OPTFND2  DS    0H                                              XA0056DK         
+./ R 00602000          $ 00602100 100                                           
+         MVC   USRCYL,LIMCYL  M6: AS GIVEN (0: NONE)           XA0056DK         
+         SR    R15,R15        WAS THERE A CYLINDER SPEC. ?     XA0056DK         
 ./ R 00667000          $ 00667010 010                                           
 NORELUFD CLI   OPTFLAG,C'B'   M6: (BLKSIZE 4096: EDF           XA0056DK         
          BNE   NORELUF2                                        XA0056DK         
          ICM   R15,15,NUCRSV7 DMSEFS                           XA0056DK         
          BZ    ERR7           NOT LOADED                       XA0056DK         
          MVC   EDFPB(4),DEVADDR   DEVICE, TYPE                 XA0056DK         
-         MVC   EDFPB+4(4),LIMCYL  CYLINDERS AT MOST            XA0056DK         
+         MVC   EDFPB+4(4),USRCYL  CYLINDERS AT MOST            XA0056DK         
          MVC   EDFPB+8(6),INBUF   LABEL                        XA0056DK         
          LA    R0,8           FUNCTION 8: FMT                  XA0056DK         
          LA    R1,EDFPB                                        XA0056DK         
@@ -49,6 +52,7 @@ EDFHX    LR    R14,R15                                         XA0056DK
          B     LM1415                                          XA0056DK         
 EDFPB    DC    XL16'00'                                        XA0056DK         
 FORR6    DC    F'0'                                            XA0056DK         
+USRCYL   DC    F'0'                                            XA0056DK         
 EDFAPL   DC    CL8'ACCESS'                                     XA0056DK         
 EDFCUU   DC    CL8' '                                          XA0056DK         
 EDFMODE  DC    CL8' '                                          XA0056DK         

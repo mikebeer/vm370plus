@@ -8175,13 +8175,19 @@ EDFMODS.update({
             "         MVI   OPTFLAG,0      800: THE USUAL FORMAT",
             "OPTFND2  DS    0H",
         ]),
+        # The cylinders the user gave (0: none) before START puts in the
+        # 800-byte default (121 for a 3380): EDF probes the real size.
+        ('00602000', [
+            "         MVC   USRCYL,LIMCYL  M6: AS GIVEN (0: NONE)",
+            "         SR    R15,R15        WAS THERE A CYLINDER SPEC. ?",
+        ]),
         ('00667000', [
             "NORELUFD CLI   OPTFLAG,C'B'   M6: (BLKSIZE 4096: EDF",
             "         BNE   NORELUF2",
             "         ICM   R15,15,NUCRSV7 DMSEFS",
             "         BZ    ERR7           NOT LOADED",
             "         MVC   EDFPB(4),DEVADDR   DEVICE, TYPE",
-            "         MVC   EDFPB+4(4),LIMCYL  CYLINDERS AT MOST",
+            "         MVC   EDFPB+4(4),USRCYL  CYLINDERS AT MOST",
             "         MVC   EDFPB+8(6),INBUF   LABEL",
             "         LA    R0,8           FUNCTION 8: FMT",
             "         LA    R1,EDFPB",
@@ -8209,6 +8215,7 @@ EDFMODS.update({
             "         B     LM1415",
             "EDFPB    DC    XL16'00'",
             "FORR6    DC    F'0'",
+            "USRCYL   DC    F'0'",
             "EDFAPL   DC    CL8'ACCESS'",
             "EDFCUU   DC    CL8' '",
             "EDFMODE  DC    CL8' '",
