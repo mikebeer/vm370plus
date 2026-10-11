@@ -48,7 +48,7 @@ and the work after 64-bit is **M11**.
 | M8 | 8.1 | cREXX | Current cREXX cross-built for CMS (RXC8, RXAS8, RXBVM8) | Done | 8 Oct |  |
 | M8 | 8.2 | cREXX | Current cREXX built natively on CMS | In progress | 9 Oct– | RXC/RXAS work; RXBVM82 open |
 | M9 | 9.1 | Since kit b6 | SET/QUERY MACHINE, FULIST, GLOBALV, command tables, I-257, I-258 | Done | 10–11 Oct |  |
-| M9 | 9.2 | CP leftovers | I-235 (models), I-201 (DMKDMP dump), warm start (I-267, I-268), LPSW fast path above 16 MB, per-user IP (9.12a) | In progress | 11 Oct | I-201, I-267, I-268 done: dump, SHUTDOWN and warm start work |
+| M9 | 9.2 | CP leftovers | I-235 (models), I-201 (DMKDMP dump), warm start (I-267, I-268), LPSW fast path above 16 MB, per-user IP (9.12a) | In progress | 11 Oct | Done: I-201, I-267, I-268, I-269 (dump, SHUTDOWN, warm start, CTC attach). Open: LPSW fast path, I-235, I-265 |
 | M9 | 9.3 | C++ | C++ on CMS (subset, cross route) | Planned |  |  |
 | M9 | 9.4 | Database | SQL: SQLite on CMS + SQLSERV; MariaDB/PostgreSQL on Debian | Planned |  |  |
 | M9 | 9.5 | Network | CMS sockets + httpd | Planned |  |  |
@@ -59,7 +59,7 @@ and the work after 64-bit is **M11**.
 | M9 | 9.10 | AI | AI gateway service machine (ASKSERV) | Planned |  |  |
 | M9 | 9.11 | Snapshot | Kit build 7 (distributable snapshot) | Planned |  | After the list above |
 | M9 | 9.12 | Firewall | Network pack: per-user addresses, CP guest LAN, BORDER firewall, inside DHCP/DNS (9.12a-d) | Planned |  | After M4b.3, before M9 |
-| M9 | 9.12a | Addresses | Per-user IP address at disk IPL from the directory (fixes I-266) | Next |  | Done with 9.2 |
+| M9 | 9.12a | Addresses | Per-user IP address at disk IPL from the directory (fixes I-266) | Done | 11 Oct | Address follows the CTC pair (62x/63x or real); vm370plus-net on both Debian disks; verified 10.1.2.2 by itself |
 | M9 | 9.12b | Guest LAN | CP virtual NIC per guest on one internal segment (LCS/QETH style, like z/VM Guest LAN) | Planned |  | Needed for DHCP: CTC links are point-to-point |
 | M9 | 9.12c | Firewall | BORDER service machine: only outside link; NAT outbound; port forwards to service machines (httpd 9.5). One network configuration file on MAINT: OUTSIDE DHCP (bridged LCS/tap, address from the LAN) or OUTSIDE STATIC ip/mask gw; inside subnet and addressing; EXPOSE proto port TO user|ip port (default: nothing exposed) | Planned |  | Outside link may be bridged (LCS on tap) to get its address from the LAN DHCP |
 | M9 | 9.12d | DHCP/DNS | DHCP and DNS for the inside segment as a service machine (dnsmasq on Debian, or in BORDER) | Planned |  | Needs 9.12b |
