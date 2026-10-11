@@ -8069,6 +8069,24 @@ EDFMODS = {
         ]),
     ],
     'DMSFNS': [
+        # WRITEM3: an EDF output file is finished by DMSEFS (function 6:
+        # its tree, directory entry, map and label), not by 800-byte
+        # chain links; then the common cleanup (FRETEM) as usual.
+        ('00530000', [
+            "WRITEM3  TM    ADTFLG3,X'02'  M6: AN EDF DISK?",
+            "         BZ    WRITEM3N",
+            "         LA    R0,6           FUNCTION 6: FINW",
+            "         LR    R1,R11         THE AFT",
+            "         LR    R2,R10         ITS FST",
+            "         L     R15,NUCRSV7",
+            "         BALR  R14,R15",
+            "         NI    AFTFLG2,255-AFTNEW",
+            "         TM    FINFLG,TFIN",
+            "         BO    WRCLSE4",
+            "         LA    R7,WRCLSE4",
+            "         B     FRETEM",
+            "WRITEM3N LA    R7,800         SET FOR 800-BYTES,",
+        ]),
         ('00544451', [
             "FRETEM   L     R15,AFTADT     M6: AN EDF FILE'S BUFFERS",
             "         TM    6(R15),X'02'   ADTFLG3: ADTFEDF?",
@@ -8082,6 +8100,82 @@ EDFMODS = {
         ]),
     ],
 }
+
+EDFMODS.update({
+    # WRBUF: no first chain link for a new EDF file (its directory entry
+    # comes from DMSEFS at the first write), and the write itself is
+    # DMSEFS's (function 5).
+    'DMSBWR': [
+        # The 65,535 check on a given item number moves to PROCES, where
+        # the disk is known: EDF files go past it (DMSEFS takes a
+        # halfword item number modulo 65,536, near the write pointer).
+        ('00430000', '00431000', [
+            "*        M6: (THE ITEM NUMBER IS CHECKED AT PROCES)",
+        ]),
+        ('00560000', '00561000', [
+            "         TM    6(R1),X'02'    M6: EDF? NO CHAIN LINK",
+            "         BZ    BWRQQ",
+            "         SR    R1,R1          (CC 0)",
+            "         B     BWRQQE",
+            "BWRQQ    L     R15,AQQTRK     AND CALL 'QQTRK'",
+            "         BALR  R14,R15        TO OBTAIN FIRST CHAIN LINK",
+            "BWRQQE   DS    0H",
+        ]),
+        ('00584000', '00585000', [
+            "PROCES   LR    R15,R0         M6: THE ADT (FROM FSTLKW),",
+            "         LTR   R9,R9",
+            "         BZ    *+8",
+            "         L     R15,AFTADT-AFTSECT(,R9)  OR THE AFT'S",
+            "         TM    6(R15),X'02'   ADTFLG3: AN EDF DISK?",
+            "         BZ    BWRNEDF",
+            "         LTR   R9,R9          NOT OPEN YET?",
+            "         BNZ   BWREDF1",
+            "         L     R15,AACTFREE   (R0, R1 FROM FSTLKW)",
+            "         BALR  R14,R15",
+            "         LR    R9,R1",
+            "BWREDF1  LA    R0,5           FUNCTION 5: WRITE",
+            "         LR    R1,R9",
+            "         LR    R2,R11",
+            "         L     R15,NUCRSV7",
+            "         BALR  R14,R15",
+            "         B     ERR",
+            "BWRNEDF  LTR   R4,R4          IS ITEM-NUMBER SUPPLIED ?",
+            "         BNP   BWRN2",
+            "         LR    R15,R4         YES: AT MOST 65533 (AS AT FVF)",
+            "         AR    R15,R8",
+            "         C     R15,=F'65535'",
+            "         BNL   ERROR6",
+            "         B     LR34",
+            "BWRN2    DS    0H",
+        ]),
+    ],
+    # UPDISK on an EDF disk: DMSEFS's SYNC (function 7) writes the
+    # directory, map and label; the reserving call (R1 = 0) has nothing
+    # to do.
+    'DMSAUD': [
+        ('00255000', [
+            "         TM    ADTFLG3,X'02'  M6: AN EDF DISK?",
+            "         BZ    AUDNEDF",
+            "         LTR   R1,R1",
+            "         BZ    UPDEXIT",
+            "         LA    R0,7           FUNCTION 7: SYNC",
+            "         LR    R1,R11",
+            "         L     R15,NUCRSV7",
+            "         BALR  R14,R15",
+            "         B     UPDEXIT",
+            "AUDNEDF  OI    UFDBUSY,UPBIT  SET OUR BIT IN 'UFDBUSY' FLAG",
+        ]),
+    ],
+    # ERASE on an EDF disk: the FST goes; the blocks go back at UPDISK
+    # (SYNC), not through chain links.
+    'DMSERS': [
+        ('00548000', [
+            "SR55     TM    ADTFLG3,X'02'  M6: EDF: BLOCKS FREED BY SYNC",
+            "         BO    ERAS06",
+            "         SR    R5,R5          R5 WILL BE BYTE-COUNT OF '0'",
+        ]),
+    ],
+})
 
 ECMODS = {
     # M5d: SVC 120 (GETMAIN/FREEMAIN RU, LOC=ANY) from HIGHSTOR.  CE's

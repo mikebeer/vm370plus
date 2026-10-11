@@ -21,6 +21,13 @@ EFS      TITLE 'DMSEFS     (CMS)       VM/370PLUS - EDF DISKS (M6)'
 *          3 READ   R1 = AFT (OPENED BY ACTFREE), R2 = RDBUF PLIST.
 *                   RC AS RDBUF; THE BYTE COUNT IS IN THE PLIST.
 *          4 CLOSE  R1 = AFT.  BUFFERS BACK.
+*          5 WRITE  R1 = AFT, R2 = WRBUF PLIST.  RC AS WRBUF.
+*          6 FINW   R1 = AFT, R2 = ITS FST IN THE HYPERBLOCKS: AN
+*                   OUTPUT FILE IS FINISHED -- ITS POINTER TREE, ITS
+*                   DIRECTORY ENTRY, THE MAP AND THE LABEL ARE WRITTEN.
+*          7 SYNC   R1 = ADT (UPDISK): RENAMED FILES GET THEIR NEW
+*                   NAMES IN THE DIRECTORY, ERASED ONES THEIR BLOCKS
+*                   BACK; THEN DIRECTORY, MAP AND LABEL ARE WRITTEN.
 *          9 REL    R1 = ADT.  EVERYTHING EDF OWNS FOR THE DISK BACK.
 *
 *        IN STORAGE A FILE'S 40-BYTE FST CARRIES THE INDEX OF ITS
@@ -50,6 +57,10 @@ EDMAPN   DS    F              ITS SIZE IN DOUBLEWORDS
 EDBUF    DS    A              A 4K WORK BUFFER
 EDPBNO   DS    F              BLOCK NOW IN EDBUF (0: NONE)
 EDCYL    DS    F              CYLINDERS (LABEL)
+EDMBL    DS    A              THE MAP'S BLOCK NUMBERS (R/W)
+EDMBN    DS    F              HOW MANY
+EDWBUF   DS    A              A 4K BUFFER FOR WRITING (R/W)
+EDACUR   DS    F              ALLOCATION: NEXT MAP BYTE TO LOOK AT
          DS    0D
 EDCBL    EQU   *-EDFCB
 EDCBD    EQU   (EDCBL+7)/8
@@ -63,6 +74,9 @@ EALVL    DS    X              POINTER LEVELS
 EAPSZ    DS    X              POINTER SIZE (4 F, 12 V)
 EAFLG    DS    X
 EAFINI   EQU   X'80'          STATE SET UP
+EAFDRT   EQU   X'40'          THE DATA BLOCK IN EADBUF IS CHANGED
+EAFBL    EQU   X'20'          THE BLOCK LIST IS LOADED
+EAFVE    EQU   X'10'          EAVEND IS KNOWN
          DS    X
 EARP     DS    F              NEXT RECORD TO READ
 EAWP     DS    F              NEXT RECORD TO WRITE
@@ -73,7 +87,12 @@ EAPBNO   DS    F              BLOCK NUMBER IN IT (0: NONE)
 EAVPOS   DS    F              V: FILE OFFSET OF RECORD EAVREC
 EAVREC   DS    F              V: ITS NUMBER
 EADIRX   DS    F              DIRECTORY INDEX
-         DS    CL20
+EABL     DS    A              WRITING: THE DATA BLOCK LIST, 12 BYTES
+*                             AN ENTRY (BLOCK, HIGHEST RECORD, DISP)
+EABLN    DS    F              ITS ENTRIES
+EABLC    DS    F              ITS CAPACITY
+EAVEND   DS    F              V: THE END OF THE DATA (EAFVE)
+         DS    CL4
 EAL      EQU   *-EDAFT        (80 = L'AFTCLB)
          EJECT
 DMSEFS   CSECT
@@ -95,7 +114,9 @@ DMSEFS   CSECT
 *
 EDFENT   DS    0H
          USING EDFENT,R15
-         STM   R0,R14,EDSAVE
+         B     EDFENT2
+EDSAVE   DS    16F            (HERE: WITHIN REACH OF R15)
+EDFENT2  STM   R0,R14,EDSAVE
          DROP  R15
          LR    R12,R15
          USING EDFENT,R12,R11
@@ -108,8 +129,8 @@ EDFENT   DS    0H
          SLL   R15,2
          L     R15,FUNCTAB(R15)
          BR    R15
-FUNCTAB  DC    A(BADFUNC,FCHK,FFSTS,FREAD,FCLOSE,BADFUNC)
-         DC    A(BADFUNC,BADFUNC,BADFUNC,FREL)
+FUNCTAB  DC    A(BADFUNC,FCHK,FFSTS,FREAD,FCLOSE,FWRITE)
+         DC    A(FFINW,FSYNC,BADFUNC,FREL)
 BADFUNC  LA    R15,99
 *
 *        RETURN, R15 = RC
@@ -194,9 +215,7 @@ CHK10    STM   R3,R4,GEOM
          BL    CHKRW
          MVI   RCRO,4         READ-ONLY UNEXPECTEDLY: RC 4
          B     CHKRO
-*        M6B: READ-ONLY UNTIL THE WRITE SIDE EXISTS (M6C)
-CHKRW    B     CHKRO
-         OI    EDFLG,EDFRW
+CHKRW    OI    EDFLG,EDFRW
 CHKRO    DS    0H
 *        THE DIRECTORY'S OWN FST: THE FIRST 64 BYTES OF BLOCK DOP
          L     R1,EDDOP
@@ -232,7 +251,8 @@ CHK20    C     R5,DIRFST+44
 CHK25    LA    R5,1(,R5)
          B     CHK20
 CHK30    DS    0H
-*        A READ-WRITE DISK: THE ALLOCATION MAP TOO (ENTRY 2)
+*        A READ-WRITE DISK: THE ALLOCATION MAP TOO (ENTRY 2), ITS
+*        BLOCK NUMBERS, AND A BUFFER FOR WRITING
          TM    EDFLG,EDFRW
          BZ    CHK40
          L     R6,EDDIRA
@@ -244,11 +264,28 @@ CHK30    DS    0H
          LTR   R15,R15
          BNZ   CHKNOST
          ST    R1,EDMAPA
+         L     R0,44(,R6)
+         ST    R0,EDMBN
+         AH    R0,=H'2'      (DOUBLEWORDS: HALF THE COUNT, ROUNDED)
+         SRL   R0,1
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS
+         LTR   R15,R15
+         BNZ   CHKNOST
+         ST    R1,EDMBL
+         LA    R0,512
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS
+         LTR   R15,R15
+         BNZ   CHKNOST
+         ST    R1,EDWBUF
          SR    R5,R5
 CHK35    C     R5,44(,R6)
          BNL   CHK40
          BAL   R14,BLKOF
          BNZ   CHKERR
+         LR    R2,R5
+         SLL   R2,2
+         A     R2,EDMBL
+         ST    R1,0(,R2)      THE MAP'S BLOCK NUMBER
          LR    R2,R5
          SLL   R2,12
          A     R2,EDMAPA
@@ -418,8 +455,11 @@ RD10     OI    AFTFLG,AFTRD
          XC    40(4,R7),40(R7)  BYTES READ: NONE YET
          SR    R4,R4
          ICM   R4,3,26(R7)    THE ITEM NUMBER
-         BNZ   RD15
-         L     R4,EARP        0: THE NEXT ONE
+         BZ    RD14
+         L     R1,EARP        MODULO 65536, NEAR THE READ POINTER
+         BAL   R14,ITEMMOD
+         B     RD15
+RD14     L     R4,EARP        0: THE NEXT ONE
 RD15     C     R4,EAAIC       PAST THE END?
          BNH   RD20
 RDEOF    LA    R15,12
@@ -641,6 +681,7 @@ FCLOSE   LR    R8,R1
          USING EDAFT,R6
          TM    EAFLG,EAFINI
          BZ    CLOSE9
+         BAL   R14,FREEBL
          L     R1,EADBUF
          LTR   R1,R1
          BZ    CLOSE9
@@ -677,11 +718,977 @@ FREE10   L     R1,EDMAPA
          BZ    FREE20
          L     R0,EDMAPN
          DMSFRET DWORDS=(0),LOC=(1)
-FREE20   LA    R0,512+EDCBD
+FREE20   L     R1,EDMBL
+         LTR   R1,R1
+         BZ    FREE30
+         L     R0,EDMBN
+         AH    R0,=H'2'
+         SRL   R0,1
+         DMSFRET DWORDS=(0),LOC=(1)
+FREE30   L     R1,EDWBUF
+         LTR   R1,R1
+         BZ    FREE40
+         LA    R0,512
+         DMSFRET DWORDS=(0),LOC=(1)
+FREE40   LA    R0,512+EDCBD
          LR    R1,R10
          DMSFRET DWORDS=(0),LOC=(1)
          L     R14,FREER14
          BR    R14
+         EJECT
+***********************************************************************
+*        5  WRITE -- WRBUF FOR AN EDF FILE.  R1 = AFT, R2 = PLIST.
+*        F FILES: ANY ITEM; V FILES: APPENDED.  THE DATA GOES INTO
+*        BLOCKS OF THE FILE'S BLOCK LIST; THE POINTER TREE IS BUILT
+*        WHEN THE FILE IS FINISHED (FUNCTION 6).
+***********************************************************************
+FWRITE   LR    R8,R1
+         USING AFTSECT,R8
+         LR    R7,R2          R7 = WRBUF PLIST
+         L     R9,AFTADT
+         USING ADTSECT,R9
+         L     R10,ADTQQM
+         LA    R6,AFTCLB
+         USING EDAFT,R6
+         LA    R15,12         (A READ-ONLY DISK)
+         TM    EDFLG,EDFRW
+         BZ    RETURN
+         TM    EAFLG,EAFINI
+         BO    WR04
+         SR    R1,R1
+         ICM   R1,3,AFTFCL    A DIRECTORY ENTRY YET?
+         BNZ   WR03
+         BAL   R14,NEWENT     NO: A NEW FILE
+         BNZ   RETURN
+WR03     BAL   R14,OPENST
+         BNZ   RETURN
+WR04     TM    EAFLG,EAFBL
+         BO    WR06
+         BAL   R14,LOADBL     THE BLOCK LIST
+         BNZ   RETURN
+WR06     TM    AFTFLG,AFTWRT  THE FIRST WRITE: AN ACTIVE WRITE NOW
+         BO    WR08
+         OI    AFTFLG,AFTWRT
+         LH    R1,ADTNACW
+         LA    R1,1(,R1)
+         STH   R1,ADTNACW
+WR08     SR    R4,R4
+         ICM   R4,3,26(R7)    THE ITEM NUMBER
+         BZ    WR09
+         L     R1,EAWP        A HALFWORD: MODULO 65536, NEAR THE
+         BAL   R14,ITEMMOD    WRITE POINTER
+         B     WR10
+WR09     L     R4,EAWP        0: THE NEXT ONE
+WR10     CLI   AFTFV,C'V'
+         BE    WRV
+*        F: N ITEMS OF AFTIL BYTES AT (ITEM-1) * AFTIL
+         SR    R5,R5
+         ICM   R5,3,38(R7)    HOW MANY ITEMS
+         BNZ   *+8
+         LA    R5,1
+         L     R3,AFTIL
+         LR    R1,R4
+         BCTR  R1,0
+         MR    R0,R3          R1 = THE FILE OFFSET
+         LR    R15,R5
+         MR    R14,R3         R15 = THE BYTES
+         LR    R3,R15
+         L     R2,28(,R7)
+         LA    R2,0(,R2)
+         BAL   R14,STWRITE
+         BNZ   RETURN
+         AR    R4,R5          THE NEXT ITEM
+         ST    R4,EAWP
+         BCTR  R4,0
+         C     R4,EAAIC
+         BNH   WRDONE
+         ST    R4,EAAIC
+         B     WRDONE
+*        V: ONE RECORD, AT THE END
+WRV      L     R1,EAAIC
+         LA    R1,1(,R1)
+         CR    R4,R1
+         BE    WRV05
+         LA    R15,7          (ONLY APPENDING, FOR NOW)
+         B     RETURN
+WRV05    TM    EAFLG,EAFVE
+         BO    WRV10
+         BAL   R14,VEND       THE END OF AN EXISTING FILE'S DATA
+         BNZ   RETURN
+WRV10    L     R3,32(,R7)     THE RECORD'S LENGTH
+         ST    R3,LENSAVE
+         STH   R3,HALF
+         L     R1,EAVEND
+         ST    R1,VSTART
+         LA    R2,HALF        ITS LENGTH FIELD
+         LA    R3,2
+         BAL   R14,STWRITE
+         BNZ   RETURN
+         L     R1,VSTART      THEN THE DATA
+         LA    R1,2(,R1)
+         L     R2,28(,R7)
+         LA    R2,0(,R2)
+         L     R3,LENSAVE
+         BAL   R14,STWRITE
+         BNZ   RETURN
+         L     R1,VSTART      R1 = START, R2 = END
+         L     R2,LENSAVE
+         LA    R2,2(R2,R1)
+         ST    R2,EAVEND
+         L     R3,EAAIC
+         LA    R3,1(,R3)
+         ST    R3,EAAIC       R3 = THE RECORD'S NUMBER
+         BAL   R14,VINFO
+         LA    R3,1(,R3)
+         ST    R3,EAWP
+         L     R1,LENSAVE
+         C     R1,AFTIL       THE LONGEST YET?
+         BNH   WRDONE
+         ST    R1,AFTIL
+*        THE AFT'S HALFWORD COUNTS, CAPPED
+WRDONE   L     R1,EAAIC
+         BAL   R14,CAP
+         STH   R1,AFTIC
+         L     R1,EAWP
+         BAL   R14,CAP
+         STH   R1,AFTWP
+         STH   R1,AFTIN
+         L     R1,EABLN
+         BAL   R14,CAP
+         STH   R1,AFTDBC
+         SR    R15,R15
+         B     RETURN
+*
+*        ITEMMOD: R4 = THE ITEM NUMBER CONGRUENT TO R4 MODULO 65536
+*        THAT IS NEAREST TO R1 (A POINTER): PLISTS HOLD HALFWORDS
+ITEMMOD  LR    R0,R4
+         SR    R0,R1
+         N     R0,F65535
+         C     R0,F32768
+         BL    *+8
+         S     R0,F65536
+         AR    R0,R1
+         LTR   R0,R0
+         BNPR  R14            (NONSENSE: KEEP IT AS GIVEN)
+         LR    R4,R0
+         BR    R14
+*
+CAP      C     R1,F65535      R1 = MIN(R1, 65535)
+         BNHR  R14
+         L     R1,F65535
+         BR    R14
+*
+*        VINFO: V RECORD R3 FROM OFFSET R1 TO R2 -- THE BLOCK LIST'S
+*        HIGHEST-RECORD AND DISPLACEMENT FIELDS OF THE BLOCKS IT IS IN
+VINFO    STM   R1,R5,ALCREGS
+         LR    R4,R1
+         SRL   R4,12          THE FIRST BLOCK: A RECORD STARTS HERE
+         LR    R5,R4
+         MH    R5,H12
+         A     R5,EABL
+         ST    R3,4(,R5)
+VI10     LA    R4,1(,R4)      THE BLOCKS AFTER IT THAT IT REACHES
+         LR    R5,R4
+         SLL   R5,12          THE BLOCK'S START
+         CR    R5,R2
+         BNL   VI90
+         LR    R15,R4
+         MH    R15,H12
+         A     R15,EABL
+         ST    R3,4(,R15)
+         LR    R0,R2
+         SR    R0,R5          THE RECORD'S END IN THIS BLOCK
+         C     R0,F4096
+         BNH   *+8
+         L     R0,FM1         ... OR NOT IN IT: X'FFFFFFFF'
+         ST    R0,8(,R15)
+         B     VI10
+VI90     LM    R1,R5,ALCREGS
+         BR    R14
+*
+*        VEND: EAVEND, THE END OF AN EXISTING V FILE'S DATA
+VEND     ST    R14,VER14
+         SR    R1,R1          OFFSET
+         SR    R4,R4          RECORDS PASSED
+VE10     C     R4,EAAIC
+         BNL   VE90
+         ST    R1,OFFSAVE
+         LA    R2,HALF
+         LA    R3,2
+         BAL   R14,STREAD
+         BNZ   VEERR
+         L     R1,OFFSAVE
+         LH    R3,HALF
+         N     R3,F65535
+         LA    R1,2(R3,R1)
+         LA    R4,1(,R4)
+         B     VE10
+VE90     ST    R1,EAVEND
+         OI    EAFLG,EAFVE
+         SR    R15,R15
+         L     R14,VER14
+         BR    R14
+VEERR    LA    R15,3
+         L     R14,VER14
+         LTR   R15,R15
+         BR    R14
+*
+*        NEWENT: A DIRECTORY ENTRY FOR THE NEW FILE OF AFT R8: A FREE
+*        SLOT OR ONE MORE AT THE END.  AFTFCL = ITS INDEX.  IT IS
+*        MARKED PENDING (BYTE 63) UNTIL THE FILE IS FINISHED.
+NEWENT   ST    R14,NER14
+         LA    R5,2
+NE10     C     R5,EDNDIR
+         BNL   NE20
+         LR    R1,R5
+         SLL   R1,6
+         A     R1,EDDIRA
+         OC    0(8,R1),0(R1)
+         BZ    NE30
+         LA    R5,1(,R5)
+         B     NE10
+NE20     LA    R1,1(,R5)      ONE MORE: ROOM FOR IT?
+         SLL   R1,6
+         L     R0,EDDIRN
+         SLL   R0,3
+         CR    R1,R0
+         BNH   NE25
+         BAL   R14,DIRGROW
+         BNZ   NE90
+NE25     LA    R1,1(,R5)
+         ST    R1,EDNDIR
+         LR    R1,R5
+         SLL   R1,6
+         A     R1,EDDIRA
+NE30     XC    0(64,R1),0(R1)
+         MVC   0(40,R1),AFTFST
+         MVI   53(R1),4       POINTER SIZE: 4 F, 12 V
+         CLI   AFTFV,C'V'
+         BNE   *+8
+         MVI   53(R1),12
+         MVI   63(R1),X'01'   PENDING
+         STH   R5,AFTFCL
+         SR    R15,R15
+NE90     L     R14,NER14
+         LTR   R15,R15
+         BR    R14
+*
+*        DIRGROW: THE DIRECTORY BUFFER ONE BLOCK LARGER
+DIRGROW  ST    R14,LBR14
+         L     R0,EDDIRN
+         AH    R0,=H'512'
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=DGERR
+         LR    R2,R1          NEW
+         LR    R0,R1
+         L     R1,EDDIRN
+         SLL   R1,3
+         L     R14,EDDIRA     OLD
+         LR    R15,R1
+         MVCL  R0,R14         COPY,
+         SR    R14,R14
+         L     R1,F4096
+         SR    R15,R15
+         MVCL  R0,R14         AND ZEROS AFTER IT
+         L     R1,EDDIRA
+         L     R0,EDDIRN
+         DMSFRET DWORDS=(0),LOC=(1)
+         ST    R2,EDDIRA
+         L     R0,EDDIRN
+         AH    R0,=H'512'
+         ST    R0,EDDIRN
+         SR    R15,R15
+         L     R14,LBR14
+         BR    R14
+DGERR    LA    R15,25         NO STORAGE
+         L     R14,LBR14
+         LTR   R15,R15
+         BR    R14
+*
+*        LOADBL: THE BLOCK LIST OF THE OPEN FILE (R6), FROM ITS TREE.
+*        THE TREE'S POINTER BLOCKS ARE FREED AS THEY ARE READ (A NEW
+*        TREE IS BUILT WHEN THE FILE IS FINISHED).
+LOADBL   ST    R14,LBR14
+         L     R0,EAADBC
+         AH    R0,=H'256'    ROOM FOR GROWTH
+         ST    R0,EABLC
+         MH    R0,H12
+         AH    R0,=H'7'
+         SRL   R0,3
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=LBNOST
+         ST    R1,EABL
+         SR    R5,R5
+         ST    R5,EABLN
+         MVI   FREEFLG,1
+LB10     C     R5,EAADBC
+         BNL   LB90
+         LR    R4,R5
+         MH    R4,H12
+         A     R4,EABL
+         XC    0(12,R4),0(R4)
+         CLI   EALVL,0
+         BNE   LB20
+         L     R1,EAFOP       LEVEL 0: ONE BLOCK
+         ST    R1,0(,R4)
+         MVC   4(4,R4),EAAIC
+         B     LB30
+LB20     BAL   R14,FBLKOF
+         BNZ   LBERR
+         ST    R1,0(,R4)
+         CLI   EAPSZ,12
+         BNE   LB30
+         L     R1,LASTENT     V: HIGHEST RECORD AND DISPLACEMENT
+         MVC   4(8,R4),4(R1)
+LB30     LA    R5,1(,R5)
+         B     LB10
+LB90     MVI   FREEFLG,0
+         ST    R5,EABLN
+         XC    EAPBNO,EAPBNO  (THE TREE IS GONE)
+         OI    EAFLG,EAFBL
+         SR    R15,R15
+         L     R14,LBR14
+         BR    R14
+LBERR    MVI   FREEFLG,0
+         LA    R15,3
+         L     R14,LBR14
+         LTR   R15,R15
+         BR    R14
+LBNOST   LA    R15,25
+         L     R14,LBR14
+         LTR   R15,R15
+         BR    R14
+*
+*        FREEBL: THE BLOCK LIST'S STORAGE BACK
+FREEBL   L     R1,EABL
+         LTR   R1,R1
+         BZR   R14
+         ST    R14,LBR14
+         L     R0,EABLC
+         MH    R0,H12
+         AH    R0,=H'7'
+         SRL   R0,3
+         DMSFRET DWORDS=(0),LOC=(1)
+         XC    EABL,EABL
+         NI    EAFLG,255-EAFBL
+         L     R14,LBR14
+         BR    R14
+*
+*        STWRITE: R3 BYTES FROM R2 TO FILE OFFSET R1 (R6 = THE FILE).
+*        BLOCKS PAST THE END ARE ALLOCATED.  RC 13 DISK FULL, 3 I/O.
+STWRITE  ST    R14,STWR14
+         STM   R4,R9,STRSAVE
+STW10    LTR   R3,R3
+         BNP   STWDONE
+         LR    R5,R1
+         SRL   R5,12          BLOCK INDEX
+         C     R5,EADBIX
+         BE    STW30
+         STM   R0,R3,STWREGS
+         BAL   R14,FLUSH      THE OLD BLOCK OUT
+         BNZ   STWERR
+STW12    C     R5,EABLN       PAST THE END?
+         BL    STW20
+         L     R0,EABLN       ONE MORE ENTRY
+         C     R0,EABLC
+         BL    STW14
+         BAL   R14,GROWBL
+         BNZ   STWERR
+STW14    L     R4,EABLN
+         MH    R4,H12
+         A     R4,EABL
+         XC    0(12,R4),0(R4) (A NULL BLOCK, UNLESS IT IS OURS)
+         L     R1,EABLN
+         LA    R1,1(,R1)
+         ST    R1,EABLN
+         B     STW12
+STW20    LR    R4,R5          THE ENTRY
+         MH    R4,H12
+         A     R4,EABL
+         L     R1,0(,R4)
+         LTR   R1,R1
+         BNZ   STW25
+         BAL   R14,ALLOC1     A NULL BLOCK GETS A BLOCK NOW
+         BNZ   STWERR
+         ST    R1,0(,R4)
+         L     R0,EADBUF      ZEROS
+         L     R1,F4096
+         SR    R14,R14
+         SR    R15,R15
+         MVCL  R0,R14
+         B     STW28
+STW25    L     R2,EADBUF      AN EXISTING BLOCK: READ IT
+         BAL   R14,RDBLK
+         BNZ   STWIOE
+STW28    ST    R5,EADBIX
+         LM    R0,R3,STWREGS
+STW30    LR    R0,R1
+         N     R0,F4095       OFFSET IN THE BLOCK
+         L     R15,F4096
+         SR    R15,R0
+         CR    R15,R3
+         BNH   *+6
+         LR    R15,R3         THE CHUNK
+         ST    R15,STRCHUNK
+         STM   R1,R3,STWREGS
+         L     R14,EADBUF
+         AR    R0,R14         TARGET
+         LR    R14,R2         SOURCE
+         LR    R1,R15
+         MVCL  R0,R14
+         OI    EAFLG,EAFDRT
+         LM    R1,R3,STWREGS
+         A     R1,STRCHUNK
+         A     R2,STRCHUNK
+         S     R3,STRCHUNK
+         B     STW10
+STWDONE  SR    R15,R15
+         LM    R4,R9,STRSAVE
+         L     R14,STWR14
+         BR    R14
+STWIOE   LA    R15,3
+STWERR   L     R14,F1
+         LNR   R14,R14
+         ST    R14,EADBIX
+         LM    R4,R9,STRSAVE
+         L     R14,STWR14
+         LTR   R15,R15
+         BR    R14
+*
+*        GROWBL: THE BLOCK LIST TWICE AS LARGE
+GROWBL   STM   R14,R5,ALCREGS
+         L     R0,EABLC
+         SLL   R0,1
+         MH    R0,H12
+         AH    R0,=H'7'
+         SRL   R0,3
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=GBERR
+         LR    R4,R1          NEW
+         LR    R0,R1
+         L     R1,EABLN
+         MH    R1,H12
+         L     R14,EABL
+         LR    R15,R1
+         MVCL  R0,R14
+         L     R1,EABL
+         L     R0,EABLC
+         MH    R0,H12
+         AH    R0,=H'7'
+         SRL   R0,3
+         DMSFRET DWORDS=(0),LOC=(1)
+         ST    R4,EABL
+         L     R0,EABLC
+         SLL   R0,1
+         ST    R0,EABLC
+         LM    R14,R5,ALCREGS
+         SR    R15,R15
+         BR    R14
+GBERR    LM    R14,R5,ALCREGS
+         LA    R15,25
+         LTR   R15,R15
+         BR    R14
+*
+*        FLUSH: THE DATA BLOCK IN EADBUF TO DISK IF IT WAS CHANGED
+FLUSH    TM    EAFLG,EAFDRT
+         BZR   R14            (CC 0)
+         ST    R14,FLR14
+         STM   R1,R2,ALCREGS
+         L     R1,EADBIX
+         MH    R1,H12
+         A     R1,EABL
+         L     R1,0(,R1)
+         L     R2,EADBUF
+         BAL   R14,WRBLK
+         LM    R1,R2,ALCREGS
+         L     R14,FLR14
+         BNZ   FLERR
+         NI    EAFLG,255-EAFDRT
+         SR    R15,R15
+         BR    R14
+FLERR    LA    R15,3
+         LTR   R15,R15
+         BR    R14
+*
+*        ALLOC1: R1 = A FREE BLOCK, NOW IN USE.  RC 13: DISK FULL.
+ALLOC1   STM   R2,R7,ALCREGS
+         L     R2,EDMAPA
+         L     R4,EDTOT
+         LA    R4,7(,R4)
+         SRL   R4,3           MAP BYTES
+         L     R3,EDACUR
+         LR    R5,R4          BYTES TO LOOK AT
+AL10     CR    R3,R4
+         BL    *+6
+         SR    R3,R3          (WRAP)
+         LA    R1,0(R3,R2)
+         CLI   0(R1),X'FF'
+         BNE   AL20
+AL15     LA    R3,1(,R3)
+         BCT   R5,AL10
+         LA    R15,13         FULL
+         LM    R2,R7,ALCREGS
+         LTR   R15,R15
+         BR    R14
+AL20     SR    R0,R0
+         IC    R0,0(,R1)
+         LA    R6,X'80'
+         SR    R7,R7          BIT NUMBER
+AL25     LR    R15,R0
+         NR    R15,R6
+         BZ    AL30
+         SRL   R6,1
+         LA    R7,1(,R7)
+         C     R7,F8
+         BL    AL25
+         B     AL15
+AL30     LR    R15,R3         BLOCK = BYTE * 8 + BIT + 1
+         SLL   R15,3
+         LA    R15,1(R7,R15)
+         C     R15,EDTOT
+         BH    AL15           (PAST THE END OF THE DISK)
+         OR    R0,R6
+         STC   R0,0(,R1)
+         ST    R3,EDACUR
+         LR    R1,R15
+         L     R15,EDUSED
+         LA    R15,1(,R15)
+         ST    R15,EDUSED
+         SR    R15,R15
+         LM    R2,R7,ALCREGS
+         BR    R14
+*
+*        FREE1: BLOCK R1 FREE (IF IT IS IN USE).  ALL BUT R15 KEPT.
+FREE1    STM   R0,R5,ALCREGS
+         LTR   R1,R1
+         BZ    FR90
+         LR    R2,R1
+         BCTR  R2,0
+         LR    R3,R2
+         SRL   R3,3           BYTE
+         N     R2,F7          BIT
+         LA    R4,X'80'
+         SRL   R4,0(R2)
+         A     R3,EDMAPA
+         SR    R0,R0
+         IC    R0,0(,R3)
+         LR    R5,R0
+         NR    R5,R4
+         BZ    FR90           NOT IN USE
+         XR    R0,R4
+         STC   R0,0(,R3)
+         L     R5,EDUSED
+         BCTR  R5,0
+         ST    R5,EDUSED
+FR90     LM    R0,R5,ALCREGS
+         BR    R14
+         DROP  R6,R8,R9
+         EJECT
+***********************************************************************
+*        6  FINW -- AN OUTPUT FILE IS FINISHED.  R1 = AFT, R2 = ITS
+*        40-BYTE FST IN THE HYPERBLOCKS (FINIS HAS FILLED IT IN).
+***********************************************************************
+FFINW    LR    R8,R1
+         USING AFTSECT,R8
+         LR    R7,R2          R7 = THE FST
+         L     R9,AFTADT
+         USING ADTSECT,R9
+         L     R10,ADTQQM
+         LA    R6,AFTCLB
+         USING EDAFT,R6
+         TM    EAFLG,EAFBL    ANYTHING WRITTEN?
+         BZ    FW90
+         BAL   R14,FLUSH
+         BNZ   RETURN
+         L     R5,EABLN
+         ST    R5,EAADBC
+         SR    R15,R15
+         IC    R15,EAPSZ
+         ST    R15,PSZ
+         L     R4,EABL
+         BAL   R14,TREEB      THE POINTER TREE
+         BNZ   RETURN
+         ST    R1,EAFOP
+         STC   R0,EALVL
+         BAL   R14,FREEBL     (THE LIST IS SPENT)
+         XC    EAPBNO,EAPBNO
+*        THE DIRECTORY ENTRY: THE FST AS FINIS LEFT IT, AND FULLWORDS
+         L     R1,EADIRX
+         SLL   R1,6
+         A     R1,EDDIRA
+         MVC   0(40,R1),0(R7)
+         MVC   40(12,R1),EAFOP    FOP, ADBC, AIC
+         MVC   52(2,R1),EALVL     LEVELS, POINTER SIZE
+         BAL   R14,BCDDATE        +54
+         MVI   63(R1),0           NO LONGER PENDING
+         BAL   R14,COMMIT
+         BNZ   RETURN
+FW90     SR    R15,R15
+         B     RETURN
+         DROP  R6,R8,R9
+*
+*        BCDDATE: YY MM DD HH MM SS (BCD) AT 54(R1), FROM DIAG X'0C'
+BCDDATE  STM   R14,R3,ALCREGS
+         LA    R2,DATEBUF
+         DC    X'8320000C'    DIAG X'0C': MM/DD/YY HH:MM:SS
+         LR    R3,R1
+         LA    R2,DATEBUF+6   YY
+         BAL   R14,BCD2
+         LA    R2,DATEBUF     MM
+         BAL   R14,BCD2
+         LA    R2,DATEBUF+3   DD
+         BAL   R14,BCD2
+         LA    R2,DATEBUF+8   HH
+         BAL   R14,BCD2
+         LA    R2,DATEBUF+11  MM
+         BAL   R14,BCD2
+         LA    R2,DATEBUF+14  SS
+         BAL   R14,BCD2
+         LM    R14,R3,ALCREGS
+         BR    R14
+*        BCD2: THE TWO DIGITS AT R2 AS ONE BYTE AT 54(R3), R3 + 1
+BCD2     SR    R0,R0
+         IC    R0,0(,R2)
+         N     R0,F15
+         SLL   R0,4
+         SR    R1,R1
+         IC    R1,1(,R2)
+         N     R1,F15
+         OR    R0,R1
+         STC   R0,54(,R3)
+         LA    R3,1(,R3)
+         BR    R14
+*
+*        TREEB: THE POINTER TREE OVER THE R5 ENTRIES (12 BYTES EACH)
+*        AT R4, POINTER SIZE PSZ.  R1 = FOP, R0 = LEVELS.  THE LIST IS
+*        USED UP.  RC 13 FULL, 3 I/O.
+TREEB    ST    R14,TBR14
+         STM   R4,R9,STRSAVE
+         SR    R0,R0
+         SR    R1,R1
+         LTR   R5,R5
+         BZ    TB99
+         L     R1,0(,R4)
+         C     R5,F1
+         BE    TB99           ONE BLOCK: LEVEL 0
+         LA    R15,1024
+         CLC   PSZ,F4
+         BE    *+8
+         LA    R15,341
+         ST    R15,PER
+         SR    R0,R0
+         ST    R0,TBLVL
+TB10     L     R0,TBLVL       ONE LEVEL MORE
+         AH    R0,=H'1'
+         ST    R0,TBLVL
+         ST    R5,TBN
+         SR    R0,R0
+         ST    R0,TBIN
+         ST    R0,TBOUT
+TB20     L     R3,TBN         THIS GROUP: MIN(PER, N - IN)
+         S     R3,TBIN
+         C     R3,PER
+         BNH   *+8
+         L     R3,PER
+         ST    R3,TBCNT
+         L     R0,EDWBUF      AN EMPTY POINTER BLOCK
+         L     R1,F4096
+         SR    R14,R14
+         SR    R15,R15
+         MVCL  R0,R14
+         L     R7,TBIN
+         MH    R7,H12
+         AR    R7,R4          R7 = THE GROUP'S FIRST ENTRY
+         L     R8,EDWBUF      R8 = WHERE ITS POINTERS GO
+         LR    R9,R3
+TB25     CLC   PSZ,F4
+         BNE   TB26
+         MVC   0(4,R8),0(R7)
+         LA    R8,4(,R8)
+         B     TB27
+TB26     MVC   0(12,R8),0(R7)
+         LA    R8,12(,R8)
+TB27     LA    R7,12(,R7)
+         BCT   R9,TB25
+         CLC   PSZ,F4
+         BE    TB28
+         LR    R0,R3          V: THE LAST WORD = OFFSET OF THE LAST
+         BCTR  R0,0
+         MH    R0,H12
+         L     R8,EDWBUF
+         ST    R0,4092(,R8)
+TB28     BAL   R14,ALLOC1
+         BNZ   TB98
+         L     R2,EDWBUF
+         BAL   R14,WRBLK
+         BNZ   TB97
+*        ITS ENTRY ONE LEVEL UP: (BLOCK, THE LAST HI, THE FIRST DISP)
+         L     R7,TBIN
+         MH    R7,H12
+         AR    R7,R4
+         L     R2,8(,R7)      FIRST DISP
+         L     R3,TBCNT
+         BCTR  R3,0
+         MH    R3,H12
+         AR    R3,R7
+         L     R3,4(,R3)      LAST HI
+         L     R7,TBOUT
+         MH    R7,H12
+         AR    R7,R4
+         ST    R1,0(,R7)
+         ST    R3,4(,R7)
+         ST    R2,8(,R7)
+         L     R7,TBOUT
+         LA    R7,1(,R7)
+         ST    R7,TBOUT
+         L     R7,TBIN
+         A     R7,TBCNT
+         ST    R7,TBIN
+         C     R7,TBN
+         BL    TB20
+         L     R5,TBOUT       THE NEXT LEVEL'S ENTRIES
+         C     R5,F1
+         BH    TB10
+         L     R1,0(,R4)      THE TOP
+         L     R0,TBLVL
+TB99     SR    R15,R15
+         LM    R4,R9,STRSAVE
+         L     R14,TBR14
+         BR    R14
+TB97     LA    R15,3
+TB98     LM    R4,R9,STRSAVE
+         L     R14,TBR14
+         LTR   R15,R15
+         BR    R14
+*
+*        COMMIT: THE DIRECTORY (WITH ITS OWN TREE), THE ALLOCATION MAP
+*        AND THE LABEL'S USED COUNT TO DISK; THE ADT'S COUNTS.  R9 =
+*        ADT, R10 = EDFCB.
+         USING ADTSECT,R9
+COMMIT   ST    R14,CMR14
+         STM   R4,R9,CMSAVE
+         L     R6,EDDIRA      THE DIRECTORY'S OWN FST
+         L     R0,EDNDIR
+         SLL   R0,6
+         A     R0,F4095
+         SRL   R0,12          BLOCKS NEEDED
+         ST    R0,CMNEW
+         MVC   CMOLD,44(R6)   BLOCKS NOW
+         L     R0,CMOLD
+         C     R0,CMNEW
+         BNL   *+8
+         L     R0,CMNEW
+         ST    R0,CMLN        (THE LARGER: THE LIST'S SIZE)
+         MH    R0,H12
+         AH    R0,=H'7'
+         SRL   R0,3
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=CMNOST
+         ST    R1,CMLIST
+*        THE PRESENT DATA BLOCKS; THE OLD POINTER BLOCKS FREED
+         MVI   FREEFLG,1
+         SR    R5,R5
+CM10     C     R5,CMOLD
+         BNL   CM20
+         L     R4,CMLIST
+         LR    R1,R5
+         MH    R1,H12
+         AR    R4,R1
+         XC    0(12,R4),0(R4)
+         CLI   52(R6),0
+         BNE   CM12
+         L     R1,40(,R6)
+         B     CM14
+CM12     BAL   R14,BLKOF
+         BNZ   CMIOE
+CM14     ST    R1,0(,R4)
+         LA    R5,1(,R5)
+         B     CM10
+CM20     MVI   FREEFLG,0
+         XC    EDPBNO,EDPBNO
+*        MORE BLOCKS, OR FEWER (THE FIRST, DOP, ALWAYS STAYS)
+CM22     C     R5,CMNEW
+         BNL   CM30
+         BAL   R14,ALLOC1
+         BNZ   CMERR
+         L     R4,CMLIST
+         LR    R2,R5
+         MH    R2,H12
+         AR    R4,R2
+         XC    0(12,R4),0(R4)
+         ST    R1,0(,R4)
+         LA    R5,1(,R5)
+         B     CM22
+CM30     C     R5,CMNEW
+         BNH   CM40
+         BCTR  R5,0
+         L     R4,CMLIST
+         LR    R2,R5
+         MH    R2,H12
+         AR    R4,R2
+         L     R1,0(,R4)
+         BAL   R14,FREE1
+         B     CM30
+*        THE DATA BLOCKS FROM THE SECOND ON (THE FIRST HOLDS THE
+*        DIRECTORY'S OWN ENTRY, WHICH THE TREE CHANGES)
+CM40     LA    R5,1
+CM42     C     R5,CMNEW
+         BNL   CM50
+         L     R4,CMLIST
+         LR    R2,R5
+         MH    R2,H12
+         AR    R4,R2
+         L     R1,0(,R4)
+         LR    R2,R5
+         SLL   R2,12
+         A     R2,EDDIRA
+         BAL   R14,WRBLK
+         BNZ   CMIOE
+         LA    R5,1(,R5)
+         B     CM42
+CM50     MVC   PSZ,F4
+         L     R4,CMLIST
+         L     R5,CMNEW
+         BAL   R14,TREEB
+         BNZ   CMERR
+         L     R6,EDDIRA
+         ST    R1,40(,R6)     FOP
+         MVC   44(4,R6),CMNEW ADBC
+         MVC   48(4,R6),EDNDIR    AIC: THE ENTRIES
+         STC   R0,52(,R6)     LEVELS
+         MVI   53(R6),4
+         L     R1,EDNDIR
+         BAL   R14,CAP
+         STH   R1,26(,R6)     (FSTIC)
+         L     R1,CMNEW
+         BAL   R14,CAP
+         STH   R1,36(,R6)     (FSTDBC)
+         L     R1,EDDOP       THE FIRST DIRECTORY BLOCK
+         L     R2,EDDIRA
+         BAL   R14,WRBLK
+         BNZ   CMIOE
+*        THE ALLOCATION MAP
+         SR    R5,R5
+CM60     C     R5,EDMBN
+         BNL   CM70
+         LR    R1,R5
+         SLL   R1,2
+         A     R1,EDMBL
+         L     R1,0(,R1)
+         LR    R2,R5
+         SLL   R2,12
+         A     R2,EDMAPA
+         BAL   R14,WRBLK
+         BNZ   CMIOE
+         LA    R5,1(,R5)
+         B     CM60
+*        THE LABEL'S USED COUNT
+CM70     LA    R1,3
+         L     R2,EDWBUF
+         BAL   R14,RDBLK
+         BNZ   CMIOE
+         L     R2,EDWBUF
+         MVC   32(4,R2),EDUSED
+         LA    R1,3
+         BAL   R14,WRBLK
+         BNZ   CMIOE
+         MVC   ADTUSED,EDUSED
+         L     R1,EDTOT
+         S     R1,EDUSED
+         ST    R1,ADTLEFT
+         SR    R15,R15
+         B     CM90
+CMIOE    LA    R15,3
+CMERR    MVI   FREEFLG,0
+CM90     ST    R15,RCSAVE
+         L     R1,CMLIST
+         L     R0,CMLN
+         MH    R0,H12
+         AH    R0,=H'7'
+         SRL   R0,3
+         DMSFRET DWORDS=(0),LOC=(1)
+         L     R15,RCSAVE
+CM99     LM    R4,R9,CMSAVE
+         L     R14,CMR14
+         LTR   R15,R15
+         BR    R14
+CMNOST   LA    R15,25
+         B     CM99
+         DROP  R9
+         EJECT
+***********************************************************************
+*        7  SYNC -- UPDISK ON AN EDF DISK.  R1 = ADT.  DIRECTORY
+*        ENTRIES WHOSE FILE NO LONGER HAS AN FST WERE ERASED: THEIR
+*        BLOCKS GO BACK.  RENAMED FILES GET THEIR NEW NAMES.  THEN THE
+*        DIRECTORY, THE MAP AND THE LABEL ARE WRITTEN.
+***********************************************************************
+FSYNC    LR    R9,R1
+         USING ADTSECT,R9
+         L     R10,ADTQQM
+         TM    EDFLG,EDFRW
+         BZ    SY99
+         XC    SYCHG,SYCHG
+         LA    R5,2
+SY10     C     R5,EDNDIR
+         BNL   SY80
+         LR    R6,R5
+         SLL   R6,6
+         A     R6,EDDIRA      R6 = THE ENTRY
+         OC    0(8,R6),0(R6)
+         BZ    SY70           (AN EMPTY SLOT)
+         CLI   63(R6),0
+         BNE   SY70           (A NEW FILE, NOT YET FINISHED)
+         STH   R5,HALF
+*        ITS FST IN THE HYPERBLOCKS
+         L     R3,ADTFDA
+         LTR   R3,R3
+         BZ    SY40
+         LA    R3,8(,R3)
+SY20     LA    R4,20
+         LR    R2,R3
+SY25     OC    0(8,R2),0(R2)
+         BZ    SY27
+         CLC   28(2,R2),HALF  FSTFCL = THE INDEX?
+         BE    SY30
+SY27     LA    R2,40(,R2)
+         BCT   R4,SY25
+         ICM   R3,15,800(R3)  THE NEXT HYPERBLOCK
+         BNZ   SY20
+         B     SY40
+SY30     CLC   0(20,R6),0(R2) THE SAME NAME, TYPE, DATE?
+         BNE   SY32
+         CLC   24(2,R6),24(R2)    AND MODE?
+         BE    SY70
+SY32     MVC   0(20,R6),0(R2)
+         MVC   24(2,R6),24(R2)
+         MVI   SYCHG,1
+         B     SY70
+*        ERASED: ITS BLOCKS BACK
+SY40     MVI   SYCHG,1
+         MVI   FREEFLG,1
+         ST    R5,SYIX
+         CLI   52(R6),0
+         BNE   SY50
+         L     R1,40(,R6)     LEVEL 0: THE ONE BLOCK
+         BAL   R14,FREE1
+         B     SY60
+SY50     SR    R5,R5
+SY52     C     R5,44(,R6)
+         BNL   SY60
+         BAL   R14,BLKOF      (POINTER BLOCKS FREED ON THE WAY)
+         BNZ   SY60
+         BAL   R14,FREE1
+         LA    R5,1(,R5)
+         B     SY52
+SY60     MVI   FREEFLG,0
+         XC    EDPBNO,EDPBNO
+         XC    0(64,R6),0(R6)
+         L     R5,SYIX
+SY70     LA    R5,1(,R5)
+         B     SY10
+SY80     CLI   SYCHG,0
+         BE    SY99
+         BAL   R14,COMMIT
+         B     RETURN
+SY99     SR    R15,R15
+         B     RETURN
+         DROP  R9
          EJECT
 ***********************************************************************
 *        BLKOF: BLOCK NUMBER OF DATA BLOCK INDEX R5 OF THE FILE WHOSE
@@ -746,8 +1753,12 @@ BLK20    ST    R0,LVLCNT
          LR    R1,R14
          L     R2,CACHEBUF
          BAL   R14,RDBLK
-         BZ    BLK25
-         L     R2,CACHENO
+         BNZ   BLK22
+         CLI   FREEFLG,0      FREEING THE TREE AS IT IS WALKED?
+         BE    BLK25
+         BAL   R14,FREE1      (R1 = THE POINTER BLOCK)
+         B     BLK25
+BLK22    L     R2,CACHENO
          XC    0(4,R2),0(R2)
          LA    R15,3
          B     BLKRET
@@ -759,6 +1770,7 @@ BLK25    SR    R2,R2
          LR    R3,R2
          M     R2,PSZ         R3 = OFFSET OF THE ENTRY
          A     R3,CACHEBUF
+         ST    R3,LASTENT     (THE LEVEL-1 ENTRY, AT THE END)
          L     R1,0(,R3)      THE NEXT BLOCK DOWN
          L     R0,LVLCNT
          BCTR  R0,0
@@ -825,7 +1837,6 @@ DBGFN    DC    C'0'
          DC    C' RC='
 DBGRC    DC    C'000'
 DBGTXTL  EQU   *-DBGTXT
-EDSAVE   DS    16F
 IOREGS   DS    8F
 STRREGS  DS    3F
 STRSAVE  DS    6F
@@ -847,6 +1858,33 @@ LVLCNT   DS    F
 CACHENO  DS    A
 CACHEBUF DS    A
 DIRFST   DS    XL64
+LASTENT  DS    A
+TBR14    DS    F
+TBLVL    DS    F
+TBN      DS    F
+TBIN     DS    F
+TBOUT    DS    F
+TBCNT    DS    F
+STWR14   DS    F
+STWREGS  DS    4F
+FLR14    DS    F
+ALCREGS  DS    8F
+CMSAVE   DS    6F
+         DS    0D
+DATEBUF  DS    CL32
+LBR14    DS    F
+CMR14    DS    F
+CMLIST   DS    A
+CMLN     DS    F
+CMOLD    DS    F
+CMNEW    DS    F
+VSTART   DS    F
+VER14    DS    F
+NER14    DS    F
+SYCHG    DS    F
+SYIX     DS    F
+SYR14    DS    F
+FREEFLG  DS    X
 DEV      DS    H
 HALF     DS    H
 CMSTYPE  DS    X
@@ -857,7 +1895,14 @@ F4       DC    F'4'
 F4095    DC    F'4095'
 F4096    DC    F'4096'
 F65535   DC    F'65535'
+F32768   DC    F'32768'
+F65536   DC    F'65536'
 H1       DC    H'1'
+H12      DC    H'12'
+F7       DC    F'7'
+F8       DC    F'8'
+F15      DC    F'15'
+FM1      DC    F'-1'
 F40800   DC    F'40',F'800'
 CMS1     DC    X'C3D4E2F1'    'CMS1'
          LTORG

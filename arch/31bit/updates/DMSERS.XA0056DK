@@ -1,0 +1,4 @@
+./ R 00548000          $ 00548100 100                                           
+SR55     TM    ADTFLG3,X'02'  M6: EDF: BLOCKS FREED BY SYNC    XA0056DK         
+         BO    ERAS06                                          XA0056DK         
+         SR    R5,R5          R5 WILL BE BYTE-COUNT OF '0'     XA0056DK         

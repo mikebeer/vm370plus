@@ -1,0 +1,36 @@
+./ R 00430000 00431000 $ 00430100 100                                           
+*        M6: (THE ITEM NUMBER IS CHECKED AT PROCES)            XA0056DK         
+./ R 00560000 00561000 $ 00560100 100                                           
+         TM    6(R1),X'02'    M6: EDF? NO CHAIN LINK           XA0056DK         
+         BZ    BWRQQ                                           XA0056DK         
+         SR    R1,R1          (CC 0)                           XA0056DK         
+         B     BWRQQE                                          XA0056DK         
+BWRQQ    L     R15,AQQTRK     AND CALL 'QQTRK'                 XA0056DK         
+         BALR  R14,R15        TO OBTAIN FIRST CHAIN LINK       XA0056DK         
+BWRQQE   DS    0H                                              XA0056DK         
+./ R 00584000 00585000 $ 00584010 010                                           
+PROCES   LR    R15,R0         M6: THE ADT (FROM FSTLKW),       XA0056DK         
+         LTR   R9,R9                                           XA0056DK         
+         BZ    *+8                                             XA0056DK         
+         L     R15,AFTADT-AFTSECT(,R9)  OR THE AFT'S           XA0056DK         
+         TM    6(R15),X'02'   ADTFLG3: AN EDF DISK?            XA0056DK         
+         BZ    BWRNEDF                                         XA0056DK         
+         LTR   R9,R9          NOT OPEN YET?                    XA0056DK         
+         BNZ   BWREDF1                                         XA0056DK         
+         L     R15,AACTFREE   (R0, R1 FROM FSTLKW)             XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         LR    R9,R1                                           XA0056DK         
+BWREDF1  LA    R0,5           FUNCTION 5: WRITE                XA0056DK         
+         LR    R1,R9                                           XA0056DK         
+         LR    R2,R11                                          XA0056DK         
+         L     R15,NUCRSV7                                     XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         B     ERR                                             XA0056DK         
+BWRNEDF  LTR   R4,R4          IS ITEM-NUMBER SUPPLIED ?        XA0056DK         
+         BNP   BWRN2                                           XA0056DK         
+         LR    R15,R4         YES: AT MOST 65533 (AS AT FVF)   XA0056DK         
+         AR    R15,R8                                          XA0056DK         
+         C     R15,=F'65535'                                   XA0056DK         
+         BNL   ERROR6                                          XA0056DK         
+         B     LR34                                            XA0056DK         
+BWRN2    DS    0H                                              XA0056DK         

@@ -1,3 +1,17 @@
+./ R 00530000          $ 00530010 010                                           
+WRITEM3  TM    ADTFLG3,X'02'  M6: AN EDF DISK?                 XA0056DK         
+         BZ    WRITEM3N                                        XA0056DK         
+         LA    R0,6           FUNCTION 6: FINW                 XA0056DK         
+         LR    R1,R11         THE AFT                          XA0056DK         
+         LR    R2,R10         ITS FST                          XA0056DK         
+         L     R15,NUCRSV7                                     XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         NI    AFTFLG2,255-AFTNEW                              XA0056DK         
+         TM    FINFLG,TFIN                                     XA0056DK         
+         BO    WRCLSE4                                         XA0056DK         
+         LA    R7,WRCLSE4                                      XA0056DK         
+         B     FRETEM                                          XA0056DK         
+WRITEM3N LA    R7,800         SET FOR 800-BYTES,               XA0056DK         
 ./ R 00544451          $ 00544452 001                                           
 FRETEM   L     R15,AFTADT     M6: AN EDF FILE'S BUFFERS        XA0056DK         
          TM    6(R15),X'02'   ADTFLG3: ADTFEDF?                XA0056DK         

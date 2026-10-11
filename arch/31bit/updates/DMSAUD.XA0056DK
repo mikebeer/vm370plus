@@ -1,0 +1,11 @@
+./ R 00255000          $ 00255010 010                                           
+         TM    ADTFLG3,X'02'  M6: AN EDF DISK?                 XA0056DK         
+         BZ    AUDNEDF                                         XA0056DK         
+         LTR   R1,R1                                           XA0056DK         
+         BZ    UPDEXIT                                         XA0056DK         
+         LA    R0,7           FUNCTION 7: SYNC                 XA0056DK         
+         LR    R1,R11                                          XA0056DK         
+         L     R15,NUCRSV7                                     XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         B     UPDEXIT                                         XA0056DK         
+AUDNEDF  OI    UFDBUSY,UPBIT  SET OUR BIT IN 'UFDBUSY' FLAG    XA0056DK         
