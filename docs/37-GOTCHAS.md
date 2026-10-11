@@ -488,3 +488,19 @@ SNAP restore would throw away all CMS work since the snapshot. The way back
 And the bug that needed it: `O R15,=X'80000000'` between an LRA and the
 caller's `BC` changes the condition code. Mode switches around LRA must use
 LA and BSM only (neither sets the CC), or no switch at all.
+
+## AMODE 31 that silently is not (11 October, I-259/I-260)
+
+"CP runs AMODE 31" was true only until the first SVC 12. Two idioms take the
+mode bit away, and below 16 MB nothing shows it:
+
+- **SAVEPROC is byte 0 of SAVERETN.** SVC 12 tests it for a processor-affinity
+  return; a return address saved from an AMODE 31 SVC old PSW has bit 0 on, so
+  every return went down the affinity path, whose strip removed the bit.
+- **`LA Rx,n(,Rx)` on a return address** clears bit 0 in AMODE 31. Bump a saved
+  return address with `STCM Rx,B'0111',SAVERETN+1` (keeps byte 0, sets no CC).
+
+The way to see it: a Hercules instruction trace (`t+`, the command, `t-`) and
+read the PSW at each `SVC 8` and at the `LPSW` that returns -- bit 32 must match.
+`b <addr>` before `/cold` plus `gpr` at the stop gives an ABEND's registers
+without a printed dump (the system printers are drained in the test setup).

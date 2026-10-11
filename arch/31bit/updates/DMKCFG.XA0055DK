@@ -1,0 +1,4 @@
+./ R 00529000          $ 00529010 010                                           
+         STCM  R5,B'0111',SAVERETN+1 M4B.3: BYTE 0 STAYS       XA0055DK         
+./ R 01149000          $ 01149100 100                                           
+         SRL   R9,8           256 PAGES PER SEGMENT (M4B.3)    XA0055DK         

@@ -20,7 +20,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**11 October 2026.** GLOBALV.',
+B(['**11 October 2026, morning.** Guest pages in real frames above 16 MB (M4b.3): with `MAINSIZE` above 16, the frames from 16 MB up to 160 MB hold virtual machine pages directly.',
+   '**11 October 2026.** GLOBALV.',
    '**10 October 2026, night.** `SET MACHINE` and `QUERY MACHINE`; FULIST (FL); EE, FSVIEW and the REXX full-screen package under the EC-mode CMS; Appendix D, the CP and CMS command tables.',
    '**10 October 2026, evening (kit build 6).** `IPL LINUX` and vmzipl: Debian starts from its own disk; the Debian disk is a 3390-9 (7 GB); no 64-CCW limit for Linux disk I/O; mosquitto (MQTT) and Asterisk under Debian; `QUERY SET` shows ESA; the CHATBOT service machine and `CHAT` (new Chapter 6); RXBVM8 has TIME and DATE; the console banner reads VM/370plus; a fix for memory corruption in Linux guests above 16 MB (location 80).',
    '**10 October 2026.** Regina REXX and THE under Debian; languages written in cREXX for CMS and Linux (BASIC, SNOBOL4, Pascal, Lisp, Smalltalk, PL/M, Prolog, LOGO); Turbo CREXX on both; four more minidisks for CMSUSER (196–199); the native build of the current cREXX (M8.2); Python and GNU C under Debian; milestones brought up to date.',
@@ -45,7 +46,7 @@ TABLE(['Milestone', 'Content', 'Status'], [
   ['M2', 'ESA/390 DAT tables, CP in 31-bit mode, 31-bit guests', 'complete'],
   ['M3–M4', 'CMS under the new CP, shared CMS by page frame, several users, 4 KB storage keys', 'complete'],
   ['M4b', 'real storage up to 2 GB (above 16 MB as CP\u2019s paging store)', 'complete'],
-  ['M4b.3', 'CP uses real frames above 16 MB directly', 'planned'],
+  ['M4b.3', 'CP uses real frames above 16 MB directly', 'guest pages in frames up to 160 MB: complete; two Debians at once: next'],
   ['M5', 'EC-mode CMS with storage above 16 MB (HIGHSTOR), 31-bit C (cross and native)', 'complete'],
   ['M6', 'a CMS nucleus that is itself 31-bit', 'planned, before M9'],
   ['M7', 'ESA/390 virtual machines, Linux/390, Debian, SSH', 'complete'],
@@ -144,7 +145,7 @@ H2('Start-up and shutdown');
 P('Operation is that of VM/370. The operator’s console is 0009; `ENABLE ALL` brings up the 3270 terminals. To stop the system, the operator types `shutdown` on 0009 and then `exit` at the Hercules console.');
 ATTN('Always end with `shutdown` at the operator’s console before you leave Hercules. Killing Hercules leaves the shadow files inconsistent. Never run two Hercules instances on the same disks.');
 H2('Storage');
-P('CP’s own machine is 16 MB. With `MAINSIZE` above 16 in `vm370ce.conf` (the kit has 64), CP uses the storage above 16 MB as a paging store that no channel addresses: a page-out copies a frame there, a page-in copies it back. Up to 2048 MB has been tested. Virtual machines may be up to 256 MB.');
+P('CP’s own machine is 16 MB: its nucleus, free storage, locked and V=R pages, spool buffers and the pages of named systems stay below 16 MB. With `MAINSIZE` above 16 in `vm370ce.conf` (the kit has 64), the frames from 16 MB up to 160 MB hold virtual machine pages directly, and the storage above 160 MB, if any, is a paging store that no channel addresses: a page-out copies a frame there, a page-in copies it back. Up to 2048 MB has been tested. Virtual machines may be up to 256 MB.');
 NOTE('Because CP keeps its working frames in the low 16 MB, a 64 MB Linux machine pages heavily, and while one runs, other users’ work is slower. Using frames above 16 MB directly (milestone M4b.3) is planned.');
 H2('Rules that matter');
 B(['A user who has IPLed the shared CMS may IPL another system; the shared pages are dropped first (the IPL is done with CLEAR). The shared-system models stay in storage until CP is IPLed again.',

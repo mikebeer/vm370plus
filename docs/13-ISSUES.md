@@ -294,6 +294,10 @@ retracted and corrected).
 | **I-252** | **GCC380 abends 80A (`DMSSMN109S VIRTUAL STORAGE CAPACITY EXCEEDED`) after writing its output** — on larger sources in a 128 MB machine (CMSIO, M5G2) and on every source in a 256 MB machine (w263, w264). ADSTOP at DMSSMN's 109S path: the caller is AMODE 31 at X'021462' (OLDPSW `03EC000A 80021462`), SVC 10 with R0=X'001FC3AC', R1=X'02D203C0'. The code at X'021436' is the FREEPOOL expansion after CLOSE (`L R15,20(R1)` = DCBBUFCB, `OI 23(R1),1`, length BUFNO*BUFL+8, SVC 10): PDPCLIB frees a buffer pool whose BUFCB it never set, so R1 is a stale pointer into its heap above 16 MB. DMSSMN reads a nonzero byte 0 of R1 as GETMAIN (the 24-bit convention) and fails a 2 MB GETMAIN. Fix: from an AMODE 31 caller, SVC 10 is GETMAIN only if R1 bit 0 is on (the XA rule); a FREEMAIN above the line is not DMSSMN's storage and is ignored (DMSSMN XA0051DK). Workaround until then: GCCLIB31 is compiled with GCC370, whose output is the same. | **fixed** (DMSSMN XA0051DK; w265) |
 | **I-253** | **`CP SPOOL PUNCH TO SYSTEM` answers `INVALID OPTION - KEEP`** (M7.8, LINUX EXEC). The option scan in DMKCSP appears to read past TO's operand. Cosmetic: the EXEC no longer issues it (`SPOOL PUNCH TO *` / `NOCONT` / `CLOSE` instead). | **open** |
 | **I-254** | **Two Debians at once are correct but unusably slow** (M7.8). CP has 16 MB of real frames; the working sets are about 13 and 7 MB, and the scheduler keeps one machine in the eligible list because Linux never goes idle. MAINSIZE below ~256 also gives `DMKPGT400I SYSTEM TEMP SPACE FULL`. Two CP races were found and fixed on the way: DMKVAX's static work fields across a deferred TRANS (moved into the per-user DATBLK) and DMKVCS's CVTCHN statics (VCSLOCK). | **open** — needs M4b.3 (real frames above 16 MB); kit MAINSIZE 256 |
+| **I-259** | **CP left AMODE 31 at every SVC 12.** SAVEPROC, the processor-affinity byte DMKSVC tests at SVC 12, is byte 0 of SAVERETN. A return address saved from an AMODE 31 SVC old PSW has bit 0 on, so it looked like an affinity return, and SVCRETAF's byte strip (I-126) took the mode bit with it: every CALL made in AMODE 31 came back in AMODE 24. Invisible below 16 MB; with guest frames above it (M4b.3) DMKCFG's IPL stored through 09FFE000 at 00FFE000, inside the CORTABLE (FRE013). Found with a Hercules instruction trace (`t+`): SVC 8 at 80DEE2A0, LPSW back to 00DEE2A2. | **fixed** — XA0055DK: SVCRETAF keeps bit 0 (`N R14,=X'80FFFFFF'`; a UP system has no processor in that byte) |
+| **I-260** | **Command returns bumped with LA dropped AMODE 31.** Ten sites (DMKCFC 2, DMKCFG, DMKCPB, DMKDIA, DMKLNK, DMKLOG 3, DMKUSO) make DMKCFM skip or run the machine with `L Rx,SAVERETN / LA Rx,n(,Rx) / ST Rx,SAVERETN`; LA in AMODE 31 clears bit 0. | **fixed** — XA0055DK: `STCM Rx,B'0111',SAVERETN+1` (byte 0 stays; no condition code, which SVC 12 hands back) |
+| **I-261** | **DMKCFG's non-shared named-system loop counted 64 KB segments** (`SRL R9,4  16 PAGES PER SEG`) after XA0036DK made segments 1 MB, and ran up to 16 times past the user's segment table; AMODE 24 had wrapped the overrun below 16 MB. | **fixed** — XA0055DK: `SRL R9,8` |
+| **I-262** | **M4b.3 step 4, DMKDGD: IDAW 2 in the next frame.** For a CMS DIAG buffer in the second half of a frame above 16 MB, `(start+2048) AND -2048` is the next frame. The channel never uses that IDAW (no 2 KB boundary follows), but DGUNLOK unlocks it: PTR003 on a frame that was never locked. | **fixed** — XA0055DK: IDAW 2 is the same frame's second half |
 
 ## Counts
 
@@ -313,7 +317,7 @@ retracted and corrected).
 | **M4c in** — CPWATCH's own loop open (I-251) | 1 |
 | **closed -- retracted** | 1 |
 | **closed 4 Oct, 14:31** — frame-level sharing (XA0045DK, docs/33): `IPL CMS` by name reaches `Ready;`, AUTOLOG1's init `IPL CMS` completes, two sharers (MAINT + CMSUSER) run, FORCE/LOGOFF/shutdown clean (w41). | 1 |
-| **closed** | 8 |
+| **closed** | 11 |
 | **closed** (i227) | 2 |
 | **closed** (i227, w54) | 1 |
 | **closed** (i228) | 1 |
@@ -347,10 +351,14 @@ retracted and corrected).
 | **fixed** (i250; w202: 40 MB keyed and used above 16 MB in AMODE 31) | 1 |
 | **fixed** (w190, w192); report upstream (Adrian) | 1 |
 | **fixed** (w192: IPL 190 BC + REXX, IPL 290 EC + REXX, same user) | 1 |
+| **fixed** — XA0055DK: IDAW 2 is the same frame's second half | 1 |
+| **fixed** — XA0055DK: SVCRETAF keeps bit 0 (`N R14,=X'80FFFFFF'`; a UP system has no processor in that byte) | 1 |
+| **fixed** — XA0055DK: `SRL R9,8` | 1 |
+| **fixed** — XA0055DK: `STCM Rx,B'0111',SAVERETN+1` (byte 0 stays; no condition code, which SVC 12 hands back) | 1 |
 | **fixed** — did not by itself stop the GCC380 overlay (w223) | 1 |
 | **fixed** — w215: COPYFILE of 60 files to D | 1 |
 | **fixed** — w238 (GCC370), w240 (GCC380) | 1 |
-| **open** | 2 |
+| **open** | 1 |
 | **open** — cosmetic | 1 |
 | **open** — needs M4b.3 (real frames above 16 MB); kit MAINSIZE 256 | 1 |
 | **worked around** 7 Oct 00:03 (w254): AUTOLOG1's PROFILE EXEC (AUTOLOG1 191) has `*P AUTOLOG CPWATCH CPWATCH` and `*P SET PRIOR CPWATCH 5` — the first letter only, so restoring is one character each. Porting CPWATCH (CPWSYS/CPWDSP ASSEMBLE on its 191) stays open | 1 |

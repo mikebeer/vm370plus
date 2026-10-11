@@ -25,8 +25,6 @@ PAGHIGH  L     R0,DMKPTRHN    M4B.3: A FREE HIGH FRAME?        XA0055DK
          BO    PAGFREE                                         XA0055DK         
          TM    SWPFLAG,SWPSHR  SO DOES A NAMED-SYSTEM PAGE     XA0055DK         
          BO    PAGFREE                                         XA0055DK         
-         TM    VMFSTAT,VMESA390  STAGE 1: ESA/390 GUESTS ONLY  XA0055DK         
-         BZ    PAGFREE                                         XA0055DK         
          ST    R0,DMKPTRHN                                     XA0055DK         
          L     R7,DMKPTRH1    FIRST ON THE HIGH LIST           XA0055DK         
          LM    R0,R1,CORFPNT  UNCHAIN IT                       XA0055DK         

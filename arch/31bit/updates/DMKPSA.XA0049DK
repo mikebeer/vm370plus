@@ -10,6 +10,9 @@ TRL31A   SLL   R2,1           BIT 0 OFF                        XA0049DK
          SRL   R2,1           ...                              XA0049DK         
          LRA   R2,0(0,R2)     TRANSLATE, IN AMODE 31           XA0049DK         
          BSM   0,R15          BACK TO THE CALLER'S MODE        XA0049DK         
+         ENTRY DMKPSA31                                        XA0049DK         
+DMKPSA31 DS    0X             SET BY DMKCPIGO (M4B.3)          XA0049DK         
+TRL31ON  DC    X'00'          1: DMKCPI IS DONE                XA0049DK         
 ./ R 00232000          $ 00232100 100                                           
          LA    R1,0(R1,R15)   ADD BASE/INDEX REGISTERS         XA0049DK         
          TM    VMFSTAT,VMAM31 31-BIT GUEST ?                   XA0049DK         

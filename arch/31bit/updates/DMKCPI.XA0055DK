@@ -1,2 +1,5 @@
 ./ R 02061000          $ 02061100 100                                           
 PAGESIZE EQU   16             PAGING IOBLOK (M4B.3: +IDAL)     XA0055DK         
+./ R 03434000          $ 03434100 100                                           
+         L     R12,=A(DMKCPIGO) M4B.3: GOTO DMKDSPCH, 31       XA0055DK         
+         BR    R12            (DMKCPIB, PAST CPIATABL)         XA0055DK         

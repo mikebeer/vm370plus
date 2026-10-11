@@ -33,30 +33,37 @@ WTPGERR, DMKIOS) keeping its IDAL.
 | 2 | IDAW consumers and real-address masks 31-bit clean (no high frame in use yet) | the regression unchanged |
 | 3 | DMKPAG: paging I/O through a two-IDAW list when the frame is high | the regression unchanged |
 | 4 | DMKCCW / DMKDGD: a one-page data area in a high frame through an IDAL | the regression unchanged |
-| 5 | CORTABLE for frames up to a frames top; the second free list; a switch (off by default) | switch on: the regression at MAINSIZE 256 with guest pages above 16 MB |
+| 5 | CORTABLE for frames up to a frames top; the second free list; a switch | **done** 11 Oct: on (160 MB); m5g-native at 256 MB, IPL LINUX to the login prompt |
 | 6 | Two Debians at once (I-254) | both reach the login prompt and answer over the network |
 
-## Step 5 status (11 October, night)
+## Step 5 status (11 October, morning)
 
-Built and committed **inactive**: `CPIBFT` in the DMKCPI deck is `X'01000000'`,
-so no frame is above 16 MB and the CORTABLE is the old size. Setting it to
-`X'0A000000'` chains the frames 16 MB-160 MB onto `DMKPTRH1` (count `DMKPTRHN`),
-and DMKPTR PAGHIGH hands them out on a guest page-in. The line marked
-`STAGE 1: ESA/390 GUESTS ONLY` in build.py restricts that further, for bisecting.
+**Works.** `CPIBFT` in the DMKCPI deck (XA0053DK) is the frames top:
+`X'0A000000'`, so at MAINSIZE 256 the frames from 16 MB to 160 MB are on
+DMKPTR's high list (`DMKPTRH1`, count `DMKPTRHN`, top `DMKPTRHT`) and the
+M4b.2 paging store begins above them. DMKPTR PAGHIGH gives one to any guest
+page-in that is not SYSTEM space and not a named-system page; a frame comes back
+to the high list, never to a FREEQ waiter, is never stolen and never flushed.
+`X'01000000'` turns it all off (no high frames, the old table size).
 
-What happens with it on, at MAINSIZE 256:
+Measured: m5g-native at 256 MB as at 16 MB (the two known timeouts, `Ready(00003)`,
+`0.1`); IPL LINUX in a 64 MB machine to `vm370plus login:` with RES 5950 pages
+(23 MB, more than the 14 MB of low frames there are).
 
-| Restriction | Result |
-|---|---|
-| every guest page-in may go high | CMS IPL breaks, later FRE013 |
-| only new (zero) pages high | PTR003 at AUTOLOG1 |
-| ESA/390 guests only | CMS fine; `cp ipl linux` ends with guest PSW 0, then FRE013 on `cp d` |
+What it took besides the allocator -- each found with high frames switched on,
+and each invisible below 16 MB:
 
-In the last case the two high frames held DMKVMI's code (correct) and zeros.
-The suspect is a path that keeps a high frame address in 24 bits (CORTABLE
-index computed from `frame & X'00FFFFFF'`, or a CCW not yet routed through an
-IDAL: DMKVSI/DMKVCS, DMKVCN, HDKD7C, DMKTRK, DMKISM, DMKVCA, DMKDIB), or the
-DMKCFG IPL path that builds the guest PSW.
+| | Defect | Fix |
+|---|---|---|
+| I-259 | SVC 12 returned in AMODE 24 after every CALL made in AMODE 31: SAVEPROC is byte 0 of SAVERETN, and the affinity path's strip took the mode bit | SVCRETAF keeps bit 0 |
+| I-260 | Ten command processors bump SAVERETN with LA, which clears bit 0 | STCM of the low three bytes |
+| I-261 | DMKCFG's named-system loop counted 64 KB segments, overrunning the segment table | SRL 8 |
+| I-262 | DMKDGD (step 4): IDAW 2 could name the next frame, which DGUNLOK then unlocked (PTR003) | IDAW 2 stays in the frame |
+| -- | DMKCPI runs AMODE 24 and keeps 24-bit BAL links across CALLs | its last GOTO goes through DMKCPIGO (DMKCPIB), which switches to AMODE 31 for the dispatcher and sets TRL31ON in DMKPSA |
+
+The tools that found them: a Hercules instruction break on the ABEND's SVC 0
+(`b 40e80` before `/cold`, then `gpr`), and an instruction trace (`t+` ... `t-`)
+around the failing command, read for the PSW's AMODE bit at each SVC.
 
 How the storage above 16 MB is shared between frames and the M4b.2 paging store
 is decided at step 5 (simplest: frames up to a configured top, the store above it).

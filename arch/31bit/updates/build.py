@@ -1773,8 +1773,23 @@ def m4bcpi():
         "         LM    R0,R14,CPIBSAVE",
         "         BR    R14",
         "         DROP  R15",
+        "*  M4B.3: DMKCPI'S LAST GOTO DMKDSPCH (CPIRET) COMES HERE:",
+        "*  THE TRANS STUB RETURNS AMODE 31 FROM NOW, AND THE",
+        "*  DISPATCHER STARTS IN AMODE 31. R12 = DMKCPIGO.",
+        "         ENTRY DMKCPIGO",
+        "         USING DMKCPIGO,R12",
+        "DMKCPIGO L     R15,CPIGOFL    DMKPSA'S TRL31ON",
+        "         MVI   0(R15),1",
+        "         LA    R15,CPIGO31",
+        "         O     R15,CPIGOBIT",
+        "         BSM   0,R15          AMODE 31",
+        "CPIGO31  L     R12,ADSPCH     GOTO DMKDSPCH",
+        "         BR    R12",
+        "         DROP  R12",
+        "CPIGOFL  DC    V(DMKPSA31)",
+        "CPIGOBIT DC    X'80000000'",
         "CPIBSAVE DS    15F",
-        "CPIBFT   DC    A(X'01000000') M4B.3: 16 MB = HIGH FRAMES OFF",
+        "CPIBFT   DC    A(X'0A000000') M4B.3: FRAMES UP TO 160 MB",
         "CPIBFTOP DS    F",
         "         LTORG",
     ])
@@ -4195,6 +4210,30 @@ def m4b3decks():
     decks = {}
     src = lambda m: SRC + '/%s.ASSEMBLE' % m
 
+    # The command processors that make DMKCFM skip or run the machine bump
+    # SAVERETN with LA, which in AMODE 31 clears bit 0: CP went back to
+    # AMODE 24 at each such EXIT, and DMKCFG's IPL stored through a frame
+    # above 16 MB at the address modulo 16 MB.  STCM of the low three
+    # bytes leaves byte 0 -- the mode bit -- as SVC 8 saved it, and sets
+    # no condition code (SVC 12 hands the caller the CC of the EXIT).
+    for mod, seq, reg in (('DMKCFC', '00311000', 'R1'),
+                          ('DMKCFC', '00377000', 'R1'),
+                          ('DMKCFG', '00529000', 'R5'),
+                          ('DMKCPB', '00523000', 'R1'),
+                          ('DMKDIA', '00589000', 'R15'),
+                          ('DMKLNK', '00938700', 'R1'),
+                          ('DMKLOG', '01406000', 'R1'),
+                          ('DMKLOG', '01451000', 'R1'),
+                          ('DMKLOG', '01591000', 'R1'),
+                          ('DMKUSO', '01131000', 'R15')):
+        d = decks.get(mod) or Deck(XA55)
+        lab = 'BUMPRET ' if False else ''
+        d.replace(seq, first='%08d' % (int(seq) + 10), inc=10,
+                  limit=next_seq(src(mod), seq), lines=[
+            "         STCM  %s,B'0111',SAVERETN+1 M4B.3: BYTE 0 STAYS" % reg,
+        ])
+        decks[mod] = d
+
     d = Deck(XA55)
     d.replace('00504000', '00508000', first='00504100', inc=10,
               limit=next_seq(src('DMKPAG'), '00508000'), lines=[
@@ -4221,7 +4260,7 @@ def m4b3decks():
     ])
     decks['DMKPAG'] = d
 
-    d = Deck(XA55)
+    d = decks.get('DMKUSO') or Deck(XA55)
     d.replace('01304500', first='01304510', inc=10,
               limit=next_seq(src('DMKUSO'), '01304500'), lines=[
         "         DS    8D             PAGE EXTENSION (M4B.3: +IDAL)",
@@ -4278,8 +4317,6 @@ def m4b3decks():
         "         BO    PAGFREE",
         "         TM    SWPFLAG,SWPSHR  SO DOES A NAMED-SYSTEM PAGE",
         "         BO    PAGFREE",
-        "         TM    VMFSTAT,VMESA390  STAGE 1: ESA/390 GUESTS ONLY",
-        "         BZ    PAGFREE",
         "         ST    R0,DMKPTRHN",
         "         L     R7,DMKPTRH1    FIRST ON THE HIGH LIST",
         "         LM    R0,R1,CORFPNT  UNCHAIN IT",
@@ -4362,6 +4399,19 @@ def m4b3decks():
     d.replace('02061000', first='02061100', inc=100,
               limit=next_seq(src('DMKCPI'), '02061000'), lines=[
         "PAGESIZE EQU   16             PAGING IOBLOK (M4B.3: +IDAL)",
+    ])
+    # The TRANS stub (DMKPSA TRL31) returns in AMODE 31 from here on, as
+    # the inline form does: a stub caller left in AMODE 24 (DMKCFG's IPL,
+    # entered through an LA-bumped return address) stored through a
+    # frame above 16 MB at the address modulo 16 MB -- into the CORTABLE
+    # (FRE013).  DMKCPI itself runs AMODE 24 and keeps 24-bit BAL links
+    # across its TRANSes (PRG005 at A006A04C), so the switch is thrown as
+    # it leaves for the dispatcher (DMKCPIGO, in the DMKCPIB CSECT: the
+    # main CSECT has no room -- CPIATABL must stay within R12/R13).
+    d.replace('03434000', first='03434100', inc=100,
+              limit=next_seq(src('DMKCPI'), '03434000'), lines=[
+        "         L     R12,=A(DMKCPIGO) M4B.3: GOTO DMKDSPCH, 31",
+        "         BR    R12            (DMKCPIB, PAST CPIATABL)",
     ])
     decks['DMKCPI'] = d
 
@@ -4464,8 +4514,15 @@ def m4b3decks():
         "         LA    R15,JIDAL1",
         "         STCM  R15,7,RCWADDR+1",
         "         ST    R2,JIDAL1",
-        "         LA    R15,2048(,R2)",
-        "         N     R15," + M31H + " THE NEXT 2 KB",
+        "*  IDAW 2: THIS FRAME'S SECOND HALF, NEVER THE NEXT FRAME",
+        "*  (DGUNLOK UNLOCKS IT: PTR003). FROM THE SECOND HALF NO",
+        "*  2 KB BOUNDARY FOLLOWS, SO IDAW 2 IS NOT USED.",
+        "         LR    R15,R2",
+        "         N     R15," + M31H,
+        "         LA    R0,2048",
+        "         NR    R0,R15         IN THE SECOND HALF?",
+        "         BNZ   *+8            YES: THAT HALF",
+        "         LA    R15,2048(,R15) NO: THE SECOND HALF",
         "         ST    R15,JIDAL2",
         "         LR    R15,R3         DOES THE AREA CROSS A PAGE?",
         "         BCTR  R15,0",
@@ -4493,6 +4550,31 @@ def m4b3decks():
         "         L     R15," + M31H + " ALIGNMENT MASK",
     ])
     decks['DMKUNT'] = d
+
+    # THE reason CP was not in AMODE 31 after all: SAVEPROC, the
+    # processor-affinity byte SVC 12 tests, is byte 0 of SAVERETN, so a
+    # return address saved from an AMODE 31 SVC old PSW (bit 0 on) looked
+    # like an affinity return, and SVCRETAF's strip (I-126) took the mode
+    # bit with the processor byte.  Every CALL from AMODE 31 came back in
+    # AMODE 24: DMKCFG's IPL stored through 09FFE000 at 00FFE000 (Hercules
+    # instruction trace: SVC 8 at 80DEE2A0, LPSW back to 00DEE2A2).  On a
+    # UP system the byte is never a processor; bit 0 is the mode.
+    d = Deck(XA55)
+    d.replace('00671100', first='00671110', inc=10, limit='00672000', lines=[
+        "SVCRETAF N     R14,=X'80FFFFFF' NO PROCESSOR; KEEP AMODE 31",
+    ])
+    decks['DMKSVC'] = d
+
+    # With SVC 12 returning AMODE 31, a latent 64 KB-segment count in the
+    # non-shared named-system loop (IPL CMS) ran past the segment table:
+    # 'SRL R9,4  16 PAGES PER SEG' -- a segment is 256 pages since
+    # XA0036DK.  AMODE 24 had wrapped the overrun below 16 MB.
+    d = decks['DMKCFG']
+    d.replace('01149000', first='01149100', inc=100,
+              limit=next_seq(src('DMKCFG'), '01149000'), lines=[
+        "         SRL   R9,8           256 PAGES PER SEGMENT (M4B.3)",
+    ])
+    decks['DMKCFG'] = d
     return decks
 
 
@@ -7305,6 +7387,9 @@ G31MODS = {
             "         SRL   R2,1           ...",
             "         LRA   R2,0(0,R2)     TRANSLATE, IN AMODE 31",
             "         BSM   0,R15          BACK TO THE CALLER'S MODE",
+            "         ENTRY DMKPSA31",
+            "DMKPSA31 DS    0X             SET BY DMKCPIGO (M4B.3)",
+            "TRL31ON  DC    X'00'          1: DMKCPI IS DONE",
         ]),
         # DMKPSARX: the effective address of a guest RX operand.  LA in
         # AMODE 31 sums to 31 bits; a 24-bit guest's registers may carry

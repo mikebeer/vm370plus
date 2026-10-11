@@ -1,0 +1,4 @@
+./ R 00311000          $ 00311010 010                                           
+         STCM  R1,B'0111',SAVERETN+1 M4B.3: BYTE 0 STAYS       XA0055DK         
+./ R 00377000          $ 00377010 010                                           
+         STCM  R1,B'0111',SAVERETN+1 M4B.3: BYTE 0 STAYS       XA0055DK         
