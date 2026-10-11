@@ -1,0 +1,390 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready|Start \\(\\(Warm|AUTO LOGON|\\?CP",
+  "timeout": 15,
+  "cont": true
+ },
+ {
+  "send": "/cold",
+  "expect": "DMKCPI966I|\\?CP",
+  "timeout": 90,
+  "cont": true,
+  "settle": 8
+ },
+ {
+  "send": "/cp disc",
+  "expect": "DISCONNECT AT",
+  "timeout": 60,
+  "cont": false
+ },
+ {
+  "send": "/logon maint cpcms noipl",
+  "expect": "Ready|LOGON AT|RECONNECT",
+  "timeout": 180,
+  "cont": false
+ },
+ {
+  "send": "/cp def stor 64m",
+  "expect": "STORAGE =",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/ipl 290",
+  "expect": "VM Community|Ready",
+  "timeout": 120,
+  "cont": false
+ },
+ {
+  "send": "/",
+  "expect": "Ready|Start \\(\\(Warm|AUTO LOGON|\\?CP",
+  "timeout": 15,
+  "cont": true
+ },
+ {
+  "send": "/listfile * module a (label",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/access 290 t",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cmsgend access noinv",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cmsgend release noinv",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cmsgend format noinv",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cmsgend listfile noinv",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cmsgend query noinv",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile * module a (date",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/release t",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp ipl 190",
+  "expect": "Ready|VM Community",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 15,
+  "cont": true
+ },
+ {
+  "send": "/access 290 t",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile access module a = = t2 (replace olddate",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile release module a = = t2 (replace olddate",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile format module a = = t2 (replace olddate",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile listfile module a = = t2 (replace olddate",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile query module a = = t2 (replace olddate",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile dmsefs text a = = t2 (replace olddate",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile * module t (date",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile dmsefs text t (date",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase access module a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase release module a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase format module a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase listfile module a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase query module a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase access modold a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase release modold a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase format modold a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase listfile modold a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase query modold a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile * mod* a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp purge rdr all",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp spool 00c class *",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c io/sysprofx-m6.txt ascii eof trunc",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/readcard sysprofx exec a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/access 19e d",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile sysprofx exec a = = d2 (replace",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase sysprofx exec a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile sysprofx * d (date",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/release d",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/release t",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp ipl 290",
+  "expect": "Ready|VM Community",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 15,
+  "cont": true
+ },
+ {
+  "send": "/nucxmap",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp attach 181 to maint as 1b0",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/access 1b0 x",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile * * x (label",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/q disk x",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/release x",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp detach 1b0",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp ipl 190",
+  "expect": "Ready|VM Community",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 15,
+  "cont": true
+ },
+ {
+  "send": "/nucxmap",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/listfile * * a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]
