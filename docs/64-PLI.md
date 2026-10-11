@@ -19,8 +19,9 @@ Tests pl1 and pl2 (Hercules 4, IPL CMS, 16 MB):
 
   With that, pl2 printed `The rabbit squeaks to the world.`
 
-This is the PL/I(F)-era language (1960s/70s): no structured
-`DO WHILE`/`SELECT` as in later PL/I, and the IHE runtime. It runs in 24-bit
+This is the PL/I(F) language level of the 1960s/70s (for example no
+`SELECT` group or `LEAVE`, which came with the later Optimizing compiler),
+with the IHE runtime. It runs in 24-bit
 mode under CMS's OS simulation.
 
 ## Newer PL/I implementations (survey)
