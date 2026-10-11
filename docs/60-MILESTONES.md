@@ -32,12 +32,12 @@ and the work after 64-bit is **M11**.
 | M5 | 5e | CMS | cREXX compiles on the machine | Done | 7 Oct |  |
 | M5 | 5f | CMS | 31-bit C toolchain, cross (GCC 13 -m31, newlib, cmsrt) | Done | 7 Oct |  |
 | M5 | 5g | CMS | Native 31-bit C (GCCLIB31), cREXX built on the machine | Done | 7 Oct |  |
-| M6 |   | CMS | 31-bit CMS proper; larger minidisks (4K blocks) | In progress |  | 6a-6d done 11 Oct (EDF under IPL 290); 6e open |
+| M6 |   | CMS | 31-bit CMS proper; larger minidisks (4K blocks) | Done | 11 Oct | EDF under IPL 290 (docs/63); 31-bit nucleus sweep stays background (doc 62 B) |
 | M6 | 6a | CMS | FORMAT (BLKSIZE 4096 writes an EDF label, directory and allocation map | Done | 11 Oct | 25de15c; T3350 temp disk and dedicated 3380 |
 | M6 | 6b | CMS | EDF disks read: ACCESS, LISTFILE, STATE, TYPE, COPYFILE from (DMSEFS, XA0056DK) | Done | 11 Oct | 86699c4; 100,000-record V and 70,000-record F files read |
 | M6 | 6c | CMS | EDF write, erase, rename; files above 65,535 records | Done | 11 Oct | 14bae66; 70,000-record copy byte-identical (edf.py) |
 | M6 | 6d | CMS | Large minidisks: a full-volume 3380 as one EDF disk | Done | 11 Oct | a101a8f; full 885-cyl 3380 (518 MB); one 112 MB file, 1.4M records, verified |
-| M6 | 6e | CMS | Tools across both formats (DISK DUMP/LOAD, TAPE, MOVEFILE, FULIST) | Planned |  |  |
+| M6 | 6e | CMS | Tools across both formats (DISK DUMP/LOAD, TAPE, MOVEFILE, FULIST) | Done | 11 Oct | DISK DUMP, MOVEFILE (100,000-record V file), COMPARE, COPYFILE on EDF; DISK LOAD writes to A by design; TAPE not run (same RDBUF/WRBUF path) |
 | M7 | 7.0 | ESA/390 guests | Baseline test guest (STSCH/SSCH/ESA PSW/X'B8') | Done | 7 Oct |  |
 | M7 | 7.1 | ESA/390 guests | SET ESA / machine mode, ESA IPL | Done | 7 Oct |  |
 | M7 | 7.2 | ESA/390 guests | Virtual channel subsystem (DMKVCS) | Done | 7 Oct |  |

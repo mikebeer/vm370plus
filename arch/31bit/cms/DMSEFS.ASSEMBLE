@@ -890,7 +890,12 @@ ITEMNO   ST    R14,ITR14
          BZ    IT10
          LR    R15,R0
          LH    R15,0(,R15)
-         LA    R15,1(,R15)
+         N     R15,F65535     THE CALLER'S LAST
+         C     R15,F65535     STUCK AT 65535 (A COUNT THAT STOPS
+         BNE   IT05           THERE, AS OS SIMULATION'S DOES)?
+         C     R4,F65535
+         BE    IT20           65535 AGAIN: THE NEXT ONE
+IT05     LA    R15,1(,R15)
          N     R15,F65535
          CR    R15,R4
          BE    IT20           ITS NEXT ONE: SEQUENTIAL
