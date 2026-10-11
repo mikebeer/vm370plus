@@ -29,8 +29,19 @@ rm -rf $W/bc; mkdir $W/bc; cd $W/bc
 sed -i -e 's|^#define COB_LI_IS_LL .*|/* #undef COB_LI_IS_LL */|' \
   -e 's|^#define COB_64_BIT_POINTER .*|/* #undef COB_64_BIT_POINTER */|' \
   -e 's|^#define COB_32_BIT_LONG .*|#define COB_32_BIT_LONG 1|' config.h
+# cobc on CMS: 8.3 names (PROG C, PROG H, PROGL H), config/copy files on any
+# accessed disk, and no computed gotos in the generated C (GCC380 has an
+# internal error on them)
+sed -i -e 's|^#define COB_CONFIG_DIR .*|#define COB_CONFIG_DIR "."|' \
+  -e 's|^#define COB_COPY_DIR .*|#define COB_COPY_DIR "."|' \
+  -e 's|^#define COB_COMPUTED_GOTO .*|/* #undef COB_COMPUTED_GOTO */|' config.h
+echo '#define HAVE_8DOT3_FILENAMES 1' >> config.h
+( cd $W && patch -p0 -N < $H/cms/cobc-8dot3.patch ) >/dev/null || true
+make -j8 -C lib >/dev/null 2>&1
 make -j8 -C libcob >/dev/null 2>&1
 cp libcob/.libs/libcob.a $P/lib/
+make -j8 -C cobc LIBS="$P/lib/libgmp.a $P/lib/libdl.a $P/lib/libcobcms.a" >/dev/null 2>&1
+${E2C:-/home/claude/m5f/elf_to_cms} cobc/cobc $W/cobc.text   # COBC MODULE on CMS
 # the PC cobc for the target: cobc decides byte order and long size from its
 # own config.h, so a PC cobc would generate little-endian binary code
 rm -rf $W/bx; cp -r $W/bpc $W/bx; cd $W/bx

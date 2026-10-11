@@ -1,0 +1,28 @@
+/* COBOL EXEC -- GnuCOBOL 3.1.2 on VM/370plus CMS (9.19)                */
+/*   COBOL fn [sub ...]  translate fn COB (the main program) and the     */
+/*                       subprograms to C: fn C, fn H, fnL H on A       */
+/* Runs COBC MODULE (cobc, cross-built for CMS, M5f). The options go    */
+/* through the stack: CMS would cut each one to 8 chars and upper-case  */
+/* them.                                                                */
+PARSE ARG FN SUBS
+IF FN = '' THEN DO
+  SAY 'COBOL: give the file name of the main program (filetype COB)'
+  EXIT 24
+END
+'STATE COBC MODULE *'
+IF RC <> 0 THEN DO
+  SAY 'COBOL: COBC MODULE not found -- access the disk that has it'
+  EXIT 28
+END
+'STATE' FN 'COB *'
+IF RC <> 0 THEN DO; SAY 'COBOL:' FN 'COB not found'; EXIT 28; END
+QUEUE '-C -x -fstatic-call' FN'.cob'
+'COBC =STACK'
+IF RC <> 0 THEN EXIT RC
+DO I = 1 TO WORDS(SUBS)
+  S = WORD(SUBS, I)
+  QUEUE '-C -fstatic-call' S'.cob'
+  'COBC =STACK'
+  IF RC <> 0 THEN EXIT RC
+END
+EXIT 0

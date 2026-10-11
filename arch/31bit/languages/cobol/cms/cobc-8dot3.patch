@@ -1,0 +1,12 @@
+--- gnucobol-3.1.2/cobc/cobc.c	2026-10-11 22:41:00.773432856 +0000
++++ gnucobol-3.1.2/cobc/cobc.c	2026-10-11 22:41:05.465301289 +0000
+@@ -7463,6 +7463,9 @@
+ 	struct local_filename	*lf;
+ 	int			ret;
+ 	int			i;
++#ifdef HAVE_8DOT3_FILENAMES
++	char			*buffer;
++#endif
+ 
+ 	/* Initialize */
+ 	cb_source_file = NULL;

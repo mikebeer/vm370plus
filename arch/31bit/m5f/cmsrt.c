@@ -426,6 +426,11 @@ int _fstat(int fd, struct stat *st)
 
 int _stat(const char *name, struct stat *st)
 {
+    /* "." (and "./", "/") is the set of accessed disks: a directory, so
+       programs that check a work directory (GnuCOBOL's TMPDIR) accept it */
+    if (!strcmp(name, ".") || !strcmp(name, "./") || !strcmp(name, "/")) {
+        memset(st, 0, sizeof *st); st->st_mode = S_IFDIR | 0777; return 0;
+    }
     int fd = _open(name, O_RDONLY, 0);
     if (fd < 0) return -1;
     _fstat(fd, st);
