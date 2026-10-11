@@ -80,3 +80,9 @@ DSPCR3X  DS    0H                                              XA0054DK
          OI    VMMCR6,VMMSHADT                                 XA0054DK         
          B     SETCREGS                                        XA0054DK         
 DSPV370  DS    0H                                              XA0054DK         
+./ I 02555000 $ 02555100 100                                                    
+         TM    VMFSTAT,VMESA390  ITS ACCESS REGISTERS          XA0054DK         
+         BZ    LDRPSWA        (DMKVCSAR, M4B.3 STEP 6)         XA0054DK         
+         L     R15,=V(DMKVCSAR)                                XA0054DK         
+         BALR  R14,R15                                         XA0054DK         
+LDRPSWA  DS    0H                                              XA0054DK         

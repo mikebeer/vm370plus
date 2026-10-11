@@ -34,7 +34,7 @@ WTPGERR, DMKIOS) keeping its IDAL.
 | 3 | DMKPAG: paging I/O through a two-IDAW list when the frame is high | the regression unchanged |
 | 4 | DMKCCW / DMKDGD: a one-page data area in a high frame through an IDAL | the regression unchanged |
 | 5 | CORTABLE for frames up to a frames top; the second free list; a switch | **done** 11 Oct: on (160 MB); m5g-native at 256 MB, IPL LINUX to the login prompt |
-| 6 | Two Debians at once (I-254) | both reach the login prompt and answer over the network |
+| 6 | Two Debians at once (I-254) | **done** 11 Oct (dd6): booted together, both at the login prompt, both answer SSH (10.1.1.2, 10.1.2.2); needed I-263 (access registers) and I-264 (DMKVCS retry) |
 
 ## Step 5 status (11 October, morning)
 
@@ -73,3 +73,18 @@ is decided at step 5 (simplest: frames up to a configured top, the store above i
 If a nucleus does not IPL, `tools/nucpatch.py` and a standalone load of the
 punched deck under `ARCHMODE S/370` restore a working CP without a pack
 restore (doc 37, 11 October).
+
+## Step 6 (11 October, late morning)
+
+Two Debians booted within a minute of each other (test dd6: MAINT on 190 with
+CTC 600/601, CMSUSER on 192 with 602/603, both `CP IPL LINUX`), both reached
+`vm370plus login:` in about 11 minutes, and both answer SSH from the PC. CP held
+them resident at 5142 and 2961 pages. Two CP defects stood in the way, neither in
+the frame code: I-263 (access registers were never saved, so the guests shared
+one set) and I-264 (the DMKVCS lock retry left a guest in instruction wait).
+
+Open, outside M4b.3: `CP IPL LINUX` from disk gives every user the address in
+the disk's own parameters (10.1.1.2); the second machine was set to 10.1.2.2 by
+hand. The disk IPL needs a per-user parameter as LXPARM gives the reader IPL.
+`LINUX READER` from CMSUSER ended in a PROGRAM INTERRUPT LOOP after
+`INVALID OPTION - KEEP` (I-253) -- to be looked at with the CP leftovers (9.2).

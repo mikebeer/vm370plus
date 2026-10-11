@@ -20,7 +20,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**11 October 2026, morning.** Guest pages in real frames above 16 MB (M4b.3): with `MAINSIZE` above 16, the frames from 16 MB up to 160 MB hold virtual machine pages directly.',
+B(['**11 October 2026, late morning.** Two Debian systems at once (M4b.3 complete); ESA/390 access registers saved per virtual machine.',
+   '**11 October 2026, morning.** Guest pages in real frames above 16 MB (M4b.3): with `MAINSIZE` above 16, the frames from 16 MB up to 160 MB hold virtual machine pages directly.',
    '**11 October 2026.** GLOBALV.',
    '**10 October 2026, night.** `SET MACHINE` and `QUERY MACHINE`; FULIST (FL); EE, FSVIEW and the REXX full-screen package under the EC-mode CMS; Appendix D, the CP and CMS command tables.',
    '**10 October 2026, evening (kit build 6).** `IPL LINUX` and vmzipl: Debian starts from its own disk; the Debian disk is a 3390-9 (7 GB); no 64-CCW limit for Linux disk I/O; mosquitto (MQTT) and Asterisk under Debian; `QUERY SET` shows ESA; the CHATBOT service machine and `CHAT` (new Chapter 6); RXBVM8 has TIME and DATE; the console banner reads VM/370plus; a fix for memory corruption in Linux guests above 16 MB (location 80).',
@@ -46,11 +47,11 @@ TABLE(['Milestone', 'Content', 'Status'], [
   ['M2', 'ESA/390 DAT tables, CP in 31-bit mode, 31-bit guests', 'complete'],
   ['M3–M4', 'CMS under the new CP, shared CMS by page frame, several users, 4 KB storage keys', 'complete'],
   ['M4b', 'real storage up to 2 GB (above 16 MB as CP\u2019s paging store)', 'complete'],
-  ['M4b.3', 'CP uses real frames above 16 MB directly', 'guest pages in frames up to 160 MB: complete; two Debians at once: next'],
+  ['M4b.3', 'CP uses real frames above 16 MB directly', 'complete: guest pages in frames up to 160 MB; two Debians at once'],
   ['M5', 'EC-mode CMS with storage above 16 MB (HIGHSTOR), 31-bit C (cross and native)', 'complete'],
   ['M6', 'a CMS nucleus that is itself 31-bit; larger minidisks', 'planned, before M9'],
   ['M7', 'ESA/390 virtual machines, Linux/390, Debian, SSH', 'complete'],
-  ['M7.8', 'Linux for several users from a linkable disk (LINUX EXEC); Linux and CMS side by side', 'complete; two Debians at once need M4b.3'],
+  ['M7.8', 'Linux for several users from a linkable disk (LINUX EXEC); Linux and CMS side by side', 'complete; two Debians at once since M4b.3'],
   ['M7.9', 'channel programs of any length for ESA/390 guests (no 64-CCW limit)', 'complete'],
   ['M7.10', 'IPL of Linux from its disk (vmzipl) and `IPL LINUX`', 'complete'],
   ['M7.11', 'a 3390-9 Debian disk (about 7 GB) as the standard Linux disk', 'complete'],
@@ -256,7 +257,7 @@ H2('Several Linux users');
 P('Each Linux user needs his own copy of the Debian disk, his own CTC pair with a CTCI line in `vm370ce.conf` and his own IP address in `userid LXPARM`. The kit’s example: MAINT on 600/601 and 190, address 10.1.1.2; CMSUSER on 602/603 and 191, address 10.1.2.2.');
 SCREEN(['0600.2  CTCI    10.1.1.2 10.1.1.1', '0602.2  CTCI    10.1.2.2 10.1.2.1', '0190    3390    disks/lnx190.cckd', '0191    3390    disks/lnx191.cckd'], 'Two Linux users in vm370ce.conf');
 P('Make `lnx191.cckd` a copy of the Debian disk. The disks are identical: the address comes from the IPL parameters, not from the disk. Give Hercules enough storage for CP\u2019s paging store: `MAINSIZE 256` (the kit\u2019s value) for two Linux users, more for more. With too little, CP fills its DASD paging space (`DMKPGT400I SYSTEM TEMP SPACE FULL`) and the Linux machines fail.');
-ATTN('Today one Debian system at a time is practical. Two Debian systems run correctly side by side, but CP keeps its frames in 16 MB of real storage, and two Debian working sets (about 13 MB and 7 MB) do not fit: the scheduler keeps one machine waiting for storage, and it barely moves. Using frames above 16 MB (milestone M4b.3) removes this limit. A Debian system and small Linux systems in storage, or a Debian system and any number of CMS users, run together without problems.');
+P('Two Debian systems run at the same time: CP gives virtual machine pages frames above 16 MB (with `MAINSIZE 256`, up to 160 MB), so both working sets stay in storage. With `CP IPL LINUX` from the disk, each system takes the IP address in the disk\u2019s own parameters; give the second one its address with `ip addr` (or IPL it from the reader with LINUX EXEC and its LXPARM).');
 H2('Linux and CMS side by side');
 P('Linux users and CMS users share the system as any two VM/370 users do. Tested: one user runs Debian and writes and reads files under load, while another user works in CMS (LISTFILE, COPYFILE, TYPE, ERASE), defines 64 MB, starts Linux with `LINUX`, stops it with `poweroff` and goes back to CMS with `IPL CMS`; the Debian system\u2019s files are unchanged throughout.');
 
