@@ -8228,6 +8228,42 @@ EDFMODS.update({
             "NUMOPTS  EQU   (*-OPTIONS)/8",
         ]),
     ],
+    # LISTFILE: an EDF file's record count is a fullword (DMSEFS
+    # function 10); above 99,999 it is shown in thousands, 'NNNNNK'.
+    'DMSLST': [
+        ('00578000', '00579000', [
+            "         LH    R1,26(,R8)     GET THE NO OF ITEMS",
+            "         N     R1,=X'0000FFFF'          NO SIGN",
+            "         TM    ADTFLG3,X'02'  M6: EDF?",
+            "         BZ    LSTNEDF",
+            "         LA    R0,10          FUNCTION 10: AIC",
+            "         LR    R1,R9",
+            "         LR    R2,R8",
+            "         L     R15,NUCRSV7",
+            "         BALR  R14,R15",
+            "         LR    R1,R15",
+            "         C     R1,=F'99999'",
+            "         BNH   LSTNEDF",
+            "         SR    R0,R0          THOUSANDS",
+            "         D     R0,=F'1000'",
+            "         CVD   R1,DEC",
+            "         MVC   ITM(6),RPATRN",
+            "         ED    ITM(6),DEC+5",
+            "         MVC   ITM(5),ITM+1",
+            "         MVI   ITM+5,C'K'",
+            "         B     PFORM",
+            "LSTNEDF  DS    0H",
+        ]),
+    ],
+    # QUERY DISK: an EDF disk's block size is 4096.
+    'DMSQRY': [
+        ('00420000', [
+            "         TM    ADTFLG3,X'02'  M6: AN EDF DISK?",
+            "         BZ    QRYNEDF",
+            "         MVC   PTBLKS,=C'4096'",
+            "QRYNEDF  TM    ADTFLG2,ADTFROS IS IT AN O/S DISK ?",
+        ]),
+    ],
     # UPDISK on an EDF disk: DMSEFS's SYNC (function 7) writes the
     # directory, map and label; the reserving call (R1 = 0) has nothing
     # to do.

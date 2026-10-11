@@ -30,6 +30,8 @@ EFS      TITLE 'DMSEFS     (CMS)       VM/370PLUS - EDF DISKS (M6)'
 *                   BACK; THEN DIRECTORY, MAP AND LABEL ARE WRITTEN.
 *          8 FMT    R1 = PARAMETERS (FORMAT (BLKSIZE 4096).
 *          9 REL    R1 = ADT.  EVERYTHING EDF OWNS FOR THE DISK BACK.
+*         10 AIC    R1 = ADT, R2 = A 40-BYTE FST OF IT: R15 = THE
+*                   FILE'S RECORD COUNT, A FULLWORD (LISTFILE).
 *
 *        IN STORAGE A FILE'S 40-BYTE FST CARRIES THE INDEX OF ITS
 *        64-BYTE DIRECTORY ENTRY IN FSTFCL (THE FIRST CHAIN LINK,
@@ -128,13 +130,13 @@ EDFENT2  STM   R0,R14,EDSAVE
          LA    R11,2048(,R11)
          LA    R13,EDWORK
          LR    R15,R0
-         CH    R15,=H'9'
+         CH    R15,=H'10'
          BH    BADFUNC
          SLL   R15,2
          L     R15,FUNCTAB(R15)
          BR    R15
 FUNCTAB  DC    A(BADFUNC,FCHK,FFSTS,FREAD,FCLOSE,FWRITE)
-         DC    A(FFINW,FSYNC,FFMT,FREL)
+         DC    A(FFINW,FSYNC,FFMT,FREL,FAIC)
 BADFUNC  LA    R15,99
 *
 *        RETURN, R15 = RC
@@ -693,6 +695,21 @@ CLOSE9   XC    EDAFT(EAL),EDAFT
          SR    R15,R15
          B     RETURN
          DROP  R6,R8
+***********************************************************************
+*        10  AIC -- THE FULLWORD RECORD COUNT OF FST R2 ON ADT R1
+***********************************************************************
+FAIC     L     R10,ADTQQM-ADTSECT(,R1)
+         SR    R15,R15
+         ICM   R15,3,28(R2)   FSTFCL: THE DIRECTORY INDEX
+         C     R15,EDNDIR
+         BNL   AIC9
+         SLL   R15,6
+         A     R15,EDDIRA
+         L     R15,48(,R15)
+         B     RETURN
+AIC9     SR    R15,R15
+         ICM   R15,3,26(R2)   (NOT IN THE DIRECTORY: THE HALFWORD)
+         B     RETURN
 ***********************************************************************
 *        9  REL -- THE DISK IS RELEASED
 ***********************************************************************

@@ -1,0 +1,5 @@
+./ R 00420000          $ 00420100 100                                           
+         TM    ADTFLG3,X'02'  M6: AN EDF DISK?                 XA0056DK         
+         BZ    QRYNEDF                                         XA0056DK         
+         MVC   PTBLKS,=C'4096'                                 XA0056DK         
+QRYNEDF  TM    ADTFLG2,ADTFROS IS IT AN O/S DISK ?             XA0056DK         

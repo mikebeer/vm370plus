@@ -1,0 +1,22 @@
+./ R 00578000 00579000 $ 00578010 010                                           
+         LH    R1,26(,R8)     GET THE NO OF ITEMS              XA0056DK         
+         N     R1,=X'0000FFFF'          NO SIGN                XA0056DK         
+         TM    ADTFLG3,X'02'  M6: EDF?                         XA0056DK         
+         BZ    LSTNEDF                                         XA0056DK         
+         LA    R0,10          FUNCTION 10: AIC                 XA0056DK         
+         LR    R1,R9                                           XA0056DK         
+         LR    R2,R8                                           XA0056DK         
+         L     R15,NUCRSV7                                     XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         LR    R1,R15                                          XA0056DK         
+         C     R1,=F'99999'                                    XA0056DK         
+         BNH   LSTNEDF                                         XA0056DK         
+         SR    R0,R0          THOUSANDS                        XA0056DK         
+         D     R0,=F'1000'                                     XA0056DK         
+         CVD   R1,DEC                                          XA0056DK         
+         MVC   ITM(6),RPATRN                                   XA0056DK         
+         ED    ITM(6),DEC+5                                    XA0056DK         
+         MVC   ITM(5),ITM+1                                    XA0056DK         
+         MVI   ITM+5,C'K'                                      XA0056DK         
+         B     PFORM                                           XA0056DK         
+LSTNEDF  DS    0H                                              XA0056DK         
