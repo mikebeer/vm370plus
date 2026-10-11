@@ -1,0 +1,16 @@
+./ R 00227000          $ 00227010 010                                           
+         BNE   UNKNOWN        NO IT IS NOT.                    XA0056DK         
+*  M6: AN EDF DISK (A CMS1 LABEL) IS SET UP BY DMSEFS          XA0056DK         
+         ICM   R14,15,NUCRSV7 DMSEFS'S SERVICE ENTRY           XA0056DK         
+         BZ    ACMNEDF        NOT LOADED: 800-BYTE ONLY        XA0056DK         
+         LR    R2,R15         THE DIAG 24 WORD                 XA0056DK         
+         LA    R0,1           FUNCTION 1: CHK                  XA0056DK         
+         LR    R1,R11         THE ADT                          XA0056DK         
+         LR    R15,R14                                         XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         C     R15,=F'255'    NOT AN EDF DISK?                 XA0056DK         
+         BE    ACMNEDF0                                        XA0056DK         
+         STC   R15,ERRCOD0    0, 4 (R/O), OR AN ERROR          XA0056DK         
+         B     EXIT                                            XA0056DK         
+ACMNEDF0 LR    R15,R2         THE DIAG 24 WORD AGAIN           XA0056DK         
+ACMNEDF  DS    0H                                              XA0056DK         

@@ -1,0 +1,23 @@
+./ R 00212200          $ 00212210 010                                           
+         ST    R9,JSR0        LENGTH OF BUFFER IS ZERO AS YET  XA0056DK         
+*  M6: AN EDF DISK'S FSTS COME FROM DMSEFS                     XA0056DK         
+         TM    ADTFLG3,X'02'  ADTFEDF?                         XA0056DK         
+         BZ    ACFNEDF                                         XA0056DK         
+         L     R15,NUCRSV7                                     XA0056DK         
+         LA    R0,2           FUNCTION 2: FSTS                 XA0056DK         
+         LR    R1,R11                                          XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         BZ    ACFEDF1                                         XA0056DK         
+         STC   R15,ERRCOD1                                     XA0056DK         
+         B     RFST20         (RELEASE IT)                     XA0056DK         
+ACFEDF1  SR    R0,R0                                           XA0056DK         
+         SR    R1,R1                                           XA0056DK         
+         STM   R0,R1,ADTCHBA                                   XA0056DK         
+         LR    R0,R11                                          XA0056DK         
+         L     R15,=V(SORTFST)                                 XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         TM    ADTFLG1,ADTFRW                                  XA0056DK         
+         BO    RFST16                                          XA0056DK         
+         OI    ADTFLG3,ADTFSORT                                XA0056DK         
+         B     RFST16                                          XA0056DK         
+ACFNEDF  DS    0H                                              XA0056DK         

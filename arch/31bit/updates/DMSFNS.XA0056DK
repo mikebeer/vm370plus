@@ -1,0 +1,10 @@
+./ R 00544451          $ 00544452 001                                           
+FRETEM   L     R15,AFTADT     M6: AN EDF FILE'S BUFFERS        XA0056DK         
+         TM    6(R15),X'02'   ADTFLG3: ADTFEDF?                XA0056DK         
+         BZ    FRETEM0                                         XA0056DK         
+         LA    R0,4           FUNCTION 4: CLOSE                XA0056DK         
+         LR    R1,R11                                          XA0056DK         
+         L     R15,NUCRSV7                                     XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         BR    R7                                              XA0056DK         
+FRETEM0  TM    AFTFLG,AFTFBA  AN N'TH CHAIN LINK BUFFER?       XA0056DK         

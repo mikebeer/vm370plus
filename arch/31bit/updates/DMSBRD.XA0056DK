@@ -1,0 +1,25 @@
+./ R 00368000          $ 00368010 010                                           
+RDB03    EQU   *           NOTE: R11 HOLDS ORIGINAL R1         XA0056DK         
+*  M6: AN EDF FILE IS READ BY DMSEFS                           XA0056DK         
+         LR    R15,R0         FOUND BY FSTLKP: R0 = ADT        XA0056DK         
+         LTR   R3,R3                                           XA0056DK         
+         BZ    *+8                                             XA0056DK         
+         L     R15,AFTADT-AFTSECT(,R3)  ACTIVE: ITS ADT        XA0056DK         
+         TM    6(R15),X'02'   ADTFLG3: ADTFEDF?                XA0056DK         
+         BZ    RDBNEDF                                         XA0056DK         
+         LTR   R3,R3          NOT OPEN YET?                    XA0056DK         
+         BNZ   RDBEDF1                                         XA0056DK         
+         LR    R1,R5          THE FST, AS RDB10 GIVES IT       XA0056DK         
+         L     R15,AACTFREE                                    XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         LR    R3,R1                                           XA0056DK         
+RDBEDF1  LR    R1,R3          THE AFT                          XA0056DK         
+         LR    R2,R11         THE PLIST                        XA0056DK         
+         LA    R0,3           FUNCTION 3: READ                 XA0056DK         
+         L     R15,NUCRSV7                                     XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+         L     R5,REGSAV3+4   THE PLIST, FOR RETURN            XA0056DK         
+         L     R1,NOBYTE(,R5)                                  XA0056DK         
+         ST    R1,READCNT                                      XA0056DK         
+         B     RETURN                                          XA0056DK         
+RDBNEDF  DS    0H                                              XA0056DK         

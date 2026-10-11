@@ -108,6 +108,7 @@ XA48 = 'XA0048DK'
 XA49 = 'XA0049DK'
 XA50 = 'XA0050DK'
 XA51 = 'XA0051DK'
+XA56 = 'XA0056DK'   # M6: EDF disks in CMS (docs/62, 63)
 XA52 = 'XA0052DK'
 XA53 = 'XA0053DK'   # M4b: real storage above 16 MB
 XA54 = 'XA0054DK'   # M7: ESA/390 virtual machines
@@ -7943,6 +7944,145 @@ TMRMODS = {
     ],
 }
 
+# M6: EDF disks.  The nucleus calls DMSEFS (a nucleus extension; its service
+# entry is in NUCON's NUCRSV7) where a disk or a file is an EDF one; ADTFLG3
+# X'02' marks the disk (free in R6 CMS).  docs/63-EDF-DESIGN.md.
+EDFMODS = {
+    'DMSACM': [
+        ('00227000', [
+            "         BNE   UNKNOWN        NO IT IS NOT.",
+            "*  M6: AN EDF DISK (A CMS1 LABEL) IS SET UP BY DMSEFS",
+            "         ICM   R14,15,NUCRSV7 DMSEFS'S SERVICE ENTRY",
+            "         BZ    ACMNEDF        NOT LOADED: 800-BYTE ONLY",
+            "         LR    R2,R15         THE DIAG 24 WORD",
+            "         LA    R0,1           FUNCTION 1: CHK",
+            "         LR    R1,R11         THE ADT",
+            "         LR    R15,R14",
+            "         BALR  R14,R15",
+            "         C     R15,=F'255'    NOT AN EDF DISK?",
+            "         BE    ACMNEDF0",
+            "         STC   R15,ERRCOD0    0, 4 (R/O), OR AN ERROR",
+            "         B     EXIT",
+            "ACMNEDF0 LR    R15,R2         THE DIAG 24 WORD AGAIN",
+            "ACMNEDF  DS    0H",
+        ]),
+    ],
+    'DMSACF': [
+        ('00212200', [
+            "         ST    R9,JSR0        LENGTH OF BUFFER IS ZERO AS YET",
+            "*  M6: AN EDF DISK'S FSTS COME FROM DMSEFS",
+            "         TM    ADTFLG3,X'02'  ADTFEDF?",
+            "         BZ    ACFNEDF",
+            "         L     R15,NUCRSV7",
+            "         LA    R0,2           FUNCTION 2: FSTS",
+            "         LR    R1,R11",
+            "         BALR  R14,R15",
+            "         BZ    ACFEDF1",
+            "         STC   R15,ERRCOD1",
+            "         B     RFST20         (RELEASE IT)",
+            "ACFEDF1  SR    R0,R0",
+            "         SR    R1,R1",
+            "         STM   R0,R1,ADTCHBA",
+            "         LR    R0,R11",
+            "         L     R15,=V(SORTFST)",
+            "         BALR  R14,R15",
+            "         TM    ADTFLG1,ADTFRW",
+            "         BO    RFST16",
+            "         OI    ADTFLG3,ADTFSORT",
+            "         B     RFST16",
+            "ACFNEDF  DS    0H",
+        ]),
+    ],
+    'DMSALU': [
+        ('00149000', [
+            "RELU06   TM    ADTFLG3,X'02'  M6: EDF? DMSEFS FREES ITS OWN",
+            "         BZ    RELU06E",
+            "         L     R15,NUCRSV7",
+            "         LA    R0,9           FUNCTION 9: REL",
+            "         LR    R1,R11",
+            "         BALR  R14,R15",
+            "RELU06E  LM    R0,R1,ADTMFDN  GET OLD MFD IN CORE (IF ANY)",
+        ]),
+        # The four ACCESS modules share the 8K transient area (E000-FFFF;
+        # END$RELU "MUST NOT EXCEED 10000").  The hooks above overflowed it,
+        # so SORTFST's 1600-byte merge buffer comes from DMSFREE for the
+        # merge only, instead of being assembled into the module.
+        ('00350100', [
+            "HYPBDONE EQU   *         ALL HYPERBLOCKS SORTED INDIVIDUALLY;",
+            "         LA    R0,200         M6: THE 1600-BYTE MERGE BUFFER",
+            "         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=*,TYPCALL=BALR",
+            "         LTR   R15,R15",
+            "         BNZ   EXIT           NONE: NOT SORTED",
+            "         ST    R1,ABUF16",
+        ]),
+        ('00370100', [
+            "         L     R4,ABUF16      ADDRESS OF 1600-BYTE BUFFER",
+        ]),
+        ('00404100', [
+            "SORTHYP8 L     R0,ABUF16      POINT TO 1600-BYTE BUFFER",
+        ]),
+        ('00409100', [
+            "         L     R0,ABUF16      2ND HALF OF THE 1600 BUFFER",
+            "         A     R0,=A(B800)",
+        ]),
+        ('00428100', [
+            "EXITOK   EQU   *              ALL SORTING COMPLETE:",
+            "         ICM   R1,15,ABUF16   M6: A MERGE BUFFER TO RETURN?",
+            "         BZ    EXITOK0",
+            "         LA    R0,200",
+            "         DMSFRET DWORDS=(0),LOC=(1),TYPCALL=BALR",
+            "         XC    ABUF16,ABUF16",
+            "EXITOK0  DS    0H",
+        ]),
+        ('00499100', '00501100', [
+            "         DS    0D",
+            "ABUF16   DC    A(0)           M6: MERGE BUFFER WHILE MERGING",
+            "WORK40   DC    5D'0'          40-BYTE WORK AREA",
+        ]),
+    ],
+    'DMSBRD': [
+        ('00368000', [
+            "RDB03    EQU   *           NOTE: R11 HOLDS ORIGINAL R1",
+            "*  M6: AN EDF FILE IS READ BY DMSEFS",
+            "         LR    R15,R0         FOUND BY FSTLKP: R0 = ADT",
+            "         LTR   R3,R3",
+            "         BZ    *+8",
+            "         L     R15,AFTADT-AFTSECT(,R3)  ACTIVE: ITS ADT",
+            "         TM    6(R15),X'02'   ADTFLG3: ADTFEDF?",
+            "         BZ    RDBNEDF",
+            "         LTR   R3,R3          NOT OPEN YET?",
+            "         BNZ   RDBEDF1",
+            "         LR    R1,R5          THE FST, AS RDB10 GIVES IT",
+            "         L     R15,AACTFREE",
+            "         BALR  R14,R15",
+            "         LR    R3,R1",
+            "RDBEDF1  LR    R1,R3          THE AFT",
+            "         LR    R2,R11         THE PLIST",
+            "         LA    R0,3           FUNCTION 3: READ",
+            "         L     R15,NUCRSV7",
+            "         BALR  R14,R15",
+            "         L     R5,REGSAV3+4   THE PLIST, FOR RETURN",
+            "         L     R1,NOBYTE(,R5)",
+            "         ST    R1,READCNT",
+            "         B     RETURN",
+            "RDBNEDF  DS    0H",
+        ]),
+    ],
+    'DMSFNS': [
+        ('00544451', [
+            "FRETEM   L     R15,AFTADT     M6: AN EDF FILE'S BUFFERS",
+            "         TM    6(R15),X'02'   ADTFLG3: ADTFEDF?",
+            "         BZ    FRETEM0",
+            "         LA    R0,4           FUNCTION 4: CLOSE",
+            "         LR    R1,R11",
+            "         L     R15,NUCRSV7",
+            "         BALR  R14,R15",
+            "         BR    R7",
+            "FRETEM0  TM    AFTFLG,AFTFBA  AN N'TH CHAIN LINK BUFFER?",
+        ]),
+    ],
+}
+
 ECMODS = {
     # M5d: SVC 120 (GETMAIN/FREEMAIN RU, LOC=ANY) from HIGHSTOR.  CE's
     # HRC380DS placeholder returned the fixed X'04100000' for S/380 Hercules
@@ -11232,6 +11372,15 @@ def main():
         aux(os.path.join(HERE, '%s.AUXLCL' % m),
             [(XA45, 'NAMED SYSTEMS SHARED BY FRAME: MODEL TABLES, COPIES')])
         print('%-8s %-9s %3d cards  %s' % (m, XA45, n,
+              'OK' if not verify(path) else 'BAD'))
+
+    for m in sorted(EDFMODS):
+        dk = datdeck(m, EDFMODS[m], ident=XA56)
+        path = os.path.join(HERE, '%s.%s' % (m, XA56))
+        n = dk.write(path)
+        aux(os.path.join(HERE, '%s.AUXLCL' % m),
+            [(XA56, 'EDF DISKS THROUGH DMSEFS (M6)')])
+        print('%-8s %-9s %3d cards  %s' % (m, XA56, n,
               'OK' if not verify(path) else 'BAD'))
 
     for m in sorted(ECMODS):

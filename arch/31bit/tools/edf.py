@@ -413,7 +413,7 @@ def rewrite_directory(edf, entries, bits):
 def commit(edf, entries, bits, am):
     rewrite_directory(edf, entries, bits)
     edf.put_amap(bits, am)
-    edf.used = sum(bin(x).count('1') for x in bits[:(edf.total + 7) // 8])
+    edf.used = sum(1 for n in range(1, edf.total + 1) if edf.getbit(bits, n))
     edf.write_label()
 
 
@@ -451,7 +451,7 @@ def do_format(ckd, volid, bs=4096):
     edf.write(4, blk)
     for i, b in enumerate(amb):
         edf.write(b, bytes(bits[i * bs:(i + 1) * bs]))
-    edf.used = sum(bin(x).count('1') for x in bits[:(total + 7) // 8])
+    edf.used = sum(1 for n in range(1, total + 1) if edf.getbit(bits, n))
     edf.write_label()
     return edf
 

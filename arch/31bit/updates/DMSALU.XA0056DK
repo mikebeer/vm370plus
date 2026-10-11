@@ -1,0 +1,34 @@
+./ R 00149000          $ 00149100 100                                           
+RELU06   TM    ADTFLG3,X'02'  M6: EDF? DMSEFS FREES ITS OWN    XA0056DK         
+         BZ    RELU06E                                         XA0056DK         
+         L     R15,NUCRSV7                                     XA0056DK         
+         LA    R0,9           FUNCTION 9: REL                  XA0056DK         
+         LR    R1,R11                                          XA0056DK         
+         BALR  R14,R15                                         XA0056DK         
+RELU06E  LM    R0,R1,ADTMFDN  GET OLD MFD IN CORE (IF ANY)     XA0056DK         
+./ R 00350100          $ 00350200 100                                           
+HYPBDONE EQU   *         ALL HYPERBLOCKS SORTED INDIVIDUALLY;  XA0056DK         
+         LA    R0,200         M6: THE 1600-BYTE MERGE BUFFER   XA0056DK         
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=*,TYPCALL=BALR    XA0056DK         
+         LTR   R15,R15                                         XA0056DK         
+         BNZ   EXIT           NONE: NOT SORTED                 XA0056DK         
+         ST    R1,ABUF16                                       XA0056DK         
+./ R 00370100          $ 00370200 100                                           
+         L     R4,ABUF16      ADDRESS OF 1600-BYTE BUFFER      XA0056DK         
+./ R 00404100          $ 00404200 100                                           
+SORTHYP8 L     R0,ABUF16      POINT TO 1600-BYTE BUFFER        XA0056DK         
+./ R 00409100          $ 00409200 100                                           
+         L     R0,ABUF16      2ND HALF OF THE 1600 BUFFER      XA0056DK         
+         A     R0,=A(B800)                                     XA0056DK         
+./ R 00428100          $ 00428200 100                                           
+EXITOK   EQU   *              ALL SORTING COMPLETE:            XA0056DK         
+         ICM   R1,15,ABUF16   M6: A MERGE BUFFER TO RETURN?    XA0056DK         
+         BZ    EXITOK0                                         XA0056DK         
+         LA    R0,200                                          XA0056DK         
+         DMSFRET DWORDS=(0),LOC=(1),TYPCALL=BALR               XA0056DK         
+         XC    ABUF16,ABUF16                                   XA0056DK         
+EXITOK0  DS    0H                                              XA0056DK         
+./ R 00499100 00501100 $ 00499200 100                                           
+         DS    0D                                              XA0056DK         
+ABUF16   DC    A(0)           M6: MERGE BUFFER WHILE MERGING   XA0056DK         
+WORK40   DC    5D'0'          40-BYTE WORK AREA                XA0056DK         
