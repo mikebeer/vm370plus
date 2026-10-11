@@ -59,7 +59,7 @@ and the work after 64-bit is **M11**.
 | M9 | 9.5 | Network | CMS sockets + httpd | Planned |  |  |
 | M9 | 9.6 | dbase | xBase / Harbour | Planned |  |  |
 | M9 | 9.7 | MQ | MQ and MQTT (CMS and Debian) | Planned |  | mosquitto on Debian done |
-| M9 | 9.8 | APL | APL in C on CMS | In progress |  | Debian 34/34; CMS run pending |
+| M9 | 9.8 | APL | APL in C on CMS | Done | 11 Oct | Debian 34/34; CMS 33/33 (primes.apl has lines over 80 columns); e551b9e; needs Hercules 4 |
 | M9 | 9.9 | REXX | ooRexx 5 on Debian | Planned |  |  |
 | M9 | 9.10 | AI | AI gateway service machine (ASKSERV): CMS/Linux/TELL clients; the model runs in llama.cpp on the PC (or a cloud API), reached through BORDER | Planned |  |  |
 | M9 | 9.11 | Snapshot | Kit build 7 (distributable snapshot) | Done | 11 Oct | b7, 13 parts; verified on a fresh CE (kt16): EDF, TDISK, IPL LINUX |
@@ -80,6 +80,8 @@ and the work after 64-bit is **M11**.
 | M9 | 9.16 | TDISK | TDISK EXEC: TDISK [cyls] [fm] defines, formats and (with fm) accesses a temporary disk; HELP TDISK | Done | 11 Oct | Owner request 11 Oct |
 | M9 | 9.17 | Tiny LLM | llama2.c-style inference of a tiny model (stories15M) natively on Debian/390 and on CMS (C, high storage, HFP/BFP and byte order converted): a demonstration; real models via 9.10 | Planned |  | Owner request 11 Oct; llama.cpp itself needs 64-bit, C++17 and GBs |
 | M9 | 9.18 | Mail | SENDMAIL / GETMAIL for CMS via a MAILER service machine (SMTP out through BORDER; POP/IMAP or SMTP in, delivered to the reader in class M) | Planned |  | Owner request 11 Oct; after 9.12 |
+| M9 | 9.19 | COBOL | GnuCOBOL: Debian (open-cobol 1.1 from the wheezy archive, then GnuCOBOL 3.x built natively); CMS through the cross route (cobc -C to C, GCC -m31 with a cross-built libcob and GMP, TEXT/MODULE under IPL 290) | Planned |  | Owner request 11 Oct; CE has only the old COBOL |
+| M9 | 9.20 | PL/I | PL/I beyond CE's PL/I(F): research first -- no maintained open PL/I for s390 (Iron Spring is x86 and closed, pl1gcc unfinished); options: document PL/I(F), a PL/I subset to C translator, old subsets (PL/I-G) | Planned |  | Owner request 11 Oct |
 | M10 |  | 64-bit | z/Architecture (64-bit) | Planned |  |  |
 | M10 | 10.1 | Documentation | Migration documentation 31 -> 64 bit |  |  |  |
 | M10 | 10.2 | Documentation | Manual Update |  |  |  |
