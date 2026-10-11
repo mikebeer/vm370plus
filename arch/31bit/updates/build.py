@@ -7532,23 +7532,32 @@ G31MODS = {
         ('00395100', ["         GADR31 R1             THE PSW ADDRESS, EITHER MODE"]),
         # PRLPSWEC's fast dispatch bypasses DMKDSP, so the flag is kept
         # here as well; the status-difference test below is untouched.
-        ('00741000', ["         TM    VMPSW+4,X'7F'  BITS 33-39 = 0? (32 = AMODE)",
+        # 9.2: in AMODE 31 bits 33-39 are the address, so testing them
+        # sent every LPSW above 16 MB (each Linux return to user space,
+        # 7Dxxxxxx) through DMKDSP's slow path.  Only AMODE 24 tests them.
+        ('00741000', ["         TM    VMPSW+4,X'80'  AMODE 31 ?",
+                      "         BO    PRVAM31        YES: 33-63 ARE THE ADDRESS",
+                      "         TM    VMPSW+4,X'7F'  AMODE 24: BITS 33-39 = 0?",
                       "         BNZ   VPSWCHK        NO, -> DMKDSP",
                       "         NI    VMFSTAT,255-VMAM31 MODE FROM THE NEW PSW",
-                      "         TM    VMPSW+4,X'80'  AMODE 31 ?",
-                      "         BZ    *+8            NO",
-                      "         OI    VMFSTAT,VMAM31 YES (M2 STEP 3)"]),
+                      "         B     PRVAMX",
+                      "PRVAM31  OI    VMFSTAT,VMAM31 AMODE 31 (M2 STEP 3)",
+                      "PRVAMX   DS    0H"]),
         ('00742000', ["         DS    0H             (BNE VPSWCHK MOVED UP)"]),
         ('00903000', ["         GADR31 R6             GUEST ADDRESS, EITHER MODE"]),
     ],
     'DMKSVC': [
         # the SVC fast reflection loads the guest's new PSW without DMKDSP
-        ('00419000', ["         TM    VMPSW+4,X'7F'  MUST-BE-ZERO BITS (32 = AMODE)",
+        # 9.2: as DMKPRV's PRLPSWEC -- an SVC new PSW above 16 MB is legal
+        # in AMODE 31 and needs no trip through DMKDSP.
+        ('00419000', ["         TM    VMPSW+4,X'80'  AMODE 31 ?",
+                      "         BO    SVCAM31        YES: 33-63 ARE THE ADDRESS",
+                      "         TM    VMPSW+4,X'7F'  AMODE 24: MUST-BE-ZERO BITS",
                       "         BNZ   REFSVCA        IF NOT, MAKE DISPATCH CHECK IT",
                       "         NI    VMFSTAT,255-VMAM31 MODE FROM THE NEW PSW",
-                      "         TM    VMPSW+4,X'80'  AMODE 31 ?",
-                      "         BZ    *+8            NO",
-                      "         OI    VMFSTAT,VMAM31 YES (M2 STEP 3)"]),
+                      "         B     SVCAMX",
+                      "SVCAM31  OI    VMFSTAT,VMAM31 AMODE 31 (M2 STEP 3)",
+                      "SVCAMX   DS    0H"]),
         ('00420000', ["         DS    0H             (BNE REFSVCA MOVED UP)"]),
     ],
     'DMKHVC': [

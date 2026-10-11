@@ -17,7 +17,7 @@ i=s.find('# A SECOND 3215, added 3 October')
 if i>0: s=s[:i].rstrip()+'\n'
 s=s.replace('MAINSIZE        16','MAINSIZE        256')
 s=s.replace('#0500 CTCE 30882 127.0.0.1 30880','0500 CTCE 30882 127.0.0.1 30880')
-s=s.replace('0600.2  CTCI    10.1.1.2 10.1.1.1','# Remove the # on the next line for Linux networking (README):\n#0600.2  CTCI    10.1.1.2 10.1.1.1')
+s=s.replace('0600.2  CTCI    10.1.1.2 10.1.1.1','# Remove the # on the next line for Linux networking (README):\n#0600.2  CTCI    10.1.1.2 10.1.1.1\n# More Linux users (9.12a): pair 06xx, attached as 62x/63x, is 10.1.n.2, n = xx/2+1\n#0602.2  CTCI    10.1.2.2 10.1.2.1\n#0604.2  CTCI    10.1.3.2 10.1.3.1\n#0606.2  CTCI    10.1.4.2 10.1.4.1')
 s=s.replace('PANTITLE        "VM370CE 1.1.2"','PANTITLE        "VM/370plus (VM370CE 1.1.2 ESA/390)"')
 open(sys.argv[2],'w').write(s)
 PY
