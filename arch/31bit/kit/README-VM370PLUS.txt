@@ -1,7 +1,25 @@
-VM/370plus  --  overlay kit, 10 October 2026 (build 6)
+VM/370plus  --  overlay kit, 11 October 2026 (build 7)
 =======================================================
 
-NEW IN BUILD 6
+NEW IN BUILD 7
+  - LARGER MINIDISKS (EDF, 4 KB blocks) under the EC-mode CMS (IPL 290):
+        format vaddr fm (blksize 4096
+    makes one; a full 3380 (885 cylinders, 518 MB) is one disk, and a
+    file may have any number of records (tested: 1,400,000).  See
+    LARGER MINIDISKS below.
+  - Warm start: SHUTDOWN saves the warm start data, and the next IPL
+    warm-starts by itself, spool intact.  No more /cold.
+  - TDISK EXEC (MAINT 19D):  tdisk [cyls] [fm]  -- a temporary disk,
+    defined, formatted and (with fm) accessed in one step.  HELP TDISK.
+  - Linux: each Linux user's IP address follows his CTC pair: pair
+    0602/0603 attached as 622/632 is 10.1.2.2 (CMSUSER), 0604/0605
+    10.1.3.2, 0606/0607 10.1.4.2; vm370ce.conf has the lines, commented.
+    Two Debian systems at once work (guest pages in real frames above
+    16 MB).  LINUX READER (IPL from the card reader) works again.
+  - CP: an ATTACH of two CTCs next to each other no longer stops CP;
+    LPSW/SVC fast paths for PSWs above 16 MB.
+
+IN BUILD 6
   - Debian starts from its own disk:  cp ipl linux  (or LINUX EXEC).
   - The Debian disk is a 3390-9 (7 GB, about 6 GB free).
   - mosquitto (MQTT broker) and Asterisk 1.8 (SIP) under Debian.
@@ -26,11 +44,11 @@ WHAT YOU NEED
 
 INSTALL
   1. Unzip VM370CE_V1_R1_2.zip into a new directory.
-  2. Unzip ALL kit parts (1-12) OVER it, replacing files:
+  2. Unzip ALL kit parts (1-13) OVER it, replacing files:
      part 1: config, system shadows, tools, README; part 2:
      disks/vm50-4.cckd; part 3: the CMSUSER volume's shadow; part 4:
      Linux files (vm370plus/linux/, the Guide) and the VM50-2 shadow
-     (MAINT's 19D); part 5: the VM50-3 shadow; parts 6-12: the Debian
+     (MAINT's 19D); part 5: the VM50-3 shadow; parts 6-13: the Debian
      disk in pieces -- then join it: JOINDEB.CMD (Windows) or
      sh joindeb.sh (Linux/WSL), see INSTALL THE DEBIAN DISK.
      so the files below replace or add:
@@ -45,9 +63,10 @@ INSTALL
                                      the directory (ECMODE, 256M), ...
   3. Start it exactly as CE: vm370ce.cmd (Windows) or vm370ce.sh.
   4. CE's hercules.rc IPLs 6A1 by itself when Hercules starts.
-     If CP asks
+     Since build 7 the system warm-starts by itself (the kit carries
+     warm start data with an empty spool).  Only if CP asks
         Start ((Warm|Force|COLD|CKPT) (DRain) (DIsable) (NOAUTOlo)) or (SHUTDOWN)
-     answer  /cold  (the first time there is no warm-start data).
+     answer  /cold .
      Once the console shows  DMKCPI966I Initialization complete
      the system is up -- do NOT type ipl 6a1 again (that would reset
      the running system).  Only if nothing has been IPLed (no DMKCPI
@@ -59,8 +78,29 @@ DISKS
   minidisks 196-199 on VM50-8 (cylinders 86-545, which CE leaves free
   for new minidisks); they come formatted (labels CMS196..CMS199):
      access 196 h   (197 i, 198 j, 199 k)
-  A CMS minidisk on a 3350 holds at most about 52 MB (65,535 blocks of
-  800 bytes); larger minidisks come with M6.
+  A CMS minidisk in the classic 800-byte format holds at most about
+  52 MB (65,535 blocks of 800 bytes).  Larger ones: see LARGER
+  MINIDISKS.
+
+LARGER MINIDISKS  (EDF, build 7)
+  Under  ipl 290  CMS also knows IBM's Enhanced Disk Format (4096-byte
+  blocks, as VM/SP and z/VM).  The system profile loads the support
+  (NUCXMAP shows DMSEFS).  Example with a temporary disk:
+        cp define t3350 d10 cyl 20
+        format d10 x (blksize 4096
+        DMSFOR603R FORMAT WILL ERASE ALL FILES ON DISK 'X(D10)'. ...
+        yes
+        DMSFOR605R ENTER DISK LABEL:
+        edfdsk
+        q disk x          ... 3350 4096 ... 2400 blocks
+  Without a cylinder count the whole minidisk is used, whatever its
+  size (3350 and 3380).  All the usual commands work on it: LISTFILE
+  (counts above 99,999 show as e.g. 1400K), TYPE, COPYFILE (also
+  APPEND), RENAME, ERASE, MOVEFILE, DISK DUMP, COMPARE, EXECs.
+  Limits: only under IPL 290 (the 190 CMS does not know the format);
+  a V file can only be extended at its end; TYPE and COPYFILE FROM/FOR
+  address records 1-65,535 directly, the rest only in sequence; the
+  A disk accessed at IPL must be in the 800-byte format.
 
 USE
   logon cmsuser cmsuser noipl
@@ -119,14 +159,14 @@ LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
       lxparmram.rdr   the same + vmroot=ram: stay in the BusyBox system
                       even if Debian is on the disk (repairs)
   and disks/lnx190.cckd -- the Debian disk, a 3390-9 (build 6; it was a
-  3390-1 before), parts 6-12 of the kit, see INSTALL THE DEBIAN DISK.
+  3390-1 before), parts 6-13 of the kit, see INSTALL THE DEBIAN DISK.
 
   INSTALL THE DEBIAN DISK
-    The disk is about 180 MB compressed, shipped in seven pieces (parts
-    6-12).  After unzipping them into the CE directory, run there
+    The disk is about 210 MB compressed, shipped in eight pieces (parts
+    6-13).  After unzipping them into the CE directory, run there
         JOINDEB.CMD            (Windows cmd.exe)
         sh joindeb.sh          (Linux/WSL; also checks lnx190.sha256)
-    which joins disks/lnx190.cckd.001-007 into disks/lnx190.cckd.
+    which joins disks/lnx190.cckd.001-008 into disks/lnx190.cckd.
     vm370ce.conf in this kit already has the line
         0190    3390    disks/lnx190.cckd
     KEEP A COPY of lnx190.cckd: it is your Linux system disk, and
@@ -147,8 +187,8 @@ LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
   them, run  vmzipl  in Debian (the Guide, Chapter 5).  With  linux
   reader  your IP address comes from  userid LXPARM  on 19D.  Your IP address comes from  userid LXPARM  on 19D
   (MAINT 10.1.1.2, CMSUSER 10.1.2.2), else DEFAULT LXPARM.
-  Two Debian systems at once are too slow until CP uses real storage
-  above 16 MB (M4b.3); Debian next to CMS users works.
+  Two Debian systems at once work since build 7 (CP puts guest pages
+  in real frames above 16 MB); Debian next to CMS users works.
 
   BOOT DEBIAN (by hand)
   1. vm370ce.conf has MAINSIZE 256 (CP uses 16 MB as real storage and the
@@ -203,6 +243,10 @@ LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
      Dropbear); the first login may take a minute after boot.
   d. Internet access from Debian needs routing/NAT on the PC;
      /etc/apt/sources.list points at archive.debian.org (wheezy).
+  More Linux users (build 7): pair 06xx, attached as 62x/63x, gives
+  the address 10.1.n.2 with n = xx/2+1 (0602/0603 -> 10.1.2.2); remove
+  the # in front of the matching line (0602.2, 0604.2, 0606.2) in
+  vm370ce.conf.  Debian sets the address itself from the pair.
   Other IP addresses: add  vmip=a.b.c.d vmpeer=w.x.y.z  to the line in
   lxparm.rdr, change the 0600 line to match, and in Debian edit
   /etc/network/interfaces.
