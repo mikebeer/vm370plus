@@ -56,7 +56,7 @@ and the work after 64-bit is **M11**.
 | M9 | 9.7 | MQ | MQ and MQTT (CMS and Debian) | Planned |  | mosquitto on Debian done |
 | M9 | 9.8 | APL | APL in C on CMS | In progress |  | Debian 34/34; CMS run pending |
 | M9 | 9.9 | REXX | ooRexx 5 on Debian | Planned |  |  |
-| M9 | 9.10 | AI | AI gateway service machine (ASKSERV) | Planned |  |  |
+| M9 | 9.10 | AI | AI gateway service machine (ASKSERV): CMS/Linux/TELL clients; the model runs in llama.cpp on the PC (or a cloud API), reached through BORDER | Planned |  |  |
 | M9 | 9.11 | Snapshot | Kit build 7 (distributable snapshot) | Planned |  | After the list above |
 | M9 | 9.12 | Firewall | Network pack: per-user addresses, CP guest LAN, BORDER firewall, inside DHCP/DNS (9.12a-d) | Planned |  | After M4b.3, before M9 |
 | M9 | 9.12a | Addresses | Per-user IP address at disk IPL from the directory (fixes I-266) | Done | 11 Oct | Address follows the CTC pair (62x/63x or real); vm370plus-net on both Debian disks; verified 10.1.2.2 by itself |
@@ -73,6 +73,7 @@ and the work after 64-bit is **M11**.
 | M9 | 9.14 | TELL | TELL everywhere: CMS TELL EXEC (CP MSG local, RSCS/NJE remote), Linux tell (vmcp, kernel CONFIG_VMCP) with incoming MSG captured, PC client through BORDER (CHATBOT-style gateway) | Planned |  | Owner request 11 Oct |
 | M9 | 9.15 | Python | Python on CMS: the C89 implementation from mikebeer/python (in creation), built with GCC for CMS; Debian uses standard wheezy python 2.7/3.2 packages | Planned |  | Owner request 11 Oct |
 | M9 | 9.16 | TDISK | TDISK EXEC: TDISK [cyls] [fm] defines, formats and (with fm) accesses a temporary disk; HELP TDISK | Done | 11 Oct | Owner request 11 Oct |
+| M9 | 9.17 | Tiny LLM | llama2.c-style inference of a tiny model (stories15M) natively on Debian/390 and on CMS (C, high storage, HFP/BFP and byte order converted): a demonstration; real models via 9.10 | Planned |  | Owner request 11 Oct; llama.cpp itself needs 64-bit, C++17 and GBs |
 | M10 |  | 64-bit | z/Architecture (64-bit) | Planned |  |  |
 | M10 | 10.1 | Documentation | Migration documentation 31 -> 64 bit |  |  |  |
 | M10 | 10.2 | Documentation | Manual Update |  |  |  |
