@@ -315,10 +315,13 @@ static int parse_name(const char *name, struct cfile *f)
     /* binary by file type: object files, archives and images (the C/C++
        toolchain's as/ld/ar read and write them through fopen) */
     static const char *const bin[] = { "RXBIN", "MODULE", "O", "A", "ELF", "OBJ",
-        "XIMAGE", "LIB", "BIN", "OUT", "GCH", "TAR", "TMP", "DB", "SQLITE", "DB3", "DBF", "DBT", "XDX", 0 };
+        "XIMAGE", "LIB", "BIN", "OUT", "GCH", "TAR", "TMP", "DB", "SQLITE", "DB3", "DBF", "DBT", "XDX",
+        "ZIP", "GZ", "TGZ", "Z", "BZ2", "XZ", "TRS", "TERSE", "JAR", 0 };
     for (int b = 0; bin[b]; b++) if (!strcmp(part[1], bin[b])) f->binary = 1;
     /* SQLite's journal of fn.db is fn.db-journal: filetype DB-JOURN */
     if (!strncmp(part[1], "DB-", 3)) f->binary = 1;
+    /* gzip's fn.ft-gz (GZ_SUFFIX "-gz" on CMS): filetype ending in -GZ */
+    { size_t n = strlen(part[1]); if (n >= 3 && !strcmp(part[1] + n - 3, "-GZ")) f->binary = 1; }
     /* TEXT decks (elf_to_cms output): EBCDIC card images, F 80 */
     if (!strcmp(part[1], "TEXT")) { f->binary = 1; f->fixed = 80; }
     return 0;
@@ -593,6 +596,33 @@ int _lseek(int fd, int off, int whence)
     return np;
 }
 
+/* the time a CMS file was last written, from its FST: STATE leaves the
+   address of its copy of the 40-byte FST (STATEFST) in the plist at +28
+   (DMSSTT).  Packed MMDD at +16, HHMM at +18, the year as EBCDIC digits at
+   +38.  0 if the file is not on disk. */
+static int bcd2(unsigned char b) { return (b >> 4) * 10 + (b & 15); }
+static time_t cms_mtime(const struct cfile *f)
+{
+    static unsigned int plw[8];                      /* static: below 16 MB */
+    unsigned char *pl = (unsigned char *)plw;
+    static const unsigned char state[8] = { 0xE2,0xE3,0xC1,0xE3,0xC5,0x40,0x40,0x40 };
+    memcpy(pl, state, 8); memcpy(pl + 8, f->fn, 8); memcpy(pl + 16, f->ft, 8);
+    pl[24] = f->fm_given ? f->fm[0] : 0x5C;          /* '*': any disk */
+    pl[25] = f->fm_given && f->fm[1] && f->fm[1] != 0x40 ? f->fm[1] : 0x40;
+    pl[26] = pl[27] = 0x40;
+    plw[7] = 0;
+    if (cms202(pl) || !plw[7]) return 0;
+    const unsigned char *e = (const unsigned char *)(plw[7] & 0x00FFFFFF);
+    int mon = bcd2(e[16]), day = bcd2(e[17]), hh = bcd2(e[18]), mi = bcd2(e[19]);
+    int yy = (e[38] & 15) * 10 + (e[39] & 15);
+    if (mon < 1 || mon > 12 || day < 1 || day > 31) return 0;
+    static const int cum[12] = { 0,31,59,90,120,151,181,212,243,273,304,334 };
+    int y = (yy < 70 ? 2000 : 1900) + yy;
+    long days = (long)(y - 1970) * 365 + ((y - 1969) / 4) + cum[mon - 1] + day - 1;
+    if (mon > 2 && y % 4 == 0) days++;
+    return (time_t)(days * 86400L + hh * 3600L + mi * 60L);
+}
+
 int _fstat(int fd, struct stat *st)
 {
     memset(st, 0, sizeof *st);
@@ -602,6 +632,7 @@ int _fstat(int fd, struct stat *st)
     st->st_nlink = 1;
     st->st_dev = 1;
     st->st_ino = files[fd].ino ? files[fd].ino : ino_hash(files[fd].fn, 16);
+    if (!files[fd].writing && files[fd].fn[0]) st->st_mtime = st->st_atime = st->st_ctime = cms_mtime(&files[fd]);
     return 0;
 }
 
@@ -747,10 +778,11 @@ int mkstemp(char *tpl)
 {
     static unsigned int seq;
     size_t n = strlen(tpl);
-    if (n < 12) { errno = EINVAL; return -1; }
+    if (n < 8) { errno = EINVAL; return -1; }
     for (int tries = 0; tries < 100; tries++) {
         unsigned int k = (unsigned int)(gettimeofday_usec() + seq++) % 100000u;
-        sprintf(tpl, "TMP%05u.TMP", k);
+        if (n >= 12) sprintf(tpl, "TMP%05u.TMP", k);
+        else sprintf(tpl, "T%03u.TMP", k % 1000u);      /* zip's "ziXXXXXX" */
         struct stat st;
         if (_stat(tpl, &st) == 0) continue;
         int fd = _open(tpl, O_RDWR | O_CREAT | O_TRUNC, 0600);

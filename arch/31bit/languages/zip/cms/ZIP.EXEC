@@ -1,0 +1,12 @@
+/* ZIP EXEC -- ZIP zipfile files...   (-r, -j, -9 ... as Info-ZIP zip) */
+/* Runs IZZIP MODULE (9.23); the arguments go through the stack, as    */
+/* CMS would cut each one to 8 characters and upper-case it.           */
+PARSE ARG ARGS
+'STATE IZZIP MODULE *'
+IF RC <> 0 THEN DO
+  SAY 'ZIP: IZZIP MODULE not found -- LANG (the language disk) first'
+  EXIT 28
+END
+QUEUE ARGS
+'IZZIP =STACK'
+EXIT RC

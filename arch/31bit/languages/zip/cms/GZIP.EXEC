@@ -1,0 +1,12 @@
+/* GZIP EXEC -- GZIP [-d] [-1..9] fn.ft  (fn.ft -> fn ft-GZ; -d back) */
+/* Runs MINIGZ MODULE (9.23); the arguments go through the stack, as    */
+/* CMS would cut each one to 8 characters and upper-case it.           */
+PARSE ARG ARGS
+'STATE MINIGZ MODULE *'
+IF RC <> 0 THEN DO
+  SAY 'GZIP: MINIGZ MODULE not found -- LANG (the language disk) first'
+  EXIT 28
+END
+QUEUE ARGS
+'MINIGZ =STACK'
+EXIT RC

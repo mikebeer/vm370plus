@@ -1,0 +1,12 @@
+/* UNZIP EXEC -- UNZIP zipfile [files] (-l list, -o overwrite, -d fm/) */
+/* Runs IZUNZIP MODULE (9.23); the arguments go through the stack, as    */
+/* CMS would cut each one to 8 characters and upper-case it.           */
+PARSE ARG ARGS
+'STATE IZUNZIP MODULE *'
+IF RC <> 0 THEN DO
+  SAY 'UNZIP: IZUNZIP MODULE not found -- LANG (the language disk) first'
+  EXIT 28
+END
+QUEUE ARGS
+'IZUNZIP =STACK'
+EXIT RC
