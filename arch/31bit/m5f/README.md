@@ -43,3 +43,22 @@ decks, `LOAD`/`GENMOD`s RXC31 etc., runs RXC31 -> RXAS31 -> RXBVM31 on
 BASIC REXX; `crexx31-tests.json` runs the 2022 tests that pass on a host
 build too (test, main, sextest, testbge/bgt/ble/blt, testneeq, func1, func2,
 length): every output identical to the host's (w259).
+
+## File names in cmsrt (12 October 2026)
+
+How a C program's file name becomes a CMS file id:
+
+| name | CMS file |
+|---|---|
+| `fn.ft`, `fn.ft.fm`, `fn ft fm` | that file. Reading searches all accessed disks unless a mode is given; writing goes to A. Parts are cut to 8 characters. |
+| `x/fn.ft` | `fn ft x` (cREXX `openfile()` style). `./fn.ft` has no mode. |
+| `/fn.ft` | `fn ft`. SQLite makes names absolute against getcwd() ".". |
+| `/tmp/.../fn.ft`, `/var/tmp/...` | `fn ft` (the last component): scratch files are CMS files |
+| `/usr/...` and other paths with two or more components | read only, from SYSROOT TAR (or CXXROOT TAR for `usr/include/c++` and `usr/lib/cxx`) |
+| `NAME` (no dot) | `FILE NAME`, as CMS FILEDEF defaults a ddname |
+| `name(b` | the same file, binary |
+
+Binary (no ASCII/EBCDIC conversion; written as fixed 80-byte or exact
+variable records) is chosen by filetype: RXBIN MODULE O A ELF OBJ XIMAGE LIB
+BIN OUT GCH TAR TMP DB SQLITE DB3 DBF DBT XDX and `DB-*`. Everything else is
+text in IBM-1047.
