@@ -14,14 +14,14 @@ B(['**Chapter 1, Introduction**, says what VM/370plus is and what it is for.',
    '**Chapter 5, Running Linux/390**, describes ESA/390 virtual machines, the Linux kernel, the Debian system and the network connection to the PC.',
    '**Chapter 6, Service Machines**, describes CHATBOT, the chatbot service machine, and the service machines that are planned.',
    '**Chapter 7, cREXX on VM/370plus**, describes the REXX compiler and virtual machine built for and on VM/370plus, the languages written in cREXX that run on CMS and on Linux, and Turbo CREXX.',
-   '**Chapter 8, Compilers on CMS**, describes GCC 13 for C and C++, GnuCOBOL and PL/I, running natively on CMS.',
+   '**Chapter 8, Compilers on CMS**, describes GCC 13 for C and C++, GnuCOBOL, PL/I, Python and SQLite on CMS.',
    '**Chapter 9, Restrictions and Known Problems**, lists what does not work yet.',
    '**Appendix A** summarizes the new and changed commands, **Appendix B** lists the files in the installation kit, **Appendix C** gives the ESA/390 deviations of the virtual machine, **Appendix D** lists all CP and CMS commands.']);
 H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**12 October 2026.** Compilers on CMS (new Chapter 8): GCC 13 for C and C++ (`CC`), GnuCOBOL (`COBOL`), PL/I (`PLIC`), all running natively; MODULEs run from EDF disks (I-271).',
+B(['**12 October 2026.** Compilers on CMS (new Chapter 8): GCC 13 for C and C++ (`CC`), GnuCOBOL (`COBOL`), PL/I (`PLIC`, also on Debian), Python (`PYTHON`) and SQLite (`SQLITE`); MODULEs run from EDF disks (I-271).',
    '**11 October 2026, evening.** Larger minidisks: CMS under `IPL 290` reads, writes and formats IBM’s Enhanced Disk Format (4 KB blocks): `FORMAT vaddr fm (BLKSIZE 4096`, a full 3380 as one disk, files with more than 65,535 records.',
    '**11 October 2026, late afternoon.** `TDISK` (a temporary disk in one step); Linux IPLs from the reader again (I-265); `LPSW`/SVC fast paths for PSWs above 16 MB.',
    '**11 October 2026, afternoon.** `SHUTDOWN` saves warm start data again and the next IPL warm-starts by itself, spool intact (I-267, I-268); each Linux user’s address follows his CTC pair (9.12a); ATTACH of a CTC next to another no longer stops CP (I-269).',
@@ -389,7 +389,12 @@ SCREEN(['cobol hello', 'hello', '      HELLO FROM GNUCOBOL ON VM/370PLUS', 'SUM 
         'INTEREST =         89.51', 'Ready;'], 'COBOL on CMS');
 P('Files: SEQUENTIAL, RELATIVE and SORT work files are binary CMS files; LINE SEQUENTIAL files are text, converted between ASCII and EBCDIC. `SELECT f ASSIGN TO "rel.dat"` names `REL DAT A`. INDEXED files and the SCREEN SECTION are not available. On Debian, GnuCOBOL is a package of its own (`gnucobol-3.1.2-s390.tgz`): `cobc -x prog.cob` compiles with Debian’s gcc.');
 H2('PL/I');
-P('The Community Edition’s IBM PL/I (F) compiler is on the Y disk (`PLI fn`, then `GLOBAL TXTLIB PLILIB` and `LOAD fn (START`). VM/370plus adds a PL/I-to-C translator: `PLIC fn` translates `fn PLI` to C with `PLI2C MODULE` and compiles it to `fn MODULE`. SYSIN is the terminal and the console stack.');
+P('The Community Edition’s IBM PL/I (F) compiler is on the Y disk (`PLI fn`, then `GLOBAL TXTLIB PLILIB` and `LOAD fn (START`). VM/370plus adds a PL/I-to-C translator (mikebeer/pli): `PLIC fn` translates `fn PLI` to C with `PLI2C MODULE` and compiles it with the CC EXEC to `fn MODULE` (`PLIC fn ( GCC380` uses GCC380 instead). SYSIN is the terminal and the console stack; a line of just `/*` is end of file. PL/I file names become CMS file ids: `data/plitest_out.txt` is `PLITTOUT TXT` (a part longer than eight characters keeps its first and last four). On Debian, `plic fn.pli` translates and compiles with gcc.');
+H2('Python');
+P('`PYTHON fn [args]` runs `fn PY` with the C89 Python 3 interpreter of mikebeer/python; `PYTHON` alone reads statements from the terminal. NumPy, pandas and SciPy (the interpreter’s own versions), re, json, struct, cmath, complex numbers, classes, generators and exceptions are built in. The interpreter (`PY XIMAGE`, 2.3 MB) runs above 16 MB through the XL loader. Integers beyond ±999,999,999 are big integers. There are no sockets on CMS yet, and modules of your own are `name PY` files on an accessed disk.');
+H2('SQLite');
+P('`SQLITE fn.db` starts the sqlite3 shell (SQLite 3.46) on the database `fn DB`; `SQLITE fn.db` *statement* runs one statement or dot command, for example `SQLITE emp.db .read load.sql` for a script `LOAD SQL`. A database is one binary CMS file; its rollback journal is `fn DB-JOURN` while a transaction is open. One user at a time: there is no locking between virtual machines, so give each database to one user, or to a service machine (SQLSERV, planned).');
+SCREEN(['sqlite emp.db .read sqltest.sql', 'dept   n  avg_sal  top', '-----  -  -------  ------', 'Ops    2  7000.13  7100.0', 'R&D    2  9000.25  9200.5', 'Ready;'], 'SQLite on CMS');
 
 // ---------------------------------------------------------------- chapter 7
 H1('Restrictions and Known Problems');
