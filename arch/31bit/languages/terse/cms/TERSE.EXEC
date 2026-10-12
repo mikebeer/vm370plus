@@ -1,0 +1,16 @@
+/* TERSE EXEC -- compress a file into IBM TERSE (SPACK) format (9.22)   */
+/*   TERSE [-v] [-l n] fn.ft out.trs   text: records (F; -v: V)        */
+/*   TERSE -b [-l n] fn.ft out.trs     binary: the bytes (F, LRECL n)  */
+/* For z/OS: TRSMAIN/AMATERSE UNPACK reads it; here UNTERSE does.     */
+/* Runs TRS MODULE; the arguments go through the stack (CMS would cut */
+/* each to 8 characters and upper-case it).  The output file type     */
+/* should be TRS or TERSE (binary).                                     */
+PARSE ARG ARGS
+'STATE TRS MODULE *'
+IF RC <> 0 THEN DO
+  SAY 'TERSE: TRS MODULE not found -- LANG (the language disk) first'
+  EXIT 28
+END
+QUEUE ARGS
+'TRS =STACK'
+EXIT RC
