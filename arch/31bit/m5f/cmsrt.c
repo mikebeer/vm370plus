@@ -166,6 +166,9 @@ static int tread(char *p, int n)
         len = rdpl[14] << 8 | rdpl[15];             /* length read */
         if (len > 130) len = 130;
         for (int i = 0; i < len; i++) tin[i] = E2A(rdbuf[i]);
+        /* a line of just "/*" is end of file (as in CMS's OS simulation):
+           a program reading stdin to its end can be fed from the stack */
+        if (len == 2 && tin[0] == '/' && tin[1] == '*') return 0;
         tin[len] = '\n';
         tin_len = len + 1; tin_pos = 0;
     }

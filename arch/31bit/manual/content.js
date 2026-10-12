@@ -14,13 +14,15 @@ B(['**Chapter 1, Introduction**, says what VM/370plus is and what it is for.',
    '**Chapter 5, Running Linux/390**, describes ESA/390 virtual machines, the Linux kernel, the Debian system and the network connection to the PC.',
    '**Chapter 6, Service Machines**, describes CHATBOT, the chatbot service machine, and the service machines that are planned.',
    '**Chapter 7, cREXX on VM/370plus**, describes the REXX compiler and virtual machine built for and on VM/370plus, the languages written in cREXX that run on CMS and on Linux, and Turbo CREXX.',
-   '**Chapter 8, Restrictions and Known Problems**, lists what does not work yet.',
+   '**Chapter 8, Compilers on CMS**, describes GCC 13 for C and C++, GnuCOBOL and PL/I, running natively on CMS.',
+   '**Chapter 9, Restrictions and Known Problems**, lists what does not work yet.',
    '**Appendix A** summarizes the new and changed commands, **Appendix B** lists the files in the installation kit, **Appendix C** gives the ESA/390 deviations of the virtual machine, **Appendix D** lists all CP and CMS commands.']);
 H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**11 October 2026, evening.** Larger minidisks: CMS under `IPL 290` reads, writes and formats IBM’s Enhanced Disk Format (4 KB blocks): `FORMAT vaddr fm (BLKSIZE 4096`, a full 3380 as one disk, files with more than 65,535 records.',
+B(['**12 October 2026.** Compilers on CMS (new Chapter 8): GCC 13 for C and C++ (`CC`), GnuCOBOL (`COBOL`), PL/I (`PLIC`), all running natively; MODULEs run from EDF disks (I-271).',
+   '**11 October 2026, evening.** Larger minidisks: CMS under `IPL 290` reads, writes and formats IBM’s Enhanced Disk Format (4 KB blocks): `FORMAT vaddr fm (BLKSIZE 4096`, a full 3380 as one disk, files with more than 65,535 records.',
    '**11 October 2026, late afternoon.** `TDISK` (a temporary disk in one step); Linux IPLs from the reader again (I-265); `LPSW`/SVC fast paths for PSWs above 16 MB.',
    '**11 October 2026, afternoon.** `SHUTDOWN` saves warm start data again and the next IPL warm-starts by itself, spool intact (I-267, I-268); each Linux user’s address follows his CTC pair (9.12a); ATTACH of a CTC next to another no longer stops CP (I-269).',
    '**11 October 2026, late morning.** Two Debian systems at once (M4b.3 complete); ESA/390 access registers saved per virtual machine.',
@@ -333,7 +335,7 @@ SCREEN(['ipl 290', 'rxc31 basic', 'rxas31 basic', 'rxbvm31 basic', 'libctest a b
 H2('The current cREXX release');
 P('The current release (1.0.0-beta.3) needs a C99 compiler; GCC380 is GCC 3.2.3. It runs on VM/370plus cross-compiled with GCC 13 (`RXC8`, `RXAS8`, `RXBVM8`, milestone M8.1). `RXC8` needs `LIBRARY RXBIN` and `RXCEXITS RXBIN` on the disk named by `-l`; source files are `fn CREXX`:');
 SCREEN(['rxc8 -l a -i a hello', 'rxas8 -l a hello', 'rxbvm8 -l a hello', 'Hello from current cREXX on VM/370plus', 'sum 1..10 = 55', 'Ready;'], 'The current cREXX on CMS');
-P('Milestone M8.2 builds the same release natively with GCC380 and GCCLIB31 (`RXC82`, `RXAS82`, `RXBVM82`). The three work for programs that call no library functions; the library itself does not build natively yet (Chapter 7). Until it does, use the M8.1 tools. Native cREXX on CMS runs in EBCDIC (IBM-1047) throughout, as IBM REXX does.');
+P('Milestone M8.2 builds the same release natively with GCC380 and GCCLIB31 (`RXC82`, `RXAS82`, `RXBVM82`). The three work for programs that call no library functions; the library itself does not build natively yet (Chapter 9). Until it does, use the M8.1 tools. Native cREXX on CMS runs in EBCDIC (IBM-1047) throughout, as IBM REXX does.');
 H2('Languages written in cREXX');
 P('Several languages are implemented as cREXX programs. They are compiled once on the PC and run unchanged on CMS (through `RXBVM8`) and on Linux (through `rxvm`). Floating point comes from `rxfloat`, a cREXX version of the cREXX float plugin, so no native plugin is needed.');
 TABLE(['Language', 'CMS', 'Linux', 'Notes'], [
@@ -364,6 +366,30 @@ P('**On Debian**, type `turbocrexx` (or `turbocrexx` *file*`.crexx`). The editor
 P('**On CMS**, type `TURBO` (or `TURBO fn`). Programs are `fn CREXX A`; the editor is EDIT; compile and run use `RXC8`, `RXAS8` and `RXBVM8` with `LIBRARY RXBIN` on A. Without the menu: `TURBO C fn`, `TURBO R fn`, `TURBO E fn`. The examples are `HELLO TCEXAMPL` and `FIBFACT TCEXAMPL`.');
 SCREEN(['turbo', '  T U R B O   C R E X X   ---   VM/370plus CMS', '  Current file: (none)',
         '  N New    O Open    E Edit    C Compile    R Run', '  L Examples         D Versions             Q Quit', 'Command:'], 'Turbo CREXX on CMS');
+
+// ---------------------------------------------------------------- compilers
+H1('Compilers on CMS');
+P('VM/370plus runs current compilers natively on CMS: GCC 13 for C and C++, GnuCOBOL 3.1.2 for COBOL, and a PL/I translator. They need the EC-mode CMS (`IPL 290`), a large virtual machine (`CP DEFINE STORAGE 256M`) and Hercules 4. Their headers and libraries come from two tar files on an accessed disk, `SYSROOT TAR` (C) and `CXXROOT TAR` (C++); programs see them as `/usr/include` and `/usr/lib`, read only.');
+H2('C and C++: the CC EXEC');
+P('`CC fn` compiles `fn C` with GCC 13 and links `fn MODULE`; a file type of `CPP`, `CC` or `CXX` (or the option `CPP`) selects C++. The steps are those of GCC on Linux: the compiler proper (`CC1 XIMAGE` or `CC1PLUS XIMAGE`, run from above 16 MB by the `XL` loader), the GNU assembler (`AS`) and linker (`LD`, binutils 2.42), then `ELF2CMS`, which turns the linked program into a TEXT deck for `LOAD` and `GENMOD`.');
+TABLE(['Option', 'Effect'], [
+  ['`OPT -O0` … `-O2`', 'optimization (default `-O2`)'],
+  ['`CPP`', 'C++ for any file type'],
+  ['`NOLINK`', 'stop after `fn O`'],
+  ['`LIB name`', 'also link `/usr/lib/libname.a` from the sysroot'],
+], [2400, 7238], 'CC EXEC options');
+SCREEN(['cp define storage 256m', 'ipl 290', 'access 1b0 a', 'cc primes', 'primes 2000',
+        'PRIMES: 303 primes up to 2000, sum 277050, avg 914.356', 'Ready;'], 'Compiling a C program on CMS');
+P('Programs are compiled for 31-bit addressing, z900 instructions and software floating point (IEEE, not hexadecimal), with newlib as the C library: the same as the programs cross-compiled on the PC (Chapter 7). Inside a program, characters are ASCII; the run-time converts to EBCDIC at the CMS file and terminal boundary. File names are CMS file ids: `fopen("data.txt", "r")` opens `DATA TXT` on any accessed disk.');
+P('C++ has the standard library of GCC 13 (strings, containers, algorithms, iostreams) in the C locale. There are no exceptions: a `throw` ends the program with a message. Static destructors do not run at exit.');
+P('A compile of a small program takes about half a minute of CPU time. Keep the work files on a large disk: the compiler writes `fn S`, `fn O` and `fn ELF` beside the source and erases them when it is done.');
+H2('COBOL: GnuCOBOL');
+P('`COBOL fn` compiles `fn COB` to `fn MODULE`: `COBC MODULE` (GnuCOBOL 3.1.2) translates the program to C, and the CC EXEC compiles and links it with libcob and GMP from `SYSROOT TAR`. `COBOL fn ( C` stops after `fn C`. Subprograms are linked statically (`CALL` of a literal name).');
+SCREEN(['cobol hello', 'hello', '      HELLO FROM GNUCOBOL ON VM/370PLUS', 'SUM 1..1000 = 000000000000500500',
+        'INTEREST =         89.51', 'Ready;'], 'COBOL on CMS');
+P('Files: SEQUENTIAL, RELATIVE and SORT work files are binary CMS files; LINE SEQUENTIAL files are text, converted between ASCII and EBCDIC. `SELECT f ASSIGN TO "rel.dat"` names `REL DAT A`. INDEXED files and the SCREEN SECTION are not available. On Debian, GnuCOBOL is a package of its own (`gnucobol-3.1.2-s390.tgz`): `cobc -x prog.cob` compiles with Debian’s gcc.');
+H2('PL/I');
+P('The Community Edition’s IBM PL/I (F) compiler is on the Y disk (`PLI fn`, then `GLOBAL TXTLIB PLILIB` and `LOAD fn (START`). VM/370plus adds a PL/I-to-C translator: `PLIC fn` translates `fn PLI` to C with `PLI2C MODULE` and compiles it to `fn MODULE`. SYSIN is the terminal and the console stack.');
 
 // ---------------------------------------------------------------- chapter 7
 H1('Restrictions and Known Problems');

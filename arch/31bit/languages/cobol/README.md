@@ -52,26 +52,22 @@ newlib's here). File names map as cmsrt does: `"rel.dat"` is REL DAT A.
 cmsrt now keeps a file's contents when it is opened for writing without
 O_TRUNC (OPEN I-O, EXTEND, "r+").
 
-## CMS, step 2: native -- in progress (11 October 2026)
+## CMS, step 2: native -- done 12 October 2026
 
-Done:
-- **cobc runs on CMS** (COBC MODULE, cross-built; `COBOL EXEC`): 8.3 file
-  names (PROG C, PROG H, PROGL H), DEFAULT CONF from any accessed disk, no
-  computed gotos (GCC380 has an internal error on them). Test cc6: COBOL
-  HELLO on CMS, then GCC380 compiles HELLO C (with LIBCOB H, GMP H) to
-  HELLO TEXT.
-- **EBCDIC-correct C from cobc** (`native/chrpatch.py`): character values
-  are written as C character constants (`memset (b, '0', 4)`), not as
-  ASCII numbers, so GCC380 turns them into EBCDIC.
-- **libcob + GMP for GCC380** (`native/mknative.py`, `mkdeck.py`,
-  `cms/COBNAT EXEC`): 174 files (12 libcob, 1 POSIX layer, 161 GMP)
-  preprocessed on the PC against GCCLIB31's headers and `native/inc`, with
-  GCC380's predefined macros and EBCDIC character constants; all 770
-  external names mapped to 8-character names (`cobmap.h`), since GCC380
-  keeps 8. `cobposix.c`: open/read/lseek/stat/... on CMS files,
-  snprintf, setenv, strcasecmp, dlopen stubs. Packed on 80-column cards.
+    COBOL fn         fn COB -> COBC MODULE (cobc) -> fn C -> CC EXEC -> fn MODULE
 
-Blocker: GCC380 (and GCC370) have an internal compiler error on every
-`long long` addition (probe ll2: `a + b` fails, `*`, `/`, `<<`, `<` pass),
-and libcob uses 64-bit integers throughout. Also: GCC380 predefines `cms`
-(a variable named cms is a syntax error).
+- **cobc runs on CMS** (COBC MODULE, cross-built): 8.3 file names (PROG C,
+  PROG H, PROGL H), DEFAULT CONF from any accessed disk, options through
+  the stack (`cms/COBOL.EXEC`).
+- **The C is compiled on CMS by GCC 13** (9.21, `toolchain/`): cc1, as,
+  ld and elf2cms run on CMS; libcob, GMP, libdl stubs and the CMS shims
+  come from SYSROOT TAR (`/usr/lib/libcob.a` ...).
+- Test tc17 (12 Oct): `COBOL HELLO` (40 s), then `HELLO`: the PC's output
+  line for line (SUM 1..1000, INTEREST, SQRT(2) to 100 digits).
+
+The first attempt compiled the C with GCC380 and GCCLIB31 (`native/`:
+libcob and GMP preprocessed on the PC, 770 external names mapped to 8
+characters, EBCDIC character constants by `chrpatch.py`). It stopped at
+GCC380's internal compiler error on every `long long` addition, which
+libcob needs throughout; that is why the CMS toolchain is GCC 13 (9.21).
+`native/` is kept for reference.
