@@ -25,6 +25,8 @@ between `=== STTEST` and `=== END` lines.
 | CMS (tc42/43) | 20 of 22 | `06_numbers`: SmallIntegers are +-2^30 with a 32-bit long (documented upstream); `14_files_system`: no directories on CMS. `05_strings` also differs, but only because the console shows a TAB as a blank. |
 | Debian (pd2) | 21 of 22 | `06_numbers`, as above |
 
+The same Debian bundle (`languages/common/mkdebtests.sh`): APL 34/34, COBOL 20/20, PL/I 38/39, xBase C 7/7.
+
 `16_net` (sockets) and `23_unicode` (the cREXX VM's Unicode) are not part
 of the C version. Files under `/tmp/` are CMS files on the A disk, named by
 the last component (cmsrt).
