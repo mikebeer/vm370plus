@@ -243,7 +243,7 @@ Magnitude extend [
 ]
 
 Character class extend [
-    value: n [ <primitive: charFrom> ^SystemExceptions.ArgumentOutOfRange signalOn: n mustBeBetween: 0 and: 255 ]
+    value: n [ <primitive: charFrom> ^SystemExceptions.ArgumentOutOfRange signalOn: n mustBeBetween: 0 and: 16r10FFFF ]
     codePoint: n [ ^self value: n ]
     digitValue: n [ ^'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' at: n + 1 ]
     nl [ ^self value: 10 ]
@@ -266,18 +266,20 @@ Character extend [
     > aChar [ ^self value > aChar value ]
     <= aChar [ ^self value <= aChar value ]
     >= aChar [ ^self value >= aChar value ]
-    isLetter [ | v | v := self value. ^(v >= 65 and: [v <= 90]) or: [v >= 97 and: [v <= 122]] ]
+    isLetter [ | v | v := self value. v < 128 ifTrue: [^(v >= 65 and: [v <= 90]) or: [v >= 97 and: [v <= 122]]]. ^self primIsWide ]
     isDigit [ | v | v := self value. ^v >= 48 and: [v <= 57] ]
     isAlphaNumeric [ ^self isLetter or: [self isDigit] ]
-    isUppercase [ | v | v := self value. ^v >= 65 and: [v <= 90] ]
-    isLowercase [ | v | v := self value. ^v >= 97 and: [v <= 122] ]
+    isUppercase [ | v | v := self value. v < 128 ifTrue: [^v >= 65 and: [v <= 90]]. ^self asLowercase ~= self ]
+    isLowercase [ | v | v := self value. v < 128 ifTrue: [^v >= 97 and: [v <= 122]]. ^self asUppercase ~= self ]
     isSeparator [ | v | v := self value. ^v = 32 or: [v = 9 or: [v = 10 or: [v = 13 or: [v = 12]]]] ]
     isSpace [ ^self isSeparator ]
     isPunctuation [ ^'.,:;!?' includes: self ]
     isVowel [ ^'aeiouAEIOU' includes: self ]
     isCharacter [ ^true ]
-    asUppercase [ ^self isLowercase ifTrue: [Character value: self value - 32] ifFalse: [self] ]
-    asLowercase [ ^self isUppercase ifTrue: [Character value: self value + 32] ifFalse: [self] ]
+    asUppercase [ | v | v := self value. v < 128 ifTrue: [^(v >= 97 and: [v <= 122]) ifTrue: [Character value: v - 32] ifFalse: [self]]. ^self primCase: 7 ]
+    asLowercase [ | v | v := self value. v < 128 ifTrue: [^(v >= 65 and: [v <= 90]) ifTrue: [Character value: v + 32] ifFalse: [self]]. ^self primCase: 8 ]
+    primCase: op [ | r | r := (String with: self) primUnicode: op with: nil. ^r size = 1 ifTrue: [r first] ifFalse: [self] ]
+    primIsWide [ | v | v := self value. (v >= 16r4E00 and: [v <= 16r9FFF]) ifTrue: [^true]. (v >= 16r3040 and: [v <= 16r30FF]) ifTrue: [^true]. (v >= 16rAC00 and: [v <= 16rD7A3]) ifTrue: [^true]. ^(self asUppercase ~= self) or: [self asLowercase ~= self] ]
     digitValue [
         | v |
         v := self value.
@@ -340,7 +342,13 @@ Message class extend [ selector: s arguments: a [ ^self new selector: s argument
 TextCollector class extend [ new [ ^self basicNew ] ]
 
 TextCollector extend [
-    nextPutAll: s [ <primitive: transcript> ^self nextPutAll: s displayString ]
+    primPut: s [ <primitive: transcript> ^self primPut: s displayString ]
+    nextPutAll: s [
+        | t |
+        t := Smalltalk at: #TranscriptTarget ifAbsent: [nil].
+        t notNil ifTrue: [^t nextPutAll: s displayString].
+        ^self primPut: s
+    ]
     nextPut: c [ ^self nextPutAll: (String with: c) ]
     show: s [ ^self nextPutAll: s ]
     showCr: s [ self nextPutAll: s. self nl ]
@@ -374,6 +382,10 @@ SystemDictionary extend [
     halt [ <primitive: halt> ]
     quit [ <primitive: exit> ]
     quit: n [ <primitive: exit> ]
+    exit [ <primitive: exit> ]
+    exit: n [ <primitive: exit> ]
+    getenv: name [ <primitive: getenv> ]
+    os [ ^'linux' ]
     classAt: key [ ^self at: key ]
     printOn: aStream [ aStream nextPutAll: 'Smalltalk' ]
 ]
@@ -385,7 +397,8 @@ Time class extend [
 ]
 
 Random class extend [
-    seed: n [ ^self new ]
+    seed: n [ self primSeed: n. ^self new ]
+    primSeed: n [ <primitive: randSeed> ]
     next [ ^self new next ]
     between: lo and: hi [ ^self new between: lo and: hi ]
 ]

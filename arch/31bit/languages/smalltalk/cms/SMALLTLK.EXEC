@@ -1,14 +1,21 @@
-/* SMALLTLK EXEC -- Smalltalk-80 in cREXX (github.com/mikebeer/smalltalk) */
+/* SMALLTLK EXEC -- Smalltalk-80 (github.com/mikebeer/smalltalk)        */
 /*   SMALLTLK fn.st [args]   run a program                              */
-/*   SMALLTLK                read statements from the terminal          */
-/* Runs SMALLTLK RXBIN on RXBVM8; the class library (KERNEL ST ...) is  */
-/* read from the accessed disks.                                        */
+/*   SMALLTLK -i             read statements from the terminal          */
+/* The C89 interpreter (SMALLTC MODULE) when it is on an accessed disk, */
+/* else the cREXX one (SMALLTLK RXBIN on RXBVM8).  Both read the class  */
+/* library (KERNEL ST, NUMBERS ST ...) from the accessed disks.         */
 PARSE ARG ARGS
+'STATE SMALLTC MODULE *'
+IF RC = 0 THEN DO
+  QUEUE '-L .' ARGS       /* CMS would cut each argument to 8 chars */
+  'SMALLTC =STACK'
+  EXIT RC
+END
 'STATE SMALLTLK RXBIN *'
 IF RC <> 0 THEN DO
-  SAY 'SMALLTLK: SMALLTLK RXBIN not found -- access the disk that has it'
+  SAY 'SMALLTLK: neither SMALLTC MODULE nor SMALLTLK RXBIN found'
   EXIT 28
 END
-QUEUE '-L a' ARGS         /* CMS would cut each argument to 8 chars */
+QUEUE '-L a' ARGS
 'RXBVM8 SMALLTLK -a =STACK'
 EXIT RC

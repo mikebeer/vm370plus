@@ -1,0 +1,21 @@
+/* STTEST EXEC -- run Smalltalk tests: STTEST fn1 fn2 ... (fn ST, IN)  */
+/* Each test runs under SMALLTC MODULE; the output goes to the console */
+/* between '=== STTEST fn' and '=== END fn RC n' lines.                */
+ARG LIST
+DO I = 1 TO WORDS(LIST)
+  F = WORD(LIST, I)
+  'MAKEBUF'
+  QUEUE '-L .' F'.st'
+  'STATE' F 'IN *'
+  IF RC = 0 THEN DO
+    'EXECIO * DISKR' F 'IN * (FINIS STEM IN.'
+    DO J = 1 TO IN.0; QUEUE IN.J; END
+  END
+  QUEUE '/*'
+  SAY '=== STTEST' F
+  'SMALLTC =STACK'
+  R = RC
+  'DROPBUF'
+  SAY '=== END' F 'RC' R
+END
+EXIT 0

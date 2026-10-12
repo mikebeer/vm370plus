@@ -7,6 +7,8 @@ GNU Smalltalk bracket syntax.
 ```
 ./smalltalk examples/hello.st
 echo "(3/4 + 0.25) printNl." | ./smalltalk
+./smalltalk -i                              # interactive prompt
+./smalltalk report.st -- 2026 north      # program arguments
 ```
 
 The launcher compiles the interpreter to bytecode on first use (about half a minute) and runs
@@ -25,7 +27,12 @@ it afterwards. Set `CREXX` to the `crexx` driver if it is not on your `PATH`.
   with coercion, radix literals (`16r1F`), `\\ // rem: quo: gcd: factorial raisedTo:` and more.
 * **Collections**: Array, OrderedCollection, SortedCollection, Interval, Set, Bag, Dictionary,
   Association, String, Symbol, with the usual `do:`/`collect:`/`select:`/`inject:into:` protocol.
-* **Data structures**: Complex numbers, Stack, Queue, Matrix; number formatting (`printShowingDecimalPlaces:`, `asStringWithCommas`).
+* **Data structures**: Complex numbers, Stack, Queue, Matrix, LinkedList, Stopwatch, wildcard `match:`, JSON (`asJson`, `fromJson`), regular expressions (`matchesRegex:`, `allRegexMatches:`, `copyReplacingRegex:with:`), date parsing and formatting, `Smalltalk getenv:`, `Random seed:`; number formatting (`printShowingDecimalPlaces:`, `asStringWithCommas`).
+* **Files and system**: `FileStream` (`delete:`, `rename:to:`, `copy:to:`, `size:`), `Directory` (`entries:`, `create:`, `remove:`), `Smalltalk system:` / `systemOutput:`, `Smalltalk arguments`, CSV (`CSV parse:`, `CSV format:`).
+* **Testing and processes**: SUnit (`TestCase`, `TestSuite`, `TestResult`, `assert:equals:`, `should:raise:`); cooperative `Process`/`fork`/`forkAt:`, `Processor`, `Semaphore`, `SharedQueue`, `Delay` (one real thread: waiting runs the other ready processes); `thisContext`/`Context`, `Smalltalk evaluate:`, `Behavior compile:`.
+* **More**: `Duration` and date arithmetic, `ScaledDecimal` (`1.5s2`), `ByteArray` (`#[1 2 3]`), dependents (`changed:`/`update:`), `Rectangle`, `CompiledMethod` (`Foo >> #sel`), `become:`, `allInstances`.
+* **Collections and text**: `Heap`, `LookupTable`, `WeakSet`, `Timespan`, `Transcript redirectTo:` / `capture:`; Unicode strings and characters (code points up to 16r10FFFF), `asNFC`/`asNFD`, `asCasefold`, `graphemeSize`, `utf8Bytes` / `String fromUtf8Bytes:`, using the VM's rxunicode.
+* **Networking**: `Socket` (`connectTo:port:`, `secureConnectTo:port:`, `listenOn:`, `accept`, `send:`, `sendLine:`, `receiveLine`, `receive:`, `receiveAll`), `URL`, and `HttpClient` (`get:`, `post:body:`, `getString:`, https, chunked answers) on top of CREXX's rxsocket.
 * **Streams**: ReadStream, WriteStream, ReadWriteStream, FileStream (`read:`, `write:`, `append:`, `exists:`); **Date** and **Time** (`today`, `now`, **DateTime**, calendar arithmetic); `Transcript` (`show:`, `showCr:`, `display:`,
   `print:`, `cr`, `tab`...).
 * **Exceptions**: `on:do:`, `ensure:`, `ifCurtailed:`, `signal`, `signal:`, `retry`, `return:`,
@@ -53,10 +60,24 @@ it afterwards. Set `CREXX` to the `crexx` driver if it is not on your `PATH`.
 | --- | --- |
 | `src/*.crexx` | interpreter sources (lexer/parser, resolver, evaluator, primitives, big integers) |
 | `build.py` | concatenates `src/` into `smalltalk.crexx` and substitutes constants |
-| `lib/*.st` | class library written in Smalltalk (kernel, numbers, collections, streams, exceptions, extras, structures) |
+| `lib/*.st` | class library written in Smalltalk (kernel, numbers, collections, streams, exceptions, extras, structures, regex, system, net, sunit, process, more) |
+| `bench/` | benchmarks (`bench/run_bench.sh`) |
 | `examples/` | sample programs |
 | `tests/` | regression tests (`tests/run_tests.sh`) |
 | `docs/` | user manual (docx and PDF) |
 
 Rebuild after editing `src/`: `python3 build.py` (the launcher recompiles automatically).
 Run the tests with `tests/run_tests.sh`.
+
+## C89 version
+
+`c/` holds a strict C89 port (one amalgamated file, `c/st_all.c`) that reads the same `lib/*.st`.
+Build with `make -C c`, test with `make -C c test`. It is roughly 75-95x faster than the CREXX version
+(fib 1245 ms -> 17 ms, loops 2728 -> 33, collections 10929 -> 144; startup 9 ms vs 1.4 s).
+The C version has no Unicode or sockets. Recursion depth is limited to 5000 frames.
+
+## More protocol (lib/more2.st)
+
+About 250 extra selectors for Pharo/GNU compatibility: String/Symbol/Character helpers, Integer/Float
+constants and roots, Random shuffle/choice, collection helpers (binarySearch:, transposed, newFrom:),
+stream helpers, Point vector ops, Date/Time/Duration extras, TimeZone and DateTime UTC offsets.

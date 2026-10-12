@@ -1,0 +1,20 @@
+/* COBXTEST EXEC -- COBX and run each test: COBXTEST fn1 fn2 ...        */
+ARG LIST
+DO I = 1 TO WORDS(LIST)
+  F = WORD(LIST, I)
+  'EXEC COBX' F
+  IF RC <> 0 THEN DO; SAY 'COBXTEST:' F 'BUILD RC' RC; ITERATE; END
+  'MAKEBUF'
+  'STATE' F 'IN A'
+  IF RC = 0 THEN DO
+    'EXECIO * DISKR' F 'IN A (FINIS STEM IN.'
+    DO J = 1 TO IN.0; QUEUE IN.J; END
+  END
+  QUEUE '/*'
+  SAY '=== COBXTEST' F
+  F
+  R = RC
+  'DROPBUF'
+  SAY '=== END' F 'RC' R
+END
+EXIT 0

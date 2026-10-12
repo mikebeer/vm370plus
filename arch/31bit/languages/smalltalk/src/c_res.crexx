@@ -384,6 +384,8 @@ run_doit: procedure = .void
   first = .int
   fb = .int
   v = .int
+  eb = .int
+  er = .int
   call start_scope cls_UndefinedObject
   nal = nal + 1
   al[nal] = st
@@ -399,6 +401,17 @@ run_doit: procedure = .void
   unw = UW_NONE
   htop = 0
   v = ev(seq, fb)
+  if unw = 0 & in_eval = 0 then call run_scheduler
+  if repl_echo = 1 & unw = 0 & v \= nil_oop then do
+    if cof(v) \= find_class("TextCollector") then do
+      eb = asp
+      er = send_sel(v, S_PRINTSTRING, eb, 0)
+      asp = eb
+      if unw = 0 & isstr(er) = 1 then call outs o_s[er % 2] || '0a'x
+      else call outs printstr0(v) || '0a'x
+      unw = UW_NONE
+    end
+  end
   if unw > 0 then do
     if unw = UW_EXIT then halted = 1
     unw = UW_NONE
@@ -426,3 +439,22 @@ eval_in_class: procedure = .int
   v = ev(seq, fb)
   if unw > 0 then unw = UW_NONE
   return v
+
+/* give forked Smalltalk processes a chance to run at the end of a statement */
+run_scheduler: procedure = .void
+  g = .string
+  pr = .int
+  r = .int
+  eb = .int
+  g = gmap["Processor"]
+  if g == "" then return
+  pr = g_val[g as .int]
+  if pr = nil_oop then return
+  eb = asp
+  r = send_sel(pr, S_RUNPENDING, eb, 0)
+  asp = eb
+  if unw > 0 then do
+    if unw = UW_EXIT then halted = 1
+    unw = UW_NONE
+  end
+  return

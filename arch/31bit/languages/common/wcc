@@ -1,0 +1,9 @@
+#!/bin/sh
+# wcc -- GCC 13 -m31 for Debian 7 (wheezy) s390 on VM/370plus: compiles and
+# links against wheezy's own glibc 2.13 (the sysroot made by
+# cobol/mkcobol-linux.sh), so the binaries run on the Debian guest as they are.
+S=${WHEEZY:-/home/claude/src/cobol/wsys}
+GI=$(s390x-linux-gnu-gcc -m31 -print-file-name=include)
+exec s390x-linux-gnu-gcc -m31 -nostdinc -isystem $GI -isystem $S/usr/include/s390-linux-gnu \
+  -isystem $S/usr/include --sysroot=$S -B$S/usr/lib/s390-linux-gnu -L$S/usr/lib/s390-linux-gnu \
+  -L$S/lib/s390-linux-gnu -Wl,-rpath-link,$S/lib/s390-linux-gnu -no-pie "$@"

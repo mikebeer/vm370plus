@@ -1,9 +1,13 @@
-/* XBTEST EXEC -- run xBase tests: XBTEST fn1 fn2 ... (fn PRG, fn IN)   */
+/* XBTEST EXEC -- run xBase tests: XBTEST [C] fn1 fn2 ... (fn PRG, IN) */
+/* C: the C89 interpreter (XBASEC XIMAGE), else the cREXX one.          */
 ARG LIST
+CVER = WORD(LIST, 1) = 'C'
+IF CVER THEN LIST = SUBWORD(LIST, 2)
 DO I = 1 TO WORDS(LIST)
   F = WORD(LIST, I)
   'MAKEBUF'
-  QUEUE F'.prg'
+  IF CVER THEN QUEUE 'XBASEC' F'.prg'
+  ELSE QUEUE F'.prg'
   'STATE' F 'IN *'
   IF RC = 0 THEN DO
     'EXECIO * DISKR' F 'IN * (FINIS STEM IN.'
@@ -11,7 +15,8 @@ DO I = 1 TO WORDS(LIST)
   END
   QUEUE '/*'
   SAY '=== XBTEST' F
-  'RXBVM8 XBASE -a =STACK'
+  IF CVER THEN 'XL =STACK'
+  ELSE 'RXBVM8 XBASE -a =STACK'
   R = RC
   'DROPBUF'
   SAY '=== END' F 'RC' R

@@ -1,0 +1,118 @@
+/* SQLSERV EXEC -- the SQL service machine of VM/370plus (9.4)         */
+/*   SQLSERV (options)    ONCE: answer what is waiting, then end       */
+/*                        LOUD: tell what happens                      */
+/*                        INTERVAL n: seconds between reader checks    */
+/* A request is a punch file (from SQL EXEC) whose first card is       */
+/*   DB name                                                           */
+/* and whose other cards are SQL.  SQLRUN runs it against NAME DB on   */
+/* this machine's A disk and the answer is punched back to the sender  */
+/* (ORIGINID).  SQL STOP (a first card STOP), STOP typed at the       */
+/* console, or a file SQLSERV STOP A ends the loop.                    */
+PARSE UPPER ARG LINE
+OPT = ''
+P = POS('(', LINE)
+IF P > 0 THEN OPT = SUBSTR(LINE, P + 1)
+ONCE = WORDPOS('ONCE', OPT) > 0
+LOUD = WORDPOS('LOUD', OPT) > 0
+INTERVAL = 10
+I = WORDPOS('INTERVAL', OPT)
+IF I > 0 THEN INTERVAL = WORD(OPT, I + 1)
+IF LOUD THEN SAY 'SQLSERV: started'
+DO FOREVER
+  PARSE VALUE NEXTFILE() WITH ORG SID
+  IF ORG = 'STOP' & SID = '' THEN LEAVE        /* STOP typed at the console */
+  IF ORG = '' THEN DO
+    IF ONCE THEN LEAVE
+    IF STOPREQ() THEN LEAVE
+    'WAKEUP +' || RIGHT(INTERVAL, 6, '0') || ' (RDR QUIET'
+    ITERATE
+  END
+  IF SERVE(ORG, SID) = 'STOP' THEN LEAVE
+END
+IF LOUD THEN SAY 'SQLSERV: ended'
+EXIT 0
+
+SERVE: PROCEDURE EXPOSE LOUD
+  PARSE ARG ORG, SID
+  CALL QUIET 'ERASE SQLREQ SQLIN A'
+  'READCARD SQLREQ SQLIN A (NOHEADER'
+  IF RC <> 0 THEN DO
+    SAY 'SQLSERV: READCARD RC' RC', purging spool file' SID 'from' ORG
+    'CP PURGE READER' SID
+    RETURN ''
+  END
+  'EXECIO * DISKR SQLREQ SQLIN A (FINIS STEM C.'
+  PARSE UPPER VAR C.1 KW DB .
+  CALL QUIET 'ERASE SQLRSP TXT A'
+  IF KW = 'STOP' THEN DO       /* SQL STOP: the service ends          */
+    QUEUE 'SQLSERV: stopped by' ORG
+    'EXECIO 1 DISKW SQLRSP TXT A (FINIS'
+  END
+  ELSE IF KW <> 'DB' | DB = '' | LENGTH(DB) > 8 | \DATATYPE(DB, 'A') THEN DO
+    QUEUE 'Error: the first card must be  DB name  (1-8 letters/digits)'
+    'EXECIO 1 DISKW SQLRSP TXT A (FINIS'
+  END
+  ELSE DO
+    CALL QUIET 'ERASE SQLREQ SQL A'
+    DO I = 2 TO C.0
+      QUEUE C.I
+    END
+    'EXECIO' C.0 - 1 'DISKW SQLREQ SQL A (FINIS'
+    QUEUE DB'.db sqlreq.sql sqlrsp.txt'
+    'SQLRUN =STACK'
+    IF LOUD THEN SAY 'SQLSERV:' ORG 'on' DB', SQLRUN RC' RC
+  END
+  CALL CARDS                   /* lines of more than 80: more cards */
+  'CP SPOOL PUNCH TO' ORG 'CLASS A'
+  'PUNCH SQLRSP TXT A (NOHEADER'
+  'CP CLOSE PUNCH NAME SQLSERV REPLY'
+  'CP SPOOL PUNCH OFF'
+  CALL QUIET 'ERASE SQLREQ SQLIN A'
+  CALL QUIET 'ERASE SQLREQ SQL A'
+  CALL QUIET 'ERASE SQLRSP TXT A'
+  RETURN KW
+
+/* SQLRSP TXT A cut into 80-column cards                             */
+CARDS: PROCEDURE
+  'EXECIO * DISKR SQLRSP TXT A (FINIS STEM R.'
+  N = 0
+  DO I = 1 TO R.0
+    L = STRIP(R.I, 'T')
+    DO UNTIL L = ''
+      N = N + 1; QUEUE LEFT(L, 80); L = SUBSTR(L, 81)
+    END
+  END
+  CALL QUIET 'ERASE SQLRSP TXT A'
+  'EXECIO' N 'DISKW SQLRSP TXT A (FINIS'
+  RETURN
+
+/* "ORIGINID spoolid" of the next reader file, '' if none            */
+NEXTFILE: PROCEDURE
+  STOPPED = 0
+  'MAKEBUF'
+  'EXECIO * CP (STRING QUERY READER ALL'
+  RES = ''
+  DO WHILE QUEUED() > 0
+    PARSE PULL ROW
+    PARSE UPPER VAR ROW W1 W2 .
+    /* a line typed at the console while SQLSERV waits lands here too */
+    IF W1 = 'STOP' & W2 = '' THEN STOPPED = 1
+    IF \DATATYPE(W2, 'W') THEN ITERATE        /* not a reader file row */
+    IF RES = '' THEN RES = W1 W2
+  END
+  'DROPBUF'
+  IF RES = '' & STOPPED THEN RETURN 'STOP'
+  RETURN RES
+
+STOPREQ: PROCEDURE
+  'STATE SQLSERV STOP A'
+  IF RC <> 0 THEN RETURN 0
+  CALL QUIET 'ERASE SQLSERV STOP A'
+  RETURN 1
+
+QUIET: PROCEDURE
+  PARSE ARG CMD
+  'SET CMSTYPE HT'
+  CMD
+  'SET CMSTYPE RT'
+  RETURN

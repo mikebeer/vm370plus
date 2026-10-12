@@ -1,0 +1,85 @@
+/* SQL EXEC -- ask the SQL service machine (SQLSERV, 9.4)              */
+/*   SQL db statement ...          one statement (or several, with ;)  */
+/*   SQL db (FILE fn [ft [fm]]     the SQL in a file (ft default SQL)  */
+/*   option (SERVER userid         another service machine            */
+/*   SQL STOP                      ends the service machine           */
+/* The request is punched to SQLSERV; its answer arrives in the reader */
+/* and is shown (and kept as  SQL RESULT A).                           */
+PARSE ARG DB REST
+SERVER = 'SQLSERV'; FILE = ''
+/* options: the last '(' when FILE or SERVER follows (SQL has parens) */
+P = LASTPOS('(', REST)
+IF P > 0 THEN DO
+  IF WORDPOS(WORD(TRANSLATE(SUBSTR(REST, P + 1)), 1), 'FILE SERVER') = 0
+  THEN P = 0
+END
+IF P > 0 THEN DO
+  OPT = SUBSTR(REST, P + 1); REST = LEFT(REST, P - 1)
+  PARSE UPPER VAR OPT W1 W2 W3 W4 .
+  IF W1 = 'FILE' THEN DO
+    FILE = W2 W3 W4
+  END
+  I = WORDPOS('SERVER', TRANSLATE(OPT))
+  IF I > 0 THEN SERVER = WORD(TRANSLATE(OPT), I + 1)
+END
+IF DB = '' THEN DO
+  SAY 'SQL: usage: SQL db statement   or   SQL db (FILE fn [ft [fm]]'
+  EXIT 24
+END
+CALL QUIET 'ERASE SQLREQ CARDS A'
+IF TRANSLATE(DB) = 'STOP' THEN QUEUE 'STOP'    /* SQL STOP: end SQLSERV */
+ELSE QUEUE 'DB' DB
+N = 1
+IF FILE <> '' THEN DO
+  PARSE VAR FILE FN FT FM
+  IF FT = '' THEN FT = 'SQL'
+  IF FM = '' THEN FM = '*'
+  'EXECIO * DISKR' FN FT FM '(FINIS STEM L.'
+  IF RC <> 0 THEN DO; SAY 'SQL:' FN FT 'not found'; EXIT 28; END
+  DO I = 1 TO L.0; QUEUE L.I; N = N + 1; END
+END
+ELSE DO                       /* the statement, on cards of 72      */
+  S = STRIP(REST)
+  DO WHILE S <> ''
+    IF LENGTH(S) <= 72 THEN DO; QUEUE S; S = ''; END
+    ELSE DO
+      K = LASTPOS(' ', LEFT(S, 72))
+      IF K < 2 THEN K = 72
+      QUEUE LEFT(S, K); S = STRIP(SUBSTR(S, K + 1))
+    END
+    N = N + 1
+  END
+END
+'EXECIO' N 'DISKW SQLREQ CARDS A (FINIS'
+'CP SPOOL PUNCH TO' SERVER 'CLASS A'
+'PUNCH SQLREQ CARDS A (NOHEADER'
+'CP SPOOL PUNCH OFF'
+CALL QUIET 'ERASE SQLREQ CARDS A'
+/* wait for the answer: up to two minutes                             */
+DO T = 1 TO 60
+  'MAKEBUF'
+  'EXECIO * CP (STRING QUERY READER ALL'
+  GOT = 0
+  DO WHILE QUEUED() > 0
+    PARSE PULL ROW
+    IF WORD(ROW, 1) = SERVER THEN GOT = 1
+  END
+  'DROPBUF'
+  IF GOT THEN LEAVE
+  'WAKEUP +000002 (RDR QUIET'
+END
+IF \GOT THEN DO; SAY 'SQL: no answer from' SERVER; EXIT 8; END
+CALL QUIET 'ERASE SQL RESULT A'
+'READCARD SQL RESULT A (NOHEADER'
+'EXECIO * DISKR SQL RESULT A (FINIS STEM R.'
+DO I = 1 TO R.0
+  SAY STRIP(R.I, 'T')
+END
+EXIT 0
+
+QUIET: PROCEDURE
+  PARSE ARG CMD
+  'SET CMSTYPE HT'
+  CMD
+  'SET CMSTYPE RT'
+  RETURN

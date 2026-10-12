@@ -1,0 +1,16 @@
+/* COBX EXEC -- COBOL with OO (github.com/mikebeer/cobol) on CMS       */
+/*   COBX fn [( C ]   fn COB -> fn C (COB2C MODULE, the translator)     */
+/*                    -> CC EXEC (GCC 13) -> fn MODULE.  C: stop at C.  */
+/* COBOL-85, OO (CLASS-ID, METHOD-ID, INVOKE), indexed files, SORT.    */
+/* Needs COB2C MODULE and COBRT H (the run-time, one header).          */
+PARSE ARG FN '(' OPTS
+FN = STRIP(FN)
+IF FN = '' THEN DO; SAY 'COBX: give the file name (filetype COB)'; EXIT 24; END
+'STATE' FN 'COB *'
+IF RC <> 0 THEN DO; SAY 'COBX:' FN 'COB not found'; EXIT 28; END
+QUEUE FN'.cob -o' FN'.c'     /* CMS would cut and upper-case options */
+'COB2C =STACK'
+IF RC <> 0 THEN EXIT RC
+IF WORDPOS('C', TRANSLATE(OPTS)) > 0 THEN EXIT 0
+'EXEC CC' FN 'C'
+EXIT RC

@@ -1,16 +1,23 @@
-/* XBASE EXEC -- xBase (Clipper/dBASE/Harbour style) in cREXX         */
-/*   XBASE fn.prg [args]   run an xBase program (github.com/mikebeer/xbase) */
-/* Runs XBASE RXBIN (linked with the library) on RXBVM8.              */
+/* XBASE EXEC -- xBase (Clipper/dBASE/Harbour style, mikebeer/xbase)   */
+/*   XBASE fn.prg [args]   run an xBase program                        */
+/* The C89 interpreter (XBASEC XIMAGE, through the XL loader) when it  */
+/* is on an accessed disk, else the cREXX one (XBASE RXBIN on RXBVM8). */
 PARSE ARG ARGS
 IF ARGS = '' THEN DO
   SAY 'XBASE: usage: XBASE program.prg [arguments]'
   EXIT 24
 END
+'STATE XBASEC XIMAGE *'
+IF RC = 0 THEN DO
+  QUEUE 'XBASEC' ARGS     /* CMS would cut each argument to 8 chars */
+  'XL =STACK'
+  EXIT RC
+END
 'STATE XBASE RXBIN *'
 IF RC <> 0 THEN DO
-  SAY 'XBASE: XBASE RXBIN not found -- access the disk that has it'
+  SAY 'XBASE: neither XBASEC XIMAGE nor XBASE RXBIN found'
   EXIT 28
 END
-QUEUE ARGS                /* CMS would cut each argument to 8 chars */
+QUEUE ARGS
 'RXBVM8 XBASE -a =STACK'
 EXIT RC
