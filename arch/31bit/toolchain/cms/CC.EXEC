@@ -33,14 +33,13 @@ QUEUE '-quiet -m31 -mesa -march=z900 -msoft-float -mlong-double-64' OPT '\'
 QUEUE '-fno-pic -fno-asynchronous-unwind-tables -fno-unwind-tables \'
 QUEUE '-fno-stack-protector -ffunction-sections -fdata-sections -nostdinc \'
 IF CPLUS THEN DO   /* C++: CXXROOT TAR; its headers before the C ones */
-  QUEUE '-isystem /usr/include/c++/m5f -isystem /usr/include/c++/13 \'
-  QUEUE '-isystem /usr/include/c++/s390 \'
+  QUEUE '-isystem /usr/include/c++/13 -isystem /usr/include/c++/s390 \'
   QUEUE '-isystem /usr/include/c++/13/backward \'
   QUEUE '-Dthread_local= -fno-threadsafe-statics \'
 END
 QUEUE '-I /usr/include/m5f -isystem /usr/lib/gcc/include \'
 QUEUE '-U__unix__ -U__unix -Uunix -U__linux__ -U__linux -Ulinux \'
-QUEUE '-U__gnu_linux__ -D_Thread_local= -D__thread= \'
+QUEUE '-U__gnu_linux__ -D_Thread_local= -D__thread= -D__SINGLE_THREAD__ \'
 QUEUE '-isystem /usr/include/newlib -isystem /usr/include/cob -D__CMS__ \'
 QUEUE SRC '-o' FN'.s'
 'XL' CC1 '=STACK'
@@ -48,7 +47,7 @@ IF RC <> 0 THEN EXIT RC
 QUEUE '-m31 -mesa' FN'.s -o' FN'.o'
 'AS =STACK'
 IF RC <> 0 THEN EXIT RC
-'ERASE' FN 'S A'
+CALL ERASE FN 'S A'
 IF \LINK THEN EXIT 0
 QUEUE '-m elf_s390 -static --emit-relocs --gc-sections \'
 QUEUE '-T /usr/lib/image.ld -o' FN'.elf /usr/lib/entry31.o' FN'.o \'
@@ -59,12 +58,19 @@ QUEUE '/usr/lib/libc.a /usr/lib/libm.a /usr/lib/libsoftf.a \'
 QUEUE '/usr/lib/libgcc.a --end-group'
 'LD =STACK'
 IF RC <> 0 THEN EXIT RC
-'ERASE' FN 'TEXT A'
+CALL ERASE FN 'TEXT A'
 QUEUE FN'.elf' FN'.text'
 'XL ELF2CMS =STACK'
 IF RC <> 0 THEN EXIT RC
-'ERASE' FN 'ELF A'
+CALL ERASE FN 'ELF A'
 'LOAD' FN '(CLEAR NOMAP'
 IF RC <> 0 THEN EXIT RC
 'GENMOD' FN
 EXIT RC
+
+ERASE: PROCEDURE        /* erase a work file, without a word if absent */
+  PARSE ARG ID
+  'SET CMSTYPE HT'
+  'ERASE' ID
+  'SET CMSTYPE RT'
+  RETURN

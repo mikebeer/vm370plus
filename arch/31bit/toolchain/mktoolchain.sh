@@ -23,6 +23,10 @@ E2C=${E2C:-/home/claude/m5f/elf_to_cms.c}
 TOOLS="AR=$X-ar RANLIB=$X-ranlib NM=$X-nm OBJDUMP=$X-objdump STRIP=$X-strip AS=$X-as LD=$X-ld"
 gcc -O2 -o $W/e2c $E2C                       # elf_to_cms for the PC
 
+# --- libstdc++ for newlib and soft float: cmsc++ links C++ with it ---------
+sh "$H/mklibstdcxx.sh" $W
+export LIBSTDCXX=$W/lscinst/usr/local
+
 # --- binutils: host = CMS, target = s390 31-bit ELF ------------------------
 rm -rf $W/bb; mkdir $W/bb; cd $W/bb
 env ac_cv_tls=none $W/binutils-2.42/configure --host=s390-ibm-elf --build=x86_64-linux-gnu \

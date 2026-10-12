@@ -1,15 +1,21 @@
 /* PLIC EXEC -- PL/I on VM/370plus CMS (mikebeer/pli, 9.20)            */
-/*   PLIC fn       fn PLI -> fn C (PLI2C MODULE, the translator)       */
-/*                 -> GCC380 with GCCLIB31 -> fn TEXT -> fn MODULE     */
-/* Needs: PLI2C MODULE, PLIRT H and PLICMS H, GCCLIB31 (its headers,   */
-/* GCC31 MACLIB, GCCLIB31 TXTLIB and M5G PARM: CMSUSER 195).          */
-PARSE ARG FN .
+/*   PLIC fn [( GCC380 ]   fn PLI -> fn C (PLI2C MODULE, the translator) */
+/*                 -> CC EXEC (GCC 13, 9.21) -> fn MODULE              */
+/*   GCC380: compile with GCC380 and GCCLIB31 instead (CMSUSER 195:    */
+/*   GCC31 MACLIB, GCCLIB31 TXTLIB, M5G PARM).                         */
+/* Needs: PLI2C MODULE, PLIRT H and PLICMS H on an accessed disk.      */
+PARSE ARG FN '(' OPTS
+FN = STRIP(FN)
 IF FN = '' THEN DO; SAY 'PLIC: give the file name (filetype PLI)'; EXIT 24; END
 'STATE' FN 'PLI *'
 IF RC <> 0 THEN DO; SAY 'PLIC:' FN 'PLI not found'; EXIT 28; END
 QUEUE FN'.pli -o' FN'.c'     /* CMS would cut and upper-case options */
 'PLI2C =STACK'
 IF RC <> 0 THEN EXIT RC
+IF WORDPOS('GCC380', TRANSLATE(OPTS)) = 0 THEN DO
+  'EXEC CC' FN 'C'
+  EXIT RC
+END
 'EXEC GCC31' FN 'C A ( LIB GCC31 PARM M5G'
 IF RC <> 0 THEN EXIT RC
 'GLOBAL TXTLIB GCCLIB31'

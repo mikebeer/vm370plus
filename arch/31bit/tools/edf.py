@@ -31,13 +31,25 @@ ckd2cckd around the work (`--cckd`); a plain .ckd is used in place.
 usage: edf.py IMAGE format VOLID [BLKSIZE]
        edf.py IMAGE list
        edf.py IMAGE get FN FT [OUT]        (EBCDIC records -> text lines)
-       edf.py IMAGE put FN FT FM IN [F lrecl|V]
+       edf.py IMAGE put FN FT FM IN [F lrecl|V|BIN]
+       edf.py IMAGE putlist LIST           (lines: FN FT FM IN [F lrecl|V|BIN])
+  BIN: the bytes of IN as F 80 records, padded with zeros (what READCARD
+  of an EBCDIC deck gives): TEXT decks, tar files, XIMAGEs.
        edf.py IMAGE erase FN FT
        edf.py IMAGE label
 """
 import os, struct, subprocess, sys, tempfile, time
 
 E2A = bytes(range(256)).decode('cp037').encode('latin-1', 'replace')
+
+# ASCII (ISO 8859-1) -> EBCDIC 1047, as Hercules (CODEPAGE 819/1047) and
+# cmsrt (m5f/cp1047.h) convert: file contents put as text
+A2E1047 = bytes.fromhex('00010203372d2e2f1605250b0c0d0e0f101112133c3d322618193f271c1d1e1f405a7f7b5b6c507d4d5d5c4e6b604b61f0f1f2f3f4f5f6f7f8f97a5e4c7e6e6f7cc1c2c3c4c5c6c7c8c9d1d2d3d4d5d6d7d8d9e2e3e4e5e6e7e8e9ade0bd5f6d79818283848586878889919293949596979899a2a3a4a5a6a7a8a9c04fd0a107202122232415061728292a2b2c090a1b30311a333435360838393a3b04143eff41aa4ab19fb26ab5bbb49a8ab0caafbc908feafabea0b6b39dda9b8bb7b8b9ab6465626663679e687471727378757677ac69edeeebefecbf80fdfefbfcbaae594445424643479c4854515253585556578c49cdcecbcfcce170dddedbdc8d8edf')
+
+def ebc1047(s, n=None):
+    b = s.encode('latin-1', 'replace').translate(A2E1047)
+    return b if n is None else b.ljust(n, b'\x40')[:n]
+
 
 def ebc(s, n=None):
     b = s.encode('cp037')
@@ -504,39 +516,21 @@ def main(argv):
                     return 0
             print('edf: file not found')
             return 28
-        elif cmd in ('put', 'erase'):
-            fn, ft = ebc(argv[2].upper(), 8), ebc(argv[3].upper(), 8)
+        elif cmd in ('put', 'erase', 'putlist'):
             d = edf.directory()
             bits, am = edf.amap()
             entries = [f['raw'] for i, f in d]
-            for i, f in d[2:]:
-                if f['fn'] == fn and f['ft'] == ft:
-                    free_file(edf, bits, f)
-                    entries[i] = bytes(64)
-            if cmd == 'put':
-                fm = argv[4]
-                lines = open(argv[5], encoding='latin-1').read().split('\n')
-                if lines and lines[-1] == '':
-                    lines.pop()
-                recfm = argv[6].upper() if len(argv) > 6 else 'V'
-                if recfm == 'F':
-                    lrecl = int(argv[7]) if len(argv) > 7 else 80
-                    recs = [ebc(l, lrecl) for l in lines]
-                else:
-                    recs = [ebc(l.rstrip() or ' ') for l in lines]
-                    lrecl = max([len(r) for r in recs] or [1])
-                fop, adbc, aic, levels, psz = write_file(edf, bits, recs, recfm, lrecl)
-                e = make_fst(fn, ft, fm, recfm, lrecl, fop, adbc, aic, levels, psz)
-                try:
-                    k = entries.index(bytes(64), 2)
-                    entries[k] = e
-                except ValueError:
-                    entries.append(e)
+            if cmd == 'putlist':
+                jobs = [l.split() for l in open(argv[2]) if l.strip() and not l.startswith('#')]
+            else:
+                jobs = [argv[2:]]
+            for job in jobs:
+                put_one(edf, bits, d, entries, cmd, job)
             while len(entries) > 2 and entries[-1] == bytes(64):
                 entries.pop()
             commit(edf, entries, bits, am)
             changed = True
-            print('%s %s: done, %d blocks used' % (argv[2].upper(), argv[3].upper(), edf.used))
+            print('done, %d blocks used' % edf.used)
         else:
             print(__doc__)
             return 2
@@ -551,6 +545,43 @@ def main(argv):
             for x in os.listdir(tmp):
                 os.unlink(os.path.join(tmp, x))
             os.rmdir(tmp)
+
+
+def put_one(edf, bits, d, entries, cmd, job):
+    """put (or erase) one file: job = FN FT [FM IN [F lrecl|V|BIN]]"""
+    fn, ft = ebc(job[0].upper(), 8), ebc(job[1].upper(), 8)
+    for i, f in d[2:]:
+        if f['fn'] == fn and f['ft'] == ft and entries[i] != bytes(64):
+            free_file(edf, bits, f)
+            entries[i] = bytes(64)
+    if cmd == 'erase':
+        print('%s %s: erased' % (job[0].upper(), job[1].upper()))
+        return
+    fm = job[2]
+    recfm = job[4].upper() if len(job) > 4 else 'V'
+    if recfm == 'BIN':
+        raw = open(job[3], 'rb').read()
+        raw += bytes(-len(raw) % 80)
+        recs = [raw[k:k + 80] for k in range(0, len(raw), 80)]
+        recfm, lrecl = 'F', 80
+    else:
+        lines = open(job[3], encoding='latin-1').read().split('\n')
+        if lines and lines[-1] == '':
+            lines.pop()
+        if recfm == 'F':
+            lrecl = int(job[5]) if len(job) > 5 else 80
+            recs = [ebc1047(l, lrecl) for l in lines]
+        else:
+            recs = [ebc1047(l.rstrip() or ' ') for l in lines]
+            lrecl = max([len(r) for r in recs] or [1])
+    fop, adbc, aic, levels, psz = write_file(edf, bits, recs, recfm, lrecl)
+    e = make_fst(fn, ft, fm, recfm, lrecl, fop, adbc, aic, levels, psz)
+    try:
+        k = entries.index(bytes(64), 2)
+        entries[k] = e
+    except ValueError:
+        entries.append(e)
+    print('%s %s %s: %d records' % (job[0].upper(), job[1].upper(), fm, len(recs)))
 
 
 if __name__ == '__main__':

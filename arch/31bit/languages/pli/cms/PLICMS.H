@@ -1,9 +1,24 @@
 /* PLICMS H -- prelude to plirt.h (mikebeer/pli) for programs compiled
-   on CMS by GCC380 with GCCLIB31 (VM/370plus 9.20).  GCCLIB31's fopen
-   takes CMS file ids ("FN FT FM"); PL/I TITLEs and DD names are Unix
-   style: "dir/name.ext" -> NAME EXT A (a bare name: NAME FILE A). */
+   on CMS (VM/370plus 9.20).  PL/I TITLEs and DD names are Unix style:
+   "dir/name.ext" -> NAME EXT A (a bare name: NAME FILE A).
+   GCC 13 (CC EXEC, __CMS__): cmsrt's fopen takes "name.ext" and cuts
+   each part to 8 characters; only the directory and a missing extension
+   need help.  GCC380 with GCCLIB31: fopen takes "FN FT FM". */
 #ifndef PLICMS_H
 #define PLICMS_H
+#ifdef __CMS__
+#include <stdio.h>
+#include <string.h>
+static FILE *pl_cmsopen(const char *nm, const char *md)
+{
+    char id[40];
+    const char *p = strrchr(nm, '/');
+    if (p) nm = p + 1;
+    snprintf(id, sizeof id, strchr(nm, '.') ? "%s" : "%s.file", nm);
+    return fopen(id, md);
+}
+#define fopen(n, m) pl_cmsopen((n), (m))
+#else
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -32,4 +47,5 @@ static FILE *pl_cmsopen(const char *nm, const char *md)
 /* GCCLIB31's stdio.h has getc(s) as fgetc((c)) */
 #undef getc
 #define getc(s) fgetc(s)
+#endif /* GCC380 */
 #endif

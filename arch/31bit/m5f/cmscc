@@ -11,13 +11,15 @@ NEWLIB=${NEWLIB:-/home/claude/nlbuild}
 NLSRC=${NLSRC:-/home/claude/nlsrc/newlib-4.4.0.20231231/newlib}
 GI=$($X-gcc -m31 -print-file-name=include)
 LIBGCC=$($X-gcc -m31 -print-libgcc-file-name)
-CXXI=/usr/s390x-linux-gnu/include/c++/13
+# libstdc++ built for newlib and soft float (toolchain/mklibstdcxx.sh)
+LIBSTDCXX=${LIBSTDCXX:-/home/claude/src/tc/lscinst/usr/local}
+CXXI=$LIBSTDCXX/include/c++/13.3.0
 case $(basename "$0") in
   cmsc++|cmsg++) CC=$X-g++
-     CXF="-isystem $H/inc/c++ -isystem $CXXI -isystem $CXXI/s390x-linux-gnu/32 -isystem $CXXI/backward -Dthread_local= -fno-threadsafe-statics";;
+     CXF="-nostdinc++ -isystem $CXXI -isystem $CXXI/s390-ibm-elf -isystem $CXXI/backward -Dthread_local= -fno-threadsafe-statics";;
   *) CC=$X-gcc; CXF=;;
 esac
-CF="-m31 -mesa -march=z900 -msoft-float -mlong-double-64 -fno-pic -fno-pie -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-stack-protector -ffunction-sections -fdata-sections -nostdinc $CXF -isystem $GI -I$H/inc -isystem $NEWLIB/targ-include -isystem $NLSRC/libc/include -D__CMS__ -U__unix__ -U__unix -Uunix -U__linux__ -U__linux -Ulinux -U__gnu_linux__ -D_Thread_local= -D__thread="
+CF="-m31 -mesa -march=z900 -msoft-float -mlong-double-64 -fno-pic -fno-pie -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-stack-protector -ffunction-sections -fdata-sections -nostdinc $CXF -isystem $GI -I$H/inc -isystem $NEWLIB/targ-include -isystem $NLSRC/libc/include -D__CMS__ -U__unix__ -U__unix -Uunix -U__linux__ -U__linux -Ulinux -U__gnu_linux__ -D_Thread_local= -D__thread= -D__SINGLE_THREAD__ -U_FORTIFY_SOURCE"
 link=1
 for a in "$@"; do case $a in -c|-E|-S|-M|-MM) link=0;; --version|-v|-V|-qversion|-print-*|-dumpversion|-dumpmachine) exec $CC "$@";; esac; done
 if [ $link = 0 ]; then
@@ -46,10 +48,10 @@ done
 # CMSCC_XL=1: a large program for the XL loader (high storage; then
 # mkximage.py out out.ximage)
 if [ -n "$CMSCC_XL" ]; then XLF=-DCMS_XL; ENT=entryxl.s; LDS=imagexl.ld; else XLF=; ENT=entry31.s; LDS=image.ld; fi
-if [ -n "$CXF" ]; then $X-g++ $CF -fno-exceptions -fno-rtti -c "$H/cxxrt.cc" -o $W/cxxrt.o && $X-gcc $CF -O2 -c "$H/cxxglibc.c" -o $W/cxxglibc.o || exit 1; objs="$objs $W/cxxrt.o $W/cxxglibc.o"
-  # std::string, the red-black tree etc. from the 32-bit libstdc++ (its
-  # operator new/delete and throw helpers are ours, linked first)
-  libs="$libs $($X-g++ -m31 -print-file-name=libstdc++.a)"; fi
+if [ -n "$CXF" ]; then $X-g++ $CF -fno-exceptions -fno-rtti -c "$H/cxxrt.cc" -o $W/cxxrt.o || exit 1; objs="$objs $W/cxxrt.o"
+  # std::string, iostreams etc. (its operator new/delete and throw helpers
+  # are cxxrt's, linked first)
+  libs="$libs $LIBSTDCXX/lib32/libstdc++.a"; fi
 $X-gcc $CF $XLF -c "$H/cmsrt.c" -o $W/cmsrt.o && $X-as -m31 -mesa "$H/$ENT" -o $W/entry31.o &&
 $X-ld -m elf_s390 -static --emit-relocs --gc-sections -T "$H/$LDS" -o "$out" \
   $W/entry31.o $objs $W/cmsrt.o $libs \
