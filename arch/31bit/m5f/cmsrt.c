@@ -309,8 +309,10 @@ static int parse_name(const char *name, struct cfile *f)
     /* binary by file type: object files, archives and images (the C/C++
        toolchain's as/ld/ar read and write them through fopen) */
     static const char *const bin[] = { "RXBIN", "MODULE", "O", "A", "ELF", "OBJ",
-        "XIMAGE", "LIB", "BIN", "OUT", "GCH", "TAR", "TMP", 0 };
+        "XIMAGE", "LIB", "BIN", "OUT", "GCH", "TAR", "TMP", "DB", "SQLITE", "DB3", 0 };
     for (int b = 0; bin[b]; b++) if (!strcmp(part[1], bin[b])) f->binary = 1;
+    /* SQLite's journal of fn.db is fn.db-journal: filetype DB-JOURN */
+    if (!strncmp(part[1], "DB-", 3)) f->binary = 1;
     /* TEXT decks (elf_to_cms output): EBCDIC card images, F 80 */
     if (!strcmp(part[1], "TEXT")) { f->binary = 1; f->fixed = 80; }
     return 0;
@@ -653,11 +655,58 @@ __attribute__((weak)) int read(int fd, void *p, size_t n) { POSIXRC(_read(fd, p,
 __attribute__((weak)) off_t lseek(int fd, off_t off, int whence) { POSIXRC(_lseek(fd, off, whence)); }
 __attribute__((weak)) int unlink(const char *name) { POSIXRC(_unlink(name)); }
 __attribute__((weak)) int isatty(int fd) { return _isatty(fd); }
-__attribute__((weak)) int fsync(int fd) { (void)fd; return 0; }
+/* fsync writes the file to its disk now (CMS keeps it in storage until
+   close): SQLite's journal depends on it */
+__attribute__((weak)) int fsync(int fd)
+{
+    if (fd < 3) return 0;
+    if (fd >= NFILES || !files[fd].used) { *__errno() = EBADF; return -1; }
+    if (!files[fd].writing) return 0;
+    int rc = write_whole(&files[fd]);
+    if (rc) { *__errno() = -rc; return -1; }
+    return 0;
+}
+__attribute__((weak)) int ftruncate(int fd, off_t n)
+{
+    if (fd < 3 || fd >= NFILES || !files[fd].used || !files[fd].writing || n < 0) { *__errno() = EBADF; return -1; }
+    struct cfile *f = &files[fd];
+    if ((u32)n > f->len) {
+        if (grow(f, n - f->len)) { *__errno() = ENOSPC; return -1; }
+        memset(f->data + f->len, 0, n - f->len);
+    }
+    f->len = n;
+    if (f->pos > f->len) f->pos = f->len;
+    return 0;
+}
+/* one user, no owners, no links, no processes */
+__attribute__((weak)) int fchown(int fd, uid_t u, gid_t g) { (void)fd; (void)u; (void)g; return 0; }
+__attribute__((weak)) uid_t getuid(void) { return 1; }
+__attribute__((weak)) uid_t geteuid(void) { return 1; }
+__attribute__((weak)) void *getpwuid(uid_t u) { (void)u; return 0; }
+__attribute__((weak)) int getrusage(int who, void *ru) { (void)who; memset(ru, 0, 72); return 0; }
+__attribute__((weak)) int nanosleep(const struct timespec *req, struct timespec *rem) { (void)req; (void)rem; return 0; }
+__attribute__((weak)) FILE *popen(const char *c, const char *m) { (void)c; (void)m; *__errno() = ENOSYS; return 0; }
+__attribute__((weak)) int pclose(FILE *f) { (void)f; *__errno() = ECHILD; return -1; }
+__attribute__((weak)) int readlink(const char *p, char *b, size_t n) { (void)p; (void)b; (void)n; *__errno() = EINVAL; return -1; }
+__attribute__((weak)) int symlink(const char *a, const char *b) { (void)a; (void)b; *__errno() = ENOSYS; return -1; }
+__attribute__((weak)) int ioctl(int fd, unsigned long r, ...) { (void)fd; (void)r; *__errno() = ENOTTY; return -1; }
 __attribute__((weak)) int getpid(void) { return 1; }
 __attribute__((weak)) mode_t umask(mode_t m) { (void)m; return 022; }
 __attribute__((weak)) int chmod(const char *n, mode_t m) { (void)n; (void)m; return 0; }
-__attribute__((weak)) int fcntl(int fd, int cmd, ...) { (void)fd; (void)cmd; return 0; }
+/* fcntl: one user, so every lock is granted and none is ever held by
+   another (F_GETLK answers F_UNLCK, as SQLite's locking asks) */
+__attribute__((weak)) int fcntl(int fd, int cmd, ...)
+{
+    (void)fd;
+    if (cmd == F_GETLK) {
+        va_list ap;
+        va_start(ap, cmd);
+        struct flock *l = va_arg(ap, struct flock *);
+        va_end(ap);
+        if (l) l->l_type = F_UNLCK;
+    }
+    return 0;
+}
 __attribute__((weak)) long sysconf(int name) { return name == 8 /* _SC_PAGESIZE */ ? 4096 : 16; }
 __attribute__((weak)) int lstat(const char *name, struct stat *st) { POSIXRC(_stat(name, st)); }
 __attribute__((weak)) int access(const char *name, int mode) { struct stat st; (void)mode; POSIXRC(_stat(name, &st)); }

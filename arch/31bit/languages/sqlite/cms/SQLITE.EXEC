@@ -1,0 +1,14 @@
+/* SQLITE EXEC -- SQLite 3.46 on VM/370plus CMS (9.4)                  */
+/*   SQLITE fn.db               the sqlite3 shell on database FN DB    */
+/*   SQLITE fn.db "sql" ...     run SQL (or .commands) and return      */
+/* A database is a binary CMS file (filetype DB); its rollback journal */
+/* is fn DB-JOURN.  Ends of input: .quit, or a line of slash and star. */
+PARSE ARG ARGS
+'STATE SQLITE3 MODULE *'
+IF RC <> 0 THEN DO
+  SAY 'SQLITE: SQLITE3 MODULE not found -- access the disk that has it'
+  EXIT 28
+END
+QUEUE 'sqlite3' ARGS     /* CMS would cut each argument to 8 characters */
+'SQLITE3 =STACK'
+EXIT RC

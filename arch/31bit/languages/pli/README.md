@@ -40,3 +40,12 @@ Tests pp1–pp3: 17 of the 19 upstream tests give the PC's output on CMS.
   lines.
 
 On CMS, SYSIN is the terminal and the console stack.
+
+## Debian (12 October 2026, test pd1)
+
+    plic fn.pli      fn.pli -> fn.c (pli) -> gcc 4.6 -> ./fn
+
+The translator (`pli_all.c`) compiles on the Debian guest with its own gcc
+4.6 (about 35 minutes under emulation, once); `tests/run.sh` then gives
+**19 of 19** tests identical to the PC. Installed on the Debian disk:
+`/usr/local/bin/pli`, `/usr/local/bin/plic` and `/usr/local/include/plirt.h`.
