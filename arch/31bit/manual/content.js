@@ -370,6 +370,9 @@ SCREEN(['turbo', '  T U R B O   C R E X X   ---   VM/370plus CMS', '  Current fi
 // ---------------------------------------------------------------- compilers
 H1('Compilers on CMS');
 P('VM/370plus runs current compilers natively on CMS: GCC 13 for C and C++, GnuCOBOL 3.1.2 for COBOL, and a PL/I translator. They need the EC-mode CMS (`IPL 290`), a large virtual machine (`CP DEFINE STORAGE 256M`) and Hercules 4. Their headers and libraries come from two tar files on an accessed disk, `SYSROOT TAR` (C) and `CXXROOT TAR` (C++); programs see them as `/usr/include` and `/usr/lib`, read only.');
+H2('The language disk: LANG');
+P('All the compilers and interpreters of this chapter are on one disk, MAINT 19F (volume VMLANG, a 3380 at real address 182, attached to the system by AUTOLOG1 at every IPL). `LANG` (on the Y disk) links it read-only and accesses it as L; `LANG fm` uses another letter. A file of the same name on one of your own disks comes first in the search order, so erase old copies of these EXECs and MODULEs from your A disk. `TYPE LANG README L` lists what is there.');
+SCREEN(['cp def stor 256m', 'ipl 290', 'lang', 'L (19F) R/O', 'LANG: language disk 19F is L -- HELP: LANG README', 'Ready;'], 'Accessing the language disk');
 H2('C and C++: the CC EXEC');
 P('`CC fn` compiles `fn C` with GCC 13 and links `fn MODULE`; a file type of `CPP`, `CC` or `CXX` (or the option `CPP`) selects C++. The steps are those of GCC on Linux: the compiler proper (`CC1 XIMAGE` or `CC1PLUS XIMAGE`, run from above 16 MB by the `XL` loader), the GNU assembler (`AS`) and linker (`LD`, binutils 2.42), then `ELF2CMS`, which turns the linked program into a TEXT deck for `LOAD` and `GENMOD`.');
 TABLE(['Option', 'Effect'], [

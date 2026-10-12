@@ -67,4 +67,26 @@ if [ -n "$DEBDISK" ]; then
     first=0; n=$((n+1))
   done
 fi
+# then the language disk (VMLANG, 0182, 9.24) in pieces under 28 MB, with
+# JOINLANG.CMD / joinlang.sh, as the Debian disk
+if [ -n "$LANGDISK" ]; then
+  n=$(ls $D/VM370PLUS-kit-$STAMP-part*.zip | wc -l); n=$((n+1))
+  mkdir -p $W/lang/VM370CE.V1.R1.2/disks; cp $LANGDISK $W/lang/lang.cckd
+  cckdcomp $W/lang/lang.cckd >/dev/null
+  split -b 28000000 -d -a 3 --numeric-suffixes=1 $W/lang/lang.cckd $W/lang/VM370CE.V1.R1.2/disks/lang.cckd.
+  sha256sum $W/lang/lang.cckd | sed 's#  .*#  lang.cckd#' > $W/lang/VM370CE.V1.R1.2/disks/lang.sha256
+  P=$(cd $W/lang/VM370CE.V1.R1.2/disks; ls lang.cckd.0??)
+  (echo '@echo off'; echo 'rem JOINLANG.CMD -- join the language disk pieces (VM/370plus kit)'
+   echo "copy /b $(for f in $P; do printf 'disks\\%s+' $f; done | sed 's/+$//') disks\\lang.cckd"
+   echo 'if errorlevel 1 exit /b 1'; echo 'del disks\lang.cckd.0??'; echo 'echo Language disk joined: disks\lang.cckd') |
+     sed 's/$/\r/' > $W/lang/VM370CE.V1.R1.2/JOINLANG.CMD
+  printf '#!/bin/sh\n# joinlang.sh -- join the language disk pieces (VM/370plus kit)\ncd "$(dirname "$0")"\ncat disks/lang.cckd.0?? > disks/lang.cckd && rm disks/lang.cckd.0?? && (cd disks; sha256sum -c lang.sha256)\n' > $W/lang/VM370CE.V1.R1.2/joinlang.sh
+  chmod +x $W/lang/VM370CE.V1.R1.2/joinlang.sh
+  first=1
+  for f in $P; do
+    extra=""; [ $first = 1 ] && extra="VM370CE.V1.R1.2/disks/lang.sha256 VM370CE.V1.R1.2/JOINLANG.CMD VM370CE.V1.R1.2/joinlang.sh"
+    (cd $W/lang; zip -q $D/VM370PLUS-kit-$STAMP-part$n.zip VM370CE.V1.R1.2/disks/$f $extra)
+    first=0; n=$((n+1))
+  done
+fi
 rm -rf $W; ls -la $D

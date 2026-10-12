@@ -8,6 +8,14 @@ Last updated **11 October 2026, 08:00 UTC**. **Read this first in a new session.
 
 ## Current position, 10 October evening -- kit build 6
 
+**Delivered (12 Oct, 20:35): kit build 8**, `dist/VM370PLUS-kit-20261012-b8-part1..15.zip`. It adds the language disk VMLANG (MAINT 19F; parts 14-15 with JOINLANG): GCC 13 C/C++, GnuCOBOL, COBX, PL/I, Python, SQLite + SQLSERV, Pascal, APL, xBase and Smalltalk on CMS, and `LANG` EXEC. AUTOLOG1 attaches the volume at IPL. Debian carries APL, COBOL, PL/I, xBase C and Smalltalk C.
+
+Verified on a fresh CE (kt17-kt21):
+- VMLANG is CP SYSTEM after IPL, and `LANG` accesses it as L.
+- SQLite `select 6*7` gives 42|3.46.1.
+- `CC HI` compiles natively and HI prints `Hi!`.
+- The Debian login works.
+
 **Delivered (11 Oct, 20:55):** `dist/VM370PLUS-kit-20261011-b7-part1..13.zip`. It adds:
 - EDF (larger minidisks) under IPL 290.
 - Warm start.

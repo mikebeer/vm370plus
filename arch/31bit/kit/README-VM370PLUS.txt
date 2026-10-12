@@ -1,7 +1,33 @@
-VM/370plus  --  overlay kit, 11 October 2026 (build 7)
+VM/370plus  --  overlay kit, 12 October 2026 (build 8)
 =======================================================
 
-NEW IN BUILD 7
+NEW IN BUILD 8
+  - THE LANGUAGE DISK (MAINT 19F, volume VMLANG on the new 3380 at 182):
+    current compilers and interpreters that run natively on CMS.  After
+        ipl 290                     (the EC-mode CMS)
+        cp def stor 256m
+        lang                        (links 19F and accesses it as L)
+    you have:
+        CC fn [CPP]     C and C++ (GCC 13.3, binutils 2.42) -> fn MODULE
+        COBOL fn        GnuCOBOL 3.1.2;  COBX fn: COBOL with OO
+        PLIC fn         PL/I (mikebeer/pli)
+        PYTHON fn       Python 3 with NumPy, pandas, SciPy (mikebeer/python)
+        SQLITE fn.db    SQLite 3.46;  SQL db stmt via the SQLSERV service
+        PCPAS / PCRUN   Stanford Pascal 2026.10
+        APL fn.apl      APL (mikebeer/apl)
+        XBASE fn.prg    xBase/Clipper (mikebeer/xbase)
+        SMALLTLK fn.st  Smalltalk-80 (mikebeer/smalltalk)
+    The disk comes in pieces (the last parts of the kit): join them with
+    JOINLANG.CMD (Windows) or sh joinlang.sh, like the Debian disk.
+    AUTOLOG1 attaches it to the system at every IPL.  The Guide,
+    Chapter 8, describes each language.
+  - Debian: APL, COBOL (mikebeer/cobol), PL/I (pli, plic), xBase (xbase-c)
+    and Smalltalk (stc) in /usr/local/bin, with their tests in
+    /usr/local/share/vmtests (sh /usr/local/share/vmtests/runall.sh).
+  - The CMS C runtime: /tmp/... names are CMS files, a bare name is
+    FILE name (as FILEDEF), SQLite-friendly POSIX file semantics.
+
+IN BUILD 7
   - LARGER MINIDISKS (EDF, 4 KB blocks) under the EC-mode CMS (IPL 290):
         format vaddr fm (blksize 4096
     makes one; a full 3380 (885 cylinders, 518 MB) is one disk, and a
@@ -18,7 +44,6 @@ NEW IN BUILD 7
     16 MB).  LINUX READER (IPL from the card reader) works again.
   - CP: an ATTACH of two CTCs next to each other no longer stops CP;
     LPSW/SVC fast paths for PSWs above 16 MB.
-
 IN BUILD 6
   - Debian starts from its own disk:  cp ipl linux  (or LINUX EXEC).
   - The Debian disk is a 3390-9 (7 GB, about 6 GB free).
@@ -30,11 +55,9 @@ IN BUILD 6
   - QUERY SET shows ESA ON / PENDING / OFF.
   - RXBVM8 (cREXX on CMS) has TIME() and DATE().
   - The console banner reads VM/370plus.
-
 VM/370 Community Edition V1 R1.2, with CP converted to ESA/390 (AMODE 31)
 and an EC-mode CMS on MAINT 290 that can use storage above 16 MB.
 Development checkpoint of the VM/370plus project, not a release.
-
 WHAT YOU NEED
   - A fresh, unmodified extraction of VM370CE_V1_R1_2.zip.
     Do NOT apply this kit to a SixPack you care about.
@@ -44,13 +67,14 @@ WHAT YOU NEED
 
 INSTALL
   1. Unzip VM370CE_V1_R1_2.zip into a new directory.
-  2. Unzip ALL kit parts (1-13) OVER it, replacing files:
+  2. Unzip ALL kit parts (1-15) OVER it, replacing files:
      part 1: config, system shadows, tools, README; part 2:
      disks/vm50-4.cckd; part 3: the CMSUSER volume's shadow; part 4:
      Linux files (vm370plus/linux/, the Guide) and the VM50-2 shadow
      (MAINT's 19D); part 5: the VM50-3 shadow; parts 6-13: the Debian
      disk in pieces -- then join it: JOINDEB.CMD (Windows) or
-     sh joindeb.sh (Linux/WSL), see INSTALL THE DEBIAN DISK.
+     sh joindeb.sh (Linux/WSL), see INSTALL THE DEBIAN DISK; parts
+     14-15: the language disk -- join it: JOINLANG.CMD or sh joinlang.sh.
      so the files below replace or add:
         vm370ce.conf                 ARCHMODE ESA/390, CPUMODEL 3090,
                                      ECPSVM NO (CE's own S/370 settings
@@ -72,7 +96,6 @@ INSTALL
      the running system).  Only if nothing has been IPLed (no DMKCPI
      messages at all) type  ipl 6a1  yourself.
   5. Connect the 3270 emulator to localhost:3270.
-
 DISKS
   CMSUSER has 191-195 on VM50U0 and, since build 6, four more 52 MB
   minidisks 196-199 on VM50-8 (cylinders 86-545, which CE leaves free
@@ -142,7 +165,6 @@ USE
         global txtlib pdpclib
         load hello31 (start
     (needs  cp def stor 128m  -- GCC380 asks for a 60 MB heap).
-
 LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
   A Linux 4.0 kernel (31-bit, ESA/390) runs in a virtual machine.  Kit b4
   adds a complete DEBIAN 7 (wheezy, s390) system on a 3390 disk:
@@ -160,7 +182,6 @@ LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
                       even if Debian is on the disk (repairs)
   and disks/lnx190.cckd -- the Debian disk, a 3390-9 (build 6; it was a
   3390-1 before), parts 6-13 of the kit, see INSTALL THE DEBIAN DISK.
-
   INSTALL THE DEBIAN DISK
     The disk is about 210 MB compressed, shipped in eight pieces (parts
     6-13).  After unzipping them into the CE directory, run there
@@ -174,7 +195,6 @@ LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
 
   THE FULL MANUAL is vm370plus/linux/VM370PLUS-Guide.docx (Word): what
   VM/370plus is, the differences to CE, installation, Linux, cREXX.
-
   START LINUX FROM ITS DISK (build 6): the Debian disk carries its own
   kernel and IPL records.  With 64 MB and the devices attached (step 3
   below, without the reader decks):
@@ -224,7 +244,6 @@ LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
      DISABLED WAIT), then  cp logoff  (which releases the adapters and
      the disk).  To run it again, spool the two decks again -- IPL from
      the reader consumes them.
-
   NETWORK: SSH (PuTTY) INTO LINUX
   Linux talks to the PC over a channel-to-channel adapter that Hercules
   connects to a tun interface on the PC (CTCI).  Linux is 10.1.1.2, the
@@ -250,7 +269,6 @@ LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
   Other IP addresses: add  vmip=a.b.c.d vmpeer=w.x.y.z  to the line in
   lxparm.rdr, change the 0600 line to match, and in Debian edit
   /etc/network/interfaces.
-
   Notes:
    - SET ESA ON / OFF switches a virtual machine between S/370 and
      ESA/390; CMS needs it OFF (the default).
@@ -272,7 +290,6 @@ CHATBOT  (service machine, build 6)
   Keep your own reader empty while you chat.  To start CHATBOT with the
   system, add  CP AUTOLOG CHATBOT CHATBOT  to AUTOLOG1's PROFILE EXEC.
   Details: the Guide, Chapter 6; sources in vm370plus/chatbot/.
-
 RULES THAT MATTER
   - Always end with  /shutdown  at the Hercules console, then  exit.
     Killing Hercules leaves the shadows inconsistent.
@@ -290,10 +307,8 @@ RULES THAT MATTER
     none), so time slices end and virtual interval timers run (I-250).
   - CP Q V STOR shows only 5 digits (131072K appears as 31072K) -- a
     cosmetic CP bug (I-246).  DEF STOR shows the right value.
-
 TO GO BACK TO PLAIN CE
   Delete disks/shadows/*_1.shadow, restore vm370ce.conf and
   disks/vm50-4.cckd from the CE zip.
-
 Everything that produced this kit -- the update decks, the generator,
 the build tools and the issue log -- is in the project repository.
