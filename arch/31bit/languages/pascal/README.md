@@ -1,45 +1,36 @@
-# Pascal for cREXX
+# New Stanford Pascal on CMS (9.13a)
 
-A Pascal compiler written in cREXX Level B. It translates Pascal programs into
-cREXX assembly (`.rxas`), which `rxas` assembles and `rxvm` runs, together with
-a small runtime library (`pasrt`).
+    PCPAS fn         compile fn PASCAL (2026.10 compiler) -> fn PCODE, fn LISTING
+    PCRUN fn [args]  run fn PCODE
 
-    make                  # build build/pascal.rxbin and build/pasrt.rxbin
-    ./pasc hello.pas      # compile and run
-    ./pasc -c hello.pas   # compile only
-    make test             # run the programs in tests/
+The New Stanford Pascal compiler of Bernd Oppolzer
+(github.com/StanfordPascal/Pascal, release 2026.10) runs on VM/370plus CMS
+through PCINT, the release's own P-code interpreter, cross-built for CMS
+with the M5f toolchain (`mkpascal-cms.sh`): 31-bit, its storage above
+16 MB. The compiler (PASCAL1 with PASSCAN) and the run-time library
+(PASLIBX, PASUTILS) are the release's P-code. CE's Stanford Pascal 2021.03
+(PASCAL EXEC: P-code translated to 370 code, AMODE 24) is unchanged.
 
-`CREXX_BIN` names the directory with `rxc`, `rxas` and `rxvm` if they are not on `PATH`.
+Test tc33 (12 October 2026): `PCPAS PASTEST` (records, sets of char,
+strings, recursion, real arithmetic) and `PCRUN PASTEST` give the PC's
+output (`tests/pastest.pc`).
 
-## Turbo-Pascal-style environment
+## PCINT on a big-endian machine
 
-    ./tp [file.pas]       # full-screen editor, menus, compile and run in one key
+PCINT keeps a char or boolean on its evaluation stack as an int, and wrote
+and read the char at the slot's first byte -- the low-order byte only on a
+little-endian PC. On S/390 every char that went through the stack became
+0 or c*2^24 (the compiler's first READ of an integer failed, error 1203).
+`pcint-bigendian.patch` puts it at the slot's low-order byte (`CHOFF`, from
+`__BYTE_ORDER__`) and takes the exponent of a double (XPO) from its bits.
+Checked under qemu-s390x: PCINT compiles PASCAL2, PASFORM and the test to
+P-code identical to the PC's, byte for byte.
 
-`tp` opens a blue-screen editor in the manner of Turbo Pascal 7: menu bar (File, Edit, Search,
-Run, Compile, Options, Help), Pascal syntax colouring, auto indent, undo, WordStar block commands
-(`Ctrl-K B/K/C/V/Y`, `Ctrl-K R/W`), find / replace / go to line, an error Messages window that
-puts the cursor on the offending line, and a help window (`F1`).
+## Native 370 code for the 2026.10 compiler: not yet
 
-| Key | Action | Key | Action |
-|---|---|---|---|
-| F2 / F3 | save / open | F9 | compile (make) |
-| Ctrl-R | compile and run | F10 | menu (or Alt-F, Alt-E, ...) |
-| Ctrl-Z | undo | Alt-X | exit |
-
-The editor is a Python 3 curses program (`ide/tpide.py`); it drives the cREXX Pascal compiler,
-`rxas` and `rxvm`. `CREXX_BIN` names their directory. A program runs on the normal terminal screen
-and returns to the editor when you press Enter. `make ide-test` runs the editor-core tests.
-
-## Language
-
-integer, real, boolean, char, string; subranges, enumerations, arrays (multi-dimensional),
-records (nested), pointers with `new`/`dispose`; const/type/var; procedures and functions
-(nested, recursive, `var` parameters, `forward`); `if while repeat for case with`;
-`write/writeln/read/readln` with field widths; the usual standard functions.
-
-Not yet: sets, files, variant records, `goto`, procedural parameters, typed constants.
-
-## Manual
-
-See [docs/Pascal-User-Guide.docx](docs/Pascal-User-Guide.docx) (23 pages: language,
-standard routines, examples, how the compiler works, messages, restrictions).
+The release's P-code-to-370 translator (`src/pascal2.pas`) is version
+2024.02; the 2026.10 compiler writes P-code it cannot read (set constants
+carry an origin since 2024.06: `LCA S32,0,C'...'`), and comment lines
+(`;`) it takes for instructions (error 606). Small programs without set
+constants translate (hello: 332 bytes, no errors). Native code for
+current releases needs a current PASCAL2 from upstream.

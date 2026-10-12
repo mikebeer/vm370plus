@@ -1,0 +1,13 @@
+/* PCRUN EXEC -- run a program compiled by PCPAS: PCRUN fn [args]       */
+/* fn PCODE with the run-time library (PASLIBX, PASUTILS PCODE) under   */
+/* PCINT MODULE.  OUTPUT is the terminal, INPUT the stack and terminal  */
+/* (a line of slash and star ends it).                                  */
+PARSE ARG FN ARGS
+IF FN = '' THEN DO; SAY 'PCRUN: give the file name (fn PCODE)'; EXIT 24; END
+'STATE' FN 'PCODE *'
+IF RC <> 0 THEN DO
+  SAY 'PCRUN:' FN 'PCODE not found -- PCPAS' FN 'first'; EXIT 28
+END
+QUEUE 'pcode='FN'.pcode inc=paslibx,pasutils debug=n' ARGS
+'PCINT =STACK'
+EXIT RC

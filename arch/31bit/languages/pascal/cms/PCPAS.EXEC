@@ -1,0 +1,25 @@
+/* PCPAS EXEC -- the New Stanford Pascal compiler (Oppolzer, 2026.10)   */
+/*   PCPAS fn       fn PASCAL -> fn PCODE (and fn LISTING)               */
+/*   PCRUN fn ...   runs it                                              */
+/* The compiler is P-code (PASCAL1 PCODE/PCODE1, PASSCAN, PASLIBX)       */
+/* interpreted by PCINT MODULE (31-bit, its storage above 16 MB).        */
+/* CE's PASCAL EXEC (the 2021.03 compiler, 370 code) stays as it is.     */
+PARSE ARG FN .
+IF FN = '' THEN DO
+  SAY 'PCPAS: give the file name (filetype PASCAL)'; EXIT 24
+END
+'STATE' FN 'PASCAL *'
+IF RC <> 0 THEN DO; SAY 'PCPAS:' FN 'PASCAL not found'; EXIT 28; END
+'SET CMSTYPE HT'
+'ERASE' FN 'PCODE A'
+'ERASE' FN 'PCODE1 A'
+'ERASE' FN 'PCODE2 A'
+'ERASE' FN 'PCODE3 A'
+'SET CMSTYPE RT'
+QUEUE 'DD_INPUT='FN'.pascal DD_LISTING='FN'.listing \'
+QUEUE 'DD_PCODE='FN'.pcode DD_PCODE1='FN'.pcode1 DD_PCODE2='FN'.pcode2 \'
+QUEUE 'DD_PCODE3='FN'.pcode3 DD_DBGINFO='FN'.dbginfo \'
+QUEUE 'DD_PRD=pascal.messages DD_TRACEF=*stdout* \'
+QUEUE 'pcode=pascal1.pcode inc=paslibx,passcan debug=n'
+'PCINT =STACK'
+EXIT RC

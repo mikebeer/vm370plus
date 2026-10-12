@@ -1,0 +1,10 @@
+++ Include Source File paslibx.pas could not be opened
+++ Include Source File pasutils.pas could not be opened
+
+PCINT (Build 1.0 Oct 12 2026 09:16:04)
+
+PASTEST: ages total 210
+vowels in "stanford pascal on vm/370plus": 6
+10! = 3628800
+H(10) =   2.928968
+sqrt(2) =  1.414213562

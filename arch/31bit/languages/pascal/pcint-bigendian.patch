@@ -1,0 +1,161 @@
+diff --git a/bin/pcint.c b/bin/pcint.c
+index d9cecd1..b79ab92 100644
+--- a/bin/pcint.c
++++ b/bin/pcint.c
+@@ -5818,7 +5818,7 @@ static void int1 (global_store *gs)
+             bool1 = STACK_C (gs -> sp);
+             (gs -> sp) -= 4;
+             intp = ADDRSTACK (gs -> sp);
+-            charp = (char *) intp;
++            charp = (char *) intp + CHOFF;
+             bool2 = *charp;
+             *intp = bool1 && bool2;
+          }
+@@ -6780,7 +6780,7 @@ static void int1 (global_store *gs)
+             case 'C':
+                intp = (int *) stackp;
+                *intp = 0;
+-               charp = (char *) stackp;
++               charp = (char *) stackp + CHOFF;
+                *charp = *((char *) sourcep);
+                break;
+ 
+@@ -6856,7 +6856,7 @@ static void int1 (global_store *gs)
+             case 'C':
+                intp = (int *) stackp;
+                *intp = 0;
+-               charp = (char *) stackp;
++               charp = (char *) stackp + CHOFF;
+                *charp = *((char *) sourcep);
+                break;
+ 
+@@ -6931,7 +6931,7 @@ static void int1 (global_store *gs)
+ 
+          (gs -> sp) -= 4;
+          intp = ADDRSTACK (gs -> sp);
+-         charp = (char *) intp;
++         charp = (char *) intp + CHOFF;
+          *intp = 0;
+          *charp = bool;
+ 
+@@ -6999,7 +6999,7 @@ static void int1 (global_store *gs)
+             bool1 = STACK_C (gs -> sp);
+             (gs -> sp) -= 4;
+             intp = ADDRSTACK (gs -> sp);
+-            charp = (char *) intp;
++            charp = (char *) intp + CHOFF;
+             bool2 = *charp;
+             *intp = bool1 || bool2;
+          }
+@@ -7133,7 +7133,7 @@ static void int1 (global_store *gs)
+             case 'C':
+                intp = (int *) stackp;
+                *intp = 0;
+-               *stackp = pcode -> q;
++               *(stackp + CHOFF) = pcode -> q;
+                STACKTYPE (gs -> sp) = pcode -> t;
+                break;
+             case 'N':
+@@ -7275,7 +7275,7 @@ static void int1 (global_store *gs)
+             case 'C':
+                intp = (int *) stackp;
+                *intp = 0;
+-               *stackp = wert;
++               *(stackp + CHOFF) = wert;
+                STACKTYPE (gs -> sp) = pcode -> t;
+                break;
+             case 'A':
+@@ -7784,7 +7784,7 @@ static void int1 (global_store *gs)
+                (gs -> sp) += 4;
+                stackp = ADDRSTACK (gs -> sp);
+                intp = (int *) stackp;
+-               charp = (char *) stackp;
++               charp = (char *) stackp + CHOFF;
+ 
+                return_addr = gs -> display [gs -> level] + 72;
+                *intp = 0;
+@@ -9672,7 +9672,7 @@ static void int1 (global_store *gs)
+             bool1 = STACK_C (gs -> sp);
+             (gs -> sp) -= 4;
+             intp = ADDRSTACK (gs -> sp);
+-            charp = (char *) intp;
++            charp = (char *) intp + CHOFF;
+             bool2 = *charp;
+             *intp = (bool1 != 0) != (bool2 != 0);
+          }
+@@ -9706,15 +9706,24 @@ static void int1 (global_store *gs)
+ 
+          STACKTYPE (gs -> sp) = ' ';
+ 
+-         cpu1 = (unsigned char *) ADDRSTACK ((gs -> sp) + 3);
+-         cpu2 = (unsigned char *) ADDRSTACK ((gs -> sp) + 2);
++         /* the exponent field of the IEEE double at sp - 4, from its
++            bits, so that the byte order does not matter */
+ 
+          (gs -> sp) -= 4;
+          STACKTYPE (gs -> sp) = ' ';
+ 
++         {
++            double dx;
++            unsigned char bx [8];
++            memcpy (&dx, ADDRSTACK (gs -> sp), 8);
++            memcpy (bx, &dx, 8);
++#if CHOFF
++            wert1 = ((bx [0] & 0x7f) << 4) | (bx [1] >> 4);
++#else
++            wert1 = ((bx [7] & 0x7f) << 4) | (bx [6] >> 4);
++#endif
++         }
+          intp = ADDRSTACK (gs -> sp);
+-         wert1 = *cpu2 >> 4;
+-         wert1 += (*cpu1 & 0x7f) * 16;
+          *intp = wert1 - 0x3ff;
+ 
+          break;
+@@ -10108,7 +10117,7 @@ static void int1 (global_store *gs)
+ 
+          (gs -> sp) -= 4;
+          intp = ADDRSTACK (gs -> sp);
+-         charp = (char *) intp;
++         charp = (char *) intp + CHOFF;
+          *intp = 0;
+          *charp = bool;
+ 
+@@ -10194,7 +10203,7 @@ static void int1 (global_store *gs)
+          }
+ 
+          intp = ADDRSTACK (gs -> sp);
+-         charp = (char *) intp;
++         charp = (char *) intp + CHOFF;
+          *intp = 0;
+          *charp = found;
+ 
+@@ -10362,7 +10371,7 @@ static void int1 (global_store *gs)
+ 
+          (gs -> sp) -= 4;
+          intp = ADDRSTACK (gs -> sp);
+-         charp = (char *) intp;
++         charp = (char *) intp + CHOFF;
+          *intp = 0;
+          *charp = found;
+ 
+diff --git a/bin/pcint.h b/bin/pcint.h
+index 5ac4e97..2cdd300 100644
+--- a/bin/pcint.h
++++ b/bin/pcint.h
+@@ -75,7 +75,14 @@
+ 
+ #define ADDRSTACK(x)   (void *) (gs -> stack0 + (x))
+ 
+-#define STACK_C(x)     *((char *)(ADDRSTACK (x)))
++/* a char or boolean on the stack is an int whose value is the char:
++   on a big-endian machine (S/390) its byte is the last of the four */
++#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
++#define CHOFF 3
++#else
++#define CHOFF 0
++#endif
++#define STACK_C(x)     *((char *)(ADDRSTACK (x)) + CHOFF)
+ #define STACK_I(x)     *((int *)(ADDRSTACK (x)))
+ #define STACK_P(x)     *((void **)(ADDRSTACK (x)))
+ #define STACK_R(x)     *((double *)(ADDRSTACK (x)))
