@@ -5,7 +5,17 @@ header only and all `static`.
 
 ## CMS: natively compiled (12 October 2026)
 
-    PLIC fn      fn PLI -> fn C (PLI2C MODULE) -> GCC380 + GCCLIB31 -> fn MODULE
+    PLIC fn            fn PLI -> fn C (PLI2C MODULE) -> CC EXEC (GCC 13) -> fn MODULE
+    PLIC fn ( GCC380   the same through GCC380 and GCCLIB31
+
+**Through GCC 13 (tests tc22-tc24): all 19 upstream tests give the PC's
+output.** IEEE floating point fixed T02; a line `/*` on the stack is end of
+file for SYSIN (cmsrt), which T11 and T20 need. PLICMS H maps PL/I file
+names to CMS ids for both compilers; a name part longer than 8 becomes its
+first and last 4 letters and digits (`plitest_out.txt` -> `PLITTOUT TXT`),
+so `plitest_out` and `plitest_rec` no longer collide (T12).
+
+The first route, GCC380 (below), is kept as `( GCC380`.
 
 - **PLI2C MODULE** is the translator, cross-built through M5f (`m5f/crt.sh pli_all.c`).
 - **The C it writes is compiled on CMS by GCC380.** Two things make that
