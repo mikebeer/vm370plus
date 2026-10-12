@@ -309,7 +309,7 @@ static int parse_name(const char *name, struct cfile *f)
     /* binary by file type: object files, archives and images (the C/C++
        toolchain's as/ld/ar read and write them through fopen) */
     static const char *const bin[] = { "RXBIN", "MODULE", "O", "A", "ELF", "OBJ",
-        "XIMAGE", "LIB", "BIN", "OUT", "GCH", "TAR", "TMP", "DB", "SQLITE", "DB3", 0 };
+        "XIMAGE", "LIB", "BIN", "OUT", "GCH", "TAR", "TMP", "DB", "SQLITE", "DB3", "DBF", "DBT", "XDX", 0 };
     for (int b = 0; bin[b]; b++) if (!strcmp(part[1], bin[b])) f->binary = 1;
     /* SQLite's journal of fn.db is fn.db-journal: filetype DB-JOURN */
     if (!strncmp(part[1], "DB-", 3)) f->binary = 1;

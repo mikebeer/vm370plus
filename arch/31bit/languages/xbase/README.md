@@ -66,3 +66,13 @@ The manual is in [`docs/XBase-User-Guide.docx`](docs/XBase-User-Guide.docx).
 | `tests/` | test programs, expected output (`.out`) and input (`.in`) |
 | `examples/` | sample programs |
 | `docs/` | the manual |
+
+## VM/370plus (9.6)
+
+CMS: `XBASE fn.prg [args]` runs XBASE RXBIN on RXBVM8 (the cREXX VM
+cross-built for CMS). Test tc37 (12 October 2026): all 7 tests in
+`tests/` give the PC's output on CMS (`cms/XBTEST EXEC` runs them, input
+from `fn IN` through the stack). Tables (`.dbf`), memos (`.dbt`) and
+index files (`.xdx`) are binary CMS files (filetypes DBF, DBT, XDX);
+the index was read as text before upstream 3ca444f, which on CMS meant
+EBCDIC. Debian: `xbase fn.prg` (cREXX bundle).

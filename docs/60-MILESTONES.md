@@ -56,7 +56,7 @@ and the work after 64-bit is **M11**.
 | M9 | 9.3 | C++ | C++ on CMS (subset, cross route) | Done |  | Superseded by 9.21: full GCC 13 C++ natively on CMS, not a subset |
 | M9 | 9.4 | Database | SQL: SQLite on CMS + SQLSERV; MariaDB/PostgreSQL on Debian | In progress |  | SQLite 3.46.1 on CMS done (SQLITE EXEC, tc31: output = PC, database persists); next SQLSERV service machine; MariaDB/PostgreSQL on Debian. languages/sqlite |
 | M9 | 9.5 | Network | CMS sockets + httpd | Planned |  |  |
-| M9 | 9.6 | dbase | xBase / Harbour | Planned |  |  |
+| M9 | 9.6 | dbase | xBase / Harbour | Done |  | mikebeer/xbase (xBase/Clipper/Harbour-style, in cREXX) on CMS (XBASE EXEC, RXBVM8; tc37 7/7 tests = PC; index read fix pushed upstream 3ca444f) and Debian (cREXX bundle). Harbour itself not ported. languages/xbase |
 | M9 | 9.7 | MQ | MQ and MQTT (CMS and Debian) | Planned |  | mosquitto on Debian done |
 | M9 | 9.8 | APL | APL in C on CMS | Done | 11 Oct | Debian 34/34; CMS 33/33 (primes.apl has lines over 80 columns); e551b9e; needs Hercules 4 |
 | M9 | 9.9 | REXX | ooRexx 5 on Debian | Planned |  |  |

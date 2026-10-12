@@ -1,0 +1,19 @@
+/* XBTEST EXEC -- run xBase tests: XBTEST fn1 fn2 ... (fn PRG, fn IN)   */
+ARG LIST
+DO I = 1 TO WORDS(LIST)
+  F = WORD(LIST, I)
+  'MAKEBUF'
+  QUEUE F'.prg'
+  'STATE' F 'IN *'
+  IF RC = 0 THEN DO
+    'EXECIO * DISKR' F 'IN * (FINIS STEM IN.'
+    DO J = 1 TO IN.0; QUEUE IN.J; END
+  END
+  QUEUE '/*'
+  SAY '=== XBTEST' F
+  'RXBVM8 XBASE -a =STACK'
+  R = RC
+  'DROPBUF'
+  SAY '=== END' F 'RC' R
+END
+EXIT 0

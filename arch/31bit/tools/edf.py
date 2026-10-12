@@ -32,9 +32,10 @@ usage: edf.py IMAGE format VOLID [BLKSIZE]
        edf.py IMAGE list
        edf.py IMAGE get FN FT [OUT]        (EBCDIC records -> text lines)
        edf.py IMAGE put FN FT FM IN [F lrecl|V|BIN]
-       edf.py IMAGE putlist LIST           (lines: FN FT FM IN [F lrecl|V|BIN])
+       edf.py IMAGE putlist LIST           (lines: FN FT FM IN [F lrecl|V|BIN|RAW])
   BIN: the bytes of IN as F 80 records, padded with zeros (what READCARD
   of an EBCDIC deck gives): TEXT decks, tar files, XIMAGEs.
+  RAW: the bytes exactly, as V records (RXBIN files, databases).
        edf.py IMAGE erase FN FT
        edf.py IMAGE label
 """
@@ -564,6 +565,13 @@ def put_one(edf, bits, d, entries, cmd, job):
         raw += bytes(-len(raw) % 80)
         recs = [raw[k:k + 80] for k in range(0, len(raw), 80)]
         recfm, lrecl = 'F', 80
+    elif recfm == 'RAW':
+        # the bytes exactly, as V records of up to 32760 (cmsrt reads a
+        # binary file type as its records joined): RXBIN, databases
+        raw = open(job[3], 'rb').read()
+        recs = [raw[k:k + 32760] for k in range(0, len(raw), 32760)] or [b'']
+        recfm = 'V'
+        lrecl = max(len(r) for r in recs)
     else:
         lines = open(job[3], encoding='latin-1').read().split('\n')
         if lines and lines[-1] == '':
