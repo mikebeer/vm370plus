@@ -58,7 +58,7 @@ CALL QUIET 'ERASE SQLREQ CARDS A'
 /* wait for the answer: up to two minutes                             */
 DO T = 1 TO 60
   'MAKEBUF'
-  'EXECIO * CP (STRING QUERY READER ALL'
+  'EXECIO * CP (STRING QUERY READER ALL' USERID() /* own files, also class D */
   GOT = 0
   DO WHILE QUEUED() > 0
     PARSE PULL ROW

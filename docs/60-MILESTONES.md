@@ -54,7 +54,7 @@ and the work after 64-bit is **M11**.
 | M9 | 9.1 | Since kit b6 | SET/QUERY MACHINE, FULIST, GLOBALV, command tables, I-257, I-258 | Done | 10–11 Oct |  |
 | M9 | 9.2 | CP leftovers | I-235 (models), I-201 (DMKDMP dump), warm start (I-267, I-268), LPSW fast path above 16 MB, per-user IP (9.12a) | Done | 11 Oct | I-201, I-265, I-267, I-268, I-269 fixed; LPSW/SVC fast paths; I-235 models kept resident by design (M10 revisits sharer invalidation) |
 | M9 | 9.3 | C++ | C++ on CMS (subset, cross route) | Done |  | Superseded by 9.21: full GCC 13 C++ natively on CMS, not a subset |
-| M9 | 9.4 | Database | SQL: SQLite on CMS + SQLSERV; MariaDB/PostgreSQL on Debian | In progress |  | SQLite 3.46.1 on CMS done (SQLITE EXEC, tc31: output = PC, database persists); next SQLSERV service machine; MariaDB/PostgreSQL on Debian. languages/sqlite |
+| M9 | 9.4 | Database | SQL: SQLite on CMS + SQLSERV; MariaDB/PostgreSQL on Debian | In progress |  | SQLite 3.46.1 on CMS (SQLITE EXEC, tc31 = PC). SQLSERV service machine done (tc47, 12 Oct): SQL EXEC requests over reader/punch, SQLRUN, errors and STOP; QUERY READER ALL userid for class D clients. Next: SQLSERV directory entry in the kit; MariaDB/PostgreSQL on Debian. languages/sqlite |
 | M9 | 9.5 | Network | CMS sockets + httpd | Planned |  |  |
 | M9 | 9.6 | dbase | xBase / Harbour | Done |  | mikebeer/xbase on CMS and Debian: cREXX version (XBASE RXBIN, tc37 7/7) and the C89 version (XBASEC XIMAGE via XL; tc42 7/7 = PC; 32-bit long fixes pushed upstream 7d2a188); Debian xbase-c. Harbour itself not ported. languages/xbase (mkxbasec.sh) |
 | M9 | 9.7 | MQ | MQ and MQTT (CMS and Debian) | Planned |  | mosquitto on Debian done |
