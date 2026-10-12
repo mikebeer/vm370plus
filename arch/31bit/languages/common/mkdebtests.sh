@@ -26,5 +26,7 @@ cp -r $MB/apl/tests $MB/apl/examples $MB/apl/ref $T/apl/
 cp -r $MB/cobol/tests $T/cobol/; cp -r $MB/pli/tests $T/pli/
 cp -r $XB/tests $T/xbase/; cp -r $MB/smalltalk/lib $MB/smalltalk/tests $T/smalltalk/
 cp $H/runall.sh $T/
+# tests/run.sh calls $top/$COBOL (t15's dynamic module): a relative name
+ln -s /usr/local/bin/cobol $T/cobol/cobol; ln -s /usr/local/bin/pli $T/pli/pli
 (cd $R && tar czf "$OUT/langs2.tgz" usr)
 ls -l "$OUT/langs2.tgz"

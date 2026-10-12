@@ -3,8 +3,8 @@
 # (mikebeer/cobol), PL/I (mikebeer/pli), xBase and Smalltalk (C89 versions)
 T=/usr/local/share/vmtests
 echo "=== APL";   (cd $T/apl && APL=apl sh tests/run.sh | tail -1)
-echo "=== COBOL"; (cd $T/cobol && COBOL=cobol sh tests/run.sh | tail -1)
-echo "=== PLI";   (cd $T/pli && PLI=pli sh tests/run.sh | tail -1)
+echo "=== COBOL"; (cd $T/cobol && COBOL=./cobol sh tests/run.sh | tail -1)
+echo "=== PLI";   (cd $T/pli && PLI=./pli sh tests/run.sh | tail -1)
 echo "=== XBASE"; p=0; f=0
 for t in $T/xbase/tests/*.prg; do n=$(basename $t .prg); in=/dev/null
   [ -f $T/xbase/tests/$n.in ] && in=$T/xbase/tests/$n.in
