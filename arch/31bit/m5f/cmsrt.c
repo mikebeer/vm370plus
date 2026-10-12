@@ -497,7 +497,9 @@ int _open(const char *name, int flags, int mode)
     if (fd == NFILES) { errno = EMFILE; return -1; }
     struct cfile *f = &files[fd];
     memset(f, 0, sizeof *f);
-    if (name[0] == '/' && name[1]) {
+    /* "/x.y" (one component) is a CMS file: SQLite makes every name
+       absolute against getcwd(), which is "." */
+    if (name[0] == '/' && name[1] && strchr(name + 1, '/')) {
         u32 sz; int dir;
         const char *d = vfs_find(name, &sz, &dir);
         if (!d || dir) { errno = d ? EISDIR : ENOENT; return -1; }
@@ -550,6 +552,7 @@ int _write(int fd, const char *p, int n)
     if (fd < 3 || fd >= NFILES || !files[fd].used || !files[fd].writing) { errno = EBADF; return -1; }
     struct cfile *f = &files[fd];
     if (f->pos + n > f->len && grow(f, f->pos + n - f->len)) { errno = ENOSPC; return -1; }
+    if (f->pos > f->len) memset(f->data + f->len, 0, f->pos - f->len);   /* the gap */
     memcpy(f->data + f->pos, p, n);
     f->pos += n;
     if (f->pos > f->len) f->len = f->pos;
@@ -561,6 +564,7 @@ int _read(int fd, char *p, int n)
     if (fd == 0) return tread(p, n);
     if (fd < 3 || fd >= NFILES || !files[fd].used) { errno = EBADF; return -1; }
     struct cfile *f = &files[fd];
+    if (f->pos >= f->len) return 0;
     u32 k = f->len - f->pos;
     if ((u32)n < k) k = n;
     memcpy(p, f->data + f->pos, k);
@@ -575,9 +579,9 @@ int _lseek(int fd, int off, int whence)
     struct cfile *f = &files[fd];
     long np = whence == SEEK_SET ? off : whence == SEEK_CUR ? (long)f->pos + off : (long)f->len + off;
     if (np < 0) { errno = EINVAL; return -1; }
-    if ((u32)np > f->len && f->writing) { if (grow(f, np - f->len)) { errno = ENOSPC; return -1; }
-        memset(f->data + f->len, 0, np - f->len); f->len = np; }
-    if ((u32)np > f->len) np = f->len;
+    /* past the end: the file grows only when written there (POSIX) --
+       SQLite seeks to offset 24 of an empty database to read it */
+    if ((u32)np > f->len && !f->writing) np = f->len;
     f->pos = np;
     return np;
 }
@@ -587,7 +591,8 @@ int _fstat(int fd, struct stat *st)
     memset(st, 0, sizeof *st);
     if (fd < 3) { st->st_mode = S_IFCHR; return 0; }
     if (fd >= NFILES || !files[fd].used) { errno = EBADF; return -1; }
-    st->st_mode = S_IFREG; st->st_size = files[fd].len; st->st_blksize = 4096;
+    st->st_mode = S_IFREG | 0644; st->st_size = files[fd].len; st->st_blksize = 4096;
+    st->st_nlink = 1;
     st->st_dev = 1;
     st->st_ino = files[fd].ino ? files[fd].ino : ino_hash(files[fd].fn, 16);
     return 0;
@@ -600,7 +605,7 @@ int _stat(const char *name, struct stat *st)
     if (!strcmp(name, ".") || !strcmp(name, "./") || !strcmp(name, "/")) {
         memset(st, 0, sizeof *st); st->st_mode = S_IFDIR | 0777; return 0;
     }
-    if (name[0] == '/') {
+    if (name[0] == '/' && strchr(name + 1, '/')) {
         u32 sz; int dir;
         if (!vfs_find(name, &sz, &dir)) { errno = ENOENT; return -1; }
         memset(st, 0, sizeof *st);
@@ -608,6 +613,18 @@ int _stat(const char *name, struct stat *st)
         st->st_size = sz; st->st_blksize = 4096;
         st->st_dev = 2; st->st_ino = ino_hash((const unsigned char *)name, strlen(name));
         return 0;
+    }
+    /* a file this program has open for writing is what it says it is,
+       on disk or not yet (CMS writes it at close or fsync): SQLite stats
+       its new database to check that it was not unlinked or moved */
+    {
+        struct cfile t;
+        memset(&t, 0, sizeof t);
+        if (!parse_name(name, &t))
+            for (int k = 3; k < NFILES; k++)
+                if (files[k].used && files[k].writing && !memcmp(files[k].fn, t.fn, 8) &&
+                    !memcmp(files[k].ft, t.ft, 8) && (!t.fm_given || files[k].fm[0] == t.fm[0]))
+                    return _fstat(k, st);
     }
     int fd = _open(name, O_RDONLY, 0);
     if (fd < 0) return -1;
