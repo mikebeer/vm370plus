@@ -666,9 +666,9 @@ CONFIG_CCW_CONSOLE=y
 # CONFIG_SCLP_CPI is not set
 # CONFIG_SCLP_ASYNC is not set
 # CONFIG_S390_TAPE is not set
-# CONFIG_VMCP is not set
+CONFIG_VMCP=y
 # CONFIG_MONWRITER is not set
-# CONFIG_S390_VMUR is not set
+CONFIG_S390_VMUR=y
 
 #
 # I2C support

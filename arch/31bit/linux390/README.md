@@ -13,3 +13,35 @@ Built in the workspace from the v4.0 tag with `s390x-linux-gnu-gcc` 13:
   takes a specification exception (lx28). The PSW goes to `__SF_EMPTY+4`.
 - The reader deck is `arch/s390/boot/image` cut into 80-byte cards (the image
   is already laid out for a VM reader IPL), an `ID MAINT` card in front.
+
+## Kernel #6 and later (12 October 2026): vmcp and vmur
+
+The source is the v4.0 tag (`git clone --depth 1 --branch v4.0
+https://github.com/torvalds/linux`), with `compiler-gcc13.h` copied from
+`compiler-gcc5.h` and these patches:
+
+| Patch | Why |
+|---|---|
+| `psw_idle-align.patch` | LPSW needs a doubleword (apply by hand: its hunk has no line numbers) |
+| `dma16m-idal.patch`, `entry-mcck-loop.patch` | as before |
+| `cputime-dr.patch` | GCC 13 compiles `"d" (CPUTIME_PER_SEC / 2)` (a 64-bit constant) as a register pair and `dr` divides by its high word, zero: a fixed-point divide exception in `init_posix_cpu_timers` at boot. Cast to `unsigned int`. |
+| `machine-vm.patch` | Linux knows VM only from STSI 3.2.2, which our CP does not simulate; CPU version X'FF' (STIDP) now also means VM, so `vmcp` and `vmur` load. |
+| `vmur-vm370.patch` | VM/370 has neither DIAG X'210' (device class) nor the VM/SP DIAG X'14' subcodes (X'0FFF', X'28'). The device class comes from `QUERY VIRTUAL vdev` (CP command by DIAG 8, into a small kmalloc buffer); the reader is read with CCW READ, one card per I/O, unit exception = end of file. |
+
+`config-4.0-31bit` now has `CONFIG_VMCP=y` and `CONFIG_S390_VMUR=y`.
+
+On Debian:
+- `vmcp` issues CP commands, e.g. `vmcp q time` or `vmcp msg cmsuser hello`.
+- Before the spool devices can be used, set them online:
+  `echo 1 > /sys/bus/ccw/devices/0.0.000c/online`, and the same for `000d`.
+- To punch: `vmcp spool 00d to user`, write 80-byte cards to
+  `/dev/vmpun-0.0.000d`, then `vmcp close 00d name fn ft`. VM/370's CLOSE
+  has no TO option.
+- To read: `cat /dev/vmrdr-0.0.000c` reads the next reader file as 80-byte
+  cards.
+- The s390-tools `vmur` program expects z/VM's response formats, so do not
+  use it.
+
+`decks/linux49.rdr` is a reader deck of the GCC 13-fixed kernel: use it to
+boot when the disk's IPL records point to a kernel that does not boot,
+then run vmzipl again.

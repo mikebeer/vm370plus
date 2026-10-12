@@ -1,0 +1,178 @@
+--- a/drivers/s390/char/vmur.c
++++ b/drivers/s390/char/vmur.c	2026-10-12 23:43:56.122190452 +0000
+@@ -20,6 +20,7 @@
+ #include <asm/ccwdev.h>
+ #include <asm/debug.h>
+ #include <asm/diag.h>
++#include <asm/cpcmd.h>
+ 
+ #include "vmur.h"
+ 
+@@ -319,10 +320,16 @@
+ 	/* On special conditions irb is an error pointer */
+ 	if (IS_ERR(irb))
+ 		urd->io_request_rc = PTR_ERR(irb);
+-	else if (irb->scsw.cmd.dstat == (DEV_STAT_CHN_END | DEV_STAT_DEV_END))
+-		urd->io_request_rc = 0;
+-	else
+-		urd->io_request_rc = -EIO;
++	else {
++		urd->last_dstat = irb->scsw.cmd.dstat;
++		urd->last_count = irb->scsw.cmd.count;
++		if (irb->scsw.cmd.dstat == (DEV_STAT_CHN_END | DEV_STAT_DEV_END))
++			urd->io_request_rc = 0;
++		else if (urd->vm370 && (irb->scsw.cmd.dstat & DEV_STAT_UNIT_EXCEP))
++			urd->io_request_rc = -ENODATA;	/* end of the spool file */
++		else
++			urd->io_request_rc = -EIO;
++	}
+ 
+ 	complete(urd->io_done);
+ }
+@@ -363,6 +370,36 @@
+  * cc=2  The virtual device exists, but is not associated with a real device
+  * cc=3  Invalid device address, or the virtual device does not exist
+  */
++/*
++ * VM/370plus: CP has no DIAGNOSE X'210'.  Ask it instead: QUERY VIRTUAL
++ * answers "RDR  00C ...", "PUN  00D ..." or "PRT  00E ...".
++ */
++static int get_urd_class_cp(struct urdev *urd)
++{
++	char cmd[32], *resp, *p;
++	int rc, class = -EIO;
++
++	/* a small kmalloc buffer: DIAG 8 must not cross a page */
++	resp = kzalloc(128, GFP_KERNEL | GFP_DMA);
++	if (!resp)
++		return -ENOMEM;
++	/* VM/370 device addresses have three hex digits */
++	sprintf(cmd, "QUERY VIRTUAL %03X", urd->dev_id.devno);
++	cpcmd(cmd, resp, 127, &rc);
++	for (p = resp; *p == ' '; p++)
++		;
++	if (!strncmp(p, "RDR", 3))
++		class = DEV_CLASS_UR_I;
++	else if (!strncmp(p, "PUN", 3) || !strncmp(p, "PRT", 3))
++		class = DEV_CLASS_UR_O;
++	else
++		pr_warn("vmur: %s: rc %d: %.40s\n", cmd, rc, resp);
++	if (class >= 0)
++		urd->vm370 = 1;
++	kfree(resp);
++	return class;
++}
++
+ static int get_urd_class(struct urdev *urd)
+ {
+ 	static struct diag210 ur_diag210;
+@@ -380,7 +417,7 @@
+ 	case 3:
+ 		return -ENODEV;
+ 	default:
+-		return -EIO;
++		return get_urd_class_cp(urd);
+ 	}
+ }
+ 
+@@ -555,6 +592,57 @@
+ 	return rc;
+ }
+ 
++/*
++ * VM/370: read the reader with CCW READ (X'02'), one 80-byte card per I/O,
++ * as an operating system reads a 2540 under VM.  CP ends a spool file with
++ * unit exception: that is end of file for read().  A short record is
++ * padded with blanks (X'40') to 80 bytes, so read() returns whole cards.
++ */
++static ssize_t ccw_read(struct urdev *urd, char __user *ubuf, size_t count)
++{
++	struct ccw1 *cpa;
++	char *card;
++	size_t done = 0;
++	int rc = 0, n;
++
++	cpa = kzalloc(sizeof(*cpa), GFP_KERNEL | GFP_DMA);
++	card = kmalloc(80, GFP_KERNEL | GFP_DMA);
++	if (!cpa || !card) {
++		rc = -ENOMEM;
++		goto out;
++	}
++	while (count - done >= 80) {
++		memset(card, 0x40, 80);
++		cpa->cmd_code = 0x02;			/* READ */
++		cpa->flags = CCW_FLAG_SLI;
++		cpa->count = 80;
++		cpa->cda = (u32)(addr_t) card;
++		urd->io_request_rc = 0;
++		rc = do_ur_io(urd, cpa);
++		if (rc)
++			break;
++		rc = urd->io_request_rc;
++		n = 80 - urd->last_count;
++		if (rc == -ENODATA) {			/* end of file */
++			rc = 0;
++			if (n > 0 && n < 80 && !(urd->last_dstat & DEV_STAT_UNIT_EXCEP))
++				;
++			break;
++		}
++		if (rc)
++			break;
++		if (copy_to_user(ubuf + done, card, 80)) {
++			rc = -EFAULT;
++			break;
++		}
++		done += 80;
++	}
++out:
++	kfree(card);
++	kfree(cpa);
++	return done ? done : rc;
++}
++
+ static ssize_t ur_read(struct file *file, char __user *ubuf, size_t count,
+ 		       loff_t *offs)
+ {
+@@ -567,6 +655,12 @@
+ 		return 0;
+ 
+ 	urd = ((struct urfile *) file->private_data)->urd;
++	if (urd->vm370) {
++		rc = ccw_read(urd, ubuf, count);	/* do_ur_io locks */
++		if (rc > 0)
++			*offs += rc;
++		return rc;
++	}
+ 	rc = mutex_lock_interruptible(&urd->io_mutex);
+ 	if (rc)
+ 		return rc;
+@@ -648,6 +742,8 @@
+ 	case DEV_CLASS_UR_O:
+ 		return 0; /* no check needed here */
+ 	case DEV_CLASS_UR_I:
++		if (urd->vm370)
++			return 0;
+ 		return verify_uri_device(urd);
+ 	default:
+ 		return -EOPNOTSUPP;
+@@ -681,6 +777,8 @@
+ 	case DEV_CLASS_UR_O:
+ 		return 0;
+ 	case DEV_CLASS_UR_I:
++		if (urd->vm370)
++			return 80;
+ 		return get_uri_file_reclen(urd);
+ 	default:
+ 		return -EOPNOTSUPP;
+--- a/drivers/s390/char/vmur.h
++++ b/drivers/s390/char/vmur.h	2026-10-12 23:43:56.121703533 +0000
+@@ -73,6 +73,9 @@
+ 	wait_queue_head_t wait;		/* wait queue to serialize open */
+ 	int open_flag;			/* "urdev is open" flag */
+ 	spinlock_t open_lock;		/* serialize critical sections */
++	int vm370;			/* VM/370: no DIAG 210, reader by CCW */
++	int last_dstat;			/* device status of the last I/O */
++	int last_count;			/* residual count of the last I/O */
+ };
+ 
+ /*

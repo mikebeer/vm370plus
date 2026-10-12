@@ -1,0 +1,20 @@
+--- a/arch/s390/kernel/early.c
++++ b/arch/s390/kernel/early.c	2026-10-12 22:23:55.313193439 +0000
+@@ -221,7 +221,17 @@
+ static noinline __init void detect_machine_type(void)
+ {
+ 	struct sysinfo_3_2_2 *vmms = (struct sysinfo_3_2_2 *)&sysinfo_page;
++	struct cpuid id;
+ 
++	/*
++	 * VM/370plus: its CP does not simulate STSI, but like every VM it
++	 * stores version code X'FF' with STIDP.  That is VM.
++	 */
++	get_cpu_id(&id);
++	if (id.version == 0xff && stsi(NULL, 0, 0, 0) < 0) {
++		S390_lowcore.machine_flags |= MACHINE_FLAG_VM;
++		return;
++	}
+ 	/* Check current-configuration-level */
+ 	if (stsi(NULL, 0, 0, 0) <= 2) {
+ 		S390_lowcore.machine_flags |= MACHINE_FLAG_LPAR;
