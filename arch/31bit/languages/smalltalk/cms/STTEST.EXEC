@@ -5,7 +5,13 @@ ARG LIST
 DO I = 1 TO WORDS(LIST)
   F = WORD(LIST, I)
   'MAKEBUF'
-  QUEUE '-L .' F'.st'
+  FL = ''
+  'STATE' F 'FLAGS *'
+  IF RC = 0 THEN DO
+    'EXECIO 1 DISKR' F 'FLAGS * (FINIS STEM FL.'
+    IF FL.0 > 0 THEN FL = STRIP(FL.1)
+  END
+  QUEUE '-L .' FL F'.st'
   'STATE' F 'IN *'
   IF RC = 0 THEN DO
     'EXECIO * DISKR' F 'IN * (FINIS STEM IN.'

@@ -504,3 +504,19 @@ The way to see it: a Hercules instruction trace (`t+`, the command, `t-`) and
 read the PSW at each `SVC 8` and at the `LPSW` that returns -- bit 32 must match.
 `b <addr>` before `/cold` plus `gpr` at the stop gives an ABEND's registers
 without a printed dump (the system printers are drained in the test setup).
+
+## The PC toolchain (12 October)
+
+**`apt-get install gcc-multilib` removes the s390x cross compiler.** On
+Ubuntu the two conflict, and apt quietly drops `gcc-13-s390x-linux-gnu`.
+The symptom comes later: `cmscc: s390x-linux-gnu-gcc: not found`.
+Reinstall `gcc-13-s390x-linux-gnu g++-13-s390x-linux-gnu
+gcc-s390x-linux-gnu g++-s390x-linux-gnu`, which in turn removes
+gcc-multilib. To test a 32-bit `long` on the PC, install multilib, test,
+and then put the cross compiler back.
+
+**A 32-bit `long` shows bugs that a 64-bit PC hides.** xBase C turned
+1e16 into 2147483647 and ignored the decimals of literals. One cause was a
+`long` overflowing; the other was an uninitialised flag field that happened
+to read as zero on the PC. `gcc -m32 -msse2 -mfpmath=sse` reproduces both
+the way VM/370 shows them.

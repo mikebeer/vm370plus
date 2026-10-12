@@ -1,0 +1,15 @@
+--- a/src/cobrt.h	2026-10-12 12:27:39.207115834 +0000
++++ b/src/cobrt.h	2026-10-12 12:27:39.220799101 +0000
+@@ -3819,6 +3819,12 @@
+     }
+     for (i = 0; nm[i] && i < 299; i++) f->path[i] = nm[i];
+     f->path[i] = 0;
++#ifdef __CMS__
++    /* CMS: record files are binary (no ASCII/EBCDIC conversion, trailing
++       blanks kept); only LINE SEQUENTIAL files are text */
++    if (f->org != 1 && !strchr(f->path, '(') && i < 297)
++        strcpy(f->path + i, "(b");
++#endif
+ }
+ 
+ /* ---- indexed file index handling ---- */

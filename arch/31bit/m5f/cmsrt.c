@@ -269,6 +269,9 @@ static int parse_name(const char *name, struct cfile *f)
     memset(part, 0, sizeof part);
     f->binary = 0; f->fixed = 0;
     while (*p == ' ') p++;
+    /* "/tmp/..." (and "/var/tmp/..."): scratch files are CMS files on the
+       accessed disks (written to A), named by the last component */
+    if (!strncmp(p, "/tmp/", 5) || !strncmp(p, "/var/tmp/", 9)) p = strrchr(p, '/') + 1;
     /* "dir/fn.ft": cREXX's openfile() builds these.  "." is no mode (search
        the accessed disks); otherwise the directory is the filemode letter. */
     const char *slash = strrchr(p, '/');
@@ -293,6 +296,9 @@ static int parse_name(const char *name, struct cfile *f)
         part[np][k++] = c;
     }
     if (k) np++;
+    /* a bare name is a ddname, as CMS FILEDEF defaults it: "OUTDD" is
+       FILE OUTDD (A when written) */
+    if (np == 1) { memcpy(part[1], part[0], 9); memcpy(part[0], "FILE\0\0\0\0", 9); np = 2; }
     if (np < 2) return -1;
     put8(f->fn, part[0]); put8(f->ft, part[1]);
     if (np >= 3) {
@@ -444,6 +450,7 @@ static void vfs_load(struct vroot *r)
     if (read_whole(&g)) { free(g.data); return; }
     r->tar = g.data; r->len = g.len;
 }
+#define TMPPATH(n) (!strncmp((n), "/tmp/", 5) || !strncmp((n), "/var/tmp/", 9))
 static int vfs_pre(const char *path, const char *pre)
 {
     size_t n = strlen(pre);
@@ -499,7 +506,7 @@ int _open(const char *name, int flags, int mode)
     memset(f, 0, sizeof *f);
     /* "/x.y" (one component) is a CMS file: SQLite makes every name
        absolute against getcwd(), which is "." */
-    if (name[0] == '/' && name[1] && strchr(name + 1, '/')) {
+    if (name[0] == '/' && name[1] && strchr(name + 1, '/') && !TMPPATH(name)) {
         u32 sz; int dir;
         const char *d = vfs_find(name, &sz, &dir);
         if (!d || dir) { errno = d ? EISDIR : ENOENT; return -1; }
@@ -605,7 +612,7 @@ int _stat(const char *name, struct stat *st)
     if (!strcmp(name, ".") || !strcmp(name, "./") || !strcmp(name, "/")) {
         memset(st, 0, sizeof *st); st->st_mode = S_IFDIR | 0777; return 0;
     }
-    if (name[0] == '/' && strchr(name + 1, '/')) {
+    if (name[0] == '/' && strchr(name + 1, '/') && !TMPPATH(name)) {
         u32 sz; int dir;
         if (!vfs_find(name, &sz, &dir)) { errno = ENOENT; return -1; }
         memset(st, 0, sizeof *st);
