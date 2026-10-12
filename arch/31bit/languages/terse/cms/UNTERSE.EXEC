@@ -1,0 +1,16 @@
+/* UNTERSE EXEC -- decompress an IBM TERSE file (PACK or SPACK, 9.22)  */
+/*   UNTERSE [-b] fn.ft out.ft   text: EBCDIC records as CMS text      */
+/*                               -b: the bytes as they are (binary)     */
+/*   UNTERSE -i fn.ft            show the TERSE header                  */
+/* Runs UNTRS MODULE; the arguments go through the stack (CMS would cut */
+/* each to 8 characters and upper-case it).  Give a binary output a     */
+/* binary file type (BIN, DB, ...).                                     */
+PARSE ARG ARGS
+'STATE UNTRS MODULE *'
+IF RC <> 0 THEN DO
+  SAY 'UNTERSE: UNTRS MODULE not found -- LANG (the language disk) first'
+  EXIT 28
+END
+QUEUE ARGS
+'UNTRS =STACK'
+EXIT RC

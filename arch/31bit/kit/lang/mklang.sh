@@ -44,6 +44,8 @@ for f in $L/smalltalk/lib/*.st; do b=$(basename $f .st); add $(echo ${b:0:8} | t
 # ZIP, UNZIP, GZIP (9.23)
 for p in izzip izunzip minigz; do add ${p^^} TEXT ${ZIPO:-/home/claude/src/zip/out}/$p.text BIN; done
 for e in ZIP UNZIP GZIP; do add $e EXEC $L/zip/cms/$e.EXEC F; done
+# UNTERSE (9.22)
+add UNTRS TEXT ${TERSEO:-/home/claude/src/terse}/untrs.text BIN; add UNTERSE EXEC $L/terse/cms/UNTERSE.EXEC F
 # the disk's own files
 add LANG EXEC $K/LANG.EXEC F; add LANGGEN EXEC $K/LANGGEN.EXEC F; add LANG README $K/README.txt V
 sed -i 's/ F$/ F 80/' $LST

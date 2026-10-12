@@ -34,6 +34,7 @@ ckd2cckd around the work (`--cckd`); a plain .ckd is used in place.
 usage: edf.py IMAGE format VOLID [BLKSIZE]
        edf.py IMAGE list
        edf.py IMAGE get FN FT [OUT]        (EBCDIC records -> text lines)
+       edf.py IMAGE getraw FN FT OUT       (the records' bytes, joined: binary files)
        edf.py IMAGE put FN FT FM IN [F lrecl|V|BIN]
        edf.py IMAGE putlist LIST           (lines: FN FT FM IN [F lrecl|V|BIN|RAW])
   BIN: the bytes of IN as F 80 records, padded with zeros (what READCARD
@@ -527,6 +528,14 @@ def main(argv):
                     asc(f['fn']).strip(), asc(f['ft']).strip(), f['fmode'],
                     f['recfm'], f['lrecl'], f['aic'], f['adbc'], f['levels'],
                     f['date']))
+        elif cmd == 'getraw':
+            fn, ft = ebc(argv[2].upper(), 8), ebc(argv[3].upper(), 8)
+            for i, f in edf.files():
+                if f['fn'] == fn and f['ft'] == ft:
+                    open(argv[4], 'wb').write(b''.join(edf.records_of(f)))
+                    return 0
+            print('edf: file not found')
+            return 28
         elif cmd == 'get':
             fn, ft = ebc(argv[2].upper(), 8), ebc(argv[3].upper(), 8)
             for i, f in edf.files():

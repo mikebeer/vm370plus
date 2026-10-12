@@ -15,6 +15,7 @@ VM/370plus language disk (MAINT 19F, volume VMLANG)
   SMALLTLK fn.st  Smalltalk-80 (mikebeer/smalltalk)
   ZIP / UNZIP     Info-ZIP zip 3.0 and unzip 6.0 (.zip as on the PC)
   GZIP [-d] fn.ft gzip format: fn ft -> fn ft-GZ (zlib minigzip)
+  UNTERSE in out  IBM TERSE (PACK/SPACK) files from z/OS; -b binary
 
 Headers and libraries: SYSROOT TAR and CXXROOT TAR (read as /usr/...).
 Large programs (CC1, PY, XBASEC) run from above 16 MB through XL.
