@@ -64,6 +64,8 @@ EDMBL    DS    A              THE MAP'S BLOCK NUMBERS (R/W)
 EDMBN    DS    F              HOW MANY
 EDWBUF   DS    A              A 4K BUFFER FOR WRITING (R/W)
 EDACUR   DS    F              ALLOCATION: NEXT MAP BYTE TO LOOK AT
+EDSPFLG  DS    X              X'80': THE SPARE BUFFER PAIR IS IN USE
+         DS    XL3
          DS    0D
 EDCBL    EQU   *-EDFCB
 EDCBD    EQU   (EDCBL+7)/8
@@ -185,7 +187,7 @@ FCHK     LR    R9,R1          R9 = ADT
          B     RETURN
 CHK10    STM   R3,R4,GEOM
 *        A WORK BUFFER, THEN THE LABEL: TRACK 0 RECORD 3, ANY LENGTH
-         LA    R0,512+EDCBD
+         LA    R0,1536+EDCBD
          DMSFREE DWORDS=(0),TYPE=NUCLEUS
          LTR   R15,R15
          BNZ   NOSTORE
@@ -322,7 +324,7 @@ CHK45    IC    R15,RCRO       0, OR 4 AS READMFD SAYS IT
 CHK46    OI    ADTFLG1,ADTFRO
          B     RETURN
 *
-CHKNOT   LA    R0,512+EDCBD   NOT EDF: GIVE IT ALL BACK
+CHKNOT   LA    R0,1536+EDCBD   NOT EDF: GIVE IT ALL BACK
          LR    R1,R10
          DMSFRET DWORDS=(0),LOC=(1)
          LA    R15,255
@@ -596,7 +598,16 @@ OPENST   ST    R14,OPENR14
          L     R1,F1
          LNR   R1,R1
          ST    R1,EADBIX
-         LA    R0,1024        TWO 4K BUFFERS
+*        THE SPARE PAIR AFTER EDBUF FIRST: NO SVC, SO A FILE CAN BE
+*        OPENED WHILE CMS IS IN AN SVC ALREADY (LOADMOD, I-271)
+         TM    EDSPFLG,X'80'
+         BO    OPEN05
+         OI    EDSPFLG,X'80'
+         L     R1,EDBUF
+         LA    R1,2048(,R1)
+         LA    R1,2048(,R1)
+         B     OPEN10
+OPEN05   LA    R0,1024        TWO 4K BUFFERS
          DMSFREE DWORDS=(0),TYPE=NUCLEUS
          LTR   R15,R15
          BZ    OPEN10
@@ -689,7 +700,17 @@ FCLOSE   LR    R8,R1
          L     R1,EADBUF
          LTR   R1,R1
          BZ    CLOSE9
-         LA    R0,1024
+         L     R10,AFTADT
+         L     R10,ADTQQM-ADTSECT(,R10)
+         LTR   R10,R10
+         BZ    CLOSE5
+         L     R0,EDBUF
+         AH    R0,=H'4096'
+         CR    R0,R1
+         BNE   CLOSE5
+         NI    EDSPFLG,X'7F'  THE SPARE PAIR: FREE AGAIN
+         B     CLOSE9
+CLOSE5   LA    R0,1024
          DMSFRET DWORDS=(0),LOC=(1)
 CLOSE9   XC    EDAFT(EAL),EDAFT
          SR    R15,R15
@@ -749,7 +770,7 @@ FREE30   L     R1,EDWBUF
          BZ    FREE40
          LA    R0,512
          DMSFRET DWORDS=(0),LOC=(1)
-FREE40   LA    R0,512+EDCBD
+FREE40   LA    R0,1536+EDCBD
          LR    R1,R10
          DMSFRET DWORDS=(0),LOC=(1)
          L     R14,FREER14
