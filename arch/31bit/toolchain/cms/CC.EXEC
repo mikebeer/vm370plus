@@ -1,0 +1,62 @@
+/* CC EXEC -- GCC 13 C (and C++) on VM/370plus CMS (9.21)              */
+/*   CC fn [ft] [( options]   fn C (or ft) -> fn MODULE                 */
+/*   options: OPT -O0|-O1|-O2  CPP (C++: CC1PLUS)  NOLINK (stop at O)  */
+/*            LIB name (more archives: /usr/lib/libname.a)             */
+/* cc1/cc1plus run from high storage (XL), as/ld are modules, headers   */
+/* and libraries come from SYSROOT TAR (cmsrt's read-only sysroot).    */
+PARSE ARG FN FT '(' OPTS
+IF FN = '' THEN DO; SAY 'CC: give the file name'; EXIT 24; END
+IF FT = '' THEN FT = 'C'
+OPT = '-O2'; CPLUS = 0; LINK = 1; LIBS = ''
+DO WHILE OPTS <> ''
+  PARSE VAR OPTS W OPTS
+  SELECT
+    WHEN LEFT(W, 2) = '-O' THEN OPT = W
+    WHEN W = 'OPT' THEN PARSE VAR OPTS OPT OPTS
+    WHEN W = 'CPP' THEN CPLUS = 1
+    WHEN W = 'NOLINK' THEN LINK = 0
+    WHEN W = 'LIB' THEN DO
+      PARSE VAR OPTS L OPTS; LIBS = LIBS '/usr/lib/lib'L'.a'
+    END
+    OTHERWISE SAY 'CC: unknown option' W
+  END
+END
+SRC = FN'.'FT
+'STATE' FN FT '*'
+IF RC <> 0 THEN DO; SAY 'CC:' FN FT 'not found'; EXIT 28; END
+/* compile: one long command line through the stack, ' \' continues  */
+CC1 = 'CC1'
+INC = '-I /usr/include/m5f -isystem /usr/lib/gcc/include'
+IF CPLUS THEN DO
+  CC1 = 'CC1PLUS'
+  INC = INC '-isystem /usr/include/c++ -isystem /usr/include/c++/s390'
+END
+QUEUE '-quiet -m31 -mesa -march=z900 -msoft-float -mlong-double-64' OPT '\'
+QUEUE '-fno-pic -fno-asynchronous-unwind-tables -fno-unwind-tables \'
+QUEUE '-fno-stack-protector -ffunction-sections -fdata-sections -nostdinc \'
+QUEUE INC '\'
+QUEUE '-isystem /usr/include/newlib -isystem /usr/include/cob -D__CMS__ \'
+QUEUE SRC '-o' FN'.s'
+'XL' CC1 '=STACK'
+IF RC <> 0 THEN EXIT RC
+QUEUE '-m31 -mesa' FN'.s -o' FN'.o'
+'AS =STACK'
+IF RC <> 0 THEN EXIT RC
+'ERASE' FN 'S A'
+IF \LINK THEN EXIT 0
+QUEUE '-m elf_s390 -static --emit-relocs --gc-sections \'
+QUEUE '-T /usr/lib/image.ld -o' FN'.elf /usr/lib/entry31.o' FN'.o \'
+QUEUE '/usr/lib/cmsrt.o --start-group' LIBS '\'
+QUEUE '/usr/lib/libc.a /usr/lib/libm.a /usr/lib/libsoftf.a \'
+QUEUE '/usr/lib/libgcc.a --end-group'
+'LD =STACK'
+IF RC <> 0 THEN EXIT RC
+'ERASE' FN 'TEXT A'
+QUEUE FN'.elf' FN'.text'
+'XL ELF2CMS =STACK'
+IF RC <> 0 THEN EXIT RC
+'ERASE' FN 'ELF A'
+'LOAD' FN '(CLEAR NOMAP'
+IF RC <> 0 THEN EXIT RC
+'GENMOD' FN
+EXIT RC

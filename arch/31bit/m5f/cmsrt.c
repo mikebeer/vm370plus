@@ -204,7 +204,11 @@ static void heap_init(void)
                 break;
             }
     }
-    if (!heap_base) { heap_base = low_heap; heap_end = low_heap + sizeof low_heap; }
+    if (!heap_base) {
+        static const char m[] = "CMSRT: no HIGHSTOR storage above 16 MB; 64 KB heap only\n";
+        tput(m, sizeof m - 1); tflush();
+        heap_base = low_heap; heap_end = low_heap + sizeof low_heap;
+    }
     heap_brk = heap_base;
 }
 
@@ -233,11 +237,20 @@ void *_sbrk(int incr)
     return old;
 }
 
+void cms_debug_heap(const char *w)
+{
+    char b[160];
+    int n = snprintf(b, sizeof b, "CMSRT %s: heap %p-%p brk %p sp %p\n", w,
+                     (void *)heap_base, (void *)heap_end, (void *)heap_brk, (void *)&n);
+    tput(b, n);
+}
+
 /* ---------------------------------------------------------------- files */
 #define NFILES 16
 
 struct cfile {
     int used, writing, binary, fm_given, fixed;
+    unsigned int ino;
     unsigned char fn[8], ft[8], fm[2];
     char *data;
     u32 len, cap, pos;
@@ -293,7 +306,7 @@ static int parse_name(const char *name, struct cfile *f)
     /* binary by file type: object files, archives and images (the C/C++
        toolchain's as/ld/ar read and write them through fopen) */
     static const char *const bin[] = { "RXBIN", "MODULE", "O", "A", "ELF", "OBJ",
-        "XIMAGE", "LIB", "BIN", "OUT", "GCH", "TAR", 0 };
+        "XIMAGE", "LIB", "BIN", "OUT", "GCH", "TAR", "TMP", 0 };
     for (int b = 0; bin[b]; b++) if (!strcmp(part[1], bin[b])) f->binary = 1;
     /* TEXT decks (elf_to_cms output): EBCDIC card images, F 80 */
     if (!strcmp(part[1], "TEXT")) { f->binary = 1; f->fixed = 80; }
@@ -386,6 +399,15 @@ static int write_whole(struct cfile *f)
     return rc ? -EIO : 0;
 }
 
+/* st_ino: programs compare (st_dev, st_ino) to spot the same file twice
+   (GCC's include directories, elf_to_cms's input/output check) */
+static unsigned int ino_hash(const unsigned char *p, int n)
+{
+    unsigned int h = 2166136261u;
+    for (int i = 0; i < n; i++) { h ^= p[i]; h *= 16777619u; }
+    return h ? h : 1;
+}
+
 /* ---------------------------------------------------- the sysroot (VFS)
  * Absolute paths ("/usr/include/stdio.h") are looked up, read-only, in a
  * tar file on an accessed disk: SYSROOT TAR, or the file named by the
@@ -467,6 +489,7 @@ int _open(const char *name, int flags, int mode)
         if (!f->data) { errno = ENOMEM; return -1; }
         memcpy(f->data, d, sz);
         f->len = sz; f->cap = sz + 1; f->binary = 1; f->used = 1;
+        f->ino = ino_hash((const unsigned char *)name, strlen(name));
         return fd;
     }
     if (parse_name(name, f)) { errno = EINVAL; return -1; }
@@ -548,6 +571,8 @@ int _fstat(int fd, struct stat *st)
     if (fd < 3) { st->st_mode = S_IFCHR; return 0; }
     if (fd >= NFILES || !files[fd].used) { errno = EBADF; return -1; }
     st->st_mode = S_IFREG; st->st_size = files[fd].len; st->st_blksize = 4096;
+    st->st_dev = 1;
+    st->st_ino = files[fd].ino ? files[fd].ino : ino_hash(files[fd].fn, 16);
     return 0;
 }
 
@@ -564,6 +589,7 @@ int _stat(const char *name, struct stat *st)
         memset(st, 0, sizeof *st);
         st->st_mode = dir ? S_IFDIR | 0555 : S_IFREG | 0444;
         st->st_size = sz; st->st_blksize = 4096;
+        st->st_dev = 2; st->st_ino = ino_hash((const unsigned char *)name, strlen(name));
         return 0;
     }
     int fd = _open(name, O_RDONLY, 0);
@@ -626,6 +652,34 @@ __attribute__((weak)) char *getcwd(char *buf, size_t n)
     strcpy(buf, "."); return buf;
 }
 __attribute__((weak)) char *getwd(char *buf) { strcpy(buf, "."); return buf; }
+/* mkstemp: a Unix template ("out.text.tmp.XXXXXX") is no CMS file id;
+   the template is rewritten to TMPnnnnn TMP (it never grows) */
+static unsigned int gettimeofday_usec(void);
+int mkstemp(char *tpl)
+{
+    static unsigned int seq;
+    size_t n = strlen(tpl);
+    if (n < 12) { errno = EINVAL; return -1; }
+    for (int tries = 0; tries < 100; tries++) {
+        unsigned int k = (unsigned int)(gettimeofday_usec() + seq++) % 100000u;
+        sprintf(tpl, "TMP%05u.TMP", k);
+        struct stat st;
+        if (_stat(tpl, &st) == 0) continue;
+        int fd = _open(tpl, O_RDWR | O_CREAT | O_TRUNC, 0600);
+        if (fd >= 0) { files[fd].binary = 1; return fd; }
+    }
+    errno = EEXIST;
+    return -1;
+}
+
+/* CMS file ids are already canonical; sysroot paths are absolute */
+__attribute__((weak)) char *realpath(const char *name, char *resolved)
+{
+    if (!name) { errno = EINVAL; return 0; }
+    if (!resolved && !(resolved = malloc(strlen(name) + 1))) { errno = ENOMEM; return 0; }
+    strcpy(resolved, name);
+    return resolved;
+}
 __attribute__((weak)) int dup(int fd) { (void)fd; errno = EMFILE; return -1; }
 __attribute__((weak)) int dup2(int a, int b) { (void)a; (void)b; errno = EBADF; return -1; }
 __attribute__((weak)) int pipe(int *fds) { (void)fds; errno = EMFILE; return -1; }
@@ -669,6 +723,12 @@ int _getpid(void) { return 1; }
 clock_t _times(struct tms *t) { memset(t, 0, sizeof *t); return 0; }
 
 /* TOD clock: bit 51 = 1 microsecond, epoch 1900 */
+static unsigned int gettimeofday_usec(void)
+{
+    unsigned long long tod;
+    __asm__ volatile ("stck %0" : "=Q"(tod) : : "cc");
+    return (unsigned int)(tod >> 12);
+}
 int gettimeofday(struct timeval *tv, void *tz)
 {
     unsigned long long tod;
