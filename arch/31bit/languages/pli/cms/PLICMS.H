@@ -18,7 +18,8 @@ static void pl_cmspart(const char *s, int n, char *out)
     char t[64];
     int k = 0, i;
     for (i = 0; i < n && k < 63; i++)
-        if (isalnum((unsigned char)s[i])) t[k++] = (char)toupper((unsigned char)s[i]);
+        if (isalnum((unsigned char)s[i]))
+            t[k++] = (char)toupper((unsigned char)s[i]);
     t[k] = 0;
     if (k > 8) { memmove(t + 4, t + k - 4, 5); }
     strcpy(out, t);
@@ -30,7 +31,8 @@ static FILE *pl_cmsopen(const char *nm, const char *md)
     if (p) nm = p + 1;
     dot = strchr(nm, '.');
     pl_cmspart(nm, dot ? (int)(dot - nm) : (int)strlen(nm), fn);
-    if (dot) pl_cmspart(dot + 1, (int)strlen(dot + 1), ft); else strcpy(ft, "FILE");
+    if (dot) pl_cmspart(dot + 1, (int)strlen(dot + 1), ft);
+    else strcpy(ft, "FILE");
     if (!fn[0]) strcpy(fn, "PLIFILE");
     if (!ft[0]) strcpy(ft, "FILE");
     snprintf(id, sizeof id, "%s.%s", fn, ft);

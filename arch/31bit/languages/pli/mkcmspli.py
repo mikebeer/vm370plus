@@ -44,7 +44,7 @@ t = ['/* PLITEST EXEC -- PLIC and run every test (stdin from fn IN) */',
      "  'PLIC' F", "  IF RC <> 0 THEN DO; SAY 'PLITEST:' F 'BUILD RC' RC; ITERATE; END",
      "  'MAKEBUF'", "  'STATE' F 'IN A'", "  IF RC = 0 THEN DO",
      "    'EXECIO * DISKR' F 'IN A (FINIS STEM IN.'",
-     "    DO J = 1 TO IN.0; QUEUE IN.J; END", "    QUEUE '/*'", '  END',
+     "    DO J = 1 TO IN.0; QUEUE IN.J; END", '  END', "  QUEUE '/*'",
      "  SAY '=== PLITEST' F", "  F", "  R = RC", "  'DROPBUF'", "  SAY '=== END' F 'RC' R", 'END', 'EXIT 0']
 add('PLITEST', 'EXEC', t)
 open(os.path.join(io, 'plifiles.txt'), 'w').write('\n'.join(L) + '\n')

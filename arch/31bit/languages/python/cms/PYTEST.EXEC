@@ -1,0 +1,9 @@
+/* PYTEST EXEC -- run Python tests: PYTEST fn1 fn2 ... (fn PY)          */
+ARG LIST
+DO I = 1 TO WORDS(LIST)
+  F = WORD(LIST, I)
+  SAY '=== PYTEST' F
+  'EXEC PYTHON' F
+  SAY '=== END' F 'RC' RC
+END
+EXIT 0

@@ -1,0 +1,16 @@
+/* PYTHON EXEC -- Python 3 subset (github.com/mikebeer/python) on CMS   */
+/*   PYTHON fn [args]   run fn PY (any accessed disk)                   */
+/*   PYTHON             interactive (end: a line of slash and star)    */
+/* Runs PY XIMAGE (XL loader, above 16 MB): the C89 interpreter with   */
+/* its library (NumPy, pandas, SciPy, re, json ...) built in (9.15).    */
+PARSE ARG FN ARGS
+'STATE PY XIMAGE *'
+IF RC <> 0 THEN DO
+  SAY 'PYTHON: PY XIMAGE not found -- access the disk that has it'
+  EXIT 28
+END
+IF FN = '' THEN DO; 'XL PY'; EXIT RC; END
+IF POS('.', FN) = 0 THEN FN = FN'.py'
+QUEUE 'PY' FN ARGS       /* CMS would cut each argument to 8 characters */
+'XL =STACK'
+EXIT RC
