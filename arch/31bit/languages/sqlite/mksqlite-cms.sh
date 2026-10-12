@@ -21,4 +21,8 @@ F="-O2 -include $H/sqlcms.h -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION \
 $M/cmscc $F -c sqlite3.c -o sqlite3.o
 $M/cmscc $F -c shell.c -o shell.o
 $M/cmscc -o sqlite3.elf shell.o sqlite3.o
-${E2C:-$W/../tc/e2c} sqlite3.elf $O/sqlite3.text
+${E2C:-/home/claude/m5f/elf_to_cms} sqlite3.elf $O/sqlite3.text
+# SQLRUN (the SQLSERV worker): sqlserv/sqlrun.c with the same sqlite3.o
+$M/cmscc $F -I. -c $H/sqlserv/sqlrun.c -o sqlrun.o
+$M/cmscc -o sqlrun.elf sqlrun.o sqlite3.o
+${E2C:-/home/claude/m5f/elf_to_cms} sqlrun.elf $O/sqlrun.text
