@@ -46,8 +46,18 @@ int main(int, char **);
 /* main runs on a stack of cms_stack_mb MB from the heap (above 16 MB):
    the 64 KB start-up stack is far too small for cREXX's recursion. */
 unsigned int cms_stack_mb __attribute__((weak)) = 8;
+/* C++ static constructors (.init_array, kept by image.ld/imagexl.ld) */
+extern void (*__init_array_start[])(void) __attribute__((weak));
+extern void (*__init_array_end[])(void) __attribute__((weak));
+static void cms_init_array(void)
+{
+    void (**f)(void);
+    if (!__init_array_start) return;
+    for (f = __init_array_start; f < __init_array_end; f++) (*f)();
+}
 static int cms_run_main(int argc, char **argv)
 {
+    cms_init_array();
     char *s = malloc(cms_stack_mb << 20);
     if (!s) return main(argc, argv);
     return cms_onstack(s + (cms_stack_mb << 20), main, argc, argv);
@@ -226,7 +236,7 @@ void *_sbrk(int incr)
 #define NFILES 16
 
 struct cfile {
-    int used, writing, binary, fm_given;
+    int used, writing, binary, fm_given, fixed;
     unsigned char fn[8], ft[8], fm[2];
     char *data;
     u32 len, cap, pos;
@@ -240,7 +250,7 @@ static int parse_name(const char *name, struct cfile *f)
     const char *p = name;
     char dirmode[3] = {0, 0, 0};
     memset(part, 0, sizeof part);
-    f->binary = 0;
+    f->binary = 0; f->fixed = 0;
     while (*p == ' ') p++;
     /* "dir/fn.ft": cREXX's openfile() builds these.  "." is no mode (search
        the accessed disks); otherwise the directory is the filemode letter. */
@@ -279,7 +289,13 @@ static int parse_name(const char *name, struct cfile *f)
         f->fm[1] = dirmode[1] ? rt_a2e[(unsigned char)dirmode[1]] : 0xF1;
         f->fm_given = 1;
     } else { f->fm[0] = 0xC1; f->fm[1] = 0xF1; f->fm_given = 0; }
-    if (!memcmp(part[1], "RXBIN", 6) || !memcmp(part[1], "MODULE", 7)) f->binary = 1;
+    /* binary by file type: object files, archives and images (the C/C++
+       toolchain's as/ld/ar read and write them through fopen) */
+    static const char *const bin[] = { "RXBIN", "MODULE", "O", "A", "ELF", "OBJ",
+        "XIMAGE", "LIB", "BIN", "OUT", "GCH", "TAR", 0 };
+    for (int b = 0; bin[b]; b++) if (!strcmp(part[1], bin[b])) f->binary = 1;
+    /* TEXT decks (elf_to_cms output): EBCDIC card images, F 80 */
+    if (!strcmp(part[1], "TEXT")) { f->binary = 1; f->fixed = 80; }
     return 0;
 }
 
@@ -332,7 +348,7 @@ static int write_rec(struct cfile *f, const unsigned char *p, u32 n)
 {
     set_fscb("WRBUF", f);
     fscb.buf = (u32)p; fscb.bsize = n;
-    fscb.recfm[0] = 0xE5; fscb.recfm[1] = 0x40;       /* 'V ' */
+    fscb.recfm[0] = f->fixed ? 0xC6 : 0xE5; fscb.recfm[1] = 0x40;  /* F / V */
     fscb.norec = 1;
     return cms202(&fscb);
 }
@@ -346,7 +362,9 @@ static int write_whole(struct cfile *f)
     if (f->binary) {
         while (i < f->len && !rc) {
             u32 n = f->len - i > RECMAX ? RECMAX : f->len - i;
+            if (f->fixed) n = f->len - i > f->fixed ? f->fixed : f->len - i;
             memcpy(rec, f->data + i, n);
+            if (f->fixed && n < f->fixed) { memset(rec + n, 0x40, f->fixed - n); n = f->fixed; }
             rc = write_rec(f, rec, n);
             i += n;
         }
@@ -367,6 +385,70 @@ static int write_whole(struct cfile *f)
     return rc ? -EIO : 0;
 }
 
+/* ---------------------------------------------------- the sysroot (VFS)
+ * Absolute paths ("/usr/include/stdio.h") are looked up, read-only, in a
+ * tar file on an accessed disk: SYSROOT TAR, or the file named by the
+ * environment variable CMS_SYSROOT ("fn.ft").  The C/C++ toolchain finds
+ * its headers and libraries there; CMS file ids stay flat. */
+static char *vfs_tar;
+static u32 vfs_len;
+static int vfs_loaded;
+static u32 octal(const char *p, int n)
+{
+    u32 v = 0;
+    for (int i = 0; i < n && p[i]; i++) if (p[i] >= '0' && p[i] <= '7') v = v * 8 + (p[i] - '0');
+    return v;
+}
+static void vfs_load(void)
+{
+    struct cfile g;
+    const char *n = getenv("CMS_SYSROOT");
+    vfs_loaded = 1;
+    memset(&g, 0, sizeof g);
+    if (parse_name(n ? n : "SYSROOT TAR", &g)) return;
+    g.binary = 1;
+    if (!g.fm_given) g.fm[0] = 0x5C;
+    if (read_whole(&g)) { free(g.data); return; }
+    vfs_tar = g.data; vfs_len = g.len;
+}
+/* the member's data and size; *isdir for a directory (an entry, or a
+   prefix of one) */
+static const char *vfs_find(const char *path, u32 *size, int *isdir)
+{
+    if (!vfs_loaded) vfs_load();
+    if (!vfs_tar) return 0;
+    while (*path == '/') path++;
+    size_t pl = strlen(path);
+    while (pl && path[pl - 1] == '/') pl--;
+    for (u32 off = 0; off + 512 <= vfs_len; ) {
+        const char *h = vfs_tar + off;
+        if (!h[0]) break;
+        char nm[260];
+        int k = 0;
+        if (!memcmp(h + 257, "ustar", 5) && h[345]) {
+            for (int i = 0; i < 155 && h[345 + i]; i++) nm[k++] = h[345 + i];
+            nm[k++] = '/';
+        }
+        for (int i = 0; i < 100 && h[i]; i++) nm[k++] = h[i];
+        nm[k] = 0;
+        char *q = nm;
+        while (*q == '.' && q[1] == '/') q += 2;
+        while (*q == '/') q++;
+        size_t ql = strlen(q);
+        while (ql && q[ql - 1] == '/') ql--;
+        u32 sz = octal(h + 124, 12);
+        char type = h[156];
+        if (ql == pl && !memcmp(q, path, pl)) {
+            *isdir = type == '5';
+            *size = sz;
+            return h + 512;
+        }
+        if (ql > pl && !memcmp(q, path, pl) && q[pl] == '/') { *isdir = 1; *size = 0; return h; }
+        off += 512 + ((sz + 511) & ~511u);
+    }
+    return 0;
+}
+
 int _open(const char *name, int flags, int mode)
 {
     int fd;
@@ -375,6 +457,17 @@ int _open(const char *name, int flags, int mode)
     if (fd == NFILES) { errno = EMFILE; return -1; }
     struct cfile *f = &files[fd];
     memset(f, 0, sizeof *f);
+    if (name[0] == '/' && name[1]) {
+        u32 sz; int dir;
+        const char *d = vfs_find(name, &sz, &dir);
+        if (!d || dir) { errno = d ? EISDIR : ENOENT; return -1; }
+        if ((flags & O_ACCMODE) != O_RDONLY) { errno = EROFS; return -1; }
+        f->data = malloc(sz + 1);
+        if (!f->data) { errno = ENOMEM; return -1; }
+        memcpy(f->data, d, sz);
+        f->len = sz; f->cap = sz + 1; f->binary = 1; f->used = 1;
+        return fd;
+    }
     if (parse_name(name, f)) { errno = EINVAL; return -1; }
     f->used = 1;
     if ((flags & O_ACCMODE) == O_RDONLY) {
@@ -464,6 +557,14 @@ int _stat(const char *name, struct stat *st)
     if (!strcmp(name, ".") || !strcmp(name, "./") || !strcmp(name, "/")) {
         memset(st, 0, sizeof *st); st->st_mode = S_IFDIR | 0777; return 0;
     }
+    if (name[0] == '/') {
+        u32 sz; int dir;
+        if (!vfs_find(name, &sz, &dir)) { errno = ENOENT; return -1; }
+        memset(st, 0, sizeof *st);
+        st->st_mode = dir ? S_IFDIR | 0555 : S_IFREG | 0444;
+        st->st_size = sz; st->st_blksize = 4096;
+        return 0;
+    }
     int fd = _open(name, O_RDONLY, 0);
     if (fd < 0) return -1;
     _fstat(fd, st);
@@ -491,6 +592,72 @@ int _execve(const char *n, char *const a[], char *const e[]) { (void)n; (void)a;
 int _fork(void) { errno = ENOSYS; return -1; }
 int _wait(int *st) { (void)st; errno = ECHILD; return -1; }
 int write(int fd, const void *p, size_t n) { return _write(fd, p, n); }
+
+/* POSIX names for programs that use them directly (binutils, GCC).  Weak:
+   a program's own version wins (GnuCOBOL's cobcms.c opens record files
+   in binary).  open() is binary unless the name says otherwise. */
+#include <stdarg.h>
+__attribute__((weak)) int open(const char *name, int flags, ...)
+{
+    va_list ap; int mode;
+    va_start(ap, flags); mode = va_arg(ap, int); va_end(ap);
+    return _open(name, flags, mode);
+}
+__attribute__((weak)) int close(int fd) { return _close(fd); }
+__attribute__((weak)) int read(int fd, void *p, size_t n) { return _read(fd, p, n); }
+__attribute__((weak)) off_t lseek(int fd, off_t off, int whence) { return _lseek(fd, off, whence); }
+__attribute__((weak)) int unlink(const char *name) { return _unlink(name); }
+__attribute__((weak)) int isatty(int fd) { return _isatty(fd); }
+__attribute__((weak)) int fsync(int fd) { (void)fd; return 0; }
+__attribute__((weak)) int getpid(void) { return 1; }
+__attribute__((weak)) mode_t umask(mode_t m) { (void)m; return 022; }
+__attribute__((weak)) int chmod(const char *n, mode_t m) { (void)n; (void)m; return 0; }
+__attribute__((weak)) int fcntl(int fd, int cmd, ...) { (void)fd; (void)cmd; return 0; }
+__attribute__((weak)) long sysconf(int name) { return name == 8 /* _SC_PAGESIZE */ ? 4096 : 16; }
+__attribute__((weak)) int lstat(const char *name, struct stat *st) { return _stat(name, st); }
+__attribute__((weak)) int access(const char *name, int mode) { struct stat st; (void)mode; return _stat(name, &st); }
+__attribute__((weak)) char *getcwd(char *buf, size_t n)
+{
+    if (!buf || n < 2) { errno = ERANGE; return 0; }
+    strcpy(buf, "."); return buf;
+}
+__attribute__((weak)) char *getwd(char *buf) { strcpy(buf, "."); return buf; }
+__attribute__((weak)) int dup(int fd) { (void)fd; errno = EMFILE; return -1; }
+__attribute__((weak)) int dup2(int a, int b) { (void)a; (void)b; errno = EBADF; return -1; }
+__attribute__((weak)) int pipe(int *fds) { (void)fds; errno = EMFILE; return -1; }
+__attribute__((weak)) int mkdir(const char *n, mode_t m) { (void)n; (void)m; errno = EACCES; return -1; }
+__attribute__((weak)) int rmdir(const char *n) { (void)n; errno = EACCES; return -1; }
+__attribute__((weak)) int chdir(const char *n) { (void)n; errno = ENOENT; return -1; }
+__attribute__((weak)) int fchmod(int fd, mode_t m) { (void)fd; (void)m; return 0; }
+__attribute__((weak)) int fork(void) { errno = ENOSYS; return -1; }
+__attribute__((weak)) int execv(const char *p, char *const a[]) { (void)p; (void)a; errno = ENOSYS; return -1; }
+__attribute__((weak)) int execvp(const char *p, char *const a[]) { (void)p; (void)a; errno = ENOSYS; return -1; }
+__attribute__((weak)) int wait(int *s) { (void)s; errno = ECHILD; return -1; }
+__attribute__((weak)) int kill(int pid, int sig) { (void)pid; (void)sig; errno = EPERM; return -1; }
+__attribute__((weak)) unsigned sleep(unsigned s) { (void)s; return 0; }
+__attribute__((weak)) unsigned alarm(unsigned s) { (void)s; return 0; }
+__attribute__((weak)) int ftw(const char *d, void *f, int n) { (void)d; (void)f; (void)n; errno = ENOSYS; return -1; }
+__attribute__((weak)) int nftw(const char *d, void *f, int n, int fl) { (void)d; (void)f; (void)n; (void)fl; errno = ENOSYS; return -1; }
+struct utimbuf;
+__attribute__((weak)) int utime(const char *n, const struct utimbuf *t) { (void)n; (void)t; return 0; }
+__attribute__((weak)) int utimes(const char *n, const struct timeval *t) { (void)n; (void)t; return 0; }
+
+/* rename: the file's contents under the new name, then the old one erased
+   (CMS RENAME is a transient command and may not be called from here) */
+int _rename(const char *from, const char *to)
+{
+    int a = _open(from, O_RDONLY, 0);
+    if (a < 0) return -1;
+    struct cfile *fa = &files[a];
+    int b = _open(to, O_WRONLY | O_CREAT | O_TRUNC, 0);
+    if (b < 0) { _close(a); return -1; }
+    files[b].binary = fa->binary;
+    if (_write(b, fa->data, fa->len) != (int)fa->len) { _close(a); _close(b); errno = EIO; return -1; }
+    _close(a);
+    if (_close(b)) return -1;
+    return _unlink(from);
+}
+__attribute__((weak)) int rename(const char *from, const char *to) { return _rename(from, to); }
 
 int _link(const char *a, const char *b) { (void)a; (void)b; errno = EMLINK; return -1; }
 int _kill(int pid, int sig) { (void)pid; (void)sig; errno = EINVAL; return -1; }

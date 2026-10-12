@@ -11,10 +11,21 @@ NEWLIB=${NEWLIB:-/home/claude/nlbuild}
 NLSRC=${NLSRC:-/home/claude/nlsrc/newlib-4.4.0.20231231/newlib}
 GI=$($X-gcc -m31 -print-file-name=include)
 LIBGCC=$($X-gcc -m31 -print-libgcc-file-name)
-CF="-m31 -mesa -march=z900 -msoft-float -mlong-double-64 -fno-pic -fno-pie -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-stack-protector -ffunction-sections -fdata-sections -nostdinc -isystem $GI -I$H/inc -I$NEWLIB/targ-include -I$NLSRC/libc/include -D__CMS__"
+CXXI=/usr/s390x-linux-gnu/include/c++/13
+case $(basename "$0") in
+  cmsc++|cmsg++) CC=$X-g++
+     CXF="-isystem $H/inc/c++ -isystem $CXXI -isystem $CXXI/s390x-linux-gnu/32 -isystem $CXXI/backward -Dthread_local= -fno-threadsafe-statics";;
+  *) CC=$X-gcc; CXF=;;
+esac
+CF="-m31 -mesa -march=z900 -msoft-float -mlong-double-64 -fno-pic -fno-pie -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-stack-protector -ffunction-sections -fdata-sections -nostdinc $CXF -isystem $GI -I$H/inc -isystem $NEWLIB/targ-include -isystem $NLSRC/libc/include -D__CMS__ -U__unix__ -U__unix -Uunix -U__linux__ -U__linux -Ulinux -U__gnu_linux__ -D_Thread_local= -D__thread="
 link=1
-for a in "$@"; do case $a in -c|-E|-S|-M|-MM) link=0;; --version|-v|-V|-qversion|-print-*|-dumpversion|-dumpmachine) exec $X-gcc "$@";; esac; done
-if [ $link = 0 ]; then exec $X-gcc $CF "$@"; fi
+for a in "$@"; do case $a in -c|-E|-S|-M|-MM) link=0;; --version|-v|-V|-qversion|-print-*|-dumpversion|-dumpmachine) exec $CC "$@";; esac; done
+if [ $link = 0 ]; then
+  # no position-independent code: the image is relocated by RLDs (TEXT) or
+  # by the XL loader, and neither knows GOT relocations (bfd adds -fPIC)
+  for a in "$@"; do shift; case $a in -fPIC|-fpic|-fPIE|-fpie|-DPIC) ;; *) set -- "$@" "$a";; esac; done
+  exec $CC $CF "$@"
+fi
 # link: split sources/objects/libs, drop host-only flags
 W=$(mktemp -d); objs=""; out=a.out; libs=""; nxt=""; cfl=""
 for a in "$@"; do
@@ -22,6 +33,7 @@ for a in "$@"; do
   case $a in
     -o) nxt=o;;
     *.c) o=$W/$(basename "$a" .c).$$.o; $X-gcc $CF $cfl -c "$a" -o "$o" || { rm -rf $W; exit 1; }; objs="$objs $o";;
+    *.cc|*.cpp|*.cxx|*.C) o=$W/$(basename "$a").$$.o; $CC $CF $cfl -c "$a" -o "$o" || { rm -rf $W; exit 1; }; objs="$objs $o";;
     *.o|*.a) objs="$objs $a";;
     -L*) libs="$libs $a";;
     -lm|-lc|-lrt|-lpthread) ;;
@@ -31,8 +43,15 @@ for a in "$@"; do
     *) ;;
   esac
 done
-$X-gcc $CF -c "$H/cmsrt.c" -o $W/cmsrt.o && $X-as -m31 -mesa "$H/entry31.s" -o $W/entry31.o &&
-$X-ld -m elf_s390 -static --emit-relocs --gc-sections -T "$H/image.ld" -o "$out" \
+# CMSCC_XL=1: a large program for the XL loader (high storage; then
+# mkximage.py out out.ximage)
+if [ -n "$CMSCC_XL" ]; then XLF=-DCMS_XL; ENT=entryxl.s; LDS=imagexl.ld; else XLF=; ENT=entry31.s; LDS=image.ld; fi
+if [ -n "$CXF" ]; then $X-g++ $CF -fno-exceptions -fno-rtti -c "$H/cxxrt.cc" -o $W/cxxrt.o || exit 1; objs="$objs $W/cxxrt.o"
+  # std::string, the red-black tree etc. from the 32-bit libstdc++ (its
+  # operator new/delete and throw helpers are ours, linked first)
+  libs="$libs $($X-g++ -m31 -print-file-name=libstdc++.a)"; fi
+$X-gcc $CF $XLF -c "$H/cmsrt.c" -o $W/cmsrt.o && $X-as -m31 -mesa "$H/$ENT" -o $W/entry31.o &&
+$X-ld -m elf_s390 -static --emit-relocs --gc-sections -T "$H/$LDS" -o "$out" \
   $W/entry31.o $objs $W/cmsrt.o $libs \
   --start-group $NEWLIB/libc.a $NEWLIB/libm.a "$H/softfp/libsoftfp.a" $LIBGCC --end-group
 rc=$?; rm -rf $W; exit $rc
