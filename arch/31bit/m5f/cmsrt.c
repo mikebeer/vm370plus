@@ -45,7 +45,7 @@ int cms_onstack(void *top, int (*fn)(int, char **), int argc, char **argv);
 int main(int, char **);
 /* main runs on a stack of cms_stack_mb MB from the heap (above 16 MB):
    the 64 KB start-up stack is far too small for cREXX's recursion. */
-unsigned int cms_stack_mb = 8;
+unsigned int cms_stack_mb __attribute__((weak)) = 8;
 static int cms_run_main(int argc, char **argv)
 {
     char *s = malloc(cms_stack_mb << 20);
@@ -56,10 +56,56 @@ int main(int argc, char **argv);
 
 typedef unsigned int u32;
 
+/* ------------------------------------------------------------ low data */
+/* Everything handed to CMS (plists, FSCB, record and terminal buffers) is in
+ * one block.  Normally it is static, in the image below 16 MB.  A large
+ * program (XL, built with -DCMS_XL) runs from high storage: the XL loader,
+ * itself a small module below 16 MB, passes a low block and its own cms202
+ * (whose AMODE 24 instructions must be below 16 MB too). */
+#define RECMAX 32760
+struct fscb {
+    unsigned char cmd[8], fn[8], ft[8], fm[2];
+    unsigned short recno;
+    u32 buf, bsize;
+    unsigned char recfm[2];
+    unsigned short norec;
+    u32 nread;
+};
+struct lowdata {
+    unsigned char tline[130];
+    unsigned char typl[16];
+    unsigned char rdpl[16];
+    unsigned char rdbuf[132];
+    struct { char cmd[8], fn[8]; u32 bytes, addr; } hsp;
+    struct fscb fscb;
+    unsigned char dirpl[8 * 7];
+    unsigned char rec[RECMAX + 8];
+} __attribute__((aligned(8)));
+#ifdef CMS_XL
+struct xlsvc {                      /* from the XL loader (xl.c) */
+    int (*cms202)(void *plist);
+    void (*exit)(int rc);
+    struct lowdata *low;
+    int argc;
+    char **argv;
+};
+static struct xlsvc *xl;
+static struct lowdata *L;
+int cms202(void *plist) { return xl->cms202(plist); }
+#else
+static struct lowdata lowstatic;
+static struct lowdata *L = &lowstatic;
+#endif
+#define tline (L->tline)
+#define typl (L->typl)
+#define rdpl (L->rdpl)
+#define rdbuf (L->rdbuf)
+#define hsp (L->hsp)
+#define fscb (L->fscb)
+#define rec (L->rec)
+
 /* ---------------------------------------------------------------- terminal */
-static unsigned char tline[130];
 static int tlen;
-static unsigned char typl[16];
 
 static void put8(unsigned char *d, const char *s)
 {
@@ -91,8 +137,6 @@ static void tput(const char *p, int n)
 }
 
 /* RDTERM: one terminal line, translated, plus '\n' */
-static unsigned char rdpl[16];
-static unsigned char rdbuf[132];
 static char tin[136];
 static int tin_len, tin_pos;
 
@@ -122,7 +166,6 @@ static int tread(char *p, int n)
 }
 
 /* ---------------------------------------------------------------- heap */
-static struct { char cmd[8], fn[8]; u32 bytes, addr; } hsp;
 static char *heap_base, *heap_end, *heap_brk;
 static char low_heap[64 << 10] __attribute__((aligned(8)));
 
@@ -134,7 +177,7 @@ static int highstor(const char *fn, u32 bytes, u32 addr)
     return cms202(&hsp);
 }
 
-u32 cms_heap_mb = 0;        /* 0: the largest that HIGHSTOR gives, up to 232 MB */
+u32 cms_heap_mb __attribute__((weak)) = 0;        /* 0: the largest that HIGHSTOR gives, up to 232 MB */
 
 static void heap_init(void)
 {
@@ -181,16 +224,6 @@ void *_sbrk(int incr)
 
 /* ---------------------------------------------------------------- files */
 #define NFILES 16
-#define RECMAX 32760
-static struct fscb {
-    unsigned char cmd[8], fn[8], ft[8], fm[2];
-    unsigned short recno;
-    u32 buf, bsize;
-    unsigned char recfm[2];
-    unsigned short norec;
-    u32 nread;
-} fscb;
-static unsigned char rec[RECMAX + 8];
 
 struct cfile {
     int used, writing, binary, fm_given;
@@ -490,6 +523,18 @@ void _exit(int rc)
 static char argbuf[MAXARGS][9];
 static char *argv_[MAXARGS + 1];
 
+#ifdef CMS_XL
+/* XL: called by the loader in AMODE 31 with its services; never returns
+   (exit -> _exit -> cms_exit -> the loader's exit) */
+void cms_exit(int rc) { xl->exit(rc); for (;;) ; }
+int cms_xl_main(struct xlsvc *s)
+{
+    xl = s;
+    L = s->low;
+    exit(cms_run_main(s->argc, s->argv));
+}
+#endif
+
 int cms_main(unsigned char *plist)
 {
     int argc = 0;
@@ -557,14 +602,14 @@ struct dirent { unsigned int d_ino; unsigned char d_type; char d_name[20]; };
 struct m8_dir { char *names; int count, pos; struct dirent ent; };
 struct m8_dir *opendir(const char *name)
 {
-    static unsigned char pl[8 * 7];  /* below 16 MB: the stack is not */
+    unsigned char *pl = L->dirpl;    /* below 16 MB: the stack is not */
     char mode = 'A';
     if (name && name[0] && name[0] != '.') mode = name[0];
     if (mode >= 'a' && mode <= 'z') mode -= 32;
     const char *tok[6] = { "LISTFILE", "*", "*", 0, "(", "EXEC" };
     char m[2] = { mode, 0 };
     tok[3] = m;
-    memset(pl, 0x40, sizeof pl);
+    memset(pl, 0x40, sizeof L->dirpl);
     for (int t = 0; t < 6; t++)
         for (int i = 0; tok[t][i] && i < 8; i++) pl[t * 8 + i] = rt_a2e[(unsigned char)tok[t][i]];
     memset(pl + 48, 0xFF, 8);
