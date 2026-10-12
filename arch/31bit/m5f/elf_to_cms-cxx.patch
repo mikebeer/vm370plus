@@ -1,0 +1,32 @@
+--- a/elf_to_cms.c	2026-10-12 04:24:10.673847892 +0000
++++ b/elf_to_cms.c	2026-10-12 04:24:42.552769827 +0000
+@@ -175,7 +175,9 @@
+     f=fopen(input,"rb");
+     if (!f || fread(file,1,file_size,f)!=file_size) fail("input read failed");
+     if (fclose(f)) fail("input close failed");
+-    if (memcmp(file,"\177ELF\1\2\1",7) || file[7]!=0 || file[8]!=0)
++    /* OSABI 0 (System V) or 3 (GNU: ld marks the image so when an object,
++       such as one of libstdc++'s, has GNU-only symbol types) */
++    if (memcmp(file,"\177ELF\1\2\1",7) || (file[7]!=0 && file[7]!=3) || file[8]!=0)
+         fail("requires ELF32 big-endian System V version 1");
+     if (get16(file+16)!=2 || get16(file+18)!=22 || get32(file+20)!=1 || get32(file+36)!=0)
+         fail("requires linked static ET_EXEC EM_S390 with no flags");
+@@ -222,6 +224,9 @@
+         if (!i) { for (j=0;j<40;j++) if (p[j]) fail("nonzero null section"); }
+         if (s->type!=NOBITS) slice(s->off,s->size);
+         if (!allocated(s)) continue;
++        /* VM/370+ M5f: .init_array (14) and .fini_array (15) are words like
++           .data (C++ static constructors) */
++        if (s->type==14 || s->type==15) s->type=PROGBITS;
+         if ((s->flags & ~7U) || (s->type!=PROGBITS && s->type!=NOBITS))
+             fail("unsupported allocated section (TLS/dynamic/etc.)");
+         /* VM/370+ M5f: newlib objects ask for 16; CMS loads at a doubleword,
+@@ -302,7 +307,7 @@
+             if ((info&255)==16 || (info&255)==19 || (info&255)==20 || (info&255)==5) continue;
+             /* GOTENT (26): LARL of a .got slot -- PC-relative too; the slot's
+                own address constant gets an RLD below. */
+-            if ((info&255)==26) continue;
++            if ((info&255)==26 || (info&255)==21) continue;   /* GOTENT, GOTPCDBL */
+             if ((info&255)!=4) fail("only R_390_32 relocation is supported");
+             if (symbols->ent!=16 || symbols->size%16 || !symno || symno>=symbols->size/16)
+                 fail("invalid relocation symbol");

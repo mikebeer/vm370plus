@@ -413,38 +413,50 @@ static unsigned int ino_hash(const unsigned char *p, int n)
  * tar file on an accessed disk: SYSROOT TAR, or the file named by the
  * environment variable CMS_SYSROOT ("fn.ft").  The C/C++ toolchain finds
  * its headers and libraries there; CMS file ids stay flat. */
-static char *vfs_tar;
-static u32 vfs_len;
-static int vfs_loaded;
+/* Two tars: SYSROOT TAR (C: /usr/include, /usr/lib), and CXXROOT TAR for
+ * C++ (/usr/include/c++, /usr/lib/cxx), read only when a C++ path is
+ * looked up, so a C compile does not carry the C++ headers in storage. */
+struct vroot { const char *name, *env, *prefix; char *tar; u32 len; int loaded; };
+static struct vroot vroots[2] = {
+    { "CXXROOT TAR", "CMS_CXXROOT", "usr/include/c++", 0, 0, 0 },
+    { "SYSROOT TAR", "CMS_SYSROOT", "", 0, 0, 0 },
+};
 static u32 octal(const char *p, int n)
 {
     u32 v = 0;
     for (int i = 0; i < n && p[i]; i++) if (p[i] >= '0' && p[i] <= '7') v = v * 8 + (p[i] - '0');
     return v;
 }
-static void vfs_load(void)
+static void vfs_load(struct vroot *r)
 {
     struct cfile g;
-    const char *n = getenv("CMS_SYSROOT");
-    vfs_loaded = 1;
+    const char *n = getenv(r->env);
+    r->loaded = 1;
     memset(&g, 0, sizeof g);
-    if (parse_name(n ? n : "SYSROOT TAR", &g)) return;
+    if (parse_name(n ? n : r->name, &g)) return;
     g.binary = 1;
     if (!g.fm_given) g.fm[0] = 0x5C;
     if (read_whole(&g)) { free(g.data); return; }
-    vfs_tar = g.data; vfs_len = g.len;
+    r->tar = g.data; r->len = g.len;
+}
+static int vfs_pre(const char *path, const char *pre)
+{
+    size_t n = strlen(pre);
+    return !strncmp(path, pre, n) && (path[n] == 0 || path[n] == '/');
 }
 /* the member's data and size; *isdir for a directory (an entry, or a
    prefix of one) */
 static const char *vfs_find(const char *path, u32 *size, int *isdir)
 {
-    if (!vfs_loaded) vfs_load();
-    if (!vfs_tar) return 0;
     while (*path == '/') path++;
+    struct vroot *r = &vroots[1];
+    if (vfs_pre(path, vroots[0].prefix) || vfs_pre(path, "usr/lib/cxx")) r = &vroots[0];
+    if (!r->loaded) vfs_load(r);
+    if (!r->tar) return 0;
     size_t pl = strlen(path);
     while (pl && path[pl - 1] == '/') pl--;
-    for (u32 off = 0; off + 512 <= vfs_len; ) {
-        const char *h = vfs_tar + off;
+    for (u32 off = 0; off + 512 <= r->len; ) {
+        const char *h = r->tar + off;
         if (!h[0]) break;
         char nm[260];
         int k = 0;
@@ -671,6 +683,19 @@ int mkstemp(char *tpl)
     errno = EEXIST;
     return -1;
 }
+/* the rest of newlib's mktemp.o, so that it is never linked beside ours
+   (libiberty's make_temp_file calls mkstemps) */
+int mkstemps(char *tpl, int suffixlen) { (void)suffixlen; return mkstemp(tpl); }
+int mkostemp(char *tpl, int flags) { (void)flags; return mkstemp(tpl); }
+int mkostemps(char *tpl, int suffixlen, int flags) { (void)suffixlen; (void)flags; return mkstemp(tpl); }
+char *mktemp(char *tpl)
+{
+    int fd = mkstemp(tpl);
+    if (fd < 0) { tpl[0] = 0; return tpl; }
+    _close(fd); _unlink(tpl);
+    return tpl;
+}
+char *mkdtemp(char *tpl) { (void)tpl; errno = ENOSYS; return 0; }   /* no directories */
 
 /* CMS file ids are already canonical; sysroot paths are absolute */
 __attribute__((weak)) char *realpath(const char *name, char *resolved)

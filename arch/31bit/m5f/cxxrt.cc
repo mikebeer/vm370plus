@@ -48,3 +48,27 @@ char *secure_getenv(const char *n) { return getenv(n); }
 unsigned long __isoc23_strtoul(const char *s, char **e, int b) { return strtoul(s, e, b); }
 long __isoc23_strtol(const char *s, char **e, int b) { return strtol(s, e, b); }
 }
+
+// No exceptions on CMS (no unwind tables): a throw ends the program.  These
+// keep libstdc++'s eh_*.o (and its unwinder and TLS) out of the link.
+extern "C" {
+static char eh_globals[16];
+void *__cxa_allocate_exception(size_t n) noexcept { return malloc(n ? n : 1); }
+void __cxa_free_exception(void *p) noexcept { free(p); }
+void __cxa_throw(void *, void *, void (*)(void *)) { die("exception thrown (C++ exceptions end the program on CMS)"); }
+void __cxa_rethrow() { die("exception rethrown"); }
+void *__cxa_begin_catch(void *p) noexcept { return p; }
+void __cxa_end_catch() {}
+void *__cxa_get_exception_ptr(void *p) noexcept { return p; }
+void *__cxa_get_globals() noexcept { return eh_globals; }
+void *__cxa_get_globals_fast() noexcept { return eh_globals; }
+void *__cxa_current_exception_type() noexcept { return 0; }
+void __cxa_call_unexpected(void *) { die("unexpected exception"); }
+void __cxa_call_terminate(void *) { die("terminate"); }
+int __gxx_personality_v0(int, int, unsigned long long, void *, void *) { return 9; /* _URC_FAILURE */ }
+void _Unwind_Resume(void *) { die("exception in flight"); }
+}
+namespace std {
+bool uncaught_exception() noexcept { return false; }
+int uncaught_exceptions() noexcept { return 0; }
+}

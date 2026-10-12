@@ -1,5 +1,6 @@
 /* CC EXEC -- GCC 13 C (and C++) on VM/370plus CMS (9.21)              */
 /*   CC fn [ft] [( options]   fn C (or ft) -> fn MODULE                 */
+/*   C++: ft CPP, CC, CXX (or option CPP); headers from CXXROOT TAR    */
 /*   options: OPT -O0|-O1|-O2  CPP (C++: CC1PLUS)  NOLINK (stop at O)  */
 /*            LIB name (more archives: /usr/lib/libname.a)             */
 /* cc1/cc1plus run from high storage (XL), as/ld are modules, headers   */
@@ -7,7 +8,8 @@
 PARSE ARG FN FT '(' OPTS
 IF FN = '' THEN DO; SAY 'CC: give the file name'; EXIT 24; END
 IF FT = '' THEN FT = 'C'
-OPT = '-O2'; CPLUS = 0; LINK = 1; LIBS = ''
+CPLUS = WORDPOS(TRANSLATE(FT), 'CPP CC CXX C++') > 0
+OPT = '-O2'; LINK = 1; LIBS = ''
 DO WHILE OPTS <> ''
   PARSE VAR OPTS W OPTS
   SELECT
@@ -26,15 +28,19 @@ SRC = FN'.'FT
 IF RC <> 0 THEN DO; SAY 'CC:' FN FT 'not found'; EXIT 28; END
 /* compile: one long command line through the stack, ' \' continues  */
 CC1 = 'CC1'
-INC = '-I /usr/include/m5f -isystem /usr/lib/gcc/include'
-IF CPLUS THEN DO
-  CC1 = 'CC1PLUS'
-  INC = INC '-isystem /usr/include/c++ -isystem /usr/include/c++/s390'
-END
+IF CPLUS THEN CC1 = 'CC1PLUS'
 QUEUE '-quiet -m31 -mesa -march=z900 -msoft-float -mlong-double-64' OPT '\'
 QUEUE '-fno-pic -fno-asynchronous-unwind-tables -fno-unwind-tables \'
 QUEUE '-fno-stack-protector -ffunction-sections -fdata-sections -nostdinc \'
-QUEUE INC '\'
+IF CPLUS THEN DO   /* C++: CXXROOT TAR; its headers before the C ones */
+  QUEUE '-isystem /usr/include/c++/m5f -isystem /usr/include/c++/13 \'
+  QUEUE '-isystem /usr/include/c++/s390 \'
+  QUEUE '-isystem /usr/include/c++/13/backward \'
+  QUEUE '-Dthread_local= -fno-threadsafe-statics \'
+END
+QUEUE '-I /usr/include/m5f -isystem /usr/lib/gcc/include \'
+QUEUE '-U__unix__ -U__unix -Uunix -U__linux__ -U__linux -Ulinux \'
+QUEUE '-U__gnu_linux__ -D_Thread_local= -D__thread= \'
 QUEUE '-isystem /usr/include/newlib -isystem /usr/include/cob -D__CMS__ \'
 QUEUE SRC '-o' FN'.s'
 'XL' CC1 '=STACK'
@@ -46,7 +52,9 @@ IF RC <> 0 THEN EXIT RC
 IF \LINK THEN EXIT 0
 QUEUE '-m elf_s390 -static --emit-relocs --gc-sections \'
 QUEUE '-T /usr/lib/image.ld -o' FN'.elf /usr/lib/entry31.o' FN'.o \'
+IF CPLUS THEN QUEUE '/usr/lib/cxx/cxxrt.o \'
 QUEUE '/usr/lib/cmsrt.o --start-group' LIBS '\'
+IF CPLUS THEN QUEUE '/usr/lib/cxx/libstdc++.a \'
 QUEUE '/usr/lib/libc.a /usr/lib/libm.a /usr/lib/libsoftf.a \'
 QUEUE '/usr/lib/libgcc.a --end-group'
 'LD =STACK'

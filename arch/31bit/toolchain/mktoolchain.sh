@@ -9,9 +9,11 @@
 #   OUT/elf2cms.ximage              elf_to_cms (TEXT decks) on CMS
 #   OUT/xl.text                     the XL loader
 #   OUT/sysroot.tar                 SYSROOT TAR: /usr/include, /usr/lib
+#   OUT/cxxroot.tar                 CXXROOT TAR: libstdc++ headers, library
 # WORK needs: binutils-2.42/, gcc-13.3.0/ (Ubuntu binutils-source and
 # gcc-13-source), mpfr-4.2.1/, mpc-1.3.1/ (archive.ubuntu.com pool), the
-# CMS GMP from languages/cobol/mkcobol-cms.sh in $GMPCMS, elf_to_cms.c.
+# CMS GMP from languages/cobol/mkcobol-cms.sh in $GMPCMS, elf_to_cms.c with
+# m5f/elf_to_cms-pcrel.patch and m5f/elf_to_cms-cxx.patch applied.
 set -e
 H=$(cd "$(dirname "$0")" && pwd); M=$(cd "$H/../m5f" && pwd)
 W=$(cd "$1" && pwd); O=$(mkdir -p "$2" && cd "$2" && pwd)
@@ -87,4 +89,5 @@ $X-as -m31 -mesa $M/entry31.s -o $S/usr/lib/entry31.o
 # dummy member, which the archive index never names
 python3 "$H/padar.py" $S/usr/lib/*.a
 (cd $S && tar --format=ustar -cf $O/sysroot.tar usr)
+sh "$H/mkcxxroot.sh" $W $O                 # CXXROOT TAR: the C++ half
 echo "mktoolchain: $O"

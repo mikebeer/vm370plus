@@ -46,7 +46,7 @@ done
 # CMSCC_XL=1: a large program for the XL loader (high storage; then
 # mkximage.py out out.ximage)
 if [ -n "$CMSCC_XL" ]; then XLF=-DCMS_XL; ENT=entryxl.s; LDS=imagexl.ld; else XLF=; ENT=entry31.s; LDS=image.ld; fi
-if [ -n "$CXF" ]; then $X-g++ $CF -fno-exceptions -fno-rtti -c "$H/cxxrt.cc" -o $W/cxxrt.o || exit 1; objs="$objs $W/cxxrt.o"
+if [ -n "$CXF" ]; then $X-g++ $CF -fno-exceptions -fno-rtti -c "$H/cxxrt.cc" -o $W/cxxrt.o && $X-gcc $CF -O2 -c "$H/cxxglibc.c" -o $W/cxxglibc.o || exit 1; objs="$objs $W/cxxrt.o $W/cxxglibc.o"
   # std::string, the red-black tree etc. from the 32-bit libstdc++ (its
   # operator new/delete and throw helpers are ours, linked first)
   libs="$libs $($X-g++ -m31 -print-file-name=libstdc++.a)"; fi
