@@ -14,14 +14,15 @@ B(['**Chapter 1, Introduction**, says what VM/370plus is and what it is for.',
    '**Chapter 5, Running Linux/390**, describes ESA/390 virtual machines, the Linux kernel, the Debian system and the network connection to the PC.',
    '**Chapter 6, Service Machines**, describes CHATBOT, the chatbot service machine, and the service machines that are planned.',
    '**Chapter 7, cREXX on VM/370plus**, describes the REXX compiler and virtual machine built for and on VM/370plus, the languages written in cREXX that run on CMS and on Linux, and Turbo CREXX.',
-   '**Chapter 8, Compilers on CMS**, describes GCC 13 for C and C++, GnuCOBOL, COBOL with OO, PL/I, Python, SQLite, xBase and Smalltalk on CMS.',
+   '**Chapter 8, Compilers on CMS**, describes the language disk and what is on it: GCC 13 for C and C++, GnuCOBOL, COBOL with OO, PL/I, Python, SQLite and SQLSERV, Pascal, APL, xBase, Smalltalk, ZIP and TERSE.',
    '**Chapter 9, Restrictions and Known Problems**, lists what does not work yet.',
    '**Appendix A** summarizes the new and changed commands, **Appendix B** lists the files in the installation kit, **Appendix C** gives the ESA/390 deviations of the virtual machine, **Appendix D** lists all CP and CMS commands.']);
 H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**12 October 2026.** Compilers on CMS (new Chapter 8): GCC 13 for C and C++ (`CC`), GnuCOBOL (`COBOL`), PL/I (`PLIC`, also on Debian), Python (`PYTHON`) and SQLite (`SQLITE`); MODULEs run from EDF disks (I-271).',
+B(['**12 October 2026, evening (kit build 8).** The language disk VMLANG (MAINT 19F, `LANG`) carries every compiler and tool of Chapter 8; AUTOLOG1 attaches it at IPL. New on CMS: COBOL with OO (`COBX`), xBase and Smalltalk as C programs, the SQLSERV service machine (`SQL`), Stanford Pascal (`PCPAS`, `PCRUN`), APL, `ZIP`, `UNZIP`, `GZIP`, `TERSE` and `UNTERSE`. C programs see real CMS file dates, `/tmp` files and FILEDEF-style names. Debian carries APL, COBOL, PL/I, xBase and Smalltalk with their tests.',
+   '**12 October 2026.** Compilers on CMS (new Chapter 8): GCC 13 for C and C++ (`CC`), GnuCOBOL (`COBOL`), PL/I (`PLIC`, also on Debian), Python (`PYTHON`) and SQLite (`SQLITE`); MODULEs run from EDF disks (I-271).',
    '**11 October 2026, evening.** Larger minidisks: CMS under `IPL 290` reads, writes and formats IBM’s Enhanced Disk Format (4 KB blocks): `FORMAT vaddr fm (BLKSIZE 4096`, a full 3380 as one disk, files with more than 65,535 records.',
    '**11 October 2026, late afternoon.** `TDISK` (a temporary disk in one step); Linux IPLs from the reader again (I-265); `LPSW`/SVC fast paths for PSWs above 16 MB.',
    '**11 October 2026, afternoon.** `SHUTDOWN` saves warm start data again and the next IPL warm-starts by itself, spool intact (I-267, I-268); each Linux user’s address follows his CTC pair (9.12a); ATTACH of a CTC next to another no longer stops CP (I-269).',
@@ -54,7 +55,7 @@ TABLE(['Milestone', 'Content', 'Status'], [
   ['M4b', 'real storage up to 2 GB (above 16 MB as CP\u2019s paging store)', 'complete'],
   ['M4b.3', 'CP uses real frames above 16 MB directly', 'complete: guest pages in frames up to 160 MB; two Debians at once'],
   ['M5', 'EC-mode CMS with storage above 16 MB (HIGHSTOR), 31-bit C (cross and native)', 'complete'],
-  ['M6', 'a CMS nucleus that is itself 31-bit; larger minidisks', 'planned, before M9'],
+  ['M6', 'larger minidisks (EDF, 4 KB blocks) under the EC-mode CMS', 'complete'],
   ['M7', 'ESA/390 virtual machines, Linux/390, Debian, SSH', 'complete'],
   ['M7.8', 'Linux for several users from a linkable disk (LINUX EXEC); Linux and CMS side by side', 'complete; two Debians at once since M4b.3'],
   ['M7.9', 'channel programs of any length for ESA/390 guests (no 64-CCW limit)', 'complete'],
@@ -65,9 +66,10 @@ TABLE(['Milestone', 'Content', 'Status'], [
   ['M8.2', 'the current cREXX built natively with GCC380', 'compiler, assembler and VM work; the library does not build yet'],
   ['\u2014', 'languages in cREXX for CMS and Linux; Turbo CREXX', 'complete on both'],
   ['\u2014', 'GNU C 4.6, Python 2.7 and 3.2, Regina REXX and THE under Debian', 'complete'],
-  ['M9', 'before 64-bit: SET/QUERY MACHINE, FULIST, GLOBALV (done); CP leftovers; C++ on CMS; SQL and SQLSERV; CMS sockets and httpd; xBase/Harbour; MQ and MQTT; APL on CMS; GnuCOBOL on Debian (done) and CMS; ooRexx 5; AI gateway; firewall guest; kit build 7', 'under way'],
-  ['M10', 'z/Architecture (64-bit); migration documentation; kit build 8', 'planned'],
-  ['M11', 'multiprocessor support; more languages (GNU APL, C++, Java, NetRexx); FreeSWITCH; Node-RED; Docker, QEMU, Bochs; CFSERV; kit build 9', 'planned'],
+  ['M9', 'before 64-bit: SET/QUERY MACHINE, FULIST, GLOBALV, TDISK; CP leftovers; GCC 13 C/C++, GnuCOBOL, COBOL with OO, PL/I, Python, SQLite + SQLSERV, Pascal, APL, xBase, ZIP, TERSE on CMS; the language disk (kit build 8)', 'complete'],
+  ['M9 (next)', 'Guest LAN and the BORDER firewall; CMS sockets and httpd; MQ and MQTT; ooRexx 5; AI gateway; the spool bridge to Linux services (Asterisk, MQTT); RXPIP (REXX packages); NJE; mail; TELL', 'planned'],
+  ['M10', 'z/Architecture (64-bit); migration documentation; kit build 9', 'planned'],
+  ['M11', 'multiprocessor support; more languages (GNU APL, Java, NetRexx); FreeSWITCH; Node-RED; Docker, QEMU, Bochs; CFSERV; kit build 10', 'planned'],
 ], [1400, 6038, 2200], 'VM/370plus milestones');
 
 // ---------------------------------------------------------------- chapter 2
@@ -128,11 +130,13 @@ TABLE(['Part', 'Contents'], [
 ], [1000, 8638], 'The installation kit');
 H2('Installation steps');
 N(['Unzip `VM370CE_V1_R1_2.zip` into a new directory.',
-   'Unzip kit parts 1 to 12 over it, replacing files when asked.',
+   'Unzip kit parts 1 to 15 over it, replacing files when asked.',
    'Join the Debian disk. In the Community Edition directory, at a Windows command prompt:',
 ]);
 SCREEN(['JOINDEB.CMD', 'Debian disk joined: disks\\lnx190.cckd'], 'Joining the Debian disk (Windows)');
 P('On Linux or WSL2 use `sh joindeb.sh`, which also checks the result. The file `disks/lnx190.sha256` holds the checksum of the joined file. Keep a copy of `lnx190.cckd`: it is your Linux system disk and Hercules writes to it.');
+P('Join the language disk the same way (kit parts 14 and 15): `JOINLANG.CMD` on Windows or `sh joinlang.sh` on Linux and WSL2 gives `disks/lang.cckd`, the 3380 at address 182 that holds MAINT 19F (see Chapter 8).');
+SCREEN(['JOINLANG.CMD', 'Language disk joined: disks\\lang.cckd'], 'Joining the language disk (Windows)');
 N(['If you want the Linux network, remove the `#` in front of the line `#0600.2 CTCI 10.1.1.2 10.1.1.1` in `vm370ce.conf`.',
    'Start the system as you start the Community Edition: `vm370ce.cmd` on Windows, `vm370ce.sh` elsewhere.'], true);
 H2('The first IPL');
@@ -253,6 +257,8 @@ SCREEN(['root@vm370plus:~# cat /etc/debian_version', '7.11',
         'root@vm370plus:~# df -h /', 'Filesystem      Size  Used Avail Use% Mounted on', '/dev/dasda1     6.8G  541M  5.9G   9% /',
         'root@vm370plus:~# free', '             total       used       free     shared    buffers     cached',
         'Mem:         60512      21688      38824          0       2220      13792'], 'Debian on VM/370plus');
+H3('Languages on Debian');
+P('Besides GNU C, Python and Regina, the C89 interpreters and translators of the VM/370plus languages are in `/usr/local/bin`: `apl` (APL), `cobol` (COBOL with OO, mikebeer/cobol: `cobol prog.cob -o prog.c`, then `gcc -I/usr/local/share/cobol`), `pli` and `plic` (PL/I: `plic prog.pli` translates and compiles), `xbase-c` (xBase) and `stc` (Smalltalk: `stc -L /usr/local/share/vmtests/smalltalk/lib prog.st`). `sh /usr/local/share/vmtests/runall.sh` runs their test suites (APL 34, COBOL 20, PL/I 39, xBase 7, Smalltalk 22 tests).');
 H3('The console');
 P('The 3215 is a line device. Programs that use the full screen (vi, top without `-n1`) draw poorly; use them only if you must. Ctrl-C cannot be typed: type `^c` and Enter instead (the 3215 driver turns `^c`, `^d` and `^z` into the control characters). When CP shows MORE..., press CLEAR or PA2.');
 H3('Network and SSH');
@@ -309,11 +315,13 @@ TABLE(['CHATBOT CONFIG key', 'Meaning'], [
   ['`VAR name value`', 'variables the persona scripts may use'],
 ], [3000, 6638], 'CHATBOT CONFIG');
 NOTE('The upstream bot (build 1) runs unchanged. Its EXECs were adapted to VM/370 and BREXX (no WAKEUP, no UPPER, EXECIO with variable records, AUTOLOG instead of XAUTOLOG) and one bug was fixed; the list is in `vm370plus/chatbot/VM370PLUS.TXT`.');
+H2('SQLSERV');
+P('SQLSERV, the SQLite service machine, is in service: see Chapter 8, SQLite. It is the model for the service machines below: a request is a file punched to the machine, the answer is punched back to the sender.');
 H2('Planned service machines');
 TABLE(['Machine', 'Purpose'], [
   ['ASKSERV', 'an AI gateway: a Linux guest that relays questions to a language model on the PC or in the cloud; CMS users ask it through the spool, like CHAT'],
-  ['SQLSERV', 'SQLite in a CMS service machine that owns the database disk; requests by spool, later by IUCV or sockets'],
-  ['Telephony', 'a gateway from CMS to Asterisk on Debian: place calls, voicemail notices as messages'],
+  ['Spool bridge', 'a daemon in the Debian guest that takes requests from its virtual reader (vmur) and answers through the punch, so Linux services (Asterisk: `PHONE`, MQTT, MariaDB) speak the same spool protocol as CHATBOT and SQLSERV'],
+  ['RXPIPSRV', 'REXX packages from rexxpository (RXPIP) for CMS users: `RXPIP INSTALL pkg` through the spool'],
   ['MQ, MQTT', 'a queue manager on CMS; the mosquitto broker on Debian'],
   ['Network pack', 'optional: a firewall guest (BORDER), an HTTP load balancer, and a machine that starts more web guests under load'],
   ['SMAPI', 'a subset of z/VM’s systems management API'],
@@ -397,12 +405,18 @@ H2('PL/I');
 P('The Community Edition’s IBM PL/I (F) compiler is on the Y disk (`PLI fn`, then `GLOBAL TXTLIB PLILIB` and `LOAD fn (START`). VM/370plus adds a PL/I-to-C translator (mikebeer/pli): `PLIC fn` translates `fn PLI` to C with `PLI2C MODULE` and compiles it with the CC EXEC to `fn MODULE` (`PLIC fn ( GCC380` uses GCC380 instead). SYSIN is the terminal and the console stack; a line of just `/*` is end of file. PL/I file names become CMS file ids: `data/plitest_out.txt` is `PLITTOUT TXT` (a part longer than eight characters keeps its first and last four). On Debian, `plic fn.pli` translates and compiles with gcc.');
 H2('Python');
 P('`PYTHON fn [args]` runs `fn PY` with the C89 Python 3 interpreter of mikebeer/python; `PYTHON` alone reads statements from the terminal. NumPy, pandas and SciPy (the interpreter’s own versions), re, json, struct, cmath, complex numbers, classes, generators and exceptions are built in. The interpreter (`PY XIMAGE`, 2.3 MB) runs above 16 MB through the XL loader. Integers beyond ±999,999,999 are big integers. There are no sockets on CMS yet, and modules of your own are `name PY` files on an accessed disk.');
+H2('Pascal');
+P('`PCPAS fn` compiles `fn PASCAL` with the New Stanford Pascal compiler (2026.10, Bernd Oppolzer) into P-code (`fn PCODE`), and `PCRUN fn` runs it with the P-code interpreter PCINT. Files are passed as `DD_x=val` arguments (PCRUN), as the compiler documents. CE\u2019s own Pascal (`PASCAL` on the Y disk) is unchanged.');
+H2('APL');
+P('`APL fn.apl` runs an APL script, `APL` alone is the interactive session (type `)OFF` to leave). It is mikebeer/apl, a C89 APL interpreter that writes primitives as words (`rho`, `iota`, ...), so it needs no APL keyboard; the module is `APLM`.');
 H2('xBase and Smalltalk');
 P('`XBASE fn.prg` runs a Clipper/dBASE-style program (mikebeer/xbase) with the C89 interpreter `XBASEC XIMAGE` (through the XL loader), or with the cREXX one when only `XBASE RXBIN` is there. Tables are `name DBF` files with `DBT` memos and `XDX` indexes. `SMALLTLK fn.st` runs a Smalltalk-80 program (mikebeer/smalltalk, GNU Smalltalk bracket syntax) with the C89 interpreter `SMALLTC MODULE`, or the cREXX `SMALLTLK RXBIN`; `SMALLTLK -i` is the interactive prompt. Its class library is the `ST` files `KERNEL`, `NUMBERS`, `COLLECTI` and so on. SmallIntegers are ±2^30 on CMS; larger numbers are big integers. Both are on Debian as `xbase-c` and `stc`.');
 H2('ZIP, UNZIP and GZIP');
 P('`ZIP zipfile files` and `UNZIP zipfile` are Info-ZIP zip 3.0 and unzip 6.0, so archives travel between CMS and the PC: text files are stored in ASCII, and CMS dates become the archive dates. `UNZIP -l` lists, `-t` tests and `-o` overwrites. A file extracts to its `fn.ft` name, as text unless its file type is a binary one (ZIP, GZ, TAR, DB, O, ...). `GZIP fn.ft` writes `fn ft-GZ` in gzip format, and `GZIP -d fn.ft-gz` restores the file. Encryption is not included. CE\u2019s MINIZIP and MINIUNZ remain on the Y disk.');
 SCREEN(['zip notes.zip report.txt data.csv', '  adding: report.txt (deflated 61%)', '  adding: data.csv (deflated 48%)', 'Ready;', 'unzip -l notes.zip', 'Archive:  notes.zip', '...'], 'ZIP on CMS');
 P('`UNTERSE fn.trs out.ft` unpacks an IBM TERSE file (PACK or SPACK, as AMATERSE or TRSMAIN write it on z/OS) into a CMS text file, one record per line; `UNTERSE -b` keeps the bytes (variable records get their 4-byte RDW), for binary data such as load modules or dumps; `UNTERSE -i` shows the header (PACK/SPACK, RECFM, LRECL). It is the Open Mainframe Project\u2019s tersedecompress, in C. `TERSE fn.ft out.trs` goes the other way: SPACK format, RECFM F with the longest line as LRECL (`-l n` sets it, `-v` makes V records); `TERSE -b -l n` packs binary data. The encoder runs the decoder\u2019s own model and compresses as well as IBM\u2019s SPACK.');
+H2('File names in C programs');
+P('Programs built with the CMS runtime (all those of this chapter) use Unix file names and map them to CMS files: `fn.ft` is `fn ft *` for reading (any accessed disk) and `fn ft A` for writing; `fn.ft.fm` and `x/fn.ft` give the mode; `/tmp/fn.ft` is a scratch file on A; a name without a dot is `FILE name`, as FILEDEF defaults it; parts longer than eight characters are cut to eight. Text files are converted between ASCII and EBCDIC (IBM-1047); file types such as `O`, `TEXT`, `TAR`, `ZIP`, `GZ`, `DB`, `DBF` and `BIN` are binary and passed through unchanged. Absolute paths under `/usr` are read from SYSROOT TAR. File dates come from the CMS file status table.');
 H2('SQLite');
 P('`SQLITE fn.db` starts the sqlite3 shell (SQLite 3.46) on the database `fn DB`; `SQLITE fn.db` *statement* runs one statement or dot command, for example `SQLITE emp.db .read load.sql` for a script `LOAD SQL`. A database is one binary CMS file; its rollback journal is `fn DB-JOURN` while a transaction is open. One user at a time: there is no locking between virtual machines, so give each database to one user, or to the SQLSERV service machine.');
 P('**SQLSERV.** A service machine that owns the databases and runs requests for other users one at a time. `SQLSERV` waits for reader files (`WAKEUP`); each request is punched to it, run by `SQLRUN` against `name DB`, and the answer is punched back to the sender (its ORIGINID). From any user: `SQL name` *statement* runs one statement, `SQL name (FILE fn ft fm` a script, and `SQL STOP` ends the server; `(SERVER userid` names another server than SQLSERV. Results are rows with columns joined by `|`, then `SQLRUN: n statements, n errors`. At the server console, `STOP` ends it; `SQLSERV (LOUD` logs each request.');
@@ -423,6 +437,11 @@ TABLE(['Area', 'Restriction'], [
   ['Multiprocessing', 'One CPU only.'],
   ['cREXX, native', 'The natively built current cREXX (M8.2) cannot build its library yet; use RXC8, RXAS8 and RXBVM8 (M8.1).'],
   ['CMS file names', 'Programs cross-compiled for CMS cut a file name longer than eight characters to eight (Smalltalk’s `collections.st` is `COLLECTI ST`).'],
+  ['C and C++ on CMS', 'No C++ exceptions (a `throw` ends the program), no threads, only the "C" locale. A compile needs `CP DEFINE STORAGE 256M`; cc1plus takes one to two minutes of CPU.'],
+  ['Language disk', 'An old copy of an EXEC or MODULE of the same name on one of your own disks comes first in the search order (PLIC, COBOL, APL ...); erase it.'],
+  ['ZIP, GZIP', 'No encryption. A file extracted from a .zip is text unless its file type is binary. GZIP writes `fn ft-GZ` (CMS has no second dot).'],
+  ['TERSE', 'Files packed by TERSE read back with UNTERSE; that z/OS AMATERSE reads them has not been tested yet.'],
+  ['Smalltalk, xBase', 'With a 32-bit `long`, Smalltalk SmallIntegers are \u00b12^30 (larger ones are big integers); CMS has no directories.'],
   ['Linux', 'Linux 4.0 31-bit is the last kernel with 31-bit support; Debian 7 is the last Debian for s390 (31-bit).'],
 ], [2400, 7238], 'Restrictions');
 
@@ -471,6 +490,14 @@ SCREEN(['GLOBALV [SELECT group] SET|SETS|SETL|SETP name value', 'GLOBALV [SELECT
 P('New; a subset of z/VM’s GLOBALV. Variables live in groups (UNNAMED unless SELECT names one). **SET** keeps a value until the next IPL of CMS, **SETS** also in `SESSION GLOBALV A` (erased at the next IPL), **SETL** in `LASTING GLOBALV A` (read again at every IPL), **SETP** both. **PUT** takes the values of the calling EXEC’s REXX variables, **GET** sets them, **STACK** puts values on the console stack. A null value drops a variable. Names up to 32 characters, values up to 255, 128 variables. GLOBALV is a nucleus extension, loaded at IPL by the system profile.');
 SCREEN(['globalv select fulist setl editor EE', 'globalv select fulist list', 'FULIST   EDITOR = EE'], 'GLOBALV');
 P('FULIST takes its editor and browser from the group FULIST (`EDITOR`, `BROWSER`) when they are set.');
+H2('LANG');
+P('`LANG [fm]` links MAINT 19F read-only (if it is not linked) and accesses it as `fm` (default L).');
+H2('ZIP, UNZIP, GZIP');
+P('`ZIP zipfile files`, `UNZIP [-l|-t|-o] zipfile [files]`, `GZIP [-d] fn.ft` (Info-ZIP zip 3.0 and unzip 6.0; gzip format from zlib).');
+H2('TERSE, UNTERSE');
+P('`TERSE [-v] [-l lrecl] in out` packs a file in IBM TERSE SPACK format (`-b` binary); `UNTERSE [-b] in out` unpacks PACK and SPACK files, `UNTERSE -i in` shows the header.');
+H2('SQL, SQLSERV');
+P('`SQL db statement`, `SQL db (FILE fn ft fm`, `SQL STOP`, `(SERVER userid`; `SQLSERV [(LOUD]` runs the service machine.');
 H2('LINUX EXEC');
 SCREEN(['LINUX [DISK|READER]'], 'LINUX EXEC');
 P('On MAINT 19D. **DISK** (the default) issues `CP IPL LINUX`. **READER** punches `LINUX48 KERNEL1`, `KERNEL2` and `userid LXPARM` (or `DEFAULT LXPARM`) to the user’s reader, holding the other reader files, and IPLs the reader as an ESA/390 machine. Needs 64 MB and, for Debian, the devices listed in Chapter 5 under “What a Linux user needs”.');
@@ -480,7 +507,8 @@ TABLE(['Path', 'Contents'], [
   ['`vm370ce.conf`', 'ESA/390 configuration, MAINSIZE 256, the CTC and 3390 lines for Linux'],
   ['`disks/shadows/*_1.shadow`', 'the VM/370plus system: CP nucleus, CMS, directory, user disks'],
   ['`disks/vm50-4.cckd`', 'VM50-4 with the paging area record corrected'],
-  ['`disks/lnx190.cckd`', 'the Debian disk, a 3390-9 (after joining parts 6–12)'],
+  ['`disks/lnx190.cckd`', 'the Debian disk, a 3390-9 (after joining parts 6–13)'],
+  ['`disks/lang.cckd`', 'the language disk VMLANG, a 3380 at address 182 (after joining parts 14–15)'],
   ['`README-VM370PLUS.txt`', 'the short form of this manual'],
   ['`vm370plus/linux/`', 'linux48.rdr, lxparm.rdr, lxparmram.rdr, kernel configuration, patches, initramfs sources, the Debian post-install script'],
   ['`vm370plus/m5f/`', 'the CMS runtime for cross-compiled 31-bit C programs'],

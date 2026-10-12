@@ -1,0 +1,29 @@
+--- a/arch/s390/include/asm/cputime.h	2026-10-12 21:56:56.492270849 +0000
++++ b/arch/s390/include/asm/cputime.h	2026-10-12 21:56:56.496044344 +0000
+@@ -26,7 +26,7 @@
+ 	register_pair rp;
+ 
+ 	rp.pair = n >> 1;
+-	asm ("dr %0,%1" : "+d" (rp) : "d" (base >> 1));
++	asm ("dr %0,%1" : "+d" (rp) : "d" ((unsigned int)(base >> 1)));
+ 	return rp.subreg.odd;
+ #else /* CONFIG_64BIT */
+ 	return n / base;
+@@ -105,7 +105,7 @@
+ 	register_pair rp;
+ 
+ 	rp.pair = __cputime >> 1;
+-	asm ("dr %0,%1" : "+d" (rp) : "d" (CPUTIME_PER_SEC / 2));
++	asm ("dr %0,%1" : "+d" (rp) : "d" ((unsigned int)(CPUTIME_PER_SEC / 2)));
+ 	value->tv_nsec = rp.subreg.even * NSEC_PER_USEC / CPUTIME_PER_USEC;
+ 	value->tv_sec = rp.subreg.odd;
+ #else
+@@ -133,7 +133,7 @@
+ 	register_pair rp;
+ 
+ 	rp.pair = __cputime >> 1;
+-	asm ("dr %0,%1" : "+d" (rp) : "d" (CPUTIME_PER_USEC / 2));
++	asm ("dr %0,%1" : "+d" (rp) : "d" ((unsigned int)(CPUTIME_PER_USEC / 2)));
+ 	value->tv_usec = rp.subreg.even / CPUTIME_PER_USEC;
+ 	value->tv_sec = rp.subreg.odd;
+ #else
