@@ -52,6 +52,17 @@ for s in shs:
         if off + 4 > end_file:
             continue                             # in BSS: nothing stored
         rel.append(off)
+# a static link fills .got with absolute addresses and emits no relocation
+# for them (libgcc's -fPIC objects reach __clz_tab that way): each nonzero
+# word that is an address in the image moves with it (as elf_to_cms does)
+shstr = shs[e_shstrndx]
+for s in shs:
+    nm = d[shstr[4] + s[0]:d.index(b'\0', shstr[4] + s[0])].decode()
+    if nm == '.got' and s[1] == 1:
+        for j in range(0, s[5] - 3, 4):
+            w = struct.unpack('>I', img[s[3] + j:s[3] + j + 4])[0]
+            if w and w <= end_mem:
+                rel.append(s[3] + j)
 rel = sorted(set(rel))
 hdr = struct.pack('>4sIIIII', b'XIMG', 1, e_entry, end_file, end_mem - end_file, len(rel))
 open(dst, 'wb').write(hdr + bytes(img) + b''.join(struct.pack('>I', r) for r in rel))

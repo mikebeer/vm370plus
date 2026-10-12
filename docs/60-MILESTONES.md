@@ -5,9 +5,8 @@ The plan of record, adopted 11 October 2026 from the owner's workbook
 Renumbering against the earlier plan: the work before 64-bit is now **M9** (9.1-9.12), 64-bit is **M10**,
 and the work after 64-bit is **M11**.
 
-| Milestone  | ID | Area | Content | Status | When | Notes |
-|---|---|---|---|---|---|---|
 | M0 |   | CP conversion | The assembler: ESA/390 instructions for CE's ASSEMBLE | Done | Sep | Closed, no listing check outstanding |
+|---|---|---|---|---|---|---|
 | M1 |   | CP conversion | CP IPLs in ESA/390 mode (DAT off), console, channel subsystem, DASD, dump | Done | 30 Sep–Oct |  |
 | M2 |   | CP conversion | DAT on: ESA/390 segment/page tables, CP in AMODE 31, 31-bit guests | Done | Oct | AMODE 31 made consistent by I-259/I-260 on 11 Oct |
 | M3 |   | CP conversion | One S/370-mode guest logs on and runs CMS | Done | 3–4 Oct |  |
@@ -81,7 +80,8 @@ and the work after 64-bit is **M11**.
 | M9 | 9.17 | Tiny LLM | llama2.c-style inference of a tiny model (stories15M) natively on Debian/390 and on CMS (C, high storage, HFP/BFP and byte order converted): a demonstration; real models via 9.10 | Planned |  | Owner request 11 Oct; llama.cpp itself needs 64-bit, C++17 and GBs |
 | M9 | 9.18 | Mail | SENDMAIL / GETMAIL for CMS via a MAILER service machine (SMTP out through BORDER; POP/IMAP or SMTP in, delivered to the reader in class M) | Planned |  | Owner request 11 Oct; after 9.12 |
 | M9 | 9.19 | COBOL | GnuCOBOL 3.1.2. Debian: cross-built cobc + static libcob + GMP 6.3 against wheezy glibc, gcc 4.6 compiles the generated C (done 11 Oct). CMS goal: compile natively -- first cobc/libcob through the cross route (GCC -m31, newlib, cmsrt), then built on CMS by GCC380/GCCLIB31 with a COBOL EXEC (cobc -C, GCC, LOAD, GENMOD) | In progress | 11 Oct– | Owner request 11 Oct; CE has only the old COBOL. Debian verified (cb1): test programs identical to the PC. CMS cross route verified (cc3): same output on CMS. Next: cobc and the compile natively on CMS (GCC380). languages/cobol |
-| M9 | 9.20 | PL/I | PL/I beyond CE's PL/I(F): research first -- no maintained open PL/I for s390 (Iron Spring is x86 and closed, pl1gcc unfinished); options: document PL/I(F), a PL/I subset to C translator, old subsets (PL/I-G) | Research done | 11 Oct | Owner request 11 Oct. docs/64-PLI.md: CE PL/I works under VM/370plus (pl2, GLOBAL TXTLIB PLILIB); no open PL/I targets s390 or C; next: PLI EXEC polish, then a subset-to-C translator after the 9.19 native-compiler decision |
+| M9 | 9.20 | PL/I | PL/I beyond CE's PL/I(F): research first -- no maintained open PL/I for s390 (Iron Spring is x86 and closed, pl1gcc unfinished); options: document PL/I(F), a PL/I subset to C translator, old subsets (PL/I-G) | In progress | 11 Oct– | mikebeer/pli (PL/I to C89): native on CMS with GCC380 (PLIC EXEC), 17 of 19 tests (pp1-pp3); Debian next. docs/64-PLI.md |
+| M9 | 9.21 | C/C++ | Modern C/C++ toolchain on CMS: GCC 13.3 cc1/cc1plus and binutils 2.42 (as, ld, ar) cross-built for the M5f runtime; XL loader for programs above 16 MB; sysroot tar as read-only VFS; CC EXEC; then COBOL (9.19) compiles natively | In progress | 12 Oct– | Owner decision 12 Oct (GCC380 cannot do long long additions). Done: XL loader (xl1), as on CMS (tc3); cc1 runs on CMS |
 | M10 |  | 64-bit | z/Architecture (64-bit) | Planned |  |  |
 | M10 | 10.1 | Documentation | Migration documentation 31 -> 64 bit |  |  |  |
 | M10 | 10.2 | Documentation | Manual Update |  |  |  |

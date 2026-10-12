@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include "cp1047.h"
+#define POSIXRC(call) do { int r_ = (call); if (r_ < 0) *__errno() = errno; return r_; } while (0)
 
 /* M8: cREXX's mainframe entry points call mainframe_set_text_conversion(0)
  * and do IBM-1047 themselves: raw record bytes, ASCII LF as the delimiter. */
@@ -572,8 +573,8 @@ int _stat(const char *name, struct stat *st)
     return 0;
 }
 
-int stat(const char *name, struct stat *st) { return _stat(name, st); }
-int fstat(int fd, struct stat *st) { return _fstat(fd, st); }
+int stat(const char *name, struct stat *st) { POSIXRC(_stat(name, st)); }
+int fstat(int fd, struct stat *st) { POSIXRC(_fstat(fd, st)); }
 int _isatty(int fd) { return fd < 3; }
 
 int _unlink(const char *name)
@@ -597,16 +598,19 @@ int write(int fd, const void *p, size_t n) { return _write(fd, p, n); }
    a program's own version wins (GnuCOBOL's cobcms.c opens record files
    in binary).  open() is binary unless the name says otherwise. */
 #include <stdarg.h>
+/* newlib code reads errno through __errno() (the reentrancy struct);
+   the _xxx functions above set the plain global, as newlib's own _r
+   wrappers expect.  Direct POSIX calls must copy it over. */
 __attribute__((weak)) int open(const char *name, int flags, ...)
 {
     va_list ap; int mode;
     va_start(ap, flags); mode = va_arg(ap, int); va_end(ap);
-    return _open(name, flags, mode);
+    POSIXRC(_open(name, flags, mode));
 }
-__attribute__((weak)) int close(int fd) { return _close(fd); }
-__attribute__((weak)) int read(int fd, void *p, size_t n) { return _read(fd, p, n); }
-__attribute__((weak)) off_t lseek(int fd, off_t off, int whence) { return _lseek(fd, off, whence); }
-__attribute__((weak)) int unlink(const char *name) { return _unlink(name); }
+__attribute__((weak)) int close(int fd) { POSIXRC(_close(fd)); }
+__attribute__((weak)) int read(int fd, void *p, size_t n) { POSIXRC(_read(fd, p, n)); }
+__attribute__((weak)) off_t lseek(int fd, off_t off, int whence) { POSIXRC(_lseek(fd, off, whence)); }
+__attribute__((weak)) int unlink(const char *name) { POSIXRC(_unlink(name)); }
 __attribute__((weak)) int isatty(int fd) { return _isatty(fd); }
 __attribute__((weak)) int fsync(int fd) { (void)fd; return 0; }
 __attribute__((weak)) int getpid(void) { return 1; }
@@ -614,8 +618,8 @@ __attribute__((weak)) mode_t umask(mode_t m) { (void)m; return 022; }
 __attribute__((weak)) int chmod(const char *n, mode_t m) { (void)n; (void)m; return 0; }
 __attribute__((weak)) int fcntl(int fd, int cmd, ...) { (void)fd; (void)cmd; return 0; }
 __attribute__((weak)) long sysconf(int name) { return name == 8 /* _SC_PAGESIZE */ ? 4096 : 16; }
-__attribute__((weak)) int lstat(const char *name, struct stat *st) { return _stat(name, st); }
-__attribute__((weak)) int access(const char *name, int mode) { struct stat st; (void)mode; return _stat(name, &st); }
+__attribute__((weak)) int lstat(const char *name, struct stat *st) { POSIXRC(_stat(name, st)); }
+__attribute__((weak)) int access(const char *name, int mode) { struct stat st; (void)mode; POSIXRC(_stat(name, &st)); }
 __attribute__((weak)) char *getcwd(char *buf, size_t n)
 {
     if (!buf || n < 2) { errno = ERANGE; return 0; }
@@ -686,7 +690,7 @@ void _exit(int rc)
 }
 
 /* ---------------------------------------------------------------- startup */
-#define MAXARGS 32
+#define MAXARGS 128
 static char argbuf[MAXARGS][9];
 static char *argv_[MAXARGS + 1];
 
@@ -723,13 +727,25 @@ int cms_main(unsigned char *plist)
        which is replaced by the words of that stacked line (case kept;
        "..." or '...' groups a word with blanks) */
     for (int j = 1; j < argc; j++) {
-        static char sline[256];
+        static char sline[4096];
         static char *sargv[MAXARGS + 1];
         char *q;
-        int n = 0, len;
+        int n = 0, len = 0;
         if (strcmp(argv_[j], "=STACK") && strcmp(argv_[j], "=stack")) continue;
-        len = tread(sline, sizeof sline - 1);
-        sline[len] = 0;
+        /* a stacked line ending in " \" continues on the next one (a
+           terminal line holds 130 characters; compilers need more) */
+        for (;;) {
+            int k = tread(sline + len, sizeof sline - 1 - len);
+            len += k;
+            sline[len] = 0;
+            if (len && sline[len - 1] == '\n') sline[--len] = 0;
+            if (len >= 2 && sline[len - 1] == '\\' && sline[len - 2] == ' ') {
+                sline[--len] = 0;
+                if (len >= (int)sizeof sline - 132) break;
+                continue;
+            }
+            break;
+        }
         if (len && sline[len - 1] == '\n') sline[len - 1] = 0;
         for (int i = 0; i < j; i++) sargv[n++] = argv_[i];
         q = sline;
