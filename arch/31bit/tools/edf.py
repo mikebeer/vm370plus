@@ -25,6 +25,9 @@ the PC.  The layout is IBM's (VM/SP and later CMS), as Linux's cmsfs-fuse
                X'FFFFFFFF' when the whole block continues one); the last
                4 bytes of a V pointer block = offset of its last entry
 
+`--cyl=N`: the minidisk from real cylinder N to the end of the volume (a
+full volume with its VOL1 label on cylinder 0, MDISK ... N ...).
+
 Images: Hercules compressed (.cckd) images are converted with cckd2ckd /
 ckd2cckd around the work (`--cckd`); a plain .ckd is used in place.
 
@@ -37,6 +40,7 @@ usage: edf.py IMAGE format VOLID [BLKSIZE]
   of an EBCDIC deck gives): TEXT decks, tar files, XIMAGEs.
   RAW: the bytes exactly, as V records (RXBIN files, databases).
        edf.py IMAGE erase FN FT
+       edf.py IMAGE eraselist LIST         (lines: FN FT)
        edf.py IMAGE label
 """
 import os, struct, subprocess, sys, tempfile, time
@@ -80,13 +84,23 @@ class CKD:
         size = os.path.getsize(path)
         self.ntrk = (size - 512) // self.trksize
         self.ncyl = self.ntrk // self.heads
+        self.base = 0
+
+    def minidisk(self, cyl):
+        """Work on the minidisk that starts at real cylinder cyl and runs to
+        the end of the volume (cylinder 0 keeps its VOL1 label)."""
+        self.base = cyl * self.heads
+        self.ntrk -= self.base
+        self.ncyl -= cyl
 
     def track(self, t):
+        t += self.base
         self.f.seek(512 + t * self.trksize)
         return bytearray(self.f.read(self.trksize))
 
     def put_track(self, t, data):
         assert len(data) == self.trksize
+        t += self.base
         self.f.seek(512 + t * self.trksize)
         self.f.write(data)
 
@@ -102,9 +116,13 @@ class CKD:
         return d, out
 
     def format_track(self, t, nrec, dl):
-        cc, hh = divmod(t, self.heads)
-        d = bytearray(b'\x00') + struct.pack('>HH', cc, hh)
-        d += struct.pack('>HHBBH', cc, hh, 0, 0, 8) + bytes(8)     # R0
+        # home address and R0 carry the real cylinder; R1.. the minidisk's own
+        # (CP relocates a Search ID only for R0 -- DMKCCW SRCHID -- so the
+        # records CMS writes on a minidisk hold virtual cylinder numbers)
+        rc, hh = divmod(t + self.base, self.heads)
+        cc = t // self.heads
+        d = bytearray(b'\x00') + struct.pack('>HH', rc, hh)
+        d += struct.pack('>HHBBH', rc, hh, 0, 0, 8) + bytes(8)     # R0
         for r in range(1, nrec + 1):
             d += struct.pack('>HHBBH', cc, hh, r, 0, dl) + b'\x00' * dl
         d += b'\xff' * 8
@@ -471,7 +489,8 @@ def do_format(ckd, volid, bs=4096):
 
 def main(argv):
     cckd = '--cckd' in argv
-    argv = [a for a in argv if a != '--cckd']
+    mcyl = [int(a[6:]) for a in argv if a.startswith('--cyl=')]
+    argv = [a for a in argv if a != '--cckd' and not a.startswith('--cyl=')]
     if len(argv) < 2:
         print(__doc__)
         return 2
@@ -486,6 +505,8 @@ def main(argv):
     else:
         path = img
     ckd = CKD(path)
+    if mcyl:
+        ckd.minidisk(mcyl[0])
     changed = False
     try:
         if cmd == 'format':
@@ -517,12 +538,14 @@ def main(argv):
                     return 0
             print('edf: file not found')
             return 28
-        elif cmd in ('put', 'erase', 'putlist'):
+        elif cmd in ('put', 'erase', 'putlist', 'eraselist'):
             d = edf.directory()
             bits, am = edf.amap()
             entries = [f['raw'] for i, f in d]
-            if cmd == 'putlist':
+            if cmd in ('putlist', 'eraselist'):
                 jobs = [l.split() for l in open(argv[2]) if l.strip() and not l.startswith('#')]
+                if cmd == 'eraselist':
+                    cmd = 'erase'
             else:
                 jobs = [argv[2:]]
             for job in jobs:
