@@ -1,10 +1,12 @@
-/* COBOL EXEC -- GnuCOBOL 3.1.2 on VM/370plus CMS (9.19)                */
-/*   COBOL fn [sub ...]  translate fn COB (the main program) and the     */
-/*                       subprograms to C: fn C, fn H, fnL H on A       */
-/* Runs COBC MODULE (cobc, cross-built for CMS, M5f). The options go    */
-/* through the stack: CMS would cut each one to 8 chars and upper-case  */
-/* them.                                                                */
-PARSE ARG FN SUBS
+/* COBOL EXEC -- GnuCOBOL 3.1.2 natively on VM/370plus CMS (9.19)      */
+/*   COBOL fn [( C ]   fn COB -> fn C (COBC MODULE, cobc translates)    */
+/*                     -> CC EXEC (GCC 13 cc1, as, ld: 9.21)           */
+/*                     -> fn MODULE, linked with libcob and GMP from   */
+/*                        SYSROOT TAR.  C: stop after fn C.            */
+/* cobc's options go through the stack: CMS would cut each one to 8    */
+/* characters and upper-case them.                                     */
+PARSE ARG FN '(' OPTS
+FN = STRIP(FN)
 IF FN = '' THEN DO
   SAY 'COBOL: give the file name of the main program (filetype COB)'
   EXIT 24
@@ -19,10 +21,6 @@ IF RC <> 0 THEN DO; SAY 'COBOL:' FN 'COB not found'; EXIT 28; END
 QUEUE '-C -x -fstatic-call' FN'.cob'
 'COBC =STACK'
 IF RC <> 0 THEN EXIT RC
-DO I = 1 TO WORDS(SUBS)
-  S = WORD(SUBS, I)
-  QUEUE '-C -fstatic-call' S'.cob'
-  'COBC =STACK'
-  IF RC <> 0 THEN EXIT RC
-END
-EXIT 0
+IF WORDPOS('C', TRANSLATE(OPTS)) > 0 THEN EXIT 0
+'EXEC CC' FN 'C ( LIB cob LIB gmp LIB dl LIB cobcms'
+EXIT RC
