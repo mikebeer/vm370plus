@@ -1,7 +1,24 @@
-VM/370plus  --  overlay kit, 13 October 2026 (build 10)
+VM/370plus  --  overlay kit, 13 October 2026 (build 11)
 ========================================================
 
-NEW IN BUILD 10
+NEW IN BUILD 11
+  - TELL to the internet:  TELL user AT NET message  publishes to the MQTT
+    broker of the Debian guest (topic vm/tell/out/user); outside users
+    answer by publishing to vm/tell/from/<login>/to/<userid>.  Logins in
+    the guest:  tellnet-user name password.  On the PC:
+        python3 vm370plus/tools/netfwd.py --tls vm.crt vm.key 8883 10.1.1.2:1883
+    (the router forwards 8883 to the PC); vm370plus/tools/nettell.py is a
+    small outside client (pip install paho-mqtt).
+  - NICOF (Guide, Chapter 6): sockets for CMS programs, the FTP server
+    CMSFTPD and NHFS file transfer to the PC.  Needs Java on the PC:
+        sh vm370plus/nicof/nicof.sh start        (after Hercules is up)
+    then on CMS:  NCFACC,  NHFS LIST,  CMSFTPD -p 2121 -usecmscmds
+    (Windows: start the same java command as in nicof.sh in vm370plus\nicof)
+  - I-283: REXX EXECs in a machine without OPTION ECMODE no longer end with
+    an operation exception (CP simulates STNSM/STOSM in BC mode too).
+
+
+IN BUILD 10
   - TELL (Guide, Chapter 6):
         TELL userid message            CP MSG to a VM/370 user
         TELL user AT LINUX [message]   to a user of the Debian guest, through
