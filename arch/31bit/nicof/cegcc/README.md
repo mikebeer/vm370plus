@@ -39,7 +39,8 @@ user area and, for an EC old PSW, puts X'86' into the copy's bytes 2-3.
 
 Do not end a NICOF program with HX: its HNDEXT trap stays set and points
 into the freed program, and the next external interrupt ends in a disabled
-wait. Use `HTTPD -n` or `GET /STOP`, and re-IPL CMS after an HX.
+wait. Use `HTTPD -n count`, or start it with `-k key` and end it with
+`GET /.stop/key`; re-IPL CMS after an HX.
 
 ## Two things CE's C does differently
 
