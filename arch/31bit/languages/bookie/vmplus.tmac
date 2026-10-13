@@ -1,0 +1,456 @@
+.\" vmplus.tmac -- the VM/370plus manual style for bookie (9.30)
+.\"
+.\" The look of the VM/370plus Guide (arch/31bit/manual/mkmanual.js):
+.\" A4, 2 cm margins; Times 10.5/13 body; Helvetica headings; chapters
+.\" "Chapter n. Title" on a new page under a heavy rule; a running head
+.\" (book title, small, ruled) and foot (publication number, page);
+.\" screens in Courier in a light-grey framed box; tables with grey
+.\" rules and a Helvetica header row; "Figure n." captions; Note: and
+.\" Attention: paragraphs; a title page and an edition notice in the
+.\" IBM manner.  bookie.py emits only the BK-* macros defined here.
+.\"
+.\" Works with troff (PostScript) and nroff (text) alike.
+.\"
+.nr bk-front 0          \" 1 = title page/front matter: no running head
+.nr bk-needbp 0         \" a front-matter page is full: break before the next
+.nr bk-ch 0 1           \" chapter number
+.nr bk-fig 0 1
+.nr bk-indent 0
+.ds bk-title
+.ds bk-docnum
+.\" ---------------------------------------------------------------- page
+.ie t \{\
+.  pl 29.7c
+.  po 2c
+.  ll 17c
+.  lt 17c
+.  nr bk-PS 10.5
+.  nr bk-VS 13
+.  fam T
+.  ps 10.5
+.  vs 13p
+.  defcolor bk-grey rgb 0.949 0.949 0.949
+.  defcolor bk-rule rgb 0.5 0.5 0.5
+.  defcolor bk-hdr  rgb 0.851 0.851 0.851
+.\}
+.el \{\
+.  nr bk-PS 10
+.  nr bk-VS 12
+.  pl 66v
+.  po 0
+.  ll 72n
+.  lt 72n
+.\}
+.ft R
+.ad b
+.hy 14
+.\" the running head and foot
+.de BK-HEAD
+.  ev bk-hf
+.  ie t \{\
+.    sp |1.2c
+.    if !\\n[bk-front] \{\
+.      tl '\s8\f[HR]\\*[bk-title]\f[]\s0'''
+.      sp -0.6v
+.      nop \v'0.25v'\D'l 17c 0'
+.      br
+.    \}
+.    sp |2.4c
+.  \}
+.  el \{\
+.    sp 2
+.    if !\\n[bk-front] .tl '\\*[bk-title]'''
+.    sp 1
+.  \}
+.  ev
+..
+.de BK-FOOT
+.  ev bk-hf
+.  ie t \{\
+.    sp |28.0c
+.    if !\\n[bk-front] .tl '\s8\f[HR]\\*[bk-docnum]\f[]\s0''\s9\f[HR]\\n%\f[]\s0'
+.  \}
+.  el \{\
+.    sp 1
+.    if !\\n[bk-front] .tl '\\*[bk-docnum]''\\n%'
+.  \}
+.  ev
+.  bp
+..
+.ev bk-hf
+.ie t \{\
+.  ll 17c
+.  lt 17c
+.\}
+.el \{\
+.  ll 72n
+.  lt 72n
+.\}
+.ev
+.wh 0 BK-HEAD
+.ie t .wh 27.4c BK-FOOT
+.el .wh -4v BK-FOOT
+.\" ------------------------------------------------------------ title page
+.\" BK-TITLE: the strings bk-title, bk-stitle, bk-version, bk-based,
+.\" bk-docnum, bk-fileno and bk-author are set by bookie first
+.de BK-TITLE
+.  nr bk-front 1
+.  ie t \{\
+.    sp |6c
+.    ad l
+.    ft HB
+.    ps 36
+.    vs 40p
+.    nop \\*[bk-product]
+.    br
+.    ft HR
+.    ps 15
+.    vs 18p
+.    nop \\*[bk-stitle]
+.    sp 1.2c
+.    ft HB
+.    ps 20
+.    vs 24p
+.    nop \\*[bk-title]
+.    br
+.    sp 0.2c
+.    nop \D't 2.4p'\D'l 17c 0'\D't 0.5p'
+.    br
+.    sp 0.8c
+.    ft HR
+.    ps 12
+.    vs 15p
+.    nop \\*[bk-version]
+.    br
+.    ps 11
+.    nop \\*[bk-based]
+.    br
+.    sp |24c
+.    nop \\*[bk-pubno]
+.    br
+.    nop \\*[bk-fileno]
+.    br
+.    ft R
+.    ps \\n[bk-PS]
+.    vs \\n[bk-VS]p
+.    ad b
+.  \}
+.  el \{\
+.    sp 8
+.    ce 20
+.    nop \\*[bk-product]
+.    nop \\*[bk-stitle]
+.    sp 2
+.    nop \\*[bk-title]
+.    sp 2
+.    nop \\*[bk-version]
+.    nop \\*[bk-based]
+.    sp 4
+.    nop \\*[bk-pubno]
+.    nop \\*[bk-fileno]
+.    ce 0
+.  \}
+.  nr bk-needbp 1
+..
+.de BK-FRONTPAGE
+.  if \\n[bk-needbp] \{\
+.    nr bk-needbp 0
+.    bp
+.  \}
+..
+.\" BK-EDITION: the edition notice page (the text follows, ends at BK-EEDITION)
+.de BK-EDITION
+.  BK-FRONTPAGE
+.  ie t \{\
+.    ft HB
+.    ps 12
+.    nop \\$*
+.    br
+.    ft R
+.    ps \\n[bk-PS]
+.    sp 0.4c
+.  \}
+.  el \{\
+.    nop \\$*
+.    sp 1
+.  \}
+..
+.de BK-EEDITION
+.  nr bk-needbp 1
+..
+.\" ---------------------------------------------------------------- contents
+.de BK-CONTENTS
+.  BK-FRONTPAGE
+.  ie t \{\
+.    ft HB
+.    ps 16
+.    nop Contents
+.    br
+.    ft R
+.    ps \\n[bk-PS]
+.    sp 0.4c
+.  \}
+.  el \{\
+.    nop Contents
+.    sp 1
+.  \}
+.  ta \\n[.l]uR
+.  fi
+..
+.\" BK-TOCE level page text
+.de BK-TOCE
+.  nf
+.  ie \\$1=1 \{\
+.    if t \{\
+.      sp 0.35c
+.      ft HB
+.      ps 10.5
+.    \}
+.    if n .sp 1
+.    nop \\$3\a\t\\$2
+.  \}
+.  el \{\
+.    if t \{\
+.      ft R
+.      ps 10
+.    \}
+.    nr bk-ti (\\$1-1)*15
+.    in \\n[bk-ti]p
+.    ta \\n[.l]u-\\n[.i]uR
+.    nop \\$3\a\t\\$2
+.    in 0
+.    ta \\n[.l]uR
+.  \}
+.  ft R
+.  ps \\n[bk-PS]
+.  fi
+..
+.de BK-ECONTENTS
+.  nr bk-needbp 1
+..
+.\" BK-BODY: the front matter ends; running head and foot from here
+.de BK-BODY
+.  nr bk-front 0
+.  BK-FRONTPAGE
+..
+.\" ---------------------------------------------------------------- headings
+.\" BK-H level text...   (level 1: a chapter)
+.de BK-H
+.  in 0
+.  BK-ELIST-ALL
+.  ie \\$1=1 \{\
+.    if !\\n[bk-first] .bp
+.    nr bk-first 0
+.    nr bk-sec 0 1
+.    nr bk-ch +1
+.    ie t \{\
+.      ft HB
+.      ps 18
+.      vs 22p
+.      ad l
+.      nop Chapter \\n[bk-ch]. \\$2
+.      br
+.      sp 0.15c
+.      nop \D't 1.8p'\D'l 17c 0'\D't 0.5p'
+.      br
+.      sp 0.6c
+.      ad b
+.    \}
+.    el \{\
+.      sp 2
+.      nop Chapter \\n[bk-ch]. \\$2
+.      br
+.      nop \l'\\n[.l]u\(ul'
+.      sp 1
+.    \}
+.    tm BKTOC 1 \\n% Chapter \\n[bk-ch]. \\$2
+.  \}
+.  el \{\
+.    ne 4v
+.    ie t \{\
+.      ie \\$1=2 \{\
+.        sp 0.55c
+.        ps 13
+.        vs 16p
+.      \}
+.      el \{\
+.        sp 0.38c
+.        ps 11
+.        vs 14p
+.      \}
+.      ft HB
+.      ad l
+.      nop \\$2
+.      br
+.      ad b
+.      sp 0.12c
+.    \}
+.    el \{\
+.      sp 1
+.      nop \\$2
+.      br
+.    \}
+.    tm BKTOC \\$1 \\n% \\$2
+.  \}
+.  ft R
+.  ps \\n[bk-PS]
+.  vs \\n[bk-VS]p
+.  fi
+..
+.nr bk-first 1
+.\" a heading in the front matter (preface, abstract): no number, no TOC
+.de BK-FH
+.  BK-FRONTPAGE
+.  ie t \{\
+.    ft HB
+.    ps 13
+.    nop \\$1
+.    br
+.    ft R
+.    ps \\n[bk-PS]
+.    sp 0.2c
+.  \}
+.  el \{\
+.    sp 1
+.    nop \\$1
+.    br
+.  \}
+..
+.\" ---------------------------------------------------------------- text
+.de BK-P
+.  in \\n[bk-indent]u
+.  if t .sp 0.5v
+.  if n .sp 1
+.  fi
+..
+.de BK-NOTE
+.  BK-P
+.  nop \f[B]\\$1\f[]
+..
+.\" ---------------------------------------------------------------- lists
+.\" BK-LIST kind (ol ul sl dl) [term width]; BK-LI; BK-ELIST
+.nr bk-lv 0
+.de BK-LIST
+.  nr bk-lv +1
+.  ds bk-k\\n[bk-lv] \\$1
+.  nr bk-n\\n[bk-lv] 0 1
+.  ie '\\$1'dl' .nr bk-w\\n[bk-lv] \\$2n
+.  el .nr bk-w\\n[bk-lv] 1.6m
+.  if '\\$1'ol' .nr bk-w\\n[bk-lv] 2.2m
+.  if n .if '\\$1'ol' .nr bk-w\\n[bk-lv] 4n
+.  nr bk-in\\n[bk-lv] \\n[bk-indent]
+.  nr bk-indent +\\n[bk-w\\n[bk-lv]]u
+.  if t .sp 0.3v
+..
+.de BK-LI
+.  in \\n[bk-indent]u
+.  if t .sp 0.25v
+.  if n .sp 1
+.  ti -\\n[bk-w\\n[bk-lv]]u
+.  ie '\\*[bk-k\\n[bk-lv]]'ol' \{\
+.    nop \\n+[bk-n\\n[bk-lv]].\h'|\\n[bk-w\\n[bk-lv]]u'\c
+.  \}
+.  el .ie '\\*[bk-k\\n[bk-lv]]'ul' \{\
+.    ie (\\n[bk-lv]%2) .nop \(bu\h'|\\n[bk-w\\n[bk-lv]]u'\c
+.    el .nop \(en\h'|\\n[bk-w\\n[bk-lv]]u'\c
+.  \}
+.  el .nop \h'|\\n[bk-w\\n[bk-lv]]u'\c
+..
+.\" BK-DT term (a definition list entry; the description follows)
+.de BK-DT
+.  in \\n[bk-indent]u
+.  if t .sp 0.25v
+.  if n .sp 1
+.  ti -\\n[bk-w\\n[bk-lv]]u
+.  ie \w'\\$1\ \ 'u>\\n[bk-w\\n[bk-lv]]u \{\
+.    nop \f[B]\\$1\f[]
+.    br
+.  \}
+.  el .nop \f[B]\\$1\f[]\h'|\\n[bk-w\\n[bk-lv]]u'\c
+..
+.de BK-ELIST
+.  if \\n[bk-lv] \{\
+.    nr bk-indent \\n[bk-in\\n[bk-lv]]
+.    nr bk-lv -1
+.  \}
+.  in \\n[bk-indent]u
+.  if t .sp 0.3v
+..
+.de BK-ELIST-ALL
+.  while \\n[bk-lv] .BK-ELIST
+.  nr bk-indent 0
+..
+.\" ---------------------------------------------------------------- screens
+.\" BK-XMP ... BK-EXMP: Courier 8.5 in a light-grey framed box
+.de BK-XMP
+.  br
+.  if t .sp 0.4v
+.  if n .sp 1
+.  di bk-xd
+.  nf
+.  if t \{\
+.    ft CR
+.    ps 8.5
+.    vs 10.5p
+.    in +0.25c
+.  \}
+.  if n .in +4n
+..
+.de BK-EXMP
+.  br
+.  di
+.  nr bk-xh \\n[dn]
+.  in \\n[bk-indent]u
+.  ft R
+.  ps \\n[bk-PS]
+.  vs \\n[bk-VS]p
+.  ie t \{\
+.    ne \\n[bk-xh]u+0.4c
+.    nr bk-xw \\n[.l]u-\\n[bk-indent]u
+.    nr bk-xt \\n[bk-xh]u+0.3c
+.    \" the grey box, then its frame, then the text over them
+.    nop \v'-0.8v'\M[bk-grey]\D'P \\n[bk-xw]u 0 0 \\n[bk-xt]u -\\n[bk-xw]u 0 0 -\\n[bk-xt]u'\M[]\c
+.    nop \m[bk-rule]\D'p \\n[bk-xw]u 0 0 \\n[bk-xt]u -\\n[bk-xw]u 0 0 -\\n[bk-xt]u'\m[]
+.    sp -1v
+.    sp 0.15c
+.    nf
+.    bk-xd
+.    fi
+.    sp 0.35c
+.  \}
+.  el \{\
+.    nf
+.    bk-xd
+.    fi
+.    sp 1
+.  \}
+..
+.\" lines kept as they are
+.de BK-LINES
+.  br
+.  nf
+..
+.de BK-ELINES
+.  br
+.  fi
+..
+.\" ---------------------------------------------------------------- figures
+.de BK-FIGCAP
+.  br
+.  if t .sp 0.15c
+.  ie t .nop \f[HB]\s9Figure \\n+[bk-fig].\f[HR] \\$*\s0\f[]
+.  el .nop Figure \\n+[bk-fig]. \\$*
+.  br
+.  if t .sp 0.35c
+.  if n .sp 1
+..
+.\" tables: tbl, grey rules
+.de BK-TS
+.  br
+.  if t .sp 0.4v
+.  if t .gcolor bk-rule
+..
+.de BK-TE
+.  if t .gcolor
+.  if t .sp 0.2v
+..

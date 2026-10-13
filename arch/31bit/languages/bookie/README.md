@@ -1,7 +1,21 @@
 # bookie: BookMaster markup for VM/370plus (milestone 9.30)
 
 IBM's BookMaster is licensed. **bookie** is our own formatter for its GML
-markup. `bookie.py` translates a BookMaster source (`fn SCRIPT`) into troff
+markup. Its default style, **vmplus** (`vmplus.tmac`), is the look of the
+VM/370plus Guide:
+- A4 pages with 2 cm margins, a Times body and Helvetica headings.
+- A title page and an edition notice, both in the IBM manner.
+- A contents page with dotted leaders and page numbers. bookie formats the
+  document again until those numbers stop changing.
+- Chapters titled `Chapter n. Title`, each on a new page under a heavy rule.
+- A running head (the short title) and a running foot (the publication
+  number and the page).
+- Screens in Courier, in a light-grey framed box.
+- Tables with grey rules and a Helvetica header row, and `Figure n.`
+  captions.
+- `Note:` and `Attention:` paragraphs.
+
+`--style ms` gives the plain ms look of the first version. `bookie.py` translates a BookMaster source (`fn SCRIPT`) into troff
 (ms macros, tbl for tables), and groff in the Debian guest formats it as
 text or PostScript. Ghostscript (9.29) turns the PostScript into PDF or a
 printer's format.
@@ -19,7 +33,7 @@ document through the spool bridge (9.25, the service `bookie`).
 
 | Area | Tags |
 |---|---|
-| Structure | `:userdoc :prolog :title :author :date :docnum :frontm :tipage :toc :body :appendix :backm` |
+| Structure | `:userdoc :prolog :title :author :date :docnum :frontm :tipage :toc :body :appendix :backm`; title page (vmplus): `:prodname :subtitle :title :stitle` (running head) `:version :based :docnum :filenum`, `:edition title='...'` ... `:eedition` |
 | Headings and paragraphs | `:h0-:h6` (`id=`), `:p :lp :pc :note`, `:abstract`, `:preface` |
 | Highlighting | `:hp0-:hp9`/`:ehpN`, `:q`/`:eq`, `:cit`/`:ecit`, `:xph`/`:exph`, `:fn`/`:efn` |
 | Lists | `:ol :ul :sl :li` (nested), `:dl tsize= :dthd :ddhd :dt :dd :edl`, `:gl :gt :gd :egl` |
@@ -32,8 +46,7 @@ document through the spool bridge (9.25, the service `bookie`).
 
 ## Differences from BookMaster
 
-- The table of contents comes at the end of the document (`.TC`, roman
-  page numbers), not the front.
+- (style ms only) the table of contents comes at the end.
 - Running heads, figure lists, the index (`:i1.`), revision codes and
   profiles are not done; their tags are ignored.
 - Highlighting levels 4-9 repeat 1-3.

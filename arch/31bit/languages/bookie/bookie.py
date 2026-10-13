@@ -46,7 +46,8 @@ BLOCK = set('''userdoc euserdoc prolog eprolog title author date docnum
 frontm tipage toc body appendix backm index h0 h1 h2 h3 h4 h5 h6 p lp pc
 note ol eol ul eul sl esl li dl edl dthd ddhd dt dd gl egl gt gd xmp exmp
 lines elines fig efig figcap table etable thd ethd row c fn efn docprof
-abstract eabstract preface epreface address eaddress aline'''.split())
+abstract eabstract preface epreface address eaddress aline prodname subtitle
+version based filenum stitle edition eedition attention'''.split())
 INLINE = set('''hp0 hp1 hp2 hp3 hp4 hp5 hp6 hp7 hp8 hp9 ehp0 ehp1 ehp2 ehp3
 ehp4 ehp5 ehp6 ehp7 ehp8 ehp9 q eq cit ecit xph exph hdref figref
 nameit'''.split())
@@ -430,6 +431,8 @@ class Bookie:
             pos = m.end()
         if buf:
             self.text(buf)
+        if hasattr(self, 'endline'):
+            self.endline()
         # a heading is the rest of its line
         if self.heading is not None:
             txt = self.heading[1]
@@ -447,8 +450,235 @@ class Bookie:
         return '\n'.join(head + self.out + tail) + '\n'
 
 
+
+class Vmplus(Bookie):
+    """the VM/370plus manual style: emits the BK-* macros of vmplus.tmac"""
+    FIELDS = ('title', 'author', 'date', 'docnum', 'prodname', 'subtitle',
+              'version', 'based', 'filenum', 'stitle')
+
+    def __init__(self, incdirs, toc=None):
+        Bookie.__init__(self, incdirs)
+        for f in self.FIELDS:
+            setattr(self, f, [])
+        self.tocent = toc
+        self.inbody = False
+        self.caption = None
+        self.lv = 0
+
+    @staticmethod
+    def q(s):
+        return '"%s"' % s.replace('"', '\\(dq')
+
+    def text(self, t):
+        if self.caption is not None:
+            self.caption += (' ' if self.caption else '') + t.strip()
+            return
+        Bookie.text(self, t)
+
+    def flush_heading(self):
+        if self.heading is None:
+            return
+        lvl, txt = self.heading
+        self.heading = None
+        if not self.inbody:
+            self.out.append('.BK-FH %s' % self.q(txt))
+        else:
+            self.out.append('.BK-H %d %s' % (lvl, self.q(txt)))
+
+    def endline(self):
+        if self.caption is not None:
+            c, self.caption = self.caption, None
+            self.req('.BK-FIGCAP %s' % c)
+
+    def ds(self, name, val):
+        self.out.append('.ds %s %s' % (name, val))
+
+    def tag(self, name, a):
+        n = name.lower()
+        if n in self.FIELDS:
+            self.where = n
+            return
+        if n in ('eprolog', 'frontm', 'userdoc', 'docprof', 'euserdoc'):
+            self.where = None
+            if n == 'euserdoc':
+                self.req('.BK-ELIST-ALL')
+            return
+        if n == 'tipage':
+            self.where = None
+            j = lambda f: ' '.join(getattr(self, f))
+            self.titled = True
+            self.ds('bk-title', j('stitle') or j('title'))
+            self.ds('bk-docnum', j('docnum'))
+            self.ds('bk-product', j('prodname'))
+            self.ds('bk-stitle', j('subtitle'))
+            self.ds('bk-version', j('version') or j('date'))
+            self.ds('bk-based', j('based') or j('author'))
+            self.ds('bk-pubno', ('Publication ' + j('docnum')) if self.docnum else '')
+            self.ds('bk-fileno', ('File No. ' + j('filenum')) if self.filenum else '')
+            self.out.append('.ds bk-title %s' % (j('title')))
+            self.req('.BK-TITLE')
+            self.ds('bk-title', j('stitle') or j('title'))
+            return
+        if n == 'edition':
+            self.where = None
+            self.req('.BK-EDITION %s' % esc(a.get('title', 'Edition Notice')))
+            return
+        if n == 'eedition':
+            self.req('.BK-EEDITION')
+            return
+        if n == 'toc':
+            self.req('.BK-CONTENTS')
+            for lvl, page, txt in (self.tocent or []):
+                if lvl <= 2:
+                    self.out.append('.BK-TOCE %d %s %s' % (lvl, page, self.q(txt)))
+            self.req('.BK-ECONTENTS')
+            return
+        if n == 'body':
+            self.where = None
+            self.inbody = True
+            self.req('.BK-BODY')
+            return
+        if n in ('backm', 'appendix'):
+            return
+        if n in ('h0', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+            self.req('.BK-ELIST-ALL')
+            self.lv = 0
+            self.heading = [max(1, int(n[1])), '']
+            self._hid = a.get('id')
+            return
+        if n in ('p', 'lp', 'pc'):
+            self.req('.BK-P')
+            return
+        if n in ('note', 'attention'):
+            self.req('.BK-NOTE %s' % ('Note:' if n == 'note' else 'Attention:'))
+            return
+        if n in ('ol', 'ul', 'sl'):
+            self.lv += 1
+            self.req('.BK-LIST %s' % n)
+            return
+        if n in ('eol', 'eul', 'esl', 'edl', 'egl'):
+            if self.lv:
+                self.lv -= 1
+            self.req('.BK-ELIST')
+            return
+        if n == 'li':
+            if not self.lv:
+                self.lv = 1
+                self.req('.BK-LIST ul')
+            self.req('.BK-LI')
+            return
+        if n in ('dl', 'gl'):
+            w = re.sub(r'[^0-9]', '', a.get('tsize', '12')) or '12'
+            self.lv += 1
+            self.req('.BK-LIST dl %s' % w)
+            return
+        if n in ('dthd', 'dt', 'gt'):
+            self.dtterm = ''
+            return
+        if n in ('ddhd', 'dd', 'gd'):
+            term = (self.dtterm or '').strip()
+            self.dtterm = None
+            self.req('.BK-DT %s' % self.q(term))
+            return
+        if n == 'xmp':
+            self.verbatim += 1
+            self.req('.BK-XMP')
+            return
+        if n == 'exmp':
+            self.verbatim = max(0, self.verbatim - 1)
+            self.req('.BK-EXMP')
+            return
+        if n == 'lines':
+            self.verbatim += 1
+            self.req('.BK-LINES')
+            return
+        if n == 'elines':
+            self.verbatim = max(0, self.verbatim - 1)
+            self.req('.BK-ELINES')
+            return
+        if n == 'fig':
+            self.req('.br')
+            return
+        if n == 'figcap':
+            self.caption = ''
+            return
+        if n == 'efig':
+            return
+        if n in ('abstract', 'preface'):
+            self.req('.BK-FH %s' % n.capitalize())
+            return
+        if n in ('eabstract', 'epreface', 'address', 'eaddress', 'aline'):
+            self.req('.br')
+            return
+        if n in ('fn', 'efn'):
+            self.out.append('(' if n == 'fn' else ')')
+            return
+        Bookie.tag(self, name, a)
+
+    def emit_table(self):
+        t = self.table
+        self.table = None
+        rows = [r for r in t['rows'] if r]
+        if not rows:
+            return
+        nc = max(t['cols'], max(len(r) for r in rows))
+        self.req('.BK-TS')
+        self.out.append('.TS')
+        self.out.append('allbox tab(\t);')
+        fm = []
+        for i, r in enumerate(rows):
+            fm.append(' '.join(['l' + ('fHB' if i in t['head'] else '')] * nc))
+        self.out.extend(fm[:-1])
+        self.out.append(fm[-1] + '.')
+        for i, r in enumerate(rows):
+            cells = [esc(c) for c in r] + [''] * (nc - len(r))
+            self.out.append('\t'.join('T{\n%s\nT}' % c for c in cells))
+        self.out.append('.TE')
+        self.req('.BK-TE')
+
+    def result(self):
+        self.flush_heading()
+        head = ['.\\" made by bookie (VM/370plus): BookMaster markup -> vmplus.tmac']
+        if getattr(self, 'titled', False):
+            head.append('.nr bk-front 1')
+        return '\n'.join(head + self.out) + '\n'
+
+def build(files, inc, style, toc=None, stdin_lines=None):
+    b = Vmplus(inc, toc) if style == 'vmplus' else Bookie(inc)
+    if files:
+        for f in files:
+            b.load(f)
+    else:
+        for line in stdin_lines:
+            b.line(line.rstrip('\r'), '.', 0)
+    return b.result()
+
+
+def groff(roff, mode, style):
+    import subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    if style == 'vmplus':
+        dev = {'text': ['-Tascii', '-P-cbou'], 'ps': ['-Tps', '-dpaper=a4', '-P-pa4']}[mode]
+        cmd = ['groff', '-M' + here, '-mvmplus', '-t', '-Wfont', '-Wbreak'] + dev
+    else:
+        dev = {'text': ['-Tascii', '-P-cbou'], 'ps': ['-Tps']}[mode]
+        mdir = os.environ.get('BOOKIE_TMAC', '/usr/local/share/groff/tmac123')
+        cmd = ['groff', '-M' + mdir, '-ms', '-t', '-Wfont'] + dev
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    o, e = p.communicate(roff.encode('latin-1'))
+    toc, msgs = [], []
+    for l in e.decode('latin-1').split('\n'):
+        m = re.match(r'BKTOC (\d+) (\S+) (.*)$', l)
+        if m:
+            toc.append((int(m.group(1)), m.group(2), m.group(3)))
+        elif l.strip():
+            msgs.append(l)
+    return o, toc, msgs, p.returncode
+
+
 def main(argv):
-    out = None; inc = []; mode = None; files = []
+    out = None; inc = []; mode = None; files = []; style = 'vmplus'
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -458,28 +688,28 @@ def main(argv):
             inc.append(argv[i + 1]); i += 1
         elif a == '--groff':
             mode = argv[i + 1]; i += 1
+        elif a == '--style':
+            style = argv[i + 1]; i += 1
         else:
             files.append(a)
         i += 1
-    b = Bookie(inc)
-    if files:
-        for f in files:
-            b.load(f)
-    else:
-        for line in sys.stdin.read().split('\n'):
-            b.line(line.rstrip('\r'), '.', 0)
-    roff = b.result()
-    if mode:
-        import subprocess
-        dev = {'text': ['-Tascii', '-P-cbou'], 'ps': ['-Tps']}[mode]
-        mdir = os.environ.get('BOOKIE_TMAC', '/usr/local/share/groff/tmac123')
-        p = subprocess.Popen(['groff', '-M' + mdir, '-ms', '-t', '-Wfont'] + dev,
-                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        o, _ = p.communicate(roff.encode('latin-1'))
-        (open(out, 'wb') if out else sys.stdout.buffer).write(o)
-        return p.returncode
-    (open(out, 'w', encoding='latin-1') if out else sys.stdout).write(roff)
-    return 0
+    lines = None if files else sys.stdin.read().split('\n')
+    if not mode:
+        roff = build(files, inc, style, None, lines)
+        (open(out, 'w', encoding='latin-1') if out else sys.stdout).write(roff)
+        return 0
+    # the contents need the page numbers: format until they stand still
+    toc = None
+    for n in range(4):
+        roff = build(files, inc, style, toc, lines)
+        o, newtoc, msgs, rc = groff(roff, mode, style)
+        if style != 'vmplus' or newtoc == toc:
+            break
+        toc = newtoc
+    for m in msgs:
+        sys.stderr.write(m + '\n')
+    (open(out, 'wb') if out else sys.stdout.buffer).write(o)
+    return rc
 
 
 if __name__ == '__main__':

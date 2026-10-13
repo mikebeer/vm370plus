@@ -1,0 +1,14 @@
+#!/bin/sh
+# wc++ -- GCC 13 g++ -m31 for Debian 7 (wheezy) s390, like wcc: wheezy's
+# glibc, GCC's libstdc++ linked statically, wheezy-cxx.h and
+# wheezy-cxx-shim.o fill in what libstdc++ expects of a newer glibc.
+S=${WHEEZY:-/home/claude/src/cobol/wsys}
+H=$(cd $(dirname $0) && pwd)
+GI=$(s390x-linux-gnu-gcc -m31 -print-file-name=include)
+X=/usr/s390x-linux-gnu/include/c++/13
+LINK=-Wl,--no-as-needed
+for a in "$@"; do [ "$a" = -c ] && LINK=; [ "$a" = -E ] && LINK=; [ "$a" = -S ] && LINK=; done
+exec s390x-linux-gnu-g++ -m31 -nostdinc -include $H/wheezy-cxx.h -isystem $X -isystem $X/s390x-linux-gnu/32 -isystem $X/backward \
+  -isystem $GI -isystem $S/usr/include/s390-linux-gnu -isystem $S/usr/include --sysroot=$S \
+  -B$S/usr/lib/s390-linux-gnu -L$S/usr/lib/s390-linux-gnu -L$S/lib/s390-linux-gnu \
+  -Wl,-rpath-link,$S/lib/s390-linux-gnu -no-pie -static-libstdc++ -static-libgcc "$@" ${LINK:+$H/wheezy-cxx-shim.o}

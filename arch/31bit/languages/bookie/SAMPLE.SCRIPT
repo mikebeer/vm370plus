@@ -1,46 +1,63 @@
 .* SAMPLE SCRIPT -- a BookMaster document for bookie (VM/370plus 9.30)
+.* in the style of the VM/370plus Guide (vmplus.tmac)
 :userdoc.
 :prolog.
-:title.VM/370plus Sample Book
-:author.The VM/370plus project
-:date.13 October 2026
+:prodname.VM/370plus
+:subtitle.Virtual Machine Facility/370, ESA/390 Edition
+:title.Formatting Documents with BOOKIE
+:stitle.VM/370plus Formatting Documents with BOOKIE
+:version.Release 1 &bullet. Kit Build 8, 13 October 2026
+:based.based on VM/370 Community Edition V1 R1.2
+:docnum.VMP-0002-0
+:filenum.S370-34
 :eprolog.
 :frontm.
 :tipage.
+:edition title='First Edition (October 2026)'.
+:p.This edition applies to Release 1 of VM/370plus and to all subsequent
+releases until otherwise indicated in new editions.
+:p.VM/370plus is a hobby project. It is not a product of, and this
+document is not a publication of, International Business Machines
+Corporation.
+:eedition.
 :toc.
 :body.
 :h1 id=intro.Introduction
 :p.This book is written in :hp2.BookMaster:ehp2. markup and formatted by
-:hp1.bookie:ehp1., our own formatter. The markup uses tags such as
+:hp1.bookie:ehp1., the VM/370plus formatter. The markup uses tags such as
 &colon.p. and &colon.h1.; a symbol like &amp.colon. gives a colon.
-:p.Here is a list of what bookie knows:
-:ol.
+:p.bookie knows:
+:ul.
 :li.headings, paragraphs and highlighting;
 :li.ordered, unordered and simple lists, nested:
-:ul.
+:ol.
 :li.like this one,
 :li.and this.
-:eul.
-:li.definition lists, examples, figures and tables.
 :eol.
+:li.definition lists, screens, figures and tables.
+:eul.
 :h2.Definitions
 :dl tsize=10.
-:dthd.Term
-:ddhd.Meaning
 :dt.CP
-:dd.The Control Program.
+:dd.The Control Program: it gives every user a virtual machine.
 :dt.CMS
-:dd.The Conversational Monitor System.
+:dd.The Conversational Monitor System, the single-user operating system
+that runs in a virtual machine.
 :edl.
-:h2.An example
+:h2.A screen
+:p.A command and its answer look like this:
 :xmp.
-/* HELLO EXEC */
-SAY 'Hello, world'
-.not a control word inside an example
+bookie sample (ps
+09:09:04 PUN FILE 0033  TO  MAINT    COPY 01 NOHOLD
+09:09:24 PUN FILE 0034 FROM MAINT    COPY 01 NOHOLD
+BOOKIE: SAMPLE PS A, 286 lines
+Ready; T=0.19/0.23 09:09:24
 :exmp.
-:note.Examples keep their spacing.
-:h1.Tables
-:table cols='10 20 30'.
+:note.Screens keep their spacing.
+:h1.Commands
+:p.The formatters of VM/370plus:
+:fig.
+:table cols='10 10 30'.
 :thd.
 :row.
 :c.Command
@@ -48,13 +65,21 @@ SAY 'Hello, world'
 :c.What it does
 :ethd.
 :row.
-:c.LXCALL
+:c.BOOKIE
 :c.CMS
-:c.Calls a Linux service through the spool bridge.
+:c.Formats a BookMaster document in this style.
 :row.
 :c.TROFF
 :c.CMS
 :c.Formats a troff document with groff.
+:row.
+:c.PSPRINT
+:c.CMS
+:c.Prints PostScript, by spool or through the bridge.
 :etable.
-:p.See :q.Introduction:eq. for the beginning.
+:figcap.The formatters
+:efig.
+:h2.Printing
+:p.See :q.Introduction:eq. for the beginning. :attention.A PostScript
+file must start with %!PS.
 :euserdoc.
