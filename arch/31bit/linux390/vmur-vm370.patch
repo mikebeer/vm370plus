@@ -1,5 +1,5 @@
 --- a/drivers/s390/char/vmur.c
-+++ b/drivers/s390/char/vmur.c	2026-10-12 23:43:56.122190452 +0000
++++ b/drivers/s390/char/vmur.c	2026-10-13 00:08:06.029169507 +0000
 @@ -20,6 +20,7 @@
  #include <asm/ccwdev.h>
  #include <asm/debug.h>
@@ -75,7 +75,7 @@
  	}
  }
  
-@@ -555,6 +592,57 @@
+@@ -555,6 +592,80 @@
  	return rc;
  }
  
@@ -85,12 +85,35 @@
 + * unit exception: that is end of file for read().  A short record is
 + * padded with blanks (X'40') to 80 bytes, so read() returns whole cards.
 + */
++/* VM/370: is there a file in our reader?  (A READ on an empty reader ends
++ * in a unit check whose automatic sense does not complete.)  QUERY FILES
++ * answers "FILES:  NO RDR, ..." or "FILES: 001 RDR, ...". */
++static int vm370_rdr_files(void)
++{
++	char *resp;
++	int rc, n = 0;
++
++	resp = kzalloc(128, GFP_KERNEL | GFP_DMA);
++	if (!resp)
++		return -ENOMEM;
++	cpcmd("QUERY FILES", resp, 127, &rc);
++	if (!strstr(resp, "NO RDR"))
++		n = 1;
++	kfree(resp);
++	return n;
++}
++
 +static ssize_t ccw_read(struct urdev *urd, char __user *ubuf, size_t count)
 +{
 +	struct ccw1 *cpa;
 +	char *card;
 +	size_t done = 0;
 +	int rc = 0, n;
++
++	rc = vm370_rdr_files();
++	if (rc <= 0)
++		return rc;		/* empty reader: end of file */
++	rc = 0;
 +
 +	cpa = kzalloc(sizeof(*cpa), GFP_KERNEL | GFP_DMA);
 +	card = kmalloc(80, GFP_KERNEL | GFP_DMA);
@@ -133,7 +156,7 @@
  static ssize_t ur_read(struct file *file, char __user *ubuf, size_t count,
  		       loff_t *offs)
  {
-@@ -567,6 +655,12 @@
+@@ -567,6 +678,12 @@
  		return 0;
  
  	urd = ((struct urfile *) file->private_data)->urd;
@@ -146,7 +169,7 @@
  	rc = mutex_lock_interruptible(&urd->io_mutex);
  	if (rc)
  		return rc;
-@@ -648,6 +742,8 @@
+@@ -648,6 +765,8 @@
  	case DEV_CLASS_UR_O:
  		return 0; /* no check needed here */
  	case DEV_CLASS_UR_I:
@@ -155,7 +178,7 @@
  		return verify_uri_device(urd);
  	default:
  		return -EOPNOTSUPP;
-@@ -681,6 +777,8 @@
+@@ -681,6 +800,8 @@
  	case DEV_CLASS_UR_O:
  		return 0;
  	case DEV_CLASS_UR_I:
