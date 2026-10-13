@@ -107,3 +107,19 @@ Lines must be at most 132 characters; groff's PostScript lines are at most
 Verified (pd19, 13 October): `TROFF HELLO (MACROS MS PS` and then `PSPRINT
 HELLO`. The PostScript on the PC matched the original in the Debian guest
 byte for byte, and Ghostscript rendered it and turned it into a PDF.
+
+## Printing by bridge (9.31)
+
+`PSPRINT fn [ft [fm]] (BRIDGE [format]` sends the PostScript to the
+bridge's `print` service. Ghostscript (9.29) converts it to the printer's
+format — `ps`, `pdf`, `ljet4`, `pxlmono` or `pxlcolor` — and the service
+sends the result to `PRINTER=host[:9100]` (the raw port) or to
+`LPQUEUE=name` (lp). Both settings live in `/etc/vmspool.d/print.conf`,
+along with `FORMAT=`.
+
+The Debian guest's network goes through the PC (10.1.1.1). A printer on
+the LAN therefore needs routing or NAT on the PC, or a forward from the
+PC's port 9100 to the printer.
+
+Verified (pd19): a 12,491-byte PDF arrived at a stand-in printer on the
+PC's port 9100.
