@@ -348,7 +348,7 @@ TABLE(['Command', 'Does'], [
   ['`MQ GET queue (STACK`', 'Puts the message on the program stack, a line each, for an EXEC to PULL.'],
   ['`MQ DEPTH queue`', 'Types the number of messages waiting.'],
   ['`MQ PURGE queue`', 'Drops all messages.'],
-]);
+], [3200, 6438], 'MQ commands');
 P('`MQ OPTIONS` (any accessed disk) names the broker, one `key value` per line: `HOST`, `PORT`, `USER`, `PASSWORD`, `VHOST`. The defaults, `localhost 5672 guest guest /`, reach a broker on the PC itself. Message bodies are UTF-8 on the broker and Latin-1 on CMS. `MQTEST` is an example EXEC.');
 SCREEN(['mq put orders 3 widgets for Zurich', 'Ready;', 'mq depth orders', '1', 'Ready;', 'mq get orders', '3 widgets for Zurich', 'Ready;'], 'A queue on the PC’s RabbitMQ');
 H2('TELL');

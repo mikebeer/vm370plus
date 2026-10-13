@@ -1168,7 +1168,7 @@ Windows. It runs under :xph.IPL 290:exph. from the language disk
 through the PC&colon. the AMQP client library rabbitmq-c, built with GCC
 13 on NICOF's sockets.
 :fig.
-:table cols='* *'.
+:table cols='3200 6438'.
 :thd.
 :row.
 :c.Command
@@ -1192,6 +1192,7 @@ PULL.
 :c.:xph.MQ PURGE queue:exph.
 :c.Drops all messages.
 :etable.
+:figcap.MQ commands
 :efig.
 :p.:xph.MQ OPTIONS:exph. (any accessed disk) names the broker, one
 :xph.key value:exph. per line&colon. :xph.HOST:exph., :xph.PORT:exph.,
