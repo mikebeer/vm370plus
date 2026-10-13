@@ -48,6 +48,8 @@ PRVHI    DS    0H                                              XA0054DK
 PRVVCS   L     R12,=V(DMKVCSEX)                                XA0054DK         
          BR    R12                                             XA0054DK         
 PRVB2    DS    0H                                              XA0054DK         
+./ R 00809000          $ 00809000 100                                           
+*  VM/370PLUS: STNSM/STOSM IN BC MODE TOO (GCCLIB, 9.13D)      XA0054DK         
 ./ I 00841000 $ 00841010 010                                                    
          TM    VMPSTAT,VMV370R  I-258: EC-CAPABLE MACHINE      XA0054DK         
          BZ    SETMASK1       IN EC MODE, NOT ESA/390,         XA0054DK         

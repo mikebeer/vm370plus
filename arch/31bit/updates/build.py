@@ -3570,6 +3570,16 @@ def m7decks():
         "         BR    R12",
         "PRVB2    DS    0H",
     ])
+    # 9.13d: STNSM/STOSM were an operation exception in a BC-mode machine
+    # ("CF 370 PRINCIPLES OF OPERATION").  GCCLIB's CMSSYS uses them since
+    # M5b (mode-independent masking), so BREXX ended BC-mode machines with
+    # DMSITP141T OPERATION EXCEPTION (NICOF's TCPIPPXY): in BC mode the
+    # system mask is the PSW's byte 0 as well, and the simulation below
+    # (store it, AND/OR the immediate byte) is the same.
+    d.replace('00809000', first='00809000', inc=100,
+              limit=next_seq(src('DMKPRV'), '00809000'), lines=[
+        "*  VM/370PLUS: STNSM/STOSM IN BC MODE TOO (GCCLIB, 9.13D)",
+    ])
     # I-258: an S/370 program written for BC mode sets the system mask with
     # SSM =X'FF' (MECAFF's EE, FSVIEW, FSLIST; the REXX full-screen
     # package).  Under the EC CMS (IPL 290) that byte lands in an EC PSW,
