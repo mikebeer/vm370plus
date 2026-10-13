@@ -31,6 +31,7 @@ static int verbose = 0;
 static int lsock = -1, csock = -1;
 static char fm[3] = "A";
 static char req[4096], ebc[4096], buf[8192], out[8192];
+static int flush(void);
 
 /* the empty line that ends the request head, in ASCII (an EBCDIC '\n'
    is X'15', not the X'25' that LF becomes) */
@@ -47,27 +48,34 @@ static int endofhead(const char *p, int n)
 
 static void stop(int rc)
 {
-  if (csock >= 0) closesocket(csock);
+  if (csock >= 0) { flush(); closesocket(csock); }
   if (lsock >= 0) closesocket(lsock);
   nicofclt_deinit();
   exit(rc);
 }
 
-/* send an EBCDIC C string as ASCII */
+/* the output buffer: sends() collects translated text here and flush()
+   sends it in CHUNK-sized blocks (one NICOF call per block, not per line) */
+static int outn = 0;
+
+static int flush(void)
+{
+  int r = 0;
+  if (outn > 0) {
+    if (verbose) printf("HTTPD: send %d bytes\n", outn);
+    r = send(csock, out, outn, 0);
+    if (verbose) printf("HTTPD: send -> %d\n", r);
+    outn = 0;
+  }
+  return r < 0 ? -1 : 0;
+}
+
+/* send an EBCDIC C string as ASCII (buffered) */
 static int sends(const char *s)
 {
-  int n = strlen(s);
-  while (n > 0) {
-    int k = n > CHUNK ? CHUNK : n;
-    int r;
-    int j;                  /* NICOF's table makes NL (X'15') a blank */
-    for (j = 0; j < k; j++)
-      out[j] = s[j] == '\n' ? 0x0a : e2a[(unsigned char)s[j]];
-    if (verbose) printf("HTTPD: send %d bytes\n", k);
-    r = send(csock, out, k, 0);
-    if (verbose) printf("HTTPD: send -> %d, errno %d\n", r, errno);
-    if (r < 0) return -1;
-    s += k; n -= k;
+  for (; *s; s++) {           /* NICOF's table makes NL (X'15') a blank */
+    out[outn++] = *s == '\n' ? 0x0a : e2a[(unsigned char)*s];
+    if (outn >= CHUNK && flush() < 0) return -1;
   }
   return 0;
 }
@@ -123,6 +131,7 @@ static int sendfile(const char *fn, const char *ft, const char *fmode)
   if (!f) return -1;
   header(200, "OK", type);
   if (bin) {
+    if (flush() < 0) { fclose(f); return 0; }
     while ((n = fread(buf, 1, CHUNK, f)) > 0)
       if (send(csock, buf, n, 0) < 0) break;
   } else {
@@ -275,12 +284,12 @@ int main(int argc, char *argv[])
       printf("HTTPD: %d bytes, %02X %02X %02X %02X / %02X %02X %02X %02X\n",
              n, req[0] & 255, req[1] & 255, req[2] & 255, req[3] & 255,
              ebc[0] & 255, ebc[1] & 255, ebc[2] & 255, ebc[3] & 255);
-      closesocket(csock); csock = -1;
+      flush(); closesocket(csock); csock = -1;
       continue;
     }
     if (key && !strncmp(path, "/.stop/", 7) && !strcmp(path + 7, key)) {
       header(200, "OK", "text/plain"); sends("HTTPD stopped\n");
-      closesocket(csock); csock = -1;
+      flush(); closesocket(csock); csock = -1;
       printf("HTTPD: stopped\n");
       stop(0);
     }
@@ -289,7 +298,7 @@ int main(int argc, char *argv[])
       sends("GET only\n");
     } else
       serve(path);
-    closesocket(csock); csock = -1;
+    flush(); closesocket(csock); csock = -1;
     if (count && ++served >= count) break;
   }
   stop(0);

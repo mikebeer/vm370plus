@@ -26,8 +26,20 @@ build under `IPL 290` with `DEF STOR 64M`:
     LOAD HTTPD NICOFCLT NCFSOCKT INTRAPI (CLEAR
     GENMOD HTTPD
 
-Run it under `IPL CMS` (16M). Under `IPL 290`, the first socket call
-waited forever (I-285).
+It runs under `IPL CMS` and under `IPL 290` (16M or 64M).
+
+## The EC-mode CMS (I-285)
+
+NICOF's C interrupt handler reads the interrupt code from bytes 2-3 of the
+external old PSW that DMSITE saves (user area +96). Under `IPL 290` that PSW
+is an EC PSW, which has no code in it: the code is at X'86'. Before the fix
+the handler never saw the VMCF code X'4001', so the first socket call
+waited forever. INTRAPI's EXTHNDLR now gives the C handler a copy of the
+user area and, for an EC old PSW, puts X'86' into the copy's bytes 2-3.
+
+Do not end a NICOF program with HX: its HNDEXT trap stays set and points
+into the freed program, and the next external interrupt ends in a disabled
+wait. Use `HTTPD -n` or `GET /STOP`, and re-IPL CMS after an HX.
 
 ## Two things CE's C does differently
 
@@ -37,4 +49,5 @@ waited forever (I-285).
 - **`sscanf`.** `%7s` left the field empty, so HTTPD parses by hand.
 
 NICOF moves at most 2 KB per socket call, so HTTPD sends and receives in
-2,000-byte pieces.
+2,000-byte pieces. Text goes out through a buffer, a block per call and not
+a line per call: a 9 KB file now takes 0.6 s instead of 26 s.
