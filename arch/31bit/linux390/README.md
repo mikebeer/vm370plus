@@ -37,8 +37,11 @@ On Debian:
 - To punch: `vmcp spool 00d to user`, write 80-byte cards to
   `/dev/vmpun-0.0.000d`, then `vmcp close 00d name fn ft`. VM/370's CLOSE
   has no TO option.
-- To read: `cat /dev/vmrdr-0.0.000c` reads the next reader file as 80-byte
-  cards.
+- To read: `cat /dev/vmrdr-0.0.000c` reads the reader as 80-byte EBCDIC
+  cards, file after file, until it is empty (each file is gone once read,
+  as with any VM/370 reader that is not set HOLD). Convert with
+  `iconv -f IBM1047`. Needs the CP fix of I-276 (13 Oct): before it, the
+  read after the last card waited for ever.
 - The s390-tools `vmur` program expects z/VM's response formats, so do not
   use it.
 

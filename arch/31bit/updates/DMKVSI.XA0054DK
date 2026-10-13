@@ -669,9 +669,15 @@ BLDSCSW1 TM    ENTFLG(R3),ENTPEND                              XA0054DK
          TM    ENTFLG2(R3),ENTPRIM  PRIMARY (UNLESS A CE       XA0054DK         
          BO    *+8            CAME FIRST),                     XA0054DK         
          OI    3(R1),X'04'                                     XA0054DK         
+*  I-276: A STATUS WITH NEITHER CE NOR DE (THE READER'S UNIT   XA0054DK         
+*  EXCEPTION AT END OF FILE, DMKVSP'S CC 1 CASE) ENDED THE     XA0054DK         
+*  OPERATION AT ONCE: SECONDARY TOO, OR LINUX'S CIO TAKES IT   XA0054DK         
+*  FOR INTERMEDIATE AND WAITS FOR A DEVICE END FOREVER.        XA0054DK         
+         TM    ENTCSW+4(R3),X'0C'                              XA0054DK         
+         BZ    SCSWSEC                                         XA0054DK         
          TM    ENTCSW+4(R3),X'04'  SECONDARY WITH DEVICE END   XA0054DK         
          BZR   R9                                              XA0054DK         
-         OI    3(R1),X'02'                                     XA0054DK         
+SCSWSEC  OI    3(R1),X'02'                                     XA0054DK         
          BR    R9                                              XA0054DK         
 SCSWUNS  MVI   3(R1),X'11'    ALERT, PENDING                   XA0054DK         
          BR    R9                                              XA0054DK         
