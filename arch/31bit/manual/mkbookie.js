@@ -5,6 +5,12 @@
 // Lines are cut at 72 columns (CMS files of 80), between words.
 const out = [];
 const W = 72;
+// CMS files are EBCDIC: everything outside Latin-1 becomes ASCII here
+function asc(t) {
+  return t.replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"')
+          .replace(/\u2013/g, '-').replace(/\u2192/g, '->').replace(/\u00a0/g, ' ')
+          .replace(/\u2026/g, '...').replace(/[^\x00-\xff]/g, '?');
+}
 function gml(t) {
   // text: & and : would start symbols and tags; `code`, **bold**, *italic*
   t = t.replace(/&/g, '&amp.').replace(/:/g, '&colon.');
@@ -14,7 +20,7 @@ function gml(t) {
   t = t.replace(/’/g, "'").replace(/‘/g, "'").replace(/[“”]/g, '"')
        .replace(/–/g, '-').replace(/—/g, '&mdash.').replace(/•/g, '&bullet.')
        .replace(/→/g, '->').replace(/ /g, ' ');
-  return t;
+  return asc(t);
 }
 function emit(tag, text) {
   let line = tag;
@@ -36,7 +42,7 @@ const NOTE = (t) => emit(':note.', gml(t));
 const ATTN = (t) => emit(':attention.', gml(t));
 function SCREEN(lines, caption) {
   out.push(':fig.', ':xmp.');
-  lines.forEach(l => out.push(l.replace(/&/g, '&amp.').replace(/:exmp\./gi, '&colon.exmp.')));
+  lines.forEach(l => out.push(asc(l).replace(/&/g, '&amp.').replace(/:exmp\./gi, '&colon.exmp.')));
   out.push(':exmp.');
   if (caption) emit(':figcap.', gml(caption));
   out.push(':efig.');

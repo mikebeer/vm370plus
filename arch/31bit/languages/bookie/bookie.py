@@ -707,7 +707,7 @@ def main(argv):
         else:
             files.append(a)
         i += 1
-    lines = None if files else sys.stdin.read().split('\n')
+    lines = None if files else sys.stdin.buffer.read().decode('latin-1').split('\n')
     if not mode:
         roff = build(files, inc, style, None, lines)
         (open(out, 'w', encoding='latin-1') if out else sys.stdout).write(roff)

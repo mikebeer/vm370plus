@@ -925,7 +925,7 @@ read another user's answers). The bot keeps each user's conversation
 :xmp.
 chat hello there
 Hello.
-I’m Tchaika.
+I'm Tchaika.
 So - what brings you here today?
 Ready;
 chat /LIST
@@ -1324,7 +1324,7 @@ into a TEXT deck for :xph.LOAD:exph. and :xph.GENMOD:exph..
 :c.Effect
 :ethd.
 :row.
-:c.:xph.OPT -O0:exph. … :xph.-O2:exph.
+:c.:xph.OPT -O0:exph. ... :xph.-O2:exph.
 :c.optimization (default :xph.-O2:exph.)
 :row.
 :c.:xph.CPP:exph.

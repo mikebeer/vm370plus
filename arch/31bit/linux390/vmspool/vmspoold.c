@@ -138,7 +138,9 @@ static unsigned char *readfile(size_t *len)
 {
     char p[64];
     unsigned char *buf;
-    size_t n = 0, chunk = 80 * 400;
+    size_t n = 0, chunk = MAXIN;     /* one read() per file: vmur asks QUERY
+                                       FILES before each read, and a file
+                                       being read is not counted (I-280) */
     int fd;
     ssize_t r;
     snprintf(p, sizeof p, "/dev/vmrdr-%s", rdrdev);
