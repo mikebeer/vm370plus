@@ -82,9 +82,11 @@ static int waiting(void)
     snprintf(c, sizeof c, "q rdr all %s", myid);
     cp(c, r, sizeof r);
     for (l = strtok(r, "\n"); l; l = strtok(NULL, "\n")) {
-        char w1[16], w2[16];
-        if (sscanf(l, "%15s %15s", w1, w2) == 2 && isdigit((unsigned char) w2[0])
-            && strspn(w2, "0123456789") == strlen(w2))
+        char w1[16], w2[16], w3[16];
+        /* only class A: the reader is class A, and files of another
+           class (MONDATA from the monitor, class M) cannot be read */
+        if (sscanf(l, "%15s %15s %15s", w1, w2, w3) == 3 && isdigit((unsigned char) w2[0])
+            && strspn(w2, "0123456789") == strlen(w2) && !strcmp(w3, "A"))
             return 1;
     }
     return 0;
