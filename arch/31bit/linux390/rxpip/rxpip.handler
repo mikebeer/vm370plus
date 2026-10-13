@@ -7,6 +7,9 @@
 #   GET name       the package's source files, each after  ::RXPIP FILE fn
 # The client state is shared: RXPIP_HOME=/var/lib/rxpip/client.
 export RXPIP_HOME=/var/lib/rxpip/client PATH=/usr/local/bin:/usr/local/sbin:$PATH
+# no "version X is available" hint in what goes back to CMS: the bridge is
+# updated on purpose on the Debian side (cd /opt/rxpip && git pull)
+export RXPIP_NO_UPDATE_CHECK=1
 RX="regina -a /opt/rxpip/client/rxpip.rexx"
 cmd=$(echo "$1" | tr a-z A-Z); shift
 ok() { case "$1" in ''|*[!A-Za-z0-9_.=\>-]*) echo "rxpip: bad argument: $1"; exit 4;; esac; }

@@ -63,3 +63,25 @@ rexxpository, installs the following:
 - **Not done yet.** Publishing from CMS (`RXPIP PUBLISH`) and an external
   repository (www.rexxpository.org). The guest's network reaches only the
   PC.
+
+## Updates and private packages
+
+The handler sets `RXPIP_NO_UPDATE_CHECK=1`, so the client's daily "a newer
+version is available" hint never reaches a CMS user's reader. Update the
+bridge on the Debian side: `cd /opt/rxpip && git pull` (or `rxpip update`
+as the owner of `/opt/rxpip/client`).
+
+Private packages need a token. The bridge uses one service-level token, of
+a dedicated non-admin repository user (for example `cmsbridge`, created by
+the repository admin with `admin adduser cmsbridge` and added as a reader of
+each private package CMS should see: `rxpip reader add <pkg> cmsbridge`).
+Once, on the Debian guest:
+
+    RXPIP_HOME=/var/lib/rxpip/client regina -a /opt/rxpip/client/rxpip.rexx login --token=<token>
+    chmod 600 /var/lib/rxpip/client/credentials.txt
+
+SEARCH, SHOW, GET and BUILD then pick the token up from the credentials
+file; every CMS user sees the same set. Against a closed repository
+(`RXPIP_CLOSED=1` on the server) the bridge needs the token for everything,
+AVAIL included. Per-user visibility would need a token per CMS user
+(`RXPIP_TOKEN` per call); not done.
