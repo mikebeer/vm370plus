@@ -1,0 +1,42 @@
+#!/bin/sh
+# cpm -- vmspoold: CP/M 2.2 (RunCPM, a Z80 emulator) from CMS (CPM EXEC, 9.33)
+#   RUN            the input cards are CP/M commands, run in the user's
+#                  own CP/M (drive A: = /var/lib/cpm/<user>/A/0)
+#   PUT FN.FT      the input becomes the CP/M file FN.FT (CR LF, ^Z)
+#   GET FN.FT      the CP/M file comes back after a  ::FILE  line
+#   DIR            the files on A:
+#   RESET          a fresh A: (the distribution disk)
+L=/usr/local/lib/cpm
+u=$(echo "${VMSPOOL_FROM:-anon}" | tr A-Z a-z)
+case "$u" in ''|*[!a-z0-9_@#\$-]*) echo "cpm: bad user"; exit 4;; esac
+H=/var/lib/cpm/$u
+cmd=$(echo "$1" | tr a-z A-Z)
+setup() {
+  mkdir -p $H/A
+  [ -d $H/A/0 ] || cp -r $L/A/0 $H/A/0
+  for f in RunCPM CCP-DR.60K CCP-DR.64K; do [ -e $H/$f ] || ln -s $L/$f $H/$f; done
+}
+name() {
+  n=$(echo "$1" | tr a-z A-Z)
+  case "$n" in *[!A-Z0-9.\$_-]*|'') echo "cpm: bad file name: $1"; exit 4;; esac
+  echo "$n"
+}
+case "$cmd" in
+RESET) rm -rf $H; setup; echo "cpm: a fresh A: for $u" ;;
+DIR) setup; ls $H/A/0 | tr '\n' ' ' | fold -s -w 78; echo ;;
+PUT) setup; n=$(name "$2") || exit 4
+     sed 's/[[:space:]]*$//' | sed 's/$/\r/' > $H/A/0/$n
+     printf '\032' >> $H/A/0/$n
+     echo "cpm: A:$n, $(wc -c < $H/A/0/$n) bytes" ;;
+GET) setup; n=$(name "$2") || exit 4
+     [ -f $H/A/0/$n ] || { echo "cpm: A:$n not found"; exit 28; }
+     echo "::FILE"; tr -d '\r\032' < $H/A/0/$n ;;
+RUN) setup
+     { sed 's/[[:space:]]*$//' | grep -v '^$' | tr '\n' '\r'; printf 'EXIT\r'; } > $H/.in
+     cd $H && RUNCPM_BATCH=1 timeout 300 ./RunCPM -s < $H/.in 2>&1 |
+       tr -d '\r' | sed 's/\x1b\[[0-9;]*[A-Za-z]//g' |
+       sed -n '/^A>/,$p' | sed '/^RunCPM Version/d;/^Terminating RunCPM/,$d' |
+       cat -s
+     rc=$?; rm -f $H/.in; exit $rc ;;
+*) echo "cpm: RUN, PUT fn.ft, GET fn.ft, DIR, RESET"; exit 4 ;;
+esac

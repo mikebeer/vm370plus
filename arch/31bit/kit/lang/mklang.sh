@@ -54,6 +54,12 @@ add RXPIP EXEC $R/linux390/rxpip/cms/RXPIP.EXEC F
 add GUIDE SCRIPT $R/manual/GUIDE.SCRIPT F; add SAMPLE SCRIPT $L/bookie/SAMPLE.SCRIPT F
 add HELLO TEX $L/latex/HELLO.TEX F; add HELLO TROFF $V/HELLO.TROFF F
 add DEMO REXX /home/claude/mikebeer/rexxpository/examples/demo.rexx F
+# CP/M 2.2 (9.33): RUNCPM (LANGGEN makes the MODULE), CPM EXEC, and the
+# CP/M programs and files of the distribution disk as they are (RAW), so
+# that CP/M's drive L: has PIP, STAT, ASM, LOAD, DDT, ED ...
+add RUNCPM TEXT ${CPMO:-/home/claude/src/cpm}/runcpm.text BIN
+add CPM EXEC $L/cpm/CPM.EXEC F; add HELLO ASM $L/cpm/HELLO.ASM F
+for f in $L/cpm/A0/*; do b=$(basename $f); add ${b%%.*} ${b#*.} $f RAW; done
 # the disk's own files
 add LANG EXEC $K/LANG.EXEC F; add LANGGEN EXEC $K/LANGGEN.EXEC F; add LANG README $K/README.txt V
 sed -i 's/ F$/ F 80/' $LST

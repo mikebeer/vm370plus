@@ -17,6 +17,9 @@ VM/370plus language disk (MAINT 19F, volume VMLANG)
   GZIP [-d] fn.ft gzip format: fn ft -> fn ft-GZ (zlib minigzip)
   UNTERSE in out  IBM TERSE (PACK/SPACK) files from z/OS; -b binary
   TERSE in out    compress to TERSE SPACK (-v V records, -b binary)
+  CPM             CP/M 2.2 (RunCPM Z80 emulator): drive X: is CMS disk X,
+                  L: has PIP, STAT, ASM, LOAD, DDT, ED; CPM IMPORT fn ft
+                  makes a CMS text file a CP/M one (EXPORT: back)
 
 Headers and libraries: SYSROOT TAR and CXXROOT TAR (read as /usr/...).
 Large programs (CC1, PY, XBASEC) run from above 16 MB through XL.

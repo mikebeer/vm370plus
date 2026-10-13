@@ -1,0 +1,9 @@
+#!/bin/sh
+# runcpm -- CP/M 2.2 for a Linux user of the Debian guest (9.33):
+# drive A: is ~/cpm/A/0 (made from the distribution disk on first use);
+# EXIT leaves CP/M.  Full-screen CP/M programs work in an ssh session.
+L=/usr/local/lib/cpm; H=$HOME/cpm
+mkdir -p $H/A
+[ -d $H/A/0 ] || cp -r $L/A/0 $H/A/0
+for f in RunCPM CCP-DR.60K CCP-DR.64K; do [ -e $H/$f ] || ln -s $L/$f $H/$f; done
+cd $H && exec ./RunCPM "$@"

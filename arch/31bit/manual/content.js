@@ -22,7 +22,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**13 October 2026, evening.** NICOF (Chapter 6): sockets for CMS programs, the FTP server CMSFTPD and NHFS file transfer to the PC. BREXX in a machine without `OPTION ECMODE` no longer ends with an operation exception (I-283).',
+B(['**13 October 2026, late evening.** CP/M 2.2 (Chapter 8): `CPM` runs CP/M on CMS, with the CP/M programs on the language disk, and in the Debian guest. TK5 (MVS 3.8j) and a 31-bit MVS are in the plan as M13.',
+   '**13 October 2026, evening.** NICOF (Chapter 6): sockets for CMS programs, the FTP server CMSFTPD and NHFS file transfer to the PC. BREXX in a machine without `OPTION ECMODE` no longer ends with an operation exception (I-283).',
    '**13 October 2026, late afternoon.** `TELL user AT NET`: messages to and from users on the internet through the MQTT broker of the Debian guest, with a login per outside user and TLS on the PC (Chapter 6).',
    '**13 October 2026, afternoon.** `TELL` (Chapter 6): messages between CMS users, and between CMS and Linux users (`TELL user AT LINUX`, `tell` on Linux). The bridge and document EXECs are on MAINT\u2019s 19D disk, so they work under `IPL CMS`. A REXX EXEC with eight or more arguments no longer ends CMS in small machines: the GCCLIB segment was saved from an older library and has been saved again (I-277).',
    '**13 October 2026.** The spool bridge (Chapter 6): CMS users call Linux services with `LXCALL`, `PHONE` (Asterisk) and `MQTT`; `RXPIP` brings REXX packages from the rexxpository repository to CMS. Documents and printing (new Chapter 9): `TROFF` (groff), `BOOKIE` (our BookMaster-compatible formatter, which formats this Guide on VM/370plus), `LATEX` (TeX Live 2023), Ghostscript, and `PSPRINT` to a real printer. An ESA/390 guest reading the virtual reader to its end no longer waits forever (I-276).',
@@ -443,6 +444,10 @@ P('`SQLITE fn.db` starts the sqlite3 shell (SQLite 3.46) on the database `fn DB`
 P('**SQLSERV.** A service machine that owns the databases and runs requests for other users one at a time. `SQLSERV` waits for reader files (`WAKEUP`); each request is punched to it, run by `SQLRUN` against `name DB`, and the answer is punched back to the sender (its ORIGINID). From any user: `SQL name` *statement* runs one statement, `SQL name (FILE fn ft fm` a script, and `SQL STOP` ends the server; `(SERVER userid` names another server than SQLSERV. Results are rows with columns joined by `|`, then `SQLRUN: n statements, n errors`. At the server console, `STOP` ends it; `SQLSERV (LOUD` logs each request.');
 SCREEN(['sql emp select count(*) n, sum(salary) total from emp', 'n|total', '3|25100.0', 'SQLRUN: 1 statements, 0 errors', 'Ready;'], 'A request to SQLSERV');
 SCREEN(['sqlite emp.db .read sqltest.sql', 'dept   n  avg_sal  top', '-----  -  -------  ------', 'Ops    2  7000.13  7100.0', 'R&D    2  9000.25  9200.5', 'Ready;'], 'SQLite on CMS');
+H2('CP/M 2.2');
+P('`CPM` starts CP/M 2.2 in your CMS machine (RunCPM, a Z80 emulator; after `LANG`, under `IPL 290` in more than 16 MB). CP/M drive X: is the CMS disk X: A: is your A disk, and L: the language disk with the CP/M programs PIP, STAT, ASM, LOAD, DDT, ED, DUMP, SUBMIT and others. `EXIT` leaves CP/M. `CPM command; command` runs CP/M commands and returns. A CP/M file is the plain bytes of a CMS file of the same name, so a CMS text file must be converted first: `CPM IMPORT fn ft` makes it a CP/M text file (ASCII, CR LF), `CPM EXPORT fn ft` makes it CMS text again.');
+SCREEN(['copyfile hello asm l = = a', 'cpm import hello asm', 'CPM: HELLO ASM A is now a CP/M file', 'cpm l:asm hello; l:load hello; hello', 'CP/M ASSEMBLER - VER 2.0', '012E', 'END OF ASSEMBLY', 'Hello from CP/M 2.2 on VM/370plus!', 'Ready;'], 'Assembling and running an 8080 program under CP/M on CMS');
+P('The CMS terminal is line-oriented: CP/M sees each typed line, and ^C does not stop a running program. Full-screen CP/M programs work in the Debian guest instead: `runcpm` in an ssh session, or from CMS `CPM command (LINUX` through the spool bridge, with `CPM PUT fn ft (LINUX` and `CPM GET fn ft (LINUX` to move files.');
 
 // ---------------------------------------------------------------- chapter 9
 H1('Documents and Printing');
@@ -533,6 +538,8 @@ H2('LANG');
 P('`LANG [fm]` links MAINT 19F read-only (if it is not linked) and accesses it as `fm` (default L).');
 H2('ZIP, UNZIP, GZIP');
 P('`ZIP zipfile files`, `UNZIP [-l|-t|-o] zipfile [files]`, `GZIP [-d] fn.ft` (Info-ZIP zip 3.0 and unzip 6.0; gzip format from zlib).');
+H2('CPM');
+P('`CPM`, `CPM command [; command ...]`, `CPM IMPORT|EXPORT fn ft [fm]`; with `(LINUX`: `CPM command (LINUX`, `CPM PUT|GET fn ft (LINUX`, `CPM DIR|RESET (LINUX`.');
 H2('TERSE, UNTERSE');
 P('`TERSE [-v] [-l lrecl] in out` packs a file in IBM TERSE SPACK format (`-b` binary); `UNTERSE [-b] in out` unpacks PACK and SPACK files, `UNTERSE -i in` shows the header.');
 H2('SQL, SQLSERV');

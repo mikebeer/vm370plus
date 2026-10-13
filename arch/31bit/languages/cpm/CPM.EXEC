@@ -1,0 +1,124 @@
+/* CPM EXEC -- CP/M 2.2 (RunCPM, a Z80 emulator, 9.33)                 */
+/* On CMS (RUNCPM MODULE, language disk; IPL 290, more than 16 MB):     */
+/*   CPM                            CP/M at the terminal; EXIT ends it   */
+/*   CPM command [; command ...]    run CP/M commands, then return       */
+/*   CPM IMPORT fn ft [fm]          a CMS text file becomes a CP/M text  */
+/*   CPM EXPORT fn ft [fm]          file (ASCII, CR LF) in place / back  */
+/* CP/M drive X: is the CMS disk X: A: your A disk, L: the language     */
+/* disk with PIP, STAT, ASM, LOAD, DDT, ED ...                          */
+/* In the Debian guest (the spool bridge), with the option LINUX:       */
+/*   CPM command [; command ...] (LINUX     CPM (FILE fn ft [fm] LINUX  */
+/*   CPM PUT fn ft [fm] (LINUX      CPM GET fn ft (LINUX                */
+/*   CPM DIR (LINUX                 CPM RESET (LINUX                    */
+/* There each user has an own CP/M (A: is /var/lib/cpm/<userid>/A/0).   */
+PARSE ARG LINE
+OPT = ''; P = POS('(', LINE)
+IF P > 0 THEN DO; OPT = SUBSTR(LINE, P + 1); LINE = LEFT(LINE, P - 1); END
+W1 = TRANSLATE(WORD(LINE, 1))
+IF WORDPOS('LINUX', TRANSLATE(OPT)) = 0 THEN DO   /* natively on CMS  */
+  IF OPT <> '' THEN DO; SAY 'CPM: unknown option' OPT; EXIT 24; END
+  'STATE RUNCPM MODULE *'
+  IF RC <> 0 THEN DO
+    SAY 'CPM: RUNCPM MODULE not found -- LANG (the language disk) first'
+    EXIT 28
+  END
+  IF W1 = 'IMPORT' | W1 = 'EXPORT' THEN DO
+    PARSE UPPER VAR LINE W FN FT FM .
+    IF FM = '' THEN FM = 'A'
+    'RUNCPM' W FN FT FM
+    EXIT RC
+  END
+  IF LINE <> '' THEN DO                       /* the commands, then EXIT */
+    'MAKEBUF'
+    DO WHILE LINE <> ''
+      P = POS(';', LINE)
+      IF P = 0 THEN P = LENGTH(LINE) + 1
+      C = STRIP(LEFT(LINE, P - 1)); LINE = SUBSTR(LINE, P + 1)
+      IF C <> '' THEN QUEUE C
+    END
+    QUEUE 'EXIT'
+    'RUNCPM'
+    R = RC
+    'DROPBUF'
+    EXIT R
+  END
+  'RUNCPM'
+  EXIT RC
+END
+OPT = DELWORD(OPT, WORDPOS('LINUX', TRANSLATE(OPT)), 1)
+IF LINE = '' & OPT = '' THEN DO
+  SAY 'CPM: usage: CPM cmd [; cmd ...] (LINUX | (FILE fn ft LINUX'
+  EXIT 24
+END
+CALL QUIET 'ERASE LXCALL OPTIONS A'
+CALL QUIET 'ERASE CPMIN CARDS A'
+SELECT
+  WHEN W1 = 'PUT' THEN DO
+    PARSE UPPER VAR LINE . FN FT FM .
+    IF FM = '' THEN FM = '*'
+    'STATE' FN FT FM
+    IF RC <> 0 THEN DO; SAY 'CPM:' FN FT FM 'not found'; EXIT 28; END
+    QUEUE 'FILE' FN FT FM
+    'EXECIO 1 DISKW LXCALL OPTIONS A (FINIS'
+    'EXEC LXCALL CPM PUT' FN'.'FT
+    EXIT RC
+  END
+  WHEN W1 = 'GET' THEN DO
+    PARSE UPPER VAR LINE . FN FT .
+    QUEUE 'NOTYPE'
+    'EXECIO 1 DISKW LXCALL OPTIONS A (FINIS'
+    'EXEC LXCALL CPM GET' FN'.'FT
+    SRC = RC
+    'EXECIO * DISKR LXCALL RESULT A (FINIS STEM L.'
+    DO I = 2 TO L.0
+      IF STRIP(L.I) = '::FILE' THEN LEAVE
+      SAY STRIP(L.I, 'T')
+    END
+    IF SRC <> 0 | I > L.0 THEN EXIT SRC
+    CALL QUIET 'ERASE' FN FT 'A'
+    N = 0
+    DO J = I + 1 TO L.0
+      IF L.J = '' THEN QUEUE ' '; ELSE QUEUE L.J
+      N = N + 1
+    END
+    IF N > 0 THEN 'EXECIO' N 'DISKW' FN FT 'A (FINIS'
+    SAY 'CPM:' FN FT 'A,' N 'lines'
+    EXIT 0
+  END
+  WHEN W1 = 'DIR' & WORDS(LINE) = 1 THEN DO
+    'EXEC LXCALL CPM DIR'; EXIT RC
+  END
+  WHEN W1 = 'RESET' & WORDS(LINE) = 1 THEN DO
+    'EXEC LXCALL CPM RESET'; EXIT RC
+  END
+  OTHERWISE NOP
+END
+IF TRANSLATE(WORD(OPT, 1)) = 'FILE' THEN DO
+  PARSE UPPER VAR OPT . FN FT FM .
+  IF FM = '' THEN FM = '*'
+  'STATE' FN FT FM
+  IF RC <> 0 THEN DO; SAY 'CPM:' FN FT FM 'not found'; EXIT 28; END
+  QUEUE 'FILE' FN FT FM
+END
+ELSE DO                        /* the commands, split at ;            */
+  N = 0
+  DO WHILE LINE <> ''
+    P = POS(';', LINE)
+    IF P = 0 THEN P = LENGTH(LINE) + 1
+    C = STRIP(LEFT(LINE, P - 1)); LINE = SUBSTR(LINE, P + 1)
+    IF C <> '' THEN DO; QUEUE C; N = N + 1; END
+  END
+  'EXECIO' N 'DISKW CPMIN CARDS A (FINIS'
+  QUEUE 'FILE CPMIN CARDS A'
+END
+'EXECIO 1 DISKW LXCALL OPTIONS A (FINIS'
+'EXEC LXCALL CPM RUN'
+R = RC
+CALL QUIET 'ERASE CPMIN CARDS A'
+EXIT R
+QUIET: PROCEDURE
+  PARSE ARG CMD
+  'SET CMSTYPE HT'
+  CMD
+  'SET CMSTYPE RT'
+  RETURN
