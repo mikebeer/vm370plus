@@ -24,6 +24,7 @@
  
  
 #include <stdio.h>
+#include <sys/time.h>
  
 #include "nicofclt.h"
  
@@ -123,6 +124,16 @@ int ncf_001(SmsgHandler handler) {
  
   /* initialize interrupt handling from C */
   intrapi();
+
+  /* VM/370plus: message ids differ from run to run -- a request left
+     pending at the proxy by an earlier program that did not end normally
+     would otherwise collide with ours (VMCF(8), duplicate message) */
+  {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    lastMsgId = 1000 + (uint)((tv.tv_sec % 1000000) * 100
+                              + tv.tv_usec / 10000) * 16;
+  }
  
   /* save the smsg-handler */
   smsgHandler = handler;
@@ -389,7 +400,7 @@ int ncf_033(request_handle h) {
 /*
 ** string <- nicofclt_getStateString(handle)
 */
-static char stateBuffer[16];
+static char stateBuffer[24];   /* "PEND[" + 10 digits + "]" */
 char* ncf_034(request_handle h) {
   NICOFCLT_REQ_PTR req = (NICOFCLT_REQ_PTR)h;
   if (req->me != h) { return "invalid"; }

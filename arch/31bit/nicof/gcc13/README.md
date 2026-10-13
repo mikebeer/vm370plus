@@ -10,12 +10,31 @@ the EC-mode CMS (`IPL 290`), in AMODE 31, and are ASCII inside.
 | `ncfintr.s` | the assembler layer: DIAG 68 (VMCF), DIAG 08, WAIT, STIMER in AMODE 24; the external-interrupt handler; the STIMER exit |
 | `ncfglue.c` | the C side: HNDEXT, CR0 bit 31, the VMCF queue, ECBs, the timer, EBCDIC for user ids and CP commands |
 | `nicofclt.c`, `ncfsockt.c` | NICOF's client, adapted (below) |
-| `mkhttpd.sh` | builds `HTTPD31.text`: `../httpd/HTTPD.C` with `-D__CMSRT__` |
+| `cmssys.h`, `cmsfile.c` | CE GCCLIB's CMS file functions (CMSfileOpen/Read/Write/Close/State/Erase/Rename) on cmsrt |
+| `nhfs.c` ... `udpserv.c` | NICOF's tools, from NICOF 0.6.0 (`ncfbases.c`: LF is ASCII; `nhfscomn.c`: text records translated, ASCII `toupper`) |
+| `mkall.sh` | builds every tool into `out/*.text` (`ONLY="NHFS HACC"` for some) |
+| `mkhttpd.sh` | builds `HTTPD31.text` alone |
 | `nctest.c` | `NCTEST [host [port]]`: gethostbyname, connect, 6000 bytes to an echo server and back, select() with a timeout, close |
 
-Build: `sh mkhttpd.sh`, or
-`CFLAGS_EXTRA="-D__CMSRT__ -I. -w" sh ../../m5f/crt.sh NCTEST.text nctest.c nicofclt.c ncfsockt.c ncfglue.c ncfintr.s`.
-On CMS (`IPL 290`, NCFACC not needed): `LOAD HTTPD31 (CLEAR`, `GENMOD HTTPD31`.
+Build: `sh mkall.sh` (a few seconds). On CMS (`IPL 290`): `LOAD NHFS (CLEAR`,
+`GENMOD NHFS31`, and so on.
+
+| module | from | verified (run i285b) |
+|---|---|---|
+| NHFS31 | nhfs.c | LIST, PUT, GET, TYPE, PUTBIN, MKDIR, LIST sub; text round trip PC -> CMS -> PC byte for byte, binary PUT byte for byte |
+| HACC31 | rnhfs.c | PWD, TYPE, GET, PUT, LIST (needs `service.4 = rawhostfilesvc` in nicofpxy.properties; it reaches every PC file the proxy can, so it is off by default) |
+| IPLOOK31 | gethost.c | `-ME`; names are cut to 8 characters by CMS |
+| SOCKC31, SOCKS31 | sockc.c, socks.c | client to a PC server and back; server for a PC client |
+| TSERVE31 | tserver.c | 3 connections, 20/100/3000-byte echoes, `**TERMINATE**` |
+| TSELEC31 | tselect.c | 3 clients at once through select(), `**TERMINATE**` |
+| UDPSER31 | udpserv.c | a datagram from the PC echoed |
+| NCTEST, HTTPD31 | nctest.c, HTTPD.C | above |
+
+Message ids start from the clock (they started at 11): a request an earlier
+program left pending at the proxy no longer collides (`VMCF(8) duplicate
+message`). The proxy keeps a socket of a program that did not end normally
+(EADDRINUSE on the next bind until the proxy is restarted). CMSFTPD needs
+Latz's EEUTIL, which is not in NICOF's sources: not ported yet.
 
 ## How it differs from CE's INTRAPI
 
