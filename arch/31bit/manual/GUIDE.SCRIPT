@@ -59,8 +59,8 @@ shutdown and the rules that keep the system healthy.
 machines, the Linux kernel, the Debian system and the network connection
 to the PC.
 :li.:hp2.Chapter 6, Service Machines:ehp2., describes CHATBOT, the spool
-bridge to Linux services (LXCALL, PHONE, MQTT, TELL), RXPIP, and the
-service machines that are planned.
+bridge to Linux services (LXCALL, PHONE, MQTT, TELL), RXPIP, NICOF, MQ,
+and the service machines that are planned.
 :li.:hp2.Chapter 7, cREXX on VM/370plus:ehp2., describes the REXX
 compiler and virtual machine built for and on VM/370plus, the languages
 written in cREXX that run on CMS and on Linux, and Turbo CREXX.
@@ -87,6 +87,10 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.14 October 2026.:ehp2. :xph.MQ:exph. (Chapter 6)&colon. message
+queues for CMS programs on a RabbitMQ broker (PUT, GET, DEPTH, PURGE,
+GET onto the stack). The RXPIP bridge follows the current rexxpository
+client.
 :li.:hp2.13 October 2026, night.:ehp2. NICOF's tools for the EC-mode
 CMS, built with GCC 13, on the language disk&colon. :xph.CMSFTP31:exph.,
 :xph.NHFS31:exph., :xph.HACC31:exph., :xph.IPLOOK31:exph., the web
@@ -1156,6 +1160,58 @@ http&colon.//localhost&colon.8080/
 NICOF's proxy&colon. a server port stays in use until :xph.nicof.sh
 stop:exph. and :xph.start:exph. on the PC. End HTTPD with :xph.-n:exph.
 or :xph.-k:exph. when you can.
+:h2.MQ&colon. message queues on RabbitMQ
+:p.:xph.MQ:exph. gives CMS programs message queues on a RabbitMQ broker
+(AMQP 0-9-1), the broker the cREXX package mikebeer/mq uses on Linux and
+Windows. It runs under :xph.IPL 290:exph. from the language disk
+(:xph.LANG:exph.), with NICOF's proxies running, and reaches the broker
+through the PC&colon. the AMQP client library rabbitmq-c, built with GCC
+13 on NICOF's sockets.
+:fig.
+:table cols='* *'.
+:thd.
+:row.
+:c.Command
+:c.Does
+:ethd.
+:row.
+:c.:xph.MQ PUT queue message:exph.
+:c.Puts a persistent message; the queue is declared durable if it does
+not exist.
+:row.
+:c.:xph.MQ GET queue:exph.
+:c.Gets one message and types it; return code 4 if the queue is empty.
+:row.
+:c.:xph.MQ GET queue (STACK:exph.
+:c.Puts the message on the program stack, a line each, for an EXEC to
+PULL.
+:row.
+:c.:xph.MQ DEPTH queue:exph.
+:c.Types the number of messages waiting.
+:row.
+:c.:xph.MQ PURGE queue:exph.
+:c.Drops all messages.
+:etable.
+:efig.
+:p.:xph.MQ OPTIONS:exph. (any accessed disk) names the broker, one
+:xph.key value:exph. per line&colon. :xph.HOST:exph., :xph.PORT:exph.,
+:xph.USER:exph., :xph.PASSWORD:exph., :xph.VHOST:exph.. The defaults,
+:xph.localhost 5672 guest guest /:exph., reach a broker on the PC
+itself. Message bodies are UTF-8 on the broker and Latin-1 on CMS.
+:xph.MQTEST:exph. is an example EXEC.
+:fig.
+:xmp.
+mq put orders 3 widgets for Zurich
+Ready;
+mq depth orders
+1
+Ready;
+mq get orders
+3 widgets for Zurich
+Ready;
+:exmp.
+:figcap.A queue on the PC's RabbitMQ
+:efig.
 :h2.TELL
 :p.:xph.TELL userid message:exph. sends a message to a VM/370 user (CP
 MSG). :xph.TELL user AT LINUX message:exph. sends it to a user of the

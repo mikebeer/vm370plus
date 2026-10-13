@@ -1,0 +1,27 @@
+/* MQ EXEC -- message queues on a RabbitMQ broker (VM/370plus 9.7)    */
+/*   MQ PUT queue message     put a message (case and length kept)    */
+/*   MQ GET queue             get one message (rc 4: queue empty)     */
+/*   MQ GET queue (STACK      ... onto the program stack, a line each */
+/*   MQ DEPTH queue           messages waiting                        */
+/*   MQ PURGE queue           drop them all                           */
+/* The broker: MQ OPTIONS (HOST, PORT, USER, PASSWORD, VHOST), default */
+/* localhost 5672 guest guest; reached through NICOF (IPL 290, LANG). */
+PARSE ARG VERB QUEUE TEXT
+IF QUEUE = '' THEN DO
+  SAY 'MQ: usage: MQ PUT|GET|DEPTH|PURGE queue [message]'
+  EXIT 24
+END
+IF TRANSLATE(VERB) = 'GET' & TRANSLATE(SPACE(TEXT, 0)) = '(STACK' THEN DO
+  QUEUE 'GET' QUEUE 'MQMSG.WORK.A'
+  'MQAMQP =STACK'
+  IF RC <> 0 THEN EXIT RC
+  'EXECIO * DISKR MQMSG WORK A (FINIS STEM M.'
+  'ERASE MQMSG WORK A'
+  DO I = 1 TO M.0; QUEUE M.I; END
+  EXIT 0
+END
+/* CMS cuts module arguments to 8 characters: hand them over stacked */
+D = '"'; IF POS(D, TEXT) > 0 THEN D = "'"
+QUEUE VERB QUEUE D || TEXT || D
+'MQAMQP =STACK'
+EXIT RC

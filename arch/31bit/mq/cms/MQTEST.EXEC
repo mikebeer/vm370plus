@@ -1,0 +1,13 @@
+/* MQTEST EXEC -- MQ from a REXX program (VM/370plus 9.7)            */
+'MQ PURGE MQTEST'
+DO I = 1 TO 3
+  'MQ PUT MQTEST message number' I 'from' USERID()
+END
+'MQ DEPTH MQTEST'
+DO FOREVER
+  'MQ GET MQTEST (STACK'
+  IF RC = 4 THEN LEAVE
+  PARSE PULL LINE
+  SAY 'MQTEST got:' LINE
+END
+EXIT 0

@@ -608,11 +608,11 @@ extern int ioctlsocket(SOCKET sockfd, long flag, ncs_uint *value);
 */
  
 #ifdef __CMSRT__
+#include <sys/time.h>       /* struct timeval: newlib's (fields by name) */
 /* VM/370plus (GCC 13, cmsrt): newlib's <sys/select.h> and <sys/time.h>
    may already define these; NICOF's own types get their own names */
 #define fd_set ncs_fd_set
 #define _fd_set _ncs_fd_set
-#define timeval ncs_timeval
 #define select ncs_select
 #undef FD_ZERO
 #undef FD_ISSET
@@ -668,10 +668,12 @@ typedef struct _fd_set {
   ((fd_set*)_set)->fd_bytes[(_fd >> 3)] &= __FDSET0(_fd & 0x07); } }
  
 /* structure to specify the timeout of a select() operation */
+#ifndef __CMSRT__
 struct timeval {
     ncs_long tv_sec;  /* seconds */
     ncs_long tv_usec; /* microseconds */
 };
+#endif
  
 /* count <- select(...)
 **

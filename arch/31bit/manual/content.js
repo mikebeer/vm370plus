@@ -12,7 +12,7 @@ B(['**Chapter 1, Introduction**, says what VM/370plus is and what it is for.',
    '**Chapter 3, Installing VM/370plus**, takes you from a fresh Community Edition to a running VM/370plus system.',
    '**Chapter 4, Operating VM/370plus**, covers start-up, shutdown and the rules that keep the system healthy.',
    '**Chapter 5, Running Linux/390**, describes ESA/390 virtual machines, the Linux kernel, the Debian system and the network connection to the PC.',
-   '**Chapter 6, Service Machines**, describes CHATBOT, the spool bridge to Linux services (LXCALL, PHONE, MQTT, TELL), RXPIP, and the service machines that are planned.',
+   '**Chapter 6, Service Machines**, describes CHATBOT, the spool bridge to Linux services (LXCALL, PHONE, MQTT, TELL), RXPIP, NICOF, MQ, and the service machines that are planned.',
    '**Chapter 7, cREXX on VM/370plus**, describes the REXX compiler and virtual machine built for and on VM/370plus, the languages written in cREXX that run on CMS and on Linux, and Turbo CREXX.',
    '**Chapter 8, Compilers on CMS**, describes the language disk and what is on it: GCC 13 for C and C++, GnuCOBOL, COBOL with OO, PL/I, Python, SQLite and SQLSERV, Pascal, APL, xBase, Smalltalk, ZIP and TERSE.',
    '**Chapter 9, Documents and Printing**, describes TROFF, BOOKIE (BookMaster markup), LaTeX and how PostScript reaches a printer.',
@@ -22,7 +22,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**13 October 2026, night.** NICOF’s tools for the EC-mode CMS, built with GCC 13, on the language disk: `CMSFTP31`, `NHFS31`, `HACC31`, `IPLOOK31`, the web server `HTTPD31` and `NCTEST` (Chapter 6). NICOF programs no longer wait forever under `IPL 290` (I-285), and HX under `IPL 290` no longer ends in a disabled wait (I-286).',
+B(['**14 October 2026.** `MQ` (Chapter 6): message queues for CMS programs on a RabbitMQ broker (PUT, GET, DEPTH, PURGE, GET onto the stack). The RXPIP bridge follows the current rexxpository client.',
+   '**13 October 2026, night.** NICOF’s tools for the EC-mode CMS, built with GCC 13, on the language disk: `CMSFTP31`, `NHFS31`, `HACC31`, `IPLOOK31`, the web server `HTTPD31` and `NCTEST` (Chapter 6). NICOF programs no longer wait forever under `IPL 290` (I-285), and HX under `IPL 290` no longer ends in a disabled wait (I-286).',
    '**13 October 2026, late evening.** CP/M 2.2 (Chapter 8): `CPM` runs CP/M on CMS, with the CP/M programs on the language disk, and in the Debian guest. TK5 (MVS 3.8j) and a 31-bit MVS are in the plan as M13.',
    '**13 October 2026, evening.** NICOF (Chapter 6): sockets for CMS programs, the FTP server CMSFTPD and NHFS file transfer to the PC. BREXX in a machine without `OPTION ECMODE` no longer ends with an operation exception (I-283).',
    '**13 October 2026, late afternoon.** `TELL user AT NET`: messages to and from users on the internet through the MQTT broker of the Debian guest, with a login per outside user and TLS on the PC (Chapter 6).',
@@ -339,6 +340,17 @@ H3('HTTPD: a web server for a CMS disk');
 P('`HTTPD31 -p port [-d fm] [-n count] [-k key] [-v]` serves the files of a CMS disk (default A) on the PC’s port: `GET /fn.ft` sends `fn ft`, text files as ASCII lines and GIF, PNG, JPG, ICO, PDF, ZIP and BIN files as their bytes; `GET /` sends `INDEX HTML` if the disk has one, otherwise a list of its files. `-n count` ends the server after so many requests, `-k key` lets `GET /.stop/key` end it. `INDEX HTML` on the language disk is a small example page. (`HTTPD` for IPL CMS, built with CE’s GCC, is in `vm370plus/nicof/httpd`.)');
 SCREEN(['httpd31 -p 8080 -k bye', 'HTTPD: serving the A disk on port 8080'], 'A web server on CMS; on the PC, http://localhost:8080/');
 P('A program that ends abnormally (HX, an abend) leaves its sockets in NICOF’s proxy: a server port stays in use until `nicof.sh stop` and `start` on the PC. End HTTPD with `-n` or `-k` when you can.');
+H2('MQ: message queues on RabbitMQ');
+P('`MQ` gives CMS programs message queues on a RabbitMQ broker (AMQP 0-9-1), the broker the cREXX package mikebeer/mq uses on Linux and Windows. It runs under `IPL 290` from the language disk (`LANG`), with NICOF’s proxies running, and reaches the broker through the PC: the AMQP client library rabbitmq-c, built with GCC 13 on NICOF’s sockets.');
+TABLE(['Command', 'Does'], [
+  ['`MQ PUT queue message`', 'Puts a persistent message; the queue is declared durable if it does not exist.'],
+  ['`MQ GET queue`', 'Gets one message and types it; return code 4 if the queue is empty.'],
+  ['`MQ GET queue (STACK`', 'Puts the message on the program stack, a line each, for an EXEC to PULL.'],
+  ['`MQ DEPTH queue`', 'Types the number of messages waiting.'],
+  ['`MQ PURGE queue`', 'Drops all messages.'],
+]);
+P('`MQ OPTIONS` (any accessed disk) names the broker, one `key value` per line: `HOST`, `PORT`, `USER`, `PASSWORD`, `VHOST`. The defaults, `localhost 5672 guest guest /`, reach a broker on the PC itself. Message bodies are UTF-8 on the broker and Latin-1 on CMS. `MQTEST` is an example EXEC.');
+SCREEN(['mq put orders 3 widgets for Zurich', 'Ready;', 'mq depth orders', '1', 'Ready;', 'mq get orders', '3 widgets for Zurich', 'Ready;'], 'A queue on the PC’s RabbitMQ');
 H2('TELL');
 P('`TELL userid message` sends a message to a VM/370 user (CP MSG). `TELL user AT LINUX message` sends it to a user of the Debian guest through the spool bridge: it appears on that user\u2019s terminals, and is kept until the user reads it with `tell`. `TELL ALL AT LINUX message` reaches everybody logged on to Linux. A Linux user answers with `tell userid message`, which arrives on CMS as `MSG FROM MAINT: (user) message`.');
 P('`TELL user AT NET message` reaches a user on the internet. The message is published on the MQTT broker of the Debian guest as topic `vm/tell/out/user`, which the user reads with any MQTT client. The user answers by publishing to `vm/tell/from/user/to/userid`; it arrives as `MSG FROM MAINT: (net:user) message`. Outside users need a login (`tellnet-user name password` in the guest) and may only use their own TELL topics. On the PC, `tools/netfwd.py --tls cert key 8883 10.1.1.2:1883` makes the broker reachable, encrypted; the router has to forward that port to the PC. `tools/nettell.py` is a small client for the outside user.');

@@ -25,6 +25,8 @@ VM/370plus language disk (MAINT 19F, volume VMLANG)
   CMSFTP31 -p n   an FTP server for your disks on the PC's port n (NICOF)
   IPLOOK31 name   name or address lookup through the PC (NICOF)
   HTTPD31         a web server for a CMS disk (-p port -d fm -n count -k key)
+  MQ PUT|GET|DEPTH|PURGE queue [msg]  message queues on a RabbitMQ
+                  broker through NICOF (MQ OPTIONS: HOST PORT USER ...)
   NCTEST          a NICOF socket test against an echo server on the PC
                   (NICOF's proxies: nicof/nicof.sh start on the PC)
 

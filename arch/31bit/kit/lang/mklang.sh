@@ -66,6 +66,9 @@ N13=$R/nicof/gcc13/out
 for p in CMSFTPD:CMSFTP31 NHFS:NHFS31 HACC:HACC31 IPLOOKUP:IPLOOK31 HTTPD31:HTTPD31 NCTEST:NCTEST; do
   add ${p#*:} TEXT $N13/${p%%:*}.text BIN; done
 add INDEX HTML $R/nicof/httpd/INDEX.HTML V
+# message queues on RabbitMQ (9.7): MQ EXEC + MQAMQP (rabbitmq-c, GCC 13)
+add MQAMQP TEXT $R/mq/MQAMQP.text BIN; add MQ EXEC $R/mq/cms/MQ.EXEC F
+add MQTEST EXEC $R/mq/cms/MQTEST.EXEC F
 # the disk's own files
 add LANG EXEC $K/LANG.EXEC F; add LANGGEN EXEC $K/LANGGEN.EXEC F; add LANG README $K/README.txt V
 sed -i 's/ F$/ F 80/' $LST
