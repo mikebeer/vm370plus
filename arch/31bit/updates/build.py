@@ -8475,6 +8475,14 @@ ECMODS = {
                       "         XC    SVCSAVE+2(2),SVCSAVE+2 DROP SVC CODE (EC)"]),
         ('01067000', ["         CLI   X'8B',201      SVC 201? (EC CODE)"]),
         ('01069000', ["         CLC   ITSPSW(2),=X'000C' DISABLED EC PSW?     V0211"]),
+        # I-286: DMSITSR (DMSABN's call after HX or an abend) loaded its base
+        # registers from a literal, and the module (grown by these EC cards)
+        # put that literal where the assembler reaches it through R6 -- BR2,
+        # one of the registers the LM is about to set.  From DMSABN R6 is
+        # anything: BR came back 0, DMSFRET's error exit went to X'9E8'.
+        ('01143000', ["         LM    BR,BR2,ITSRBAS-DMSITSR(R15) BASE REGS (I-286)"]),
+        ('01172000', ["         BR    R14                     AND RETURN TO HIM",
+                      "ITSRBAS  DC    A(DMSITS,DMSITS+4096) DMSITSR'S BASES (I-286)"]),
         ('01292000', ["         MVC   RET(4),=X'000C0000' FORM EC PSW AT RET"]),
         ('01293000', ["         ST    R1,RET+4       BRANCH ADDRESS (FROM A BAL)",
                       "         MVI   RET+4,0        DROP ILC/CC/MASK: EC (I-247)"]),

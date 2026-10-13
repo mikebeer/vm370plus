@@ -61,6 +61,11 @@ SVCECOK  DS    0H                                              XA0051DK
          CLI   X'8B',201      SVC 201? (EC CODE)               XA0051DK         
 ./ R 01069000          $ 01069100 100                                           
          CLC   ITSPSW(2),=X'000C' DISABLED EC PSW?     V0211   XA0051DK         
+./ R 01143000          $ 01143100 100                                           
+         LM    BR,BR2,ITSRBAS-DMSITSR(R15) BASE REGS (I-286)   XA0051DK         
+./ R 01172000          $ 01172100 100                                           
+         BR    R14                     AND RETURN TO HIM       XA0051DK         
+ITSRBAS  DC    A(DMSITS,DMSITS+4096) DMSITSR'S BASES (I-286)   XA0051DK         
 ./ R 01292000          $ 01292100 100                                           
          MVC   RET(4),=X'000C0000' FORM EC PSW AT RET          XA0051DK         
 ./ R 01293000          $ 01293100 100                                           
