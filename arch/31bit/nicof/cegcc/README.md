@@ -37,10 +37,11 @@ the handler never saw the VMCF code X'4001', so the first socket call
 waited forever. INTRAPI's EXTHNDLR now gives the C handler a copy of the
 user area and, for an EC old PSW, puts X'86' into the copy's bytes 2-3.
 
-Do not end a NICOF program with HX: its HNDEXT trap stays set and points
-into the freed program, and the next external interrupt ends in a disabled
-wait. Use `HTTPD -n count`, or start it with `-k key` and end it with
-`GET /.stop/key`; re-IPL CMS after an HX.
+HX ends a NICOF program cleanly (I-286, fixed: the disabled wait after HX
+was CMS's, under IPL 290, with or without NICOF). The proxy keeps the
+program's sockets, though: a server port stays in use (EADDRINUSE) until
+the proxy is restarted, so end HTTPD with `-n count` or `-k key` and
+`GET /.stop/key` when you can.
 
 ## Two things CE's C does differently
 
