@@ -1,0 +1,35 @@
+#!/bin/sh
+# print -- vmspoold: PostScript from CMS to a real printer (9.31, by bridge)
+#   PSPRINT fn (BRIDGE [format]     the input is the PostScript
+# /etc/vmspool.d/print.conf:
+#   PRINTER=host[:port]   a printer's raw port (9100), or
+#   LPQUEUE=name          a CUPS/LPD queue (lp -d)
+#   FORMAT=ps|pdf|ljet4|pxlmono|pxlcolor   what the printer takes (ps)
+PATH=/usr/local/bin:$PATH
+FORMAT=ps; PRINTER=; LPQUEUE=
+[ -r /etc/vmspool.d/print.conf ] && . /etc/vmspool.d/print.conf
+f=$(echo "${1:-$FORMAT}" | tr A-Z a-z)
+case "$f" in ps|pdf|ljet4|pxlmono|pxlcolor) ;; *) echo "print: format ps, pdf, ljet4, pxlmono or pxlcolor"; exit 4;; esac
+[ -n "$PRINTER$LPQUEUE" ] || { echo "print: no printer (PRINTER= or LPQUEUE= in /etc/vmspool.d/print.conf)"; exit 8; }
+t=$(mktemp -d /tmp/prt.XXXXXX) || exit 8
+trap 'rm -rf $t' EXIT
+sed 's/ *$//' > $t/in.ps
+head -c 4 $t/in.ps | grep -q '%!PS' || { echo "print: the input is not PostScript"; exit 4; }
+case "$f" in
+ps)  cp $t/in.ps $t/out ;;
+pdf) gs -q -dNOPAUSE -dBATCH -dSAFER -sDEVICE=pdfwrite -sOutputFile=$t/out $t/in.ps || exit 12 ;;
+*)   gs -q -dNOPAUSE -dBATCH -dSAFER -sDEVICE=$f -sOutputFile=$t/out $t/in.ps || exit 12 ;;
+esac
+n=$(wc -c < $t/out)
+if [ -n "$LPQUEUE" ]; then
+  lp -d "$LPQUEUE" $t/out || exit 16
+  echo "print: $n bytes ($f) to queue $LPQUEUE"
+else
+  python3 - "$PRINTER" $t/out <<'PY' || exit 16
+import socket, sys
+h, _, p = sys.argv[1].partition(':')
+s = socket.create_connection((h, int(p or 9100)), 30)
+s.sendall(open(sys.argv[2], 'rb').read()); s.close()
+PY
+  echo "print: $n bytes ($f) to $PRINTER"
+fi
