@@ -2,7 +2,7 @@
 ** HTTPD C -- a small web server for CMS (VM/370plus 9.5), on the
 ** NICOF socket API (TCPIPPXY; the port is a port of the PC).
 **
-**   HTTPD [-p port] [-d fm] [-n count] [-k key]
+**   HTTPD [-p port] [-d fm] [-n count] [-k key] [-v]
 **
 **   GET /             INDEX HTML on fm if there is one, else a list of
 **                     the files on fm (default A)
@@ -11,8 +11,10 @@
 **                     BIN) as the record bytes
 **   GET /.stop/key    ends the server when started with -k key
 ** -n count ends it after count requests.  HX also stops it.
-** Build (CE GCC):  GCC HTTPD, then  GLOBAL TXTLIB NICOFLIB GCCLIB,
-**                  LOAD HTTPD (CLEAR, GENMOD HTTPD
+** Build (CE GCC, IPL 290; NICOF's client rebuilt with CE GCC, see
+** README): GCC HTTPD, GLOBAL TXTLIB GCCLIB,
+**          LOAD HTTPD NICOFCLT NCFSOCKT INTRAPI (CLEAR, GENMOD HTTPD
+** Run under IPL CMS (I-285).
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,9 +24,26 @@
 #include "nicofclt.h"
 #include "socket.h"
 
+
+#define CHUNK 2000
+
+static int verbose = 0;
 static int lsock = -1, csock = -1;
 static char fm[3] = "A";
 static char req[4096], ebc[4096], buf[8192], out[8192];
+
+/* the empty line that ends the request head, in ASCII (an EBCDIC '\n'
+   is X'15', not the X'25' that LF becomes) */
+static int endofhead(const char *p, int n)
+{
+  int i;
+  for (i = 0; i + 1 < n; i++) {
+    if (p[i] == 0x0a && p[i+1] == 0x0a) return 1;
+    if (i + 3 < n && p[i] == 0x0d && p[i+1] == 0x0a && p[i+2] == 0x0d
+        && p[i+3] == 0x0a) return 1;
+  }
+  return 0;
+}
 
 static void stop(int rc)
 {
@@ -39,9 +58,15 @@ static int sends(const char *s)
 {
   int n = strlen(s);
   while (n > 0) {
-    int k = n > (int)sizeof(out) ? (int)sizeof(out) : n;
-    nicofclt_ebcdic2ascii((char*)s, k, out);
-    if (send(csock, out, k, 0) < 0) return -1;
+    int k = n > CHUNK ? CHUNK : n;
+    int r;
+    int j;                  /* NICOF's table makes NL (X'15') a blank */
+    for (j = 0; j < k; j++)
+      out[j] = s[j] == '\n' ? 0x0a : e2a[(unsigned char)s[j]];
+    if (verbose) printf("HTTPD: send %d bytes\n", k);
+    r = send(csock, out, k, 0);
+    if (verbose) printf("HTTPD: send -> %d, errno %d\n", r, errno);
+    if (r < 0) return -1;
     s += k; n -= k;
   }
   return 0;
@@ -92,11 +117,13 @@ static int sendfile(const char *fn, const char *ft, const char *fmode)
   const char *type = ctype(ft, &bin);
   FILE *f;
   sprintf(name, "%s %s %s", fn, ft, fmode);
+  if (verbose) printf("HTTPD: fopen(%s)\n", name);
   f = fopen(name, bin ? "rb" : "r");
+  if (verbose) printf("HTTPD: fopen -> %s\n", f ? "ok" : "failed");
   if (!f) return -1;
   header(200, "OK", type);
   if (bin) {
-    while ((n = fread(buf, 1, sizeof(buf), f)) > 0)
+    while ((n = fread(buf, 1, CHUNK, f)) > 0)
       if (send(csock, buf, n, 0) < 0) break;
   } else {
     while (fgets(buf, sizeof(buf) - 2, f)) {
@@ -108,6 +135,19 @@ static int sendfile(const char *fn, const char *ft, const char *fmode)
   }
   fclose(f);
   return 0;
+}
+
+/* the next blank-delimited word, at most n characters */
+static int word(char **pp, char *w, int n)
+{
+  char *p = *pp;
+  int k = 0;
+  while (*p == ' ') p++;
+  while (*p && *p != ' ' && *p != '\n' && k < n) w[k++] = *p++;
+  while (*p && *p != ' ' && *p != '\n') p++;
+  w[k] = 0;
+  *pp = p;
+  return k > 0;
 }
 
 /* the files on the disk, from LISTFILE * * fm (EXEC -> CMS EXEC A1 */
@@ -128,7 +168,7 @@ static void listing(void)
       while (*p == ' ' || *p == '&') {   /* "&1 &2 fn ft fm" */
         if (*p == '&') { while (*p && *p != ' ') p++; } else p++;
       }
-      if (sscanf(p, "%8s %8s %2s", fn, ft, fmd) == 3) {
+      if (word(&p, fn, 8) && word(&p, ft, 8) && word(&p, fmd, 2)) {
         sprintf(line, "<a href=\"/%s.%s\">%-8s %-8s</a> %s\n",
                 fn, ft, fn, ft, fmd);
         sends(line);
@@ -168,11 +208,13 @@ int main(int argc, char *argv[])
   char *key = 0;
   for (i = 1; i < argc; i++) {
     char o = toupper(argv[i][1]);
-    if (argv[i][0] != '-' || i + 1 >= argc) continue;
+    if (argv[i][0] != '-') continue;
+    if (o != 'V' && i + 1 >= argc) continue;
     if (o == 'P') port = atoi(argv[++i]);
     else if (o == 'D') { strncpy(fm, argv[++i], 2); fm[2] = 0; }
     else if (o == 'N') count = atoi(argv[++i]);
     else if (o == 'K') key = argv[++i];
+    else if (o == 'V') verbose = 1;
   }
   for (i = 0; fm[i]; i++) fm[i] = toupper(fm[i]);
   nicofclt_init();
@@ -205,18 +247,37 @@ int main(int argc, char *argv[])
     }
     /* the request up to the empty line (or what fits) */
     while (n < (int)sizeof(req) - 1) {
-      k = recv(csock, req + n, sizeof(req) - 1 - n, 0);
-      if (k <= 0) break;
+      k = sizeof(req) - 1 - n;
+      if (k > CHUNK) k = CHUNK;   /* NICOF moves at most 2 KB per call */
+      k = recv(csock, req + n, k, 0);
+      if (k <= 0) {
+        if (n == 0) printf("HTTPD: recv() = %d, errno %d (%s)\n", k, errno,
+                           nicofsocket_errmsg(errno));
+        break;
+      }
       n += k;
-      req[n] = 0;
-      nicofclt_ascii2ebcdic(req, n, ebc);
-      ebc[n] = 0;
-      if (strstr(ebc, "\r\n\r\n") || strstr(ebc, "\n\n")) break;
+      if (endofhead(req, n)) break;
     }
+    nicofclt_ascii2ebcdic(req, n, ebc);
     ebc[n] = 0;
     meth[0] = path[0] = 0;
-    sscanf(ebc, "%7s %199s", meth, path);
+    {                         /* "METHOD /path HTTP/1.x" (no sscanf:  */
+      char *p = ebc, *q;      /* GCCLIB's %7s did not fill meth)      */
+      for (q = meth; *p && *p != ' ' && q < meth + 7; ) *q++ = *p++;
+      *q = 0;
+      while (*p == ' ') p++;
+      for (q = path; *p && *p != ' ' && *p != '\r' && q < path + 199; )
+        *q++ = *p++;
+      *q = 0;
+    }
     printf("HTTPD: %s %s\n", meth, path);
+    if (!meth[0] || path[0] != '/') {
+      printf("HTTPD: %d bytes, %02X %02X %02X %02X / %02X %02X %02X %02X\n",
+             n, req[0] & 255, req[1] & 255, req[2] & 255, req[3] & 255,
+             ebc[0] & 255, ebc[1] & 255, ebc[2] & 255, ebc[3] & 255);
+      closesocket(csock); csock = -1;
+      continue;
+    }
     if (key && !strncmp(path, "/.stop/", 7) && !strcmp(path + 7, key)) {
       header(200, "OK", "text/plain"); sends("HTTPD stopped\n");
       closesocket(csock); csock = -1;

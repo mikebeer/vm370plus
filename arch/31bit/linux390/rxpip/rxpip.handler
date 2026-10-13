@@ -25,7 +25,7 @@ BUILD)  n=$(echo "${1:-program}" | tr A-Z a-z); ok "$n"
           echo "::RXPIP FILE $n"; cat $t/$n.out; echo "::RXPIP END"
         fi
         rm -rf $t; exit $rc ;;
-GET)    ok "$1"; $RX install "$1" || exit $?
+GET)    ok "$1"; $RX install --global "$1" || exit $?   # shared store (rexxpository main: install is per directory now)
         name=${1%%[=>]*}
         d=$(ls -d $RXPIP_HOME/pkgs/$name/* 2>/dev/null | tail -1)
         [ -n "$d" ] || { echo "rxpip: $name not installed"; exit 8; }
