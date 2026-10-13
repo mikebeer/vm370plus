@@ -3,10 +3,10 @@
 /* options:  FILE fn [ft [fm]]   the input of the service, from a file */
 /*           SERVER userid       the Linux machine (default MAINT, or  */
 /*                               GLOBALV LXCALL SERVER)                */
-/*           WAIT n              seconds to wait for the answer (120)  */
+/*           WAIT n              seconds to wait for the answer (900)  */
 /*           NOTYPE              keep the answer, do not show it       */
 /* The request goes to vmspoold in the Debian guest as a punch file;   */
-/* its answer is kept as LXCALL RESULT A (without the RC line) and the */
+/* its answer is kept as LXCALL RESULT A (first line VMSPOOL RC n);  */
 /* RC of LXCALL is the RC of the service (404: no such service).       */
 PARSE ARG SVC ARGS
 OPT = ''
@@ -20,7 +20,7 @@ END
 SERVER = ''
 'GLOBALV SELECT LXCALL GET SERVER'
 IF SERVER = '' THEN SERVER = 'MAINT'
-FILE = ''; WAIT = 120; TYPE = 1
+FILE = ''; WAIT = 900; TYPE = 1
 UOPT = TRANSLATE(OPT)
 DO WHILE UOPT <> ''
   PARSE VAR UOPT W UOPT
@@ -39,22 +39,31 @@ DO WHILE UOPT <> ''
 END
 CALL QUIET 'ERASE LXREQ CARDS A'
 QUEUE STRIP(SVC 'FROM' USERID() ARGS)
-N = 1
-IF FILE <> '' THEN DO
-  'EXECIO * DISKR' FILE '(FINIS STEM L.'
-  IF RC <> 0 THEN DO; SAY 'LXCALL:' FILE 'not found'; EXIT 28; END
-  DO I = 1 TO L.0
-    IF L.I = '' THEN QUEUE ' '; ELSE QUEUE L.I
-    N = N + 1
+'EXECIO 1 DISKW LXREQ CARDS A (FINIS'
+IF FILE <> '' THEN DO          /* the file follows the request card: */
+  'STATE' FILE                 /* COPYFILE APPEND, no EXECIO STEM on  */
+  IF RC <> 0 THEN DO           /* the user's file                      */
+    SAY 'LXCALL:' FILE 'not found'; CALL QUIET 'ERASE LXREQ CARDS A'
+    EXIT 28
   END
+  CALL QUIET 'COPYFILE' FILE 'LXREQ CARDS A (APPEND'
 END
-'EXECIO' N 'DISKW LXREQ CARDS A (FINIS'
 'CP SPOOL PUNCH TO' SERVER 'CLASS A'
 'PUNCH LXREQ CARDS A (NOHEADER'
 'CP SPOOL PUNCH OFF'
 CALL QUIET 'ERASE LXREQ CARDS A'
+/* wait with WAKEUP (RDR): RC 3 = a reader file came, RC 2 = time is */
+/* up. The reader is asked only when a file came -- BREXX aborted     */
+/* (DLMalloc) at the end of LXCALL after many EXECIO CP in a loop.    */
 GOT = 0
-DO T = 1 TO (WAIT + 1) % 2
+CALL TIME 'R'
+DO FOREVER
+  LEFT = WAIT - TRUNC(TIME('E'))
+  IF LEFT <= 0 THEN LEAVE
+  HMS = RIGHT(LEFT % 3600, 2, '0') || RIGHT(LEFT // 3600 % 60, 2, '0'),
+     || RIGHT(LEFT // 60, 2, '0')            /* WAKEUP +hhmmss      */
+  'WAKEUP +' || HMS '(RDR QUIET'
+  IF RC <> 3 THEN LEAVE
   'MAKEBUF'
   'EXECIO * CP (STRING QUERY READER ALL' USERID()
   DO WHILE QUEUED() > 0
@@ -63,27 +72,16 @@ DO T = 1 TO (WAIT + 1) % 2
   END
   'DROPBUF'
   IF GOT THEN LEAVE
-  'WAKEUP +000002 (RDR QUIET'
 END
 IF \GOT THEN DO; SAY 'LXCALL: no answer from' SERVER; EXIT 8; END
 CALL QUIET 'ERASE LXCALL RESULT A'
-CALL QUIET 'ERASE LXCALL CARDS A'
-'READCARD LXCALL CARDS A (NOHEADER'
-'EXECIO * DISKR LXCALL CARDS A (FINIS STEM R.'
-CALL QUIET 'ERASE LXCALL CARDS A'
+'READCARD LXCALL RESULT A (NOHEADER'
+/* only the first card is read here: BREXX aborted (DLMalloc) at the */
+/* end of LXCALL after it had read and written back a long answer     */
+'EXECIO 1 DISKR LXCALL RESULT A 1 (FINIS STEM R.'
 PARSE VAR R.1 W1 W2 SRC .
 IF W1 <> 'VMSPOOL' | W2 <> 'RC' THEN SRC = 0
-ELSE DO
-  DO I = 2 TO R.0; J = I - 1; R.J = R.I; END
-  R.0 = R.0 - 1
-END
-DO I = 1 TO R.0
-  R.I = STRIP(R.I, 'T')
-  IF TYPE THEN SAY R.I
-  IF R.I = '' THEN QUEUE ' '      /* EXECIO ends at a null line */
-  ELSE QUEUE R.I
-END
-IF R.0 > 0 THEN 'EXECIO' R.0 'DISKW LXCALL RESULT A (FINIS'
+IF TYPE THEN 'TYPE LXCALL RESULT A 2 *'
 EXIT SRC
 
 QUIET: PROCEDURE

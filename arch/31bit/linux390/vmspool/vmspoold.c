@@ -5,7 +5,7 @@
  * runs the service's handler and punches the answer back.
  *
  *   vmspoold [-r 0.0.000c] [-p 0.0.000d] [-d /etc/vmspool.d]
- *            [-s /var/spool/vmspool] [-i seconds] [-t timeout] [-1] [-v]
+ *            [-s /var/spool/vmspool] [-i seconds] [-t timeout(900)] [-1] [-v]
  *
  * A request is a punch file whose first card is
  *     service FROM userid [argument ...]
@@ -58,7 +58,37 @@ static unsigned char a2e[256];
 
 static const char *rdrdev = "0.0.000c", *pundev = "0.0.000d";
 static const char *hdir = "/etc/vmspool.d", *sdir = "/var/spool/vmspool";
-static int interval = 5, tmo = 120, once = 0, verbose = 0;
+static int interval = 5, tmo = 900, once = 0, verbose = 0;
+static char myid[9] = "";       /* this virtual machine's user ID */
+static int cp(const char *cmd, char *buf, size_t len);
+
+/* QUERY VIRTUAL of the punch says  "     00D FOR userid ..." */
+static void whoami(void)
+{
+    char c[64], r[512], *p;
+    snprintf(c, sizeof c, "q v %s", pundev + 5);
+    cp(c, r, sizeof r);
+    p = strstr(r, " FOR ");
+    if (p) sscanf(p + 5, "%8s", myid);
+}
+
+/* a closed file waits in our reader?  QUERY FILES counts the whole
+   system for a class D user, and a READ of an empty reader ends in a
+   unit check, so ask for our own reader files (as SQLSERV does) */
+static int waiting(void)
+{
+    char c[64], r[2048], *l;
+    if (!myid[0]) return 1;
+    snprintf(c, sizeof c, "q rdr all %s", myid);
+    cp(c, r, sizeof r);
+    for (l = strtok(r, "\n"); l; l = strtok(NULL, "\n")) {
+        char w1[16], w2[16];
+        if (sscanf(l, "%15s %15s", w1, w2) == 2 && isdigit((unsigned char) w2[0])
+            && strspn(w2, "0123456789") == strlen(w2))
+            return 1;
+    }
+    return 0;
+}
 
 #define MAXIN  (4 << 20)        /* a request: 4 MB of cards at most */
 #define MAXOUT (1 << 20)        /* an answer: 1 MB */
@@ -342,10 +372,11 @@ int main(int argc, char **argv)
     online(rdrdev);
     online(pundev);
     { char c[32]; snprintf(c, sizeof c, "spool %s off", pundev + 5); cp(c, NULL, 0); }
-    logf_("started, reader %s punch %s", rdrdev, pundev);
+    whoami();
+    logf_("started as %s, reader %s", myid[0] ? myid : "?", rdrdev);
     for (;;) {
         size_t len = 0;
-        unsigned char *b = readfile(&len);
+        unsigned char *b = waiting() ? readfile(&len) : NULL;
         if (b) {
             if (len >= 80) serve(b, len);
             free(b);

@@ -56,6 +56,7 @@ SPLIT: PROCEDURE EXPOSE UCMD
   FT = 'REXX'; IF UCMD <> 'GET' THEN FT = 'EXEC'
   NF = 0; OUT = ''; K = 0
   DO I = 1 TO L.0
+    IF I = 1 & WORD(L.I, 1) = 'VMSPOOL' THEN ITERATE   /* VMSPOOL RC n */
     IF WORD(L.I, 1) = '::RXPIP' THEN DO
       IF OUT <> '' THEN CALL PUT
       OUT = ''
