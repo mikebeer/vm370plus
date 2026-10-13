@@ -153,6 +153,12 @@ def cmsruntm_c(t):
     t = edit(t, 'CMSCRAB *crab = malloc(size);', 'CMSCRAB *crab = _lmalloc(size);', 1, n)
     t = edit(t, '        free(bin);\n', '        _lfree(bin);\n', 1, n)
     t = edit(t, '    free(gcccrab->dynamicstack);\n', '    _lfree(gcccrab->dynamicstack);\n', 1, n)
+    # I-282: upstream allocates MAXEPLISTARGS (32) BYTES for argv, i.e. 8
+    # pointers, and never checks; a 9th argument writes past the block and
+    # corrupts dlmalloc.  Every argument takes at least 2 bytes of the
+    # ARGBUFFERLEN buffer, so ARGBUFFERLEN/2 + 2 pointers always suffice.
+    t = edit(t, 'gcccrab->argv = malloc(MAXEPLISTARGS);',
+             'gcccrab->argv = malloc((ARGBUFFERLEN / 2 + 2) * sizeof(char *));', 1, n)
     return t
 
 

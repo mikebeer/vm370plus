@@ -45,7 +45,7 @@ int __cstart(MAINFUNC *mainfunc) {
     stdin = fopen("+CONSOLE+", "r");
 
     /* Process parameters */
-    gcccrab->argv = malloc(MAXEPLISTARGS);
+    gcccrab->argv = malloc((ARGBUFFERLEN / 2 + 2) * sizeof(char *));
     gcccrab->argbuffer = malloc(ARGBUFFERLEN);
 
     /* The high order byte contains the
