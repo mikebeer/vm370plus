@@ -1,0 +1,70 @@
+/* BOOKIE EXEC -- BookMaster documents, formatted by bookie (9.30)     */
+/*   BOOKIE fn [ft [fm]] [(PS]     ft default SCRIPT                   */
+/* bookie (our BookMaster-compatible formatter) runs in the Debian    */
+/* guest over the spool bridge and formats with groff.  The text      */
+/* comes back as fn DOCUMENT A; with PS, PostScript as fn PS A (for   */
+/* PSPRINT).  .im files are imbedded here, one level deep.            */
+PARSE UPPER ARG LINE
+OPT = ''; P = POS('(', LINE)
+IF P > 0 THEN DO; OPT = SUBSTR(LINE, P + 1); LINE = LEFT(LINE, P - 1); END
+PARSE VAR LINE FN FT FM .
+IF FN = '' THEN DO
+  SAY 'BOOKIE: usage: BOOKIE fn [ft [fm]] [(PS]'; EXIT 24
+END
+IF FT = '' THEN FT = 'SCRIPT'
+IF FM = '' THEN FM = '*'
+PS = WORDPOS('PS', OPT) > 0
+'STATE' FN FT FM
+IF RC <> 0 THEN DO; SAY 'BOOKIE:' FN FT FM 'not found'; EXIT 28; END
+/* the source with its .im files in BOOKIE CARDS A                    */
+'SET CMSTYPE HT'
+'ERASE BOOKIE CARDS A'
+'SET CMSTYPE RT'
+'EXECIO * DISKR' FN FT FM '(FINIS STEM S.'
+N = 0
+DO I = 1 TO S.0
+  IF TRANSLATE(LEFT(S.I, 4)) = '.IM ' THEN DO
+    PARSE UPPER VAR S.I . IFN .
+    'STATE' IFN FT '*'
+    IF RC = 0 THEN DO
+      'EXECIO * DISKR' IFN FT '* (FINIS STEM M.'
+      DO J = 1 TO M.0; QUEUE M.J; N = N + 1; END
+      ITERATE
+    END
+  END
+  IF S.I = '' THEN QUEUE ' '; ELSE QUEUE S.I
+  N = N + 1
+END
+'EXECIO' N 'DISKW BOOKIE CARDS A (FINIS'
+'SET CMSTYPE HT'
+'ERASE LXCALL OPTIONS A'
+'SET CMSTYPE RT'
+QUEUE 'FILE BOOKIE CARDS A NOTYPE'  /* LXCALL's options in a file: I-277 */
+'EXECIO 1 DISKW LXCALL OPTIONS A (FINIS'
+IF PS THEN 'EXEC LXCALL BOOKIE PS' FN
+ELSE 'EXEC LXCALL BOOKIE TEXT'
+SRC = RC
+'SET CMSTYPE HT'
+'ERASE BOOKIE CARDS A'
+'SET CMSTYPE RT'
+'EXECIO * DISKR LXCALL RESULT A (FINIS STEM L.'
+OFT = 'DOCUMENT'; FIRST = 2
+IF PS | SRC <> 0 THEN DO       /* messages, then (PS) the PostScript  */
+  DO I = 2 TO L.0
+    IF STRIP(L.I) = '::PS' THEN LEAVE
+    SAY STRIP(L.I, 'T')
+  END
+  IF SRC <> 0 | I > L.0 THEN EXIT SRC
+  OFT = 'PS'; FIRST = I + 1
+END
+'SET CMSTYPE HT'
+'ERASE' FN OFT 'A'
+'SET CMSTYPE RT'
+N = 0
+DO I = FIRST TO L.0
+  IF L.I = '' THEN QUEUE ' '; ELSE QUEUE L.I
+  N = N + 1
+END
+IF N > 0 THEN 'EXECIO' N 'DISKW' FN OFT 'A (FINIS'
+SAY 'BOOKIE:' FN OFT 'A,' N 'lines'
+EXIT 0

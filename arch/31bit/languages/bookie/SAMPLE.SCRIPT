@@ -1,0 +1,60 @@
+.* SAMPLE SCRIPT -- a BookMaster document for bookie (VM/370plus 9.30)
+:userdoc.
+:prolog.
+:title.VM/370plus Sample Book
+:author.The VM/370plus project
+:date.13 October 2026
+:eprolog.
+:frontm.
+:tipage.
+:toc.
+:body.
+:h1 id=intro.Introduction
+:p.This book is written in :hp2.BookMaster:ehp2. markup and formatted by
+:hp1.bookie:ehp1., our own formatter. The markup uses tags such as
+&colon.p. and &colon.h1.; a symbol like &amp.colon. gives a colon.
+:p.Here is a list of what bookie knows:
+:ol.
+:li.headings, paragraphs and highlighting;
+:li.ordered, unordered and simple lists, nested:
+:ul.
+:li.like this one,
+:li.and this.
+:eul.
+:li.definition lists, examples, figures and tables.
+:eol.
+:h2.Definitions
+:dl tsize=10.
+:dthd.Term
+:ddhd.Meaning
+:dt.CP
+:dd.The Control Program.
+:dt.CMS
+:dd.The Conversational Monitor System.
+:edl.
+:h2.An example
+:xmp.
+/* HELLO EXEC */
+SAY 'Hello, world'
+.not a control word inside an example
+:exmp.
+:note.Examples keep their spacing.
+:h1.Tables
+:table cols='10 20 30'.
+:thd.
+:row.
+:c.Command
+:c.Where
+:c.What it does
+:ethd.
+:row.
+:c.LXCALL
+:c.CMS
+:c.Calls a Linux service through the spool bridge.
+:row.
+:c.TROFF
+:c.CMS
+:c.Formats a troff document with groff.
+:etable.
+:p.See :q.Introduction:eq. for the beginning.
+:euserdoc.
