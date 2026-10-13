@@ -7,8 +7,8 @@
 /*                                   takes the line exactly as typed   */
 /* Linux users answer with  tell userid message ; they read what came  */
 /* while they were away with  tell .                                   */
-/* (I-277: in a machine below 15 MB, 8 or more words on the command    */
-/* line end CMS; type the message at the prompt there.)                */
+/* (the prompt also keeps ( and ) as typed; on the command line CMS   */
+/* hands them over as separate words)                                  */
 PARSE ARG WHO REST
 NODE = ''
 IF TRANSLATE(WORD(REST, 1)) = 'AT' THEN DO

@@ -1,0 +1,106 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready|Start \\(\\(Warm|AUTO LOGON|\\?CP",
+  "timeout": 15,
+  "cont": true
+ },
+ {
+  "send": "/cold",
+  "expect": "DMKCPI966I|\\?CP",
+  "timeout": 90,
+  "cont": true,
+  "settle": 8
+ },
+ {
+  "send": "/cp disc",
+  "expect": "DISCONNECT AT",
+  "timeout": 60
+ },
+ {
+  "send": "/logon maint cpcms noipl",
+  "expect": "Ready|LOGON AT|RECONNECT",
+  "timeout": 180
+ },
+ {
+  "send": "/cp def stor 16m",
+  "expect": "STORAGE =",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/ipl 190",
+  "expect": "VM Community|Ready",
+  "timeout": 120
+ },
+ {
+  "send": "/access (noprof",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/q disk",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/access 093 f",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/listfile gcclibgn exec *",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/gcclibgn f20000",
+  "expect": "CMS715I|CMS111E|CMS141S|CMS412S|Ready\\(|DMS",
+  "timeout": 300,
+  "cont": true,
+  "settle": 5
+ },
+ {
+  "send": "/cp d f20c80.10",
+  "expect": "Ready|F2",
+  "timeout": 30,
+  "cont": true,
+  "settle": 2
+ },
+ {
+  "send": "/cp q nss all",
+  "expect": "Ready|GCCLIB",
+  "timeout": 30,
+  "cont": true,
+  "settle": 3
+ },
+ {
+  "send": "/cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/logon operator operator",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

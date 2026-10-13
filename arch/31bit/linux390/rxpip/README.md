@@ -56,10 +56,10 @@ rexxpository, installs the following:
   ("Incorrect call to routine") because `CmdBuild` did not expose `cfg.`.
   The one-word fix is on branch `fix-build-cfg` of mikebeer/rexxpository;
   our copy carries it.
-- **I-277: no more than 7 arguments.** A REXX EXEC called with 8 or more
-  arguments ends CMS when the GCCLIB segment is loaded. This happens in
-  stock CE too. RXPIP therefore hands LXCALL its options in
-  `LXCALL OPTIONS A`.
+- **I-277 (fixed 13 October).** A REXX EXEC called with 8 or more
+  arguments ended CMS in machines that load the GCCLIB segment, because the
+  segment had been saved from an older GCCLIB. The segment has been saved
+  again. RXPIP still hands LXCALL its options in `LXCALL OPTIONS A`.
 - **Not done yet.** Publishing from CMS (`RXPIP PUBLISH`) and an external
   repository (www.rexxpository.org). The guest's network reaches only the
   PC.

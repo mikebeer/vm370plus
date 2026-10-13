@@ -1,0 +1,103 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready|Start \\(\\(Warm|AUTO LOGON|\\?CP",
+  "timeout": 15,
+  "cont": true
+ },
+ {
+  "send": "/cold",
+  "expect": "DMKCPI966I|\\?CP",
+  "timeout": 90,
+  "cont": true,
+  "settle": 8
+ },
+ {
+  "send": "/cp disc",
+  "expect": "DISCONNECT AT",
+  "timeout": 60
+ },
+ {
+  "send": "/logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp def stor 8m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/ipl cms",
+  "expect": "Ready|VM Community",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp d f20c80.10",
+  "expect": "Ready|F2",
+  "timeout": 30,
+  "cont": true,
+  "settle": 2
+ },
+ {
+  "send": "/tell cmsuser one two three four five six seven eight nine ten eleven",
+  "expect": "Ready|DMS|ABNORMAL",
+  "timeout": 60,
+  "cont": true,
+  "settle": 2
+ },
+ {
+  "send": "/tell cmsuser x at linux a b c d e f g h i j",
+  "expect": "Ready|DMS|ABNORMAL",
+  "timeout": 30,
+  "cont": true,
+  "settle": 2
+ },
+ {
+  "send": "/listfile * exec y",
+  "expect": "Ready|DMS|ABNORMAL",
+  "timeout": 30,
+  "cont": true,
+  "settle": 2
+ },
+ {
+  "send": "/q disk",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/logon operator operator",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]
