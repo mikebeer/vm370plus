@@ -1,0 +1,83 @@
+/* RXPIP EXEC -- REXX packages for CMS (9.26), over the spool bridge   */
+/*   RXPIP SEARCH term       packages in the VM/370plus repository     */
+/*   RXPIP SHOW name         details of a package                      */
+/*   RXPIP AVAIL             every package                             */
+/*   RXPIP BUILD fn          fn REXX * (with  REQUIRE pkg  comments)   */
+/*                           becomes fn EXEC A, its packages merged in */
+/*   RXPIP RUN fn [args]     BUILD, then run fn EXEC                   */
+/*   RXPIP GET name          the package's source as  file REXX A      */
+/* Options of LXCALL (SERVER userid, WAIT n) go after a '('.           */
+PARSE ARG CMD REST
+OPT = ''
+P = POS('(', REST)
+IF P > 0 THEN DO; OPT = '(' SUBSTR(REST, P + 1); REST = LEFT(REST, P - 1); END
+UCMD = TRANSLATE(CMD)
+SELECT
+  WHEN UCMD = 'SEARCH' | UCMD = 'SHOW' | UCMD = 'AVAIL' THEN DO
+    'EXEC LXCALL RXPIP' UCMD REST OPT
+    EXIT RC
+  END
+  WHEN UCMD = 'BUILD' | UCMD = 'RUN' THEN DO
+    PARSE VAR REST FN ARGS
+    IF FN = '' THEN DO; SAY 'RXPIP: which program?'; EXIT 24; END
+    'STATE' FN 'REXX *'
+    IF RC <> 0 THEN DO; SAY 'RXPIP:' FN 'REXX not found'; EXIT 28; END
+    O = '(FILE' FN 'REXX * NOTYPE' SUBSTR(OPT, 2)
+    'EXEC LXCALL RXPIP BUILD' FN O
+    BRC = RC
+    N = SPLIT()
+    IF BRC <> 0 | N = 0 THEN DO
+      SAY 'RXPIP: BUILD failed, RC' BRC; EXIT MAX(BRC, 8)
+    END
+    IF UCMD = 'RUN' THEN DO
+      'EXEC' FN ARGS
+      EXIT RC
+    END
+    EXIT 0
+  END
+  WHEN UCMD = 'GET' THEN DO
+    'EXEC LXCALL RXPIP GET' REST '(NOTYPE' SUBSTR(OPT, 2)
+    BRC = RC
+    N = SPLIT()
+    IF BRC <> 0 | N = 0 THEN DO
+      SAY 'RXPIP: GET failed, RC' BRC; EXIT MAX(BRC, 8)
+    END
+    EXIT 0
+  END
+  OTHERWISE
+    SAY 'RXPIP: SEARCH term, SHOW name, AVAIL, BUILD fn, RUN fn args, GET name'
+    EXIT 24
+END
+
+/* LXCALL RESULT A: messages are shown, every  ::RXPIP FILE fn  starts  */
+/* a file (fn EXEC A after BUILD, fn REXX A after GET); returns files  */
+SPLIT: PROCEDURE EXPOSE UCMD
+  'EXECIO * DISKR LXCALL RESULT A (FINIS STEM L.'
+  FT = 'REXX'; IF UCMD <> 'GET' THEN FT = 'EXEC'
+  NF = 0; OUT = ''; K = 0
+  DO I = 1 TO L.0
+    IF WORD(L.I, 1) = '::RXPIP' THEN DO
+      IF OUT <> '' THEN CALL PUT
+      OUT = ''
+      IF WORD(L.I, 2) = 'FILE' THEN DO
+        OUT = TRANSLATE(LEFT(WORD(L.I, 3), MIN(8, LENGTH(WORD(L.I, 3)))))
+        K = 0
+      END
+      ITERATE
+    END
+    IF OUT = '' THEN DO; SAY L.I; ITERATE; END
+    K = K + 1; F.K = L.I
+  END
+  IF OUT <> '' THEN CALL PUT
+  RETURN NF
+PUT:
+  'SET CMSTYPE HT'
+  'ERASE' OUT FT 'A'
+  'SET CMSTYPE RT'
+  DO J = 1 TO K
+    IF F.J = '' THEN QUEUE ' '; ELSE QUEUE F.J
+  END
+  IF K > 0 THEN 'EXECIO' K 'DISKW' OUT FT 'A (FINIS'
+  SAY 'RXPIP:' OUT FT 'A written,' K 'lines'
+  NF = NF + 1
+  RETURN

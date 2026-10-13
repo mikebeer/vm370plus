@@ -1,0 +1,37 @@
+#!/bin/sh
+# rxpip -- vmspoold service (9.26): RXPIP for CMS users (RXPIP EXEC)
+#   SEARCH term | SHOW name | AVAIL         ask the repository
+#   BUILD [name]   the input is a program with  /* REQUIRE pkg */  comments:
+#                  its packages are installed here and merged in, and the
+#                  standalone program comes back after a  ::RXPIP FILE  line
+#   GET name       the package's source files, each after  ::RXPIP FILE fn
+# The client state is shared: RXPIP_HOME=/var/lib/rxpip/client.
+export RXPIP_HOME=/var/lib/rxpip/client
+RX="regina -a /opt/rxpip/client/rxpip.rexx"
+cmd=$(echo "$1" | tr a-z A-Z); shift
+ok() { case "$1" in ''|*[!A-Za-z0-9_.=\>-]*) echo "rxpip: bad argument: $1"; exit 4;; esac; }
+case "$cmd" in
+SEARCH) ok "$1"; $RX search "$1" ;;
+SHOW)   ok "$1"; $RX show "$1" ;;
+AVAIL)  $RX search "" ;;
+BUILD)  n=$(echo "${1:-program}" | tr A-Z a-z); ok "$n"
+        t=$(mktemp -d /tmp/rxb.XXXXXX) || exit 8
+        cat > $t/$n.rexx
+        ( cd $t && $RX build $n.rexx --output=$n.out ) >$t/log 2>&1; rc=$?
+        cat $t/log
+        if [ $rc = 0 ] && [ -s $t/$n.out ]; then
+          long=$(awk 'length > 80' $t/$n.out | wc -l)
+          [ "$long" != 0 ] && echo "rxpip: warning: $long line(s) longer than 80 columns"
+          echo "::RXPIP FILE $n"; cat $t/$n.out; echo "::RXPIP END"
+        fi
+        rm -rf $t; exit $rc ;;
+GET)    ok "$1"; $RX install "$1" || exit $?
+        name=${1%%[=>]*}
+        d=$(ls -d $RXPIP_HOME/pkgs/$name/* 2>/dev/null | tail -1)
+        [ -n "$d" ] || { echo "rxpip: $name not installed"; exit 8; }
+        for f in $(cd $d && ls); do
+          echo "::RXPIP FILE ${f%.*}"; cat "$d/$f"
+        done
+        echo "::RXPIP END" ;;
+*) echo "rxpip: SEARCH term, SHOW name, AVAIL, BUILD [name], GET name"; exit 4 ;;
+esac
