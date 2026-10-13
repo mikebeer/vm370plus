@@ -20,8 +20,10 @@ NEW IN BUILD 9
     Samples on the language disk: GUIDE SCRIPT, SAMPLE SCRIPT, HELLO TEX,
     HELLO TROFF, DEMO REXX.  Ghostscript, groff and LaTeX are also there
     for Linux users.  Source lines are cards: at most 80 columns.
-    The language disk is EDF: IPL 290 first (cp def stor 64m, ipl 290,
-    lang).  Under IPL 190 (ipl cms) LANG ends with DMSACC112S.
+    The bridge and document EXECs are also on MAINT 19D, so they work
+    under the usual  ipl cms.  The language disk (samples, compilers) is
+    EDF: IPL 290 first (cp def stor 64m, ipl 290, lang); under IPL 190
+    LANG ends with DMSACC112S.
     PSPRINT by spool needs the real printer started: on a fresh system
     00E is drained, so an operator enters  start 00e  once (MAINT, or
     vmcp start 00e  in Debian).
