@@ -2,7 +2,7 @@
 # mkall.sh [outdir] -- build NICOF's CMS client tools with GCC 13 (-m31, cmsrt) into
 # TEXT decks (VM/370plus 9.5).  On CMS (IPL 290): LOAD name (CLEAR, GENMOD.
 #   (ONLY="NHFS HACC" builds just those)
-#   NHFS HACC IPLOOKUP SOCKC SOCKS TSERVER TSELECT UDPSERV NCTEST HTTPD31
+#   CMSFTPD NHFS HACC IPLOOKUP SOCKC SOCKS TSERVER TSELECT UDPSERV NCTEST HTTPD31
 set -e
 H=$(cd "$(dirname "$0")" && pwd)
 O=${1:-$H/out}; mkdir -p $O
@@ -22,6 +22,7 @@ cc TSERVER  $H/tserver.c $S
 cc TSELECT  $H/tselect.c $S
 cc UDPSERV  $H/udpserv.c $S
 cc NCTEST   $H/nctest.c $S
+cc CMSFTPD  $H/cmsftpd.c $H/eeutil.c $H/cmsfile.c $S
 T=$(mktemp -d); cp $H/../httpd/HTTPD.C $T/httpd.c
 cc HTTPD31  $T/httpd.c $S
 rm -rf $T $O/*.elf $O/*.map

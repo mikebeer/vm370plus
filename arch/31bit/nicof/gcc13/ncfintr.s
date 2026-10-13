@@ -24,6 +24,7 @@
 #   op 2: DIAG X'08', a = command, b = length       -> 0
 #   op 3: SVC 1 (WAIT), R0 = a, R1 = b              -> 0
 #   op 4: SVC 47 (STIMER), R0 = a, R1 = b           -> 0
+#   op 5: DIAG X'00', a = buffer, b = length        -> 0
         .text
         .balign 8
         .globl ncf_low
@@ -52,7 +53,14 @@ ncf_low:
         .long 0x83230008            # DIAG 08: R2 = command, R3 = length
         sr    %r2,%r2
         j     9f
-2:      lr    %r0,%r8
+2:      chi   %r7,5
+        jne   4f
+        lr    %r2,%r8
+        lr    %r3,%r9
+        .long 0x83230000            # DIAG 00: R2 = buffer, R3 = length
+        sr    %r2,%r2
+        j     9f
+4:      lr    %r0,%r8
         lr    %r1,%r9
         chi   %r7,3
         jne   3f

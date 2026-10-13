@@ -22,6 +22,7 @@ VM/370plus language disk (MAINT 19F, volume VMLANG)
                   makes a CMS text file a CP/M one (EXPORT: back)
   NHFS31 ...      NICOF host files (GCC 13): LIST, GET, PUT, TYPE, MKDIR in
                   your area of the PC's nhfs directory; HACC31 any PC file
+  CMSFTP31 -p n   an FTP server for your disks on the PC's port n (NICOF)
   IPLOOK31 name   name or address lookup through the PC (NICOF)
   HTTPD31         a web server for a CMS disk (-p port -d fm -n count -k key)
   NCTEST          a NICOF socket test against an echo server on the PC

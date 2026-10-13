@@ -88,11 +88,11 @@ context makes clear which they are.
 listed here, newest first.
 :ul.
 :li.:hp2.13 October 2026, night.:ehp2. NICOF's tools for the EC-mode
-CMS, built with GCC 13, on the language disk&colon. :xph.NHFS31:exph.,
-:xph.HACC31:exph., :xph.IPLOOK31:exph., the web server
-:xph.HTTPD31:exph. and :xph.NCTEST:exph. (Chapter 6). NICOF programs no
-longer wait forever under :xph.IPL 290:exph. (I-285), and HX under
-:xph.IPL 290:exph. no longer ends in a disabled wait (I-286).
+CMS, built with GCC 13, on the language disk&colon. :xph.CMSFTP31:exph.,
+:xph.NHFS31:exph., :xph.HACC31:exph., :xph.IPLOOK31:exph., the web
+server :xph.HTTPD31:exph. and :xph.NCTEST:exph. (Chapter 6). NICOF
+programs no longer wait forever under :xph.IPL 290:exph. (I-285), and HX
+under :xph.IPL 290:exph. no longer ends in a disabled wait (I-286).
 :li.:hp2.13 October 2026, late evening.:ehp2. CP/M 2.2 (Chapter
 8)&colon. :xph.CPM:exph. runs CP/M on CMS, with the CP/M programs on the
 language disk, and in the Debian guest. TK5 (MVS 3.8j) and a 31-bit MVS
@@ -1126,8 +1126,9 @@ disk is a directory (a, b, ...). :xph.-pwd x:exph. asks for a password.
 :p.The modules on NICOF's disk are built with CE's GCC and run under
 :xph.IPL CMS:exph.. Under the EC-mode CMS (:xph.IPL 290:exph.) use the
 versions on the language disk, built with GCC 13 (:xph.LANG:exph.
-first)&colon. :xph.NHFS31:exph. and :xph.HACC31:exph. (the same commands
-as NHFS and HACC), :xph.IPLOOK31 name:exph. (a name or address lookup
+first)&colon. :xph.CMSFTP31:exph. (the FTP server, same options as
+CMSFTPD), :xph.NHFS31:exph. and :xph.HACC31:exph. (the same commands as
+NHFS and HACC), :xph.IPLOOK31 name:exph. (a name or address lookup
 through the PC), :xph.HTTPD31:exph. and :xph.NCTEST:exph.. CMS cuts
 every argument to 8 characters, so :xph.IPLOOK31 localhost:exph. asks
 for :xph.localhos:exph.; :xph.IPLOOK31 -ME:exph. gives the PC's own

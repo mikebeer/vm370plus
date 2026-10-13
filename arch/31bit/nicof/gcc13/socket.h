@@ -607,6 +607,19 @@ extern int ioctlsocket(SOCKET sockfd, long flag, ncs_uint *value);
 ** ****
 */
  
+#ifdef __CMSRT__
+/* VM/370plus (GCC 13, cmsrt): newlib's <sys/select.h> and <sys/time.h>
+   may already define these; NICOF's own types get their own names */
+#define fd_set ncs_fd_set
+#define _fd_set _ncs_fd_set
+#define timeval ncs_timeval
+#define select ncs_select
+#undef FD_ZERO
+#undef FD_ISSET
+#undef FD_SET
+#undef FD_CLR
+#endif
+
 /* make sure we work with out own size values */
 #ifdef FD_SETSIZE
 #undef FD_SETSIZE

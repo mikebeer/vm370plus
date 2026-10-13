@@ -29,12 +29,18 @@ Build: `sh mkall.sh` (a few seconds). On CMS (`IPL 290`): `LOAD NHFS (CLEAR`,
 | TSELEC31 | tselect.c | 3 clients at once through select(), `**TERMINATE**` |
 | UDPSER31 | udpserv.c | a datagram from the PC echoed |
 | NCTEST, HTTPD31 | nctest.c, HTTPD.C | above |
+| CMSFTP31 | cmsftpd.c + eeutil.c | Python ftplib: login, NLST of the disks, LIST of A (283 files), RETR text (ASCII lines), STOR text and back, STOR/RETR 5120 binary bytes identical |
 
 Message ids start from the clock (they started at 11): a request an earlier
 program left pending at the proxy no longer collides (`VMCF(8) duplicate
 message`). The proxy keeps a socket of a program that did not end normally
 (EADDRINUSE on the next bind until the proxy is restarted). CMSFTPD needs
-Latz's EEUTIL, which is not in NICOF's sources: not ported yet.
+Latz's EEUTIL, which is not in NICOF's sources: `eeutil.c` writes the few
+functions it uses anew (case helpers, `f_exists`, the pattern check,
+DIAG X'00') and GCCLIB's `CMScommand`, `CMSstackQuery` (SENTRIES) and
+`CMSconsoleRead` (WAITRD); the disks and files are listed with
+`QUERY DISK` and `LISTFILE` (`-usecmscmds` is always on). CMSFTPD's text
+records are translated where they meet the disk (readRecord/writeRecord).
 
 ## How it differs from CE's INTRAPI
 
