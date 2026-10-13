@@ -28,7 +28,11 @@ done
 [ -d /etc/vmspool.d ] && install -m 755 rxpip.handler /etc/vmspool.d/rxpip
 # the examples, published once by the user vm370
 if ! curl -s "$URL?action=LIST" | grep -q mathutils; then
-  TOK=$(RXPIP_REPO_ROOT=/var/lib/rxpip/repo regina -a /opt/rxpip/server/rxpip_server.rexx admin adduser vm370 | sed 's/.*: //')
+  # the publishing user: vm370, or vm370-n when an earlier run made it
+  for u in vm370 vm370-2 vm370-3 vm370-4 vm370-5; do
+    o=$(RXPIP_REPO_ROOT=/var/lib/rxpip/repo regina -a /opt/rxpip/server/rxpip_server.rexx admin adduser $u 2>&1)
+    case "$o" in *"token (shown once): "*) TOK=${o##*: }; break;; esac
+  done
   t=$(mktemp -d)
   for p in mathutils strutils greetutils; do
     req=; [ $p = greetutils ] && req="strutils>=1.0.0"

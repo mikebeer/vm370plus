@@ -6,7 +6,7 @@
 #                  standalone program comes back after a  ::RXPIP FILE  line
 #   GET name       the package's source files, each after  ::RXPIP FILE fn
 # The client state is shared: RXPIP_HOME=/var/lib/rxpip/client.
-export RXPIP_HOME=/var/lib/rxpip/client
+export RXPIP_HOME=/var/lib/rxpip/client PATH=/usr/local/bin:/usr/local/sbin:$PATH
 RX="regina -a /opt/rxpip/client/rxpip.rexx"
 cmd=$(echo "$1" | tr a-z A-Z); shift
 ok() { case "$1" in ''|*[!A-Za-z0-9_.=\>-]*) echo "rxpip: bad argument: $1"; exit 4;; esac; }

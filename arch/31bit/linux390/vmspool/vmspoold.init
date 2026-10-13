@@ -9,6 +9,7 @@
 ### END INIT INFO
 # vmspoold: CMS users call Linux services by punch and reader.  The MQTT
 # broker is started first when it is installed and not running.
+PATH=/usr/local/bin:/usr/local/sbin:$PATH; export PATH
 D=/usr/local/sbin/vmspoold   # matched as "^$D": this script is called vmspoold too
 [ -x $D ] || exit 0
 [ -r /etc/default/vmspoold ] && . /etc/default/vmspoold
