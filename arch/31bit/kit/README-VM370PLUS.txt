@@ -1,7 +1,19 @@
-VM/370plus  --  overlay kit, 13 October 2026 (build 11)
+VM/370plus  --  overlay kit, 13 October 2026 (build 12)
 ========================================================
 
-NEW IN BUILD 11
+NEW IN BUILD 12
+  - CP/M 2.2 (Guide, Chapter 8), through the RunCPM Z80 emulator:
+        lang, then (IPL 290, more than 16 MB)
+        CPM                        CP/M at the terminal; EXIT ends it
+        CPM cmd [; cmd ...]        CP/M commands, then back to CMS
+        CPM IMPORT fn ft           CMS text -> CP/M text (EXPORT: back)
+    CP/M drive X: is CMS disk X; L: (the language disk) has PIP, STAT, ASM,
+    LOAD, DDT, ED ...  Try: COPYFILE HELLO ASM L = = A, CPM IMPORT HELLO ASM,
+    CPM L:ASM HELLO; L:LOAD HELLO; HELLO
+    In the Debian guest: runcpm (Linux users), and CPM ... (LINUX from CMS.
+
+
+IN BUILD 11
   - TELL to the internet:  TELL user AT NET message  publishes to the MQTT
     broker of the Debian guest (topic vm/tell/out/user); outside users
     answer by publishing to vm/tell/from/<login>/to/<userid>.  Logins in
