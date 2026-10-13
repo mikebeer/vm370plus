@@ -26,7 +26,8 @@ VMCF.
 
 ## Use
 
-On the PC, after Hercules is up:
+On the PC, once VM/370 is up (after `AUTOLOG1 DONE - LOGGING OFF`; I-284:
+starting it during CP's IPL coincided with a CPU stall and a hung Hercules):
 
     sh vm370plus/nicof/nicof.sh start      (Java must be on the PATH)
 
