@@ -1,6 +1,6 @@
 #!/bin/sh
 # crt.sh -- VM/370plus M5f: compile and link a C program for CMS (AMODE 31).
-#   crt.sh OUT.text file.c ...   -> OUT.text (CMS TEXT deck: LOAD, GENMOD)
+#   crt.sh OUT.text file.c|file.s ...   -> OUT.text (CMS TEXT deck: LOAD, GENMOD)
 # Needs: s390x-linux-gnu-gcc (13, with lib32gcc-13-dev-s390x-cross), the
 # newlib build in $NEWLIB (libc.a, libm.a, headers), softfp/libsoftfp.a,
 # and elf_to_cms (Adrian Sutherland's, patched: elf_to_cms-pcrel.patch).
@@ -17,8 +17,13 @@ W=$(mktemp -d)
 CF="${CFLAGS_PRE} -m31 -mesa -march=z900 -msoft-float -mlong-double-64 -O2 -fno-pic -fno-pie -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-stack-protector -ffunction-sections -fdata-sections -nostdinc -isystem $GI -I$NEWLIB/targ-include -I$NLSRC/libc/include"
 objs=""
 for c in "$@"; do
-  o=$W/$(basename "$c" .c).o
-  $X-gcc $CF ${CFLAGS_EXTRA} -c "$c" -o "$o"; objs="$objs $o"
+  case "$c" in
+  *.s) o=$W/$(basename "$c" .s).o            # assembler (e.g. NICOF's ncfintr.s)
+       $X-as -m31 -mesa "$c" -o "$o" ;;
+  *)   o=$W/$(basename "$c" .c).o
+       $X-gcc $CF ${CFLAGS_EXTRA} -c "$c" -o "$o" ;;
+  esac
+  objs="$objs $o"
 done
 # LIBSRC: sources compiled into an archive, pulled in only as needed (like
 # CMake's static libraries -- M8's RXC links the VM library this way).

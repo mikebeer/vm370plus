@@ -14,7 +14,10 @@
 ** Build (CE GCC, IPL 290; NICOF's client rebuilt with CE GCC, see
 ** README): GCC HTTPD, GLOBAL TXTLIB GCCLIB,
 **          LOAD HTTPD NICOFCLT NCFSOCKT INTRAPI (CLEAR, GENMOD HTTPD
-** Run under IPL CMS (I-285).
+** Runs under IPL CMS and IPL 290.
+** GCC 13 (-m31, cmsrt; IPL 290 only): built with -D__CMSRT__ by
+** nicof/gcc13/mkhttpd.sh into HTTPD31 TEXT; the program is ASCII inside,
+** so NICOF's translations are the identity there.
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,7 +127,11 @@ static int sendfile(const char *fn, const char *ft, const char *fmode)
   int bin, n;
   const char *type = ctype(ft, &bin);
   FILE *f;
+#ifdef __CMSRT__
+  sprintf(name, bin ? "%s %s %s(b" : "%s %s %s", fn, ft, fmode);
+#else
   sprintf(name, "%s %s %s", fn, ft, fmode);
+#endif
   if (verbose) printf("HTTPD: fopen(%s)\n", name);
   f = fopen(name, bin ? "rb" : "r");
   if (verbose) printf("HTTPD: fopen -> %s\n", f ? "ok" : "failed");
@@ -159,6 +166,38 @@ static int word(char **pp, char *w, int n)
   return k > 0;
 }
 
+#ifdef __CMSRT__
+/* the files on the disk: cmsrt's opendir (LISTFILE * * fm (EXEC) */
+struct dirent { unsigned int d_ino; unsigned char d_type; char d_name[20]; };
+extern void *opendir(const char *name);
+extern struct dirent *readdir(void *d);
+extern int closedir(void *d);
+static void listing(void)
+{
+  char line[200], fn[9], ft[9], *dot;
+  struct dirent *e;
+  void *d = opendir(fm);
+  int i;
+  header(200, "OK", "text/html");
+  sprintf(line, "<html><head><title>VM/370plus: %s disk</title></head>"
+                "<body><h1>Files on the %s disk</h1><pre>\n", fm, fm);
+  sends(line);
+  while (d && (e = readdir(d)) != 0) {
+    for (i = 0; e->d_name[i]; i++) e->d_name[i] = toupper(e->d_name[i]);
+    dot = strchr(e->d_name, '.');
+    if (!dot) continue;
+    *dot = 0;
+    strncpy(fn, e->d_name, 8); fn[8] = 0;
+    strncpy(ft, dot + 1, 8); ft[8] = 0;
+    sprintf(line, "<a href=\"/%s.%s\">%-8s %-8s</a> %s\n",
+            fn, ft, fn, ft, fm);
+    sends(line);
+  }
+  if (d) closedir(d);
+  sends("</pre><p>Served by CMS on VM/370plus (NICOF sockets, GCC 13)."
+        "</p></body></html>\n");
+}
+#else
 /* the files on the disk, from LISTFILE * * fm (EXEC -> CMS EXEC A1 */
 static void listing(void)
 {
@@ -188,6 +227,8 @@ static void listing(void)
   sends("</pre><p>Served by CMS on VM/370plus (NICOF sockets).</p>"
         "</body></html>\n");
 }
+
+#endif
 
 static void serve(char *path)
 {
