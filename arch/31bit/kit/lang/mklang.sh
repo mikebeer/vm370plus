@@ -49,7 +49,7 @@ add UNTRS TEXT ${TERSEO:-/home/claude/src/terse}/untrs.text BIN; add UNTERSE EXE
 add TRS TEXT ${TERSEO:-/home/claude/src/terse}/trs.text BIN; add TERSE EXEC $L/terse/cms/TERSE.EXEC F
 # the spool bridge and documents (9.25-9.31): EXECs and samples
 V=$R/linux390/vmspool/cms
-for e in LXCALL PHONE MQTT TROFF BOOKIE LATEX PSPRINT; do add $e EXEC $V/$e.EXEC F; done
+for e in LXCALL PHONE MQTT TELL TROFF BOOKIE LATEX PSPRINT; do add $e EXEC $V/$e.EXEC F; done
 add RXPIP EXEC $R/linux390/rxpip/cms/RXPIP.EXEC F
 add GUIDE SCRIPT $R/manual/GUIDE.SCRIPT F; add SAMPLE SCRIPT $L/bookie/SAMPLE.SCRIPT F
 add HELLO TEX $L/latex/HELLO.TEX F; add HELLO TROFF $V/HELLO.TROFF F

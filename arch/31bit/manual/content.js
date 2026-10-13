@@ -12,7 +12,7 @@ B(['**Chapter 1, Introduction**, says what VM/370plus is and what it is for.',
    '**Chapter 3, Installing VM/370plus**, takes you from a fresh Community Edition to a running VM/370plus system.',
    '**Chapter 4, Operating VM/370plus**, covers start-up, shutdown and the rules that keep the system healthy.',
    '**Chapter 5, Running Linux/390**, describes ESA/390 virtual machines, the Linux kernel, the Debian system and the network connection to the PC.',
-   '**Chapter 6, Service Machines**, describes CHATBOT, the spool bridge to Linux services (LXCALL, PHONE, MQTT), RXPIP, and the service machines that are planned.',
+   '**Chapter 6, Service Machines**, describes CHATBOT, the spool bridge to Linux services (LXCALL, PHONE, MQTT, TELL), RXPIP, and the service machines that are planned.',
    '**Chapter 7, cREXX on VM/370plus**, describes the REXX compiler and virtual machine built for and on VM/370plus, the languages written in cREXX that run on CMS and on Linux, and Turbo CREXX.',
    '**Chapter 8, Compilers on CMS**, describes the language disk and what is on it: GCC 13 for C and C++, GnuCOBOL, COBOL with OO, PL/I, Python, SQLite and SQLSERV, Pascal, APL, xBase, Smalltalk, ZIP and TERSE.',
    '**Chapter 9, Documents and Printing**, describes TROFF, BOOKIE (BookMaster markup), LaTeX and how PostScript reaches a printer.',
@@ -325,6 +325,8 @@ P('`LXCALL service [arguments]` sends a request and shows the answer, which is a
 SCREEN(['lxcall sys', 'Linux vm370plus 4.0.0+ #8 Tue Oct 13 00:11:13 UTC 2026 s390 GNU/Linux', ' 01:26:49 up 10 min,  1 user,  load average: 0.93, 1.75, 1.15', 'Ready;'], 'A Linux service called from CMS');
 H2('PHONE and MQTT');
 P('`PHONE STATUS`, `PHONE CHANNELS`, `PHONE PEERS`, `PHONE CALL ext [context]` and `PHONE HANGUP channel` reach the Asterisk PBX in the Debian guest. `MQTT PUB topic message` publishes a message (or, with `(FILE fn ft`, each line of a file) to the mosquitto broker; `MQTT SUB topic [n [secs]]` waits for n messages. The broker can be another one: `MQTT_HOST` in `/etc/vmspool.d/mqtt.conf`.');
+H2('TELL');
+P('`TELL userid message` sends a message to a VM/370 user (CP MSG). `TELL user AT LINUX message` sends it to a user of the Debian guest through the spool bridge: it appears on that user\u2019s terminals, and is kept until the user reads it with `tell`. `TELL ALL AT LINUX message` reaches everybody logged on to Linux. A Linux user answers with `tell userid message`, which arrives on CMS as `MSG FROM MAINT: (user) message`.');
 SCREEN(['mqtt sub vm/test 1 20', 'vm/test hello from linux', 'Ready;'], 'A message from Linux arrives on CMS');
 H2('RXPIP: REXX packages');
 P('RXPIP is the package manager of rexxpository: REXX routines are published as packages, and a program names what it needs with `/* REQUIRE pkg */` comments. The repository server and the rxpip client run in the Debian guest; the bridge service `rxpip` serves CMS users.');
@@ -529,7 +531,7 @@ P('`TERSE [-v] [-l lrecl] in out` packs a file in IBM TERSE SPACK format (`-b` b
 H2('SQL, SQLSERV');
 P('`SQL db statement`, `SQL db (FILE fn ft fm`, `SQL STOP`, `(SERVER userid`; `SQLSERV [(LOUD]` runs the service machine.');
 H2('LXCALL, PHONE, MQTT');
-P('`LXCALL service [args] (FILE fn ft fm | SERVER userid | WAIT n | NOTYPE`; `PHONE STATUS|CHANNELS|PEERS|CALL ext [ctx]|HANGUP channel`; `MQTT PUB topic message`, `MQTT SUB topic [n [secs]]`.');
+P('`LXCALL service [args] (FILE fn ft fm | SERVER userid | WAIT n | NOTYPE`; `PHONE STATUS|CHANNELS|PEERS|CALL ext [ctx]|HANGUP channel`; `MQTT PUB topic message`, `MQTT SUB topic [n [secs]]`; `TELL userid [AT LINUX] message`.');
 H2('RXPIP');
 P('`RXPIP AVAIL`, `SEARCH term`, `SHOW name`, `BUILD fn`, `RUN fn [args]`, `GET name`.');
 H2('TROFF, BOOKIE, LATEX, PSPRINT');

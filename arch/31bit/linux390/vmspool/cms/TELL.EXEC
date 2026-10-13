@@ -1,0 +1,53 @@
+/* TELL EXEC -- send a message (9.14)                                  */
+/*   TELL userid message             CP MSG to a VM/370 user           */
+/*   TELL user AT LINUX message      to a user of the Debian guest,    */
+/*                                   through the spool bridge          */
+/*                                   (user ALL: everybody logged on)   */
+/*   TELL user [AT LINUX]            with no message: asks for it, and */
+/*                                   takes the line exactly as typed   */
+/* Linux users answer with  tell userid message ; they read what came  */
+/* while they were away with  tell .                                   */
+/* (I-277: in a machine below 15 MB, 8 or more words on the command    */
+/* line end CMS; type the message at the prompt there.)                */
+PARSE ARG WHO REST
+NODE = ''
+IF TRANSLATE(WORD(REST, 1)) = 'AT' THEN DO
+  NODE = TRANSLATE(WORD(REST, 2))
+  REST = SUBWORD(REST, 3)
+END
+IF WHO = '' THEN DO
+  SAY 'TELL: usage: TELL userid [AT LINUX] [message]'
+  EXIT 24
+END
+IF STRIP(REST) = '' THEN DO
+  SAY 'TELL: enter the message for' WHO
+  PARSE PULL REST
+  IF STRIP(REST) = '' THEN EXIT 0
+END
+IF NODE = '' THEN DO
+  'CP MSG' WHO REST
+  EXIT RC
+END
+IF NODE <> 'LINUX' & NODE <> 'DEBIAN' THEN DO
+  SAY 'TELL: no route to node' NODE '(only LINUX; RSCS is 9.13b)'
+  EXIT 24
+END
+/* the text goes as input cards, so ( and many words are safe        */
+CALL QUIET 'ERASE TELLMSG CARDS A'
+N = 0
+DO WHILE REST <> ''
+  QUEUE LEFT(REST, 80)
+  REST = SUBSTR(REST, 81)
+  N = N + 1
+END
+'EXECIO' N 'DISKW TELLMSG CARDS A (FINIS'
+'EXEC LXCALL TELL' WHO '(FILE TELLMSG CARDS A'
+R = RC
+CALL QUIET 'ERASE TELLMSG CARDS A'
+EXIT R
+QUIET: PROCEDURE
+  PARSE ARG CMD
+  'SET CMSTYPE HT'
+  CMD
+  'SET CMSTYPE RT'
+  RETURN

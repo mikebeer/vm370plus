@@ -1,0 +1,11 @@
+#!/bin/sh
+# tell -- VM/370plus 9.14, the Linux half of TELL
+#   tell userid message    CP MSG to a VM/370 user (through vmmsg)
+#   tell                   the messages CMS users sent you (TELL user AT LINUX)
+if [ $# -eq 0 ]; then
+  f=/var/spool/vmspool/msg/$(id -un)
+  if [ -s "$f" ]; then cat "$f"; : > "$f"; else echo "tell: no messages"; fi
+  exit 0
+fi
+[ $# -ge 2 ] || { echo "usage: tell userid message"; exit 4; }
+exec /usr/local/sbin/vmmsg "$@"

@@ -45,6 +45,7 @@ avoids that.
 | `sys` | `LXCALL SYS` | `uname`, `uptime`, disk and memory of the guest. |
 | `phone` | `PHONE STATUS`, `CHANNELS`, `PEERS`, `CALL ext [context]`, `HANGUP channel` | Asterisk, through `asterisk -rx`. Arguments are checked: `PHONE CALL 1;reboot` gives `bad argument`, RC 4. |
 | `troff` | `TROFF fn [ft [fm]] (MACROS ms PS` | groff 1.21 (groff-base) with the ms, me, mm and mom macros of groff 1.23 (`/usr/local/share/groff/tmac123`). Plain text comes back as `fn DOCUMENT A`; with PS, PostScript comes back as `fn PS A`, and a copy stays in `/var/spool/vmspool/out/<user>/`. (9.28) |
+| `tell` | `TELL user AT LINUX message` | (9.14) The message (sent as input cards, so any text is safe) is written to the Linux user's terminals and kept in `/var/spool/vmspool/msg/<user>`; `ALL` reaches everybody logged on. RC 1 when the user is not logged on. The other way, `tell userid message` on Linux sends `CP MSG userid (linuxuser) message` through the setuid helper `vmmsg` (only MSG, user ID checked); `tell` alone shows the kept messages. `TELL userid message` without `AT` is CP MSG. |
 | `mqtt` | `MQTT PUB topic message`, `MQTT PUB topic (FILE fn ft`, `MQTT SUB topic [n [secs]]` | mosquitto_pub and mosquitto_sub against `MQTT_HOST` (`/etc/vmspool.d/mqtt.conf`, default localhost). |
 
 A new service is any executable dropped into `/etc/vmspool.d`.
@@ -59,7 +60,8 @@ A new service is any executable dropped into `/etc/vmspool.d`.
 | `install.sh` | Installs the daemon, the handlers and the init script, and runs `update-rc.d`. |
 | `handlers/` | `echo`, `sys`, `phone`, `mqtt`. |
 | `cms/LXCALL.EXEC` | The client. Options: `FILE fn ft fm`, `SERVER userid`, `WAIT n`, `NOTYPE`. Its RC is the service's RC. |
-| `cms/PHONE.EXEC`, `cms/MQTT.EXEC` | Short front ends to LXCALL. |
+| `cms/PHONE.EXEC`, `cms/MQTT.EXEC`, `cms/TELL.EXEC` | Short front ends to LXCALL. |
+| `linux/tell`, `linux/vmmsg.c` | The Linux half of TELL (9.14); `vmmsg` is installed setuid root. |
 
 The mosquitto note: started without `-c`, mosquitto drops privileges to a
 user `mosquitto` that does not exist. The lookup then kills this build with

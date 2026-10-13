@@ -9,3 +9,8 @@ install -m 755 vmspoold.init /etc/init.d/vmspoold
 [ -r /etc/default/vmspoold ] || echo 'VMSPOOLD_OPTS="-t 900"' > /etc/default/vmspoold
 update-rc.d vmspoold defaults >/dev/null
 /etc/init.d/vmspoold restart
+# 9.14 TELL: tell (CP MSG from Linux, and the messages from CMS) and the
+# setuid helper vmmsg, which only ever runs CP MSG
+install -m 755 linux/tell /usr/local/bin/tell
+install -m 4755 -o root linux/vmmsg /usr/local/sbin/vmmsg
+mkdir -p /var/spool/vmspool/msg

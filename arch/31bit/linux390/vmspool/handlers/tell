@@ -1,0 +1,31 @@
+#!/bin/sh
+# tell -- vmspoold: a message from CMS to a user of the Debian guest
+#   (TELL user AT LINUX message, 9.14).  Argument: the Linux user name,
+#   or ALL for everybody logged on.  The message is the input (cards,
+#   joined).  It is written to the user's terminals and kept in
+#   /var/spool/vmspool/msg/<user>, which `tell` with no arguments shows.
+from=${VMSPOOL_FROM:-?}
+u=$(echo "$1" | tr A-Z a-z)
+case "$u" in ''|*[!a-z0-9_.-]*) echo "tell: bad user name: $1"; exit 4;; esac
+msg=$(sed 's/[[:space:]]*$//' | tr '\n' ' ' | tr -d '\000-\010\013-\037' | sed 's/ *$//')
+[ -n "$msg" ] || { echo "tell: no message"; exit 4; }
+line="MSG FROM $from: $msg"
+box=/var/spool/vmspool/msg; mkdir -p $box
+if [ "$u" = all ]; then
+  ttys=$(who | awk '{print $2}')
+else
+  id "$u" >/dev/null 2>&1 || { echo "tell: no Linux user $u"; exit 4; }
+  ttys=$(who | awk -v u="$u" '$1 == u {print $2}')
+  f=$box/$u
+  echo "$(date '+%m/%d %H:%M') $line" >> $f
+  chown "$u" $f 2>/dev/null; chmod 600 $f
+fi
+n=0
+for t in $ttys; do
+  [ -c /dev/$t ] || continue
+  printf '\r\n%s\r\n' "$line" > /dev/$t 2>/dev/null && n=$((n + 1))
+done
+if [ $n -gt 0 ]; then echo "tell: $u: shown on $n terminal(s)"; exit 0; fi
+[ "$u" = all ] && { echo "tell: nobody is logged on"; exit 1; }
+echo "tell: $u is not logged on; the message is kept (tell, with no arguments)"
+exit 1
