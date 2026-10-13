@@ -21,6 +21,15 @@ SERVER = ''
 'GLOBALV SELECT LXCALL GET SERVER'
 IF SERVER = '' THEN SERVER = 'MAINT'
 FILE = ''; WAIT = 900; TYPE = 1
+/* CE's GCCLIB segment ends CMS (DMSITP143T at F2ACD0) when a REXX    */
+/* EXEC gets 8 or more arguments: an EXEC calling LXCALL puts its     */
+/* options in LXCALL OPTIONS A instead (one line, erased here)        */
+'STATE LXCALL OPTIONS A'
+IF RC = 0 THEN DO
+  'EXECIO 1 DISKR LXCALL OPTIONS A 1 (FINIS STEM O.'
+  OPT = OPT O.1
+  CALL QUIET 'ERASE LXCALL OPTIONS A'
+END
 UOPT = TRANSLATE(OPT)
 DO WHILE UOPT <> ''
   PARSE VAR UOPT W UOPT
