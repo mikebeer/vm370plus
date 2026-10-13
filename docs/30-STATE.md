@@ -8,6 +8,8 @@ Last updated **11 October 2026, 08:00 UTC**. **Read this first in a new session.
 
 ## Current position, 10 October evening -- kit build 6
 
+**Delivered (13 Oct, 22:40): kit build 13**, `dist/VM370PLUS-kit-20261013-b13-part1..18.zip`. Adds NICOF for IPL 290 built with GCC 13 on the language disk (CMSFTP31, NHFS31, HACC31, IPLOOK31, HTTPD31, NCTEST; nicof/gcc13), the fixes I-285 (NICOF under IPL 290) and I-286 (HX under IPL 290: DMSITSR's base registers). Verified on a fresh CE (kt27): AUTOLOG1 + nicof.sh, HTTPD31 file list of A, CMSFTP31 with ftplib (NLST, LIST 270 files, STOR/RETR text), NHFS31 PUT, NCTEST, IPLOOK31 -ME, HX of HTTPD31 then Q DISK. The rxpip handler changes are not yet in the Debian disk.
+
 **Delivered (13 Oct, 16:40): kit build 12**, `dist/VM370PLUS-kit-20261013-b12-part1..18.zip`. Adds CP/M 2.2 (9.33): RUNCPM MODULE + CPM EXEC + the CP/M programs on the language disk (drive L:), `runcpm` and the `cpm` bridge service in Debian. Verified on a fresh CE (kt26): CMSUSER 64M, IPL 290, LANG, `CPM IMPORT HELLO ASM`, `CPM L:ASM HELLO; L:LOAD HELLO; HELLO` prints its line; `CPM DIR *.COM; STAT (LINUX` from CMS.
 
 **Delivered (13 Oct, 15:10): kit build 11**, `dist/VM370PLUS-kit-20261013-b11-part1..18.zip`. Adds TELL to the internet (9.32: `TELL user AT NET`, MQTT gateway, logins + ACL, `netfwd.py --tls`, `nettell.py`), NICOF (9.13d: sockets, CMSFTPD, NHFS; PC side `vm370plus/nicof`) and the CP fix I-283 (STNSM/STOSM in BC mode). Verified on a fresh CE (kt25): AUTOLOG1 started the NICOF proxies and the Java proxies connected; `NHFS LIST` saw a PC file; CMSFTPD listed the disks to ftplib; `tellnet-user alice`, then alice -> CMSUSER and `TELL alice AT NET` -> alice.

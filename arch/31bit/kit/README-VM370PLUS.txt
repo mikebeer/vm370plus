@@ -1,7 +1,22 @@
-VM/370plus  --  overlay kit, 13 October 2026 (build 12)
+VM/370plus  --  overlay kit, 13 October 2026 (build 13)
 ========================================================
 
-NEW IN BUILD 12
+NEW IN BUILD 13
+  - NICOF for the EC-mode CMS (IPL 290), built with GCC 13, on the language
+    disk (lang first; the NICOF proxies running: nicof.sh start):
+        CMSFTP31 -p 2121           FTP server for your disks
+        NHFS31 LIST|GET|PUT ...    files in vm370plus/nicof/nhfs/<user>
+        HACC31 ...                 any PC file (enable service.4 first)
+        IPLOOK31 -ME               name lookup through the PC
+        HTTPD31 -p 8080 [-k key]   a web server for a CMS disk
+        NCTEST                     socket test (echo server on PC port 8200)
+  - I-285: NICOF programs no longer wait forever under IPL 290.
+  - I-286: HX under IPL 290 no longer ends in a disabled wait.
+  - Not yet in the Debian guest: the rxpip handler changes (--global,
+    RXPIP_NO_UPDATE_CHECK); they come with the next Linux refresh.
+
+
+IN BUILD 12
   - CP/M 2.2 (Guide, Chapter 8), through the RunCPM Z80 emulator:
         lang, then (IPL 290, more than 16 MB)
         CPM                        CP/M at the terminal; EXIT ends it
