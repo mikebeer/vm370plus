@@ -1,7 +1,23 @@
-VM/370plus  --  overlay kit, 13 October 2026 (build 9)
-=======================================================
+VM/370plus  --  overlay kit, 13 October 2026 (build 10)
+========================================================
 
-NEW IN BUILD 9
+NEW IN BUILD 10
+  - TELL (Guide, Chapter 6):
+        TELL userid message            CP MSG to a VM/370 user
+        TELL user AT LINUX [message]   to a user of the Debian guest, through
+                                       the spool bridge (ALL: everybody);
+                                       without a message it asks for one
+    On Linux:  tell userid message  answers (CP MSG, with the Linux user's
+    name in front);  tell  shows the messages that came while away.
+  - I-277 fixed: a REXX EXEC with 8 or more arguments no longer ends CMS in
+    machines below 15 MB.  CE's saved segment GCCLIB was older than its
+    GCCLIB TEXT (argv room for 8 pointers); it has been saved again.
+  - The bridge and document EXECs (LXCALL, PHONE, MQTT, TELL, RXPIP,
+    TROFF, BOOKIE, LATEX, PSPRINT) are also on MAINT 19D: they work under
+    the usual  ipl cms.
+
+
+IN BUILD 9
   - THE SPOOL BRIDGE: CMS users call Linux services through reader and
     punch, as with SQLSERV.  Start Debian (cp ipl linux in MAINT, as
     before); vmspoold starts with it.  On the language disk (lang):
