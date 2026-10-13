@@ -265,7 +265,7 @@ class Bookie:
             return
         if n == 'table':
             cols = a.get('cols', '').split()
-            self.table = {'cols': len(cols) or 0, 'rows': [], 'cur': None,
+            self.table = {'cols': len(cols) or 0, 'rows': [], 'cur': None, 'widths': cols,
                           'head': set(), 'inhead': False}
             return
         if n == 'thd':
@@ -318,7 +318,7 @@ class Bookie:
         if n == 'eq':
             return '\\(rq'
         if n in ('cit', 'xph'):
-            return '\\fI' if n == 'cit' else '\\f(CW'
+            return '\\fI' if n == 'cit' else '\\f[CR]'
         if n in ('ecit', 'exph'):
             return '\\fP'
         if n in ('hdref', 'figref'):
@@ -481,7 +481,7 @@ class Vmplus(Bookie):
         lvl, txt = self.heading
         self.heading = None
         if not self.inbody:
-            self.out.append('.BK-FH %s' % self.q(txt))
+            self.out.append('.BK-FH%s %s' % ('' if lvl == 1 else '2', self.q(txt)))
         else:
             self.out.append('.BK-H %d %s' % (lvl, self.q(txt)))
 
@@ -538,7 +538,10 @@ class Vmplus(Bookie):
             self.inbody = True
             self.req('.BK-BODY')
             return
-        if n in ('backm', 'appendix'):
+        if n == 'appendix':
+            self.req('.BK-APPENDIX')
+            return
+        if n == 'backm':
             return
         if n in ('h0', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
             self.req('.BK-ELIST-ALL')
@@ -623,16 +626,27 @@ class Vmplus(Bookie):
             return
         nc = max(t['cols'], max(len(r) for r in rows))
         self.req('.BK-TS')
-        self.out.append('.TS')
+        self.out.append('.TS H')
         self.out.append('allbox tab(\t);')
+        ws = [float(w) for w in t.get('widths', []) if re.match(r'^[0-9.]+$', w)]
+        if len(ws) == nc and sum(ws) > 0:
+            wcol = ['w(%.2fc)' % (14.6 * w / sum(ws)) for w in ws]
+        else:
+            wcol = [''] * nc
         fm = []
         for i, r in enumerate(rows):
-            fm.append(' '.join(['l' + ('fHB' if i in t['head'] else '')] * nc))
+            fm.append(' '.join(['l' + ('fHB' if i in t['head'] else '') + wcol[k]
+                                for k in range(nc)]))
         self.out.extend(fm[:-1])
         self.out.append(fm[-1] + '.')
+        nh = max([i + 1 for i in t['head']] or [0])
+        if nh == 0:
+            self.out.append('.TH')
         for i, r in enumerate(rows):
-            cells = [esc(c) for c in r] + [''] * (nc - len(r))
+            cells = list(r) + [''] * (nc - len(r))
             self.out.append('\t'.join('T{\n%s\nT}' % c for c in cells))
+            if i == nh - 1:
+                self.out.append('.TH')
         self.out.append('.TE')
         self.req('.BK-TE')
 

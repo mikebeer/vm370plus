@@ -1,0 +1,3505 @@
+.* GUIDE SCRIPT -- the VM/370plus Guide in BookMaster markup,
+.* made by manual/mkbookie.js from manual/content.js: format with
+.* BOOKIE GUIDE (PS on CMS, or bookie.py --groff ps GUIDE.SCRIPT
+:userdoc.
+:prolog.
+:prodname.VM/370plus
+:subtitle.Virtual Machine Facility/370, ESA/390 Edition
+:title.Introduction, Installation and User's Guide
+:stitle.VM/370plus Introduction, Installation and User's Guide
+:version.Release 1 &bullet. Kit Build 8, updated 13 October 2026
+:based.based on VM/370 Community Edition V1 R1.2
+:docnum.VMP-0001-0
+:filenum.S370-34
+:eprolog.
+:frontm.
+:tipage.
+:edition title='First Edition, revised (October 2026)'.
+:p.This edition applies to VM/370plus Release 1 (kit build 5, 9 October
+2026), an ESA/390 conversion of the VM/370 Community Edition V1 R1.2,
+and to all subsequent builds until otherwise indicated in new editions.
+:p.VM/370plus is a hobbyist project. It is not a product of, and this
+manual is not a publication of, International Business Machines
+Corporation. IBM, System/370, ESA/390, z/Architecture and VM/370 are
+names of IBM products and architectures, used here only to identify the
+systems this software runs on and descends from.
+:p.VM/370 itself is in the public domain. The VM/370 Community Edition
+is maintained by its community. Hercules is an open-source emulator.
+Linux and Debian are trademarks of their respective owners. cREXX is an
+open-source REXX implementation.
+:p.The project repository holds the update decks, the build tools, the
+issue register and the test runs from which every statement in this
+manual can be checked. Comments on this publication may be addressed to
+the project.
+:eedition.
+:toc.
+:h1.Preface
+:p.This manual introduces VM/370plus, tells you how to install it over a
+VM/370 Community Edition system running under the Hercules emulator, and
+describes how to use the two things it adds to VM/370&colon. virtual
+machines larger than 16 MB with programs that run in 31-bit addressing
+mode, and virtual machines that run the ESA/390 architecture, in which
+Linux/390 and a complete Debian system run.
+:p.It is written for the VM/370 user who already knows CP and CMS&colon.
+how to log on, how to use the CP commands of the general user (class G)
+and of the system operator (class A and B), how to edit and run an EXEC.
+Where VM/370plus behaves as VM/370 does, this manual says nothing; where
+it differs, it says how and why.
+:h3.How this manual is organized
+:ul.
+:li.:hp2.Chapter 1, Introduction:ehp2., says what VM/370plus is and what
+it is for.
+:li.:hp2.Chapter 2, Differences from VM/370 Community Edition:ehp2.,
+lists every externally visible change.
+:li.:hp2.Chapter 3, Installing VM/370plus:ehp2., takes you from a fresh
+Community Edition to a running VM/370plus system.
+:li.:hp2.Chapter 4, Operating VM/370plus:ehp2., covers start-up,
+shutdown and the rules that keep the system healthy.
+:li.:hp2.Chapter 5, Running Linux/390:ehp2., describes ESA/390 virtual
+machines, the Linux kernel, the Debian system and the network connection
+to the PC.
+:li.:hp2.Chapter 6, Service Machines:ehp2., describes CHATBOT, the
+chatbot service machine, and the service machines that are planned.
+:li.:hp2.Chapter 7, cREXX on VM/370plus:ehp2., describes the REXX
+compiler and virtual machine built for and on VM/370plus, the languages
+written in cREXX that run on CMS and on Linux, and Turbo CREXX.
+:li.:hp2.Chapter 8, Compilers on CMS:ehp2., describes the language disk
+and what is on it&colon. GCC 13 for C and C++, GnuCOBOL, COBOL with OO,
+PL/I, Python, SQLite and SQLSERV, Pascal, APL, xBase, Smalltalk, ZIP and
+TERSE.
+:li.:hp2.Chapter 9, Restrictions and Known Problems:ehp2., lists what
+does not work yet.
+:li.:hp2.Appendix A:ehp2. summarizes the new and changed commands,
+:hp2.Appendix B:ehp2. lists the files in the installation kit,
+:hp2.Appendix C:ehp2. gives the ESA/390 deviations of the virtual
+machine, :hp2.Appendix D:ehp2. lists all CP and CMS commands.
+:eul.
+:h3.Conventions
+:p.Commands are shown in :xph.monospaced type:exph.. In command
+descriptions, uppercase letters are typed as shown and lowercase words
+stand for values you supply. Examples of terminal sessions are shown in
+framed figures; lines you type are not marked separately because the
+context makes clear which they are.
+:h3.Summary of changes
+:p.This edition is kept up to date as VM/370plus grows; each change is
+listed here, newest first.
+:ul.
+:li.:hp2.12 October 2026, evening (kit build 8).:ehp2. The language disk
+VMLANG (MAINT 19F, :xph.LANG:exph.) carries every compiler and tool of
+Chapter 8; AUTOLOG1 attaches it at IPL. New on CMS&colon. COBOL with OO
+(:xph.COBX:exph.), xBase and Smalltalk as C programs, the SQLSERV
+service machine (:xph.SQL:exph.), Stanford Pascal (:xph.PCPAS:exph.,
+:xph.PCRUN:exph.), APL, :xph.ZIP:exph., :xph.UNZIP:exph.,
+:xph.GZIP:exph., :xph.TERSE:exph. and :xph.UNTERSE:exph.. C programs see
+real CMS file dates, :xph./tmp:exph. files and FILEDEF-style names.
+Debian carries APL, COBOL, PL/I, xBase and Smalltalk with their tests.
+:li.:hp2.12 October 2026.:ehp2. Compilers on CMS (new Chapter 8)&colon.
+GCC 13 for C and C++ (:xph.CC:exph.), GnuCOBOL (:xph.COBOL:exph.), PL/I
+(:xph.PLIC:exph., also on Debian), Python (:xph.PYTHON:exph.) and SQLite
+(:xph.SQLITE:exph.); MODULEs run from EDF disks (I-271).
+:li.:hp2.11 October 2026, evening.:ehp2. Larger minidisks&colon. CMS
+under :xph.IPL 290:exph. reads, writes and formats IBM's Enhanced Disk
+Format (4 KB blocks)&colon. :xph.FORMAT vaddr fm (BLKSIZE 4096:exph., a
+full 3380 as one disk, files with more than 65,535 records.
+:li.:hp2.11 October 2026, late afternoon.:ehp2. :xph.TDISK:exph. (a
+temporary disk in one step); Linux IPLs from the reader again (I-265);
+:xph.LPSW:exph./SVC fast paths for PSWs above 16 MB.
+:li.:hp2.11 October 2026, afternoon.:ehp2. :xph.SHUTDOWN:exph. saves
+warm start data again and the next IPL warm-starts by itself, spool
+intact (I-267, I-268); each Linux user's address follows his CTC pair
+(9.12a); ATTACH of a CTC next to another no longer stops CP (I-269).
+:li.:hp2.11 October 2026, late morning.:ehp2. Two Debian systems at once
+(M4b.3 complete); ESA/390 access registers saved per virtual machine.
+:li.:hp2.11 October 2026, morning.:ehp2. Guest pages in real frames
+above 16 MB (M4b.3)&colon. with :xph.MAINSIZE:exph. above 16, the frames
+from 16 MB up to 160 MB hold virtual machine pages directly.
+:li.:hp2.11 October 2026.:ehp2. GLOBALV.
+:li.:hp2.10 October 2026, night.:ehp2. :xph.SET MACHINE:exph. and
+:xph.QUERY MACHINE:exph.; FULIST (FL); EE, FSVIEW and the REXX
+full-screen package under the EC-mode CMS; Appendix D, the CP and CMS
+command tables.
+:li.:hp2.10 October 2026, evening (kit build 6).:ehp2. :xph.IPL
+LINUX:exph. and vmzipl&colon. Debian starts from its own disk; the
+Debian disk is a 3390-9 (7 GB); no 64-CCW limit for Linux disk I/O;
+mosquitto (MQTT) and Asterisk under Debian; :xph.QUERY SET:exph. shows
+ESA; the CHATBOT service machine and :xph.CHAT:exph. (new Chapter 6);
+RXBVM8 has TIME and DATE; the console banner reads VM/370plus; a fix for
+memory corruption in Linux guests above 16 MB (location 80).
+:li.:hp2.10 October 2026.:ehp2. Regina REXX and THE under Debian;
+languages written in cREXX for CMS and Linux (BASIC, SNOBOL4, Pascal,
+Lisp, Smalltalk, PL/M, Prolog, LOGO); Turbo CREXX on both; four more
+minidisks for CMSUSER (196-199); the native build of the current cREXX
+(M8.2); Python and GNU C under Debian; milestones brought up to date.
+:li.:hp2.9 October 2026.:ehp2. First edition, for kit build 5.
+:eul.
+:p.:hp1.PC:ehp1. means the personal computer on which Hercules runs.
+:hp1.Real:ehp1. storage and devices are those of the Hercules machine;
+:hp1.virtual:ehp1. storage and devices are those CP gives a user.
+:body.
+:h1.Introduction
+:p.VM/370 was written for System/370&colon. 24-bit addresses, 16 MB of
+storage, S/370 channel I/O. VM/370plus is the VM/370 Community Edition
+V1 R1.2 with its Control Program (CP) converted to the ESA/390
+architecture. It runs on Hercules in :xph.ARCHMODE ESA/390:exph. and
+gives its users&colon.
+:ul.
+:li.:hp2.Virtual machines up to 256 MB.:ehp2. CP builds ESA/390 segment
+and page tables, runs in 31-bit addressing mode itself, and gives a
+virtual machine as much storage as its directory entry allows.
+:li.:hp2.31-bit programs under CMS.:ehp2. An EC-mode CMS, IPLed from
+MAINT's 290 disk, lets programs obtain storage above 16 MB (the HIGHSTOR
+facility) and run in 31-bit addressing mode, with a C compiler and
+library for such programs.
+:li.:hp2.ESA/390 virtual machines.:ehp2. :xph.SET ESA ON:exph. makes a
+virtual machine an ESA/390 machine&colon. channel subsystem I/O (SSCH,
+TSCH, MSCH, STSCH), the ESA/390 PSW and control registers, home and
+primary address spaces, IEEE floating point. Linux/390 runs in it.
+:li.:hp2.Linux and Debian.:ehp2. A Linux 4.0 kernel (31-bit, the last
+Linux release that supports 31-bit machines) IPLs from the virtual card
+reader and runs Debian 7 from a 3390 disk, with SSH access from the PC
+over a channel-to-channel adapter.
+:li.:hp2.cREXX.:ehp2. The cREXX REXX compiler, assembler and virtual
+machine run on VM/370plus and are built on it.
+:eul.
+:p.Everything else is VM/370&colon. the same CP commands, the same
+directory, the same CMS for 24-bit work, the same spooling, the same
+operator. Programs that ran under the Community Edition run unchanged.
+:h2.How VM/370plus is built
+:p.VM/370plus is a set of UPDATE decks applied to the Community Edition
+source, assembled on the system itself, and loaded into the CP nucleus
+with the standard VMFLOAD procedure. The repository of the project holds
+every deck, the generator that produces them, the build tools, the issue
+register and the regression runs. Nothing in VM/370plus is a binary
+patch.
+:h2.Milestones
+:p.The conversion was done in milestones, each closed by a run that
+exercises it. Figure 1 shows where they stand.
+:fig.
+:table cols='1400 6038 2200'.
+:thd.
+:row.
+:c.Milestone
+:c.Content
+:c.Status
+:ethd.
+:row.
+:c.M0-M1
+:c.ESA/390 instructions for the assembler; CP IPLs in ESA/390 mode,
+console and channel subsystem
+:c.complete
+:row.
+:c.M2
+:c.ESA/390 DAT tables, CP in 31-bit mode, 31-bit guests
+:c.complete
+:row.
+:c.M3-M4
+:c.CMS under the new CP, shared CMS by page frame, several users, 4 KB
+storage keys
+:c.complete
+:row.
+:c.M4b
+:c.real storage up to 2 GB (above 16 MB as CP's paging store)
+:c.complete
+:row.
+:c.M4b.3
+:c.CP uses real frames above 16 MB directly
+:c.complete&colon. guest pages in frames up to 160 MB; two Debians at
+once
+:row.
+:c.M5
+:c.EC-mode CMS with storage above 16 MB (HIGHSTOR), 31-bit C (cross and
+native)
+:c.complete
+:row.
+:c.M6
+:c.larger minidisks (EDF, 4 KB blocks) under the EC-mode CMS
+:c.complete
+:row.
+:c.M7
+:c.ESA/390 virtual machines, Linux/390, Debian, SSH
+:c.complete
+:row.
+:c.M7.8
+:c.Linux for several users from a linkable disk (LINUX EXEC); Linux and
+CMS side by side
+:c.complete; two Debians at once since M4b.3
+:row.
+:c.M7.9
+:c.channel programs of any length for ESA/390 guests (no 64-CCW limit)
+:c.complete
+:row.
+:c.M7.10
+:c.IPL of Linux from its disk (vmzipl) and :xph.IPL LINUX:exph.
+:c.complete
+:row.
+:c.M7.11
+:c.a 3390-9 Debian disk (about 7 GB) as the standard Linux disk
+:c.complete
+:row.
+:c.&mdash.
+:c.service machines&colon. CHATBOT (the MCchat persona bot) with CHAT
+EXEC
+:c.complete
+:row.
+:c.M8
+:c.cREXX&colon. the 2022 release built natively (M5); the current
+release cross-built (M8.1)
+:c.complete
+:row.
+:c.M8.2
+:c.the current cREXX built natively with GCC380
+:c.compiler, assembler and VM work; the library does not build yet
+:row.
+:c.&mdash.
+:c.languages in cREXX for CMS and Linux; Turbo CREXX
+:c.complete on both
+:row.
+:c.&mdash.
+:c.GNU C 4.6, Python 2.7 and 3.2, Regina REXX and THE under Debian
+:c.complete
+:row.
+:c.M9
+:c.before 64-bit&colon. SET/QUERY MACHINE, FULIST, GLOBALV, TDISK; CP
+leftovers; GCC 13 C/C++, GnuCOBOL, COBOL with OO, PL/I, Python, SQLite +
+SQLSERV, Pascal, APL, xBase, ZIP, TERSE on CMS; the language disk (kit
+build 8)
+:c.complete
+:row.
+:c.M9 (next)
+:c.Guest LAN and the BORDER firewall; CMS sockets and httpd; MQ and
+MQTT; ooRexx 5; AI gateway; the spool bridge to Linux services
+(Asterisk, MQTT); RXPIP (REXX packages); NJE; mail; TELL
+:c.planned
+:row.
+:c.M10
+:c.z/Architecture (64-bit); migration documentation; kit build 9
+:c.planned
+:row.
+:c.M11
+:c.multiprocessor support; more languages (GNU APL, Java, NetRexx);
+FreeSWITCH; Node-RED; Docker, QEMU, Bochs; CFSERV; kit build 10
+:c.planned
+:etable.
+:figcap.VM/370plus milestones
+:efig.
+:h1.Differences from VM/370 Community Edition
+:h2.The machine
+:fig.
+:table cols='2400 3200 4038'.
+:thd.
+:row.
+:c.Item
+:c.Community Edition
+:c.VM/370plus
+:ethd.
+:row.
+:c.Hercules architecture
+:c.:xph.ARCHMODE S/370:exph.
+:c.:xph.ARCHMODE ESA/390:exph.
+:row.
+:c.CPU model
+:c.4381, ECPS&colon.VM available
+:c.3090, ECPS&colon.VM not used (its assists are S/370-only)
+:row.
+:c.Hercules main storage
+:c.16 MB
+:c.64 MB in the kit; up to 2048 MB
+:row.
+:c.CP's addressing mode
+:c.24-bit
+:c.31-bit
+:row.
+:c.Real storage used by CP
+:c.up to 16 MB
+:c.16 MB as frames; the rest as a fast paging store
+:row.
+:c.I/O
+:c.S/370 channels (SIO, TIO, HIO)
+:c.ESA/390 channel subsystem (SSCH, TSCH, HSCH)
+:row.
+:c.Storage keys
+:c.2 KB keys
+:c.4 KB keys (ISKE, SSKE, RRBE)
+:row.
+:c.Segment size
+:c.64 KB
+:c.1 MB (ESA/390 has no other)
+:etable.
+:figcap.The real machine
+:efig.
+:h2.Virtual machines
+:ul.
+:li.:hp2.Storage.:ehp2. A virtual machine may have up to 256 MB. The
+directory's maximum (the second size on the USER statement) is checked
+as before; the kit's directory allows 256 MB for CMSUSER and 64 MB for
+MAINT.
+:li.:hp2.Shared CMS.:ehp2. The CMS saved system is shared by page frame
+rather than by segment&colon. with 1 MB segments, sharing whole segments
+would expose private CMS storage to other users. The effect for the user
+is none.
+:li.:hp2.31-bit virtual machines.:ehp2. A virtual machine in EC mode may
+run with PSW bit 32 on (31-bit addressing); CP translates its addresses
+in 31 bits.
+:li.:hp2.ESA/390 virtual machines.:ehp2. New command :xph.SET ESA
+ON|OFF:exph.; see Chapter 5 and Appendix A.
+:li.:hp2.More disk space for CMSUSER.:ehp2. Besides 191-195 on VM50U0,
+CMSUSER has four more minidisks, 196-199, of 115 cylinders (about 52 MB)
+each on VM50-8, in the cylinders the Community Edition leaves free
+there. They come formatted, labeled CMS196 to CMS199&colon. :xph.ACCESS
+196 H:exph. (197 I, 198 J, 199 K). A CMS minidisk on a 3350 holds at
+most 65,535 blocks of 800 bytes, about 52 MB; larger minidisks come with
+milestone M6.
+:eul.
+:h2.CP commands
+:fig.
+:table cols='3000 6638'.
+:thd.
+:row.
+:c.Command
+:c.Change
+:ethd.
+:row.
+:c.:xph.SET ESA ON|OFF:exph.
+:c.New (class G). ON makes the next IPL of a device an IPL of an ESA/390
+machine; OFF returns to System/370 at once.
+:row.
+:c.:xph.SET MACHINE 370|XA|ESA:exph., :xph.QUERY MACHINE:exph.
+:c.New (class G), the z/VM names. SET MACHINE ESA (or XA) is SET ESA ON,
+SET MACHINE 370 is SET ESA OFF.
+:row.
+:c.:xph.IPL cuu:exph.
+:c.A user who is running a shared named system (CMS) is IPLed with
+CLEAR, so that no copy of the shared pages stays in the virtual machine.
+:row.
+:c.:xph.QUERY SET:exph.
+:c.A fifth line shows :xph.ESA ON:exph., :xph.ESA PENDING:exph. (SET ESA
+ON before the next IPL of a device) or :xph.ESA OFF:exph..
+:row.
+:c.:xph.IPL LINUX:exph.
+:c.New. IPLs the Debian disk at virtual address 250 as an ESA/390
+machine&colon. :xph.SET ESA ON:exph. and :xph.IPL 250:exph. in one
+command. Works from a directory IPL statement too.
+:row.
+:c.:xph.IPL name:exph.
+:c.Any other name always IPLs a System/370 machine; a pending :xph.SET
+ESA ON:exph. waits for the next IPL of a device.
+:row.
+:c.:xph.DEFINE STORAGE:exph.
+:c.Up to 256 MB. Leaves the named system the user was running.
+:row.
+:c.:xph.DISPLAY:exph., :xph.STORE:exph.
+:c.Address storage above 16 MB.
+:row.
+:c.:xph.QUERY VIRTUAL STORAGE:exph.
+:c.Shows five digits only (131072K appears as 31072K); :xph.DEFINE
+STORAGE:exph. echoes the right value.
+:etable.
+:figcap.Changed CP commands
+:efig.
+:h2.CMS
+:ul.
+:li.The ordinary CMS (:xph.IPL CMS:exph., :xph.IPL 190:exph.) is
+unchanged&colon. a System/370 BC-mode CMS with 16 MB of addressable
+storage.
+:li.An EC-mode CMS is on MAINT's 290 disk (:xph.IPL 290:exph.). With it,
+the HIGHSTOR nucleus extension (loaded by the system profile) manages
+storage from 16 MB to the end of the virtual machine; SVC 120
+(GETMAIN/FREEMAIN RU) gives programs storage above the line.
+:li.GCC380, the AMODE 31 build of the Community Edition's GCC, runs
+above 16 MB; GCCLIB31 is a C library for programs that run in 31-bit
+mode with their heap above 16 MB.
+:li.Under the EC-mode CMS (:xph.IPL 290:exph.), minidisks can use IBM's
+Enhanced Disk Format (EDF, 4 KB blocks) besides the 800-byte
+format&colon. a disk up to the size of a full 3380 (518 MB), files with
+any number of records. :xph.FORMAT vaddr fm (BLKSIZE 4096:exph. makes
+one; ACCESS tells the formats apart by the label. The DMSEFS nucleus
+extension does the work and is loaded by the system profile.
+:li.New commands on MAINT 19D&colon. :xph.FULIST:exph. (:xph.FL:exph.),
+a full-screen file list in the manner of FILELIST; :xph.WAKEUP:exph.;
+:xph.CHAT:exph.; :xph.LINUX:exph.. :xph.GLOBALV:exph., global variables
+as in z/VM, is loaded at IPL. Appendix A; Appendix D lists all CP and
+CMS commands.
+:li.Programs written for System/370 BC mode (MECAFF's EE and FSVIEW, the
+REXX full-screen package) run under the EC-mode CMS too&colon. CMS turns
+an SVC from BC mode into an EC call, and CP takes a BC-style system mask
+(:xph.SSM =X'FF':exph.) in an EC-mode System/370 machine as the BC mask
+it is.
+:li.CPWATCH is not autologged&colon. it is an S/370 monitor that loops
+under this CP. The two lines in AUTOLOG1's PROFILE EXEC are commented
+out.
+:eul.
+:h1.Installing VM/370plus
+:h2.What you need
+:ul.
+:li.A fresh, unmodified extraction of :xph.VM370CE_V1_R1_2.zip:exph.. Do
+not install VM/370plus over a system you care about.
+:li.Hercules 4.x (SDL Hyperion; tested with 4.7 and 4.9.1) or Hercules
+3.13. Programs cross-compiled for 31-bit mode need Hercules 4.x, which
+has the z900-level instructions in ESA/390 mode.
+:li.A 3270 terminal emulator; the wc3270 in the Community Edition
+package is sufficient.
+:li.For Linux networking on Windows&colon. the CTCI-WIN package for SDL
+Hercules (TunTap64.dll, with Npcap). On Linux or WSL2&colon. the tun
+driver, and Hercules running as root or with hercifc installed setuid.
+:li.The VM/370plus kit&colon. twelve zip files, each under 30 MB.
+:eul.
+:fig.
+:table cols='1000 8638'.
+:thd.
+:row.
+:c.Part
+:c.Contents
+:ethd.
+:row.
+:c.1
+:c.:xph.vm370ce.conf:exph. (ESA/390), the shadow files of the system
+volumes (CP nucleus, CMS, directory), README, tools
+:row.
+:c.2
+:c.:xph.disks/vm50-4.cckd:exph.&colon. VM50-4 with its paging area
+record corrected
+:row.
+:c.3
+:c.the shadow file of the CMSUSER volume
+:row.
+:c.4
+:c.:xph.vm370plus/linux/:exph.&colon. the Linux kernel and parameter
+decks, the CMS files for MAINT 19D, kernel configuration and patches
+:row.
+:c.5
+:c.the shadow file of VM50-3 (spool and paging)
+:row.
+:c.6-12
+:c.the Debian disk, :xph.disks/lnx190.cckd:exph. (a 3390-9), in seven
+pieces, with :xph.JOINDEB.CMD:exph. and :xph.joindeb.sh:exph. to join
+them
+:etable.
+:figcap.The installation kit
+:efig.
+:h2.Installation steps
+:ol.
+:li.Unzip :xph.VM370CE_V1_R1_2.zip:exph. into a new directory.
+:li.Unzip kit parts 1 to 15 over it, replacing files when asked.
+:li.Join the Debian disk. In the Community Edition directory, at a
+Windows command prompt&colon.
+:eol.
+:fig.
+:xmp.
+JOINDEB.CMD
+Debian disk joined: disks\lnx190.cckd
+:exmp.
+:figcap.Joining the Debian disk (Windows)
+:efig.
+:p.On Linux or WSL2 use :xph.sh joindeb.sh:exph., which also checks the
+result. The file :xph.disks/lnx190.sha256:exph. holds the checksum of
+the joined file. Keep a copy of :xph.lnx190.cckd:exph.&colon. it is your
+Linux system disk and Hercules writes to it.
+:p.Join the language disk the same way (kit parts 14 and 15)&colon.
+:xph.JOINLANG.CMD:exph. on Windows or :xph.sh joinlang.sh:exph. on Linux
+and WSL2 gives :xph.disks/lang.cckd:exph., the 3380 at address 182 that
+holds MAINT 19F (see Chapter 8).
+:fig.
+:xmp.
+JOINLANG.CMD
+Language disk joined: disks\lang.cckd
+:exmp.
+:figcap.Joining the language disk (Windows)
+:efig.
+:ol.
+:li.If you want the Linux network, remove the :xph.#:exph. in front of
+the line :xph.#0600.2 CTCI 10.1.1.2 10.1.1.1:exph. in
+:xph.vm370ce.conf:exph..
+:li.Start the system as you start the Community Edition&colon.
+:xph.vm370ce.cmd:exph. on Windows, :xph.vm370ce.sh:exph. elsewhere.
+:eol.
+:h2.The first IPL
+:p.The Community Edition's :xph.hercules.rc:exph. IPLs from 6A1 by
+itself when Hercules starts. The first time, CP has no warm-start data
+and asks for the start type; answer :xph./cold:exph.. When the console
+shows :xph.DMKCPI966I Initialization complete:exph., the system is up.
+:fig.
+:xmp.
+HHCCP041I SYSCONS interface active
+VM/370plus Online
+Start ((Warm|Force|COLD|CKPT) (DRain) (DIsable) (NOAUTOlo)) or (SHUTDOWN)
+/cold
+NOW 09:51:57 GMT FRIDAY 10/09/26
+DMKCPI966I Initialization complete
+:exmp.
+:figcap.The first IPL of VM/370plus
+:efig.
+:attention.Do not type :xph.ipl 6a1:exph. again once CP has
+initialized&colon. it resets the running system. Type it yourself only
+if nothing has been IPLed (no DMKCPI messages at all).
+:p.Then connect the 3270 emulator to :xph.localhost&colon.3270:exph. and
+log on as usual.
+:h2.Going back to the Community Edition
+:p.Delete :xph.disks/shadows/*_1.shadow:exph. and restore
+:xph.vm370ce.conf:exph. and :xph.disks/vm50-4.cckd:exph. from the
+Community Edition zip.
+:h1.Operating VM/370plus
+:h2.Start-up and shutdown
+:p.Operation is that of VM/370. The operator's console is 0009;
+:xph.ENABLE ALL:exph. brings up the 3270 terminals. To stop the system,
+the operator types :xph.shutdown:exph. on 0009 and then :xph.exit:exph.
+at the Hercules console.
+:attention.Always end with :xph.shutdown:exph. at the operator's console
+before you leave Hercules. Killing Hercules leaves the shadow files
+inconsistent. Never run two Hercules instances on the same disks.
+:h2.Storage
+:p.CP's own machine is 16 MB&colon. its nucleus, free storage, locked
+and V=R pages, spool buffers and the pages of named systems stay below
+16 MB. With :xph.MAINSIZE:exph. above 16 in :xph.vm370ce.conf:exph. (the
+kit has 64), the frames from 16 MB up to 160 MB hold virtual machine
+pages directly, and the storage above 160 MB, if any, is a paging store
+that no channel addresses&colon. a page-out copies a frame there, a
+page-in copies it back. Up to 2048 MB has been tested. Virtual machines
+may be up to 256 MB.
+:note.Because CP keeps its working frames in the low 16 MB, a 64 MB
+Linux machine pages heavily, and while one runs, other users' work is
+slower. Using frames above 16 MB directly (milestone M4b.3) is planned.
+:h2.Rules that matter
+:ul.
+:li.A user who has IPLed the shared CMS may IPL another system; the
+shared pages are dropped first (the IPL is done with CLEAR). The
+shared-system models stay in storage until CP is IPLed again.
+:li.CP emulates the System/370 interval timer from the TOD clock, since
+ESA/390 has none; time slices end and virtual interval timers run.
+:li.CPWATCH is not autologged (see Chapter 2).
+:eul.
+:h1.Running Linux/390
+:p.This chapter describes ESA/390 virtual machines and Linux/390 in
+them. Linux runs in two forms&colon. a small system in storage
+(BusyBox), which needs no disk, and Debian 7 on a 3390 disk of its own.
+:h2.ESA/390 virtual machines
+:p.:xph.SET ESA ON:exph. makes a virtual machine an ESA/390 machine at
+its next IPL of a device. Such a machine has&colon.
+:ul.
+:li.the ESA/390 PSW and control registers, primary, secondary and home
+address spaces, and ESA/390 DAT, which CP shadows;
+:li.the channel subsystem&colon. its devices are subchannels, I/O is
+started with SSCH and completed with TSCH; channel programs may use
+format-0 or format-1 CCWs and 31-bit IDAWs;
+:li.IEEE binary floating point, the CPU timer, the clock comparator and
+SIGP for its one processor.
+:eul.
+:p.:xph.IPL CMS:exph. (or any IPL by name) gives a System/370 machine
+again; the pending :xph.SET ESA ON:exph. then applies to the next IPL of
+a device. :xph.SET ESA OFF:exph. returns to System/370 at once. Appendix
+C lists where the virtual machine deviates from the ESA/390
+architecture.
+:h2.What a Linux user needs
+:fig.
+:table cols='2000 2400 5238'.
+:thd.
+:row.
+:c.Resource
+:c.Virtual address
+:c.How it is provided
+:ethd.
+:row.
+:c.Storage
+:c.64 MB
+:c.:xph.DEFINE STORAGE 64M:exph., or 64M in the directory
+:row.
+:c.Console
+:c.009 (3215)
+:c.the terminal; Linux uses it in line mode
+:row.
+:c.Card reader
+:c.00C
+:c.the kernel and the parameters are IPLed from it
+:row.
+:c.Debian disk
+:c.250 (3390)
+:c.a real 3390, attached or dedicated to the user
+:row.
+:c.Network
+:c.620 and 630 (CTCA)
+:c.a CTC pair, attached or dedicated to the user
+:etable.
+:figcap.Resources of a Linux virtual machine
+:efig.
+:p.The operator attaches the devices&colon.
+:fig.
+:xmp.
+attach 600 to maint as 620
+attach 601 to maint as 630
+attach 190 to maint as 250
+:exmp.
+:figcap.Attaching a Linux user's devices (operator)
+:efig.
+:p.Each device must be on its own virtual control unit (620 and 630, not
+620 and 621). The second user's pair 602/603 goes to 622 and 632, which
+gives that machine 10.1.2.2. For a permanent arrangement put
+:xph.DEDICATE:exph. statements in the user's directory entry.
+:h2.Starting Linux from its disk&colon. IPL LINUX
+:p.The Debian disk carries its own kernel and IPL records, so Linux IPLs
+straight from it. With 64 MB of storage and the devices attached (the
+disk at 250), one CP command is enough, from CMS or from CP&colon.
+:fig.
+:xmp.
+logon cmsuser
+cp define storage 64m
+cp ipl linux
+Linux version 4.0.0+ ...
+...
+Debian GNU/Linux 7 vm370plus ttyS0
+vm370plus login:
+:exmp.
+:figcap.Starting Linux from its disk
+:efig.
+:p.:xph.IPL LINUX:exph. is :xph.SET ESA ON:exph. followed by :xph.IPL
+250:exph.. Options of the device IPL may follow (:xph.IPL LINUX
+CLEAR:exph.). The kernel parameters, including the IP address, were
+written to the disk with the kernel by :xph.vmzipl:exph. (below); the
+reader route that follows remains for a different kernel or other
+parameters.
+:h2.Making a disk IPLable&colon. vmzipl
+:p.:xph.vmzipl:exph. is the VM/370plus counterpart of :xph.zipl:exph.,
+for the 31-bit Linux 4.0 kernel. It is installed on the Debian disk as
+:xph./usr/local/sbin/vmzipl:exph.. Run it as root after changing the
+kernel or its parameters&colon.
+:fig.
+:xmp.
+vmzipl
+vmzipl: /dev/dasda: kernel 1775 blocks in 151 runs, channel program 2560 CCWs in 5 blocks
+vmzipl: parameters: no_removal_warning conmode=3215 condev=0x0009 vmip=10.1.1.2 vmpeer=10.1.1.1
+vmzipl: IPL with  CP SET ESA ON  and  CP IPL <address of this disk>
+:exmp.
+:figcap.Running vmzipl
+:efig.
+:fig.
+:table cols='2400 7238'.
+:thd.
+:row.
+:c.Option
+:c.Meaning
+:ethd.
+:row.
+:c.:xph.-k file:exph.
+:c.the kernel image (default :xph./boot/linux48.image:exph.)
+:row.
+:c.:xph.-p "parameters":exph.
+:c.the kernel parameter line (default&colon. the running system's
+:xph./proc/cmdline:exph.)
+:row.
+:c.:xph.-d device:exph.
+:c.the disk to make IPLable (default :xph./dev/dasda:exph.)
+:row.
+:c.:xph.-r directory:exph.
+:c.where that disk's file system is mounted, when it is not the root
+:etable.
+:figcap.vmzipl options
+:efig.
+:p.It writes :xph./boot/vmipl.bin:exph. (the kernel with the parameters)
+and :xph./boot/vmipl.ccw:exph. (the channel program that reads it), then
+records 1 and 2 of track 0 (IPL1 and IPL2) of the disk.
+:h2.Starting Linux with the LINUX EXEC
+:p.The :xph.LINUX EXEC:exph. is on MAINT's 19D disk, which every CMS
+user accesses as the U disk. :xph.LINUX:exph. alone issues :xph.CP IPL
+LINUX:exph.. :xph.LINUX READER:exph. takes the older route&colon. the
+kernel and the IPL parameter files on 19D go through your reader. From
+CMS, with 64 MB of storage and the devices attached&colon.
+:fig.
+:xmp.
+logon cmsuser
+cp define storage 64m
+ipl cms
+Ready;
+linux reader
+LINUX: punching the kernel and CMSUSER LXPARM to your reader ...
+PUN FILE 0002  TO  CMSUSER  COPY 01 NOHOLD
+PUN FILE 0003  TO  CMSUSER  COPY 01 NOHOLD
+LINUX: IPL 00C as an ESA/390 machine
+Linux version 4.0.0+ ...
+...
+root: the system on /dev/dasda1 -- switch_root
+INIT: version 2.88 booting
+...
+Debian GNU/Linux 7 vm370plus ttyS0
+vm370plus login:
+:exmp.
+:figcap.Starting Linux from CMS
+:efig.
+:p.The EXEC holds the files already in your reader, punches the two
+pieces of the kernel into your own reader as one spool file and then
+your parameter file, sets :xph.ESA ON:exph. and IPLs the reader. The
+parameter file is :xph.userid LXPARM:exph. on the U disk, or
+:xph.DEFAULT LXPARM:exph. if there is none; it carries your IP address.
+Afterwards :xph.CP CHANGE RDR ALL NOHOLD:exph. releases your other
+reader files.
+:fig.
+:table cols='3000 6638'.
+:thd.
+:row.
+:c.File on MAINT 19D
+:c.Contents
+:ethd.
+:row.
+:c.:xph.LINUX48 KERNEL1:exph., :xph.KERNEL2:exph.
+:c.the kernel with its initramfs, 91,696 card images in two files (a CMS
+file holds at most 65,533 records)
+:row.
+:c.:xph.LINUX EXEC:exph.
+:c.the EXEC described above
+:row.
+:c.:xph.DEFAULT LXPARM:exph.
+:c.:xph.no_removal_warning conmode=3215 condev=0x0009:exph.
+:row.
+:c.:xph.userid LXPARM:exph.
+:c.the same plus :xph.vmip=:exph. and :xph.vmpeer=:exph., the user's
+address and the PC's end
+:etable.
+:figcap.Linux files on MAINT 19D
+:efig.
+:h2.Starting Linux by hand
+:p.Without the EXEC, the operator spools the two decks from
+:xph.vm370plus/linux/:exph. to the user's reader, and the user IPLs
+it&colon.
+:fig.
+:xmp.
+/cp spool 00c class *
+devinit 00c vm370plus/linux/linux48.rdr ebcdic eof
+/cp start 00c
+devinit 00c vm370plus/linux/lxparm.rdr ebcdic eof
+/cp start 00c
+:exmp.
+:figcap.Spooling the Linux decks (Hercules console)
+:efig.
+:fig.
+:xmp.
+logon maint cpcms noipl
+cp define storage 64m
+cp set esa on
+cp ipl 00c
+:exmp.
+:figcap.IPL of Linux from the reader
+:efig.
+:p.The ID card of the two decks names MAINT; for another user change the
+first card or spool the decks with :xph./cp spool 00c ...:exph. and
+:xph.TRANSFER:exph.. IPL from the reader consumes the files&colon. spool
+them again for the next IPL.
+:h2.The Linux system
+:h3.Boot sequence
+:p.The kernel's initramfs (BusyBox) brings the 3390 online, creates a
+partition and a file system on a new disk, groups the CTC pair as
+:xph.ctc0:exph. and configures it from the IPL parameters (default
+10.1.1.2, peer 10.1.1.1). If the disk holds a system
+(:xph./sbin/init:exph.), it hands over to it with
+:xph.switch_root:exph.; otherwise it stays in storage with the prompt
+:xph.vm370plus&colon.~#:exph.. The parameter :xph.vmroot=ram:exph. (deck
+:xph.lxparmram.rdr:exph.) keeps the in-storage system even when Debian
+is on the disk, which is how you repair the disk.
+:h3.Debian
+:p.The disk is a 3390 model 9 (10,017 cylinders, about 7 GB). It holds
+Debian 7.11 (wheezy) for s390&colon. sysvinit, udev, rsyslog, cron,
+OpenSSH, apt and dpkg, root on ext2 (6.8 GB, about 6 GB free), a 128 MB
+swap file. The disk carries its own kernel and IPL records, so :xph.IPL
+LINUX:exph. starts it. Log in as :xph.root:exph. with password
+:xph.vm370plus:exph., and change the password.
+:p.Development tools are installed&colon. GNU C and C++ 4.6.3 with make,
+Python 2.7.3 (:xph.python:exph.) and Python 3.2.3 (:xph.python3:exph.),
+Regina REXX 3.6 (:xph.regina:exph. or :xph.rexx:exph., classic REXX as
+on CMS) and THE 3.3, The Hessling Editor (:xph.the:exph., an XEDIT-like
+editor; use it over SSH, since the 3215 console cannot show a full
+screen). cREXX and the languages of Chapter 7 are in
+:xph./usr/local/bin:exph..
+:p.Servers are installed too. :hp2.mosquitto 1.6.15:ehp2., an MQTT
+broker (:xph./usr/local/sbin/mosquitto:exph., configuration
+:xph./etc/mosquitto/mosquitto.conf:exph., port 1883), with the clients
+:xph.mosquitto_pub:exph. and :xph.mosquitto_sub:exph.; start it with
+:xph.mosquitto -d -c /etc/mosquitto/mosquitto.conf:exph.. :hp2.Asterisk
+1.8.13:ehp2., the telephone exchange, starts at boot and listens for SIP
+on UDP port 5060; :xph.asterisk -rx "core show uptime":exph. talks to
+it. Both are offered as experiments&colon. they work, at the speed of an
+emulated mainframe.
+:fig.
+:xmp.
+root@vm370plus:~# mosquitto -d -c /etc/mosquitto/mosquitto.conf
+root@vm370plus:~# mosquitto_sub -t vm370plus/test -C 1 &amp.
+root@vm370plus:~# mosquitto_pub -t vm370plus/test -m "hello MQTT on VM/370plus"
+hello MQTT on VM/370plus
+:exmp.
+:figcap.MQTT on Debian
+:efig.
+:fig.
+:xmp.
+root@vm370plus:~# cat /etc/debian_version
+7.11
+root@vm370plus:~# df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/dasda1     6.8G  541M  5.9G   9% /
+root@vm370plus:~# free
+             total       used       free     shared    buffers     cached
+Mem:         60512      21688      38824          0       2220      13792
+:exmp.
+:figcap.Debian on VM/370plus
+:efig.
+:h3.Languages on Debian
+:p.Besides GNU C, Python and Regina, the C89 interpreters and
+translators of the VM/370plus languages are in
+:xph./usr/local/bin:exph.&colon. :xph.apl:exph. (APL), :xph.cobol:exph.
+(COBOL with OO, mikebeer/cobol&colon. :xph.cobol prog.cob -o
+prog.c:exph., then :xph.gcc -I/usr/local/share/cobol:exph.),
+:xph.pli:exph. and :xph.plic:exph. (PL/I&colon. :xph.plic prog.pli:exph.
+translates and compiles), :xph.xbase-c:exph. (xBase) and :xph.stc:exph.
+(Smalltalk&colon. :xph.stc -L /usr/local/share/vmtests/smalltalk/lib
+prog.st:exph.). :xph.sh /usr/local/share/vmtests/runall.sh:exph. runs
+their test suites (APL 34, COBOL 20, PL/I 39, xBase 7, Smalltalk 22
+tests).
+:h3.The console
+:p.The 3215 is a line device. Programs that use the full screen (vi, top
+without :xph.-n1:exph.) draw poorly; use them only if you must. Ctrl-C
+cannot be typed&colon. type :xph.^c:exph. and Enter instead (the 3215
+driver turns :xph.^c:exph., :xph.^d:exph. and :xph.^z:exph. into the
+control characters). When CP shows MORE..., press CLEAR or PA2.
+:h3.Network and SSH
+:p.Linux talks to the PC over a channel-to-channel adapter that Hercules
+connects to a tun interface on the PC (CTCI). From the PC&colon.
+:xph.ssh root@10.1.1.2:exph., or PuTTY to host 10.1.1.2, port 22. The
+first login after a boot may take a minute while the SSH server gathers
+randomness. Internet access from Linux needs routing and NAT on the PC;
+:xph./etc/apt/sources.list:exph. points at archive.debian.org.
+:h3.Stopping Linux
+:p.:xph.poweroff:exph. (or :xph.halt:exph.) stops Debian; CP then shows
+a disabled wait. :xph.CP LOGOFF:exph. releases the attached devices.
+:xph.IPL CMS:exph. returns to CMS in the same session.
+:h2.Several Linux users
+:p.Each Linux user needs his own copy of the Debian disk and his own CTC
+pair with a CTCI line in :xph.vm370ce.conf:exph.. The address follows
+the pair&colon. real pair 06xx, attached as 62x and 63x (x = xx&colon.
+600/601 as 620/630, 602/603 as 622/632) or at its real address, gives
+the guest 10.1.n.2 with n = xx/2 + 1, and the CTCI line's PC end is
+10.1.n.1. A boot script on the Debian disk (:xph.vm370plus-net:exph.)
+sets it, so one disk image serves every user. The kit's example&colon.
+MAINT on 600/601 and 190, address 10.1.1.2; CMSUSER on 602/603 and 191,
+address 10.1.2.2.
+:fig.
+:xmp.
+0600.2  CTCI    10.1.1.2 10.1.1.1
+0602.2  CTCI    10.1.2.2 10.1.2.1
+0190    3390    disks/lnx190.cckd
+0191    3390    disks/lnx191.cckd
+:exmp.
+:figcap.Two Linux users in vm370ce.conf
+:efig.
+:p.Make :xph.lnx191.cckd:exph. a copy of the Debian disk. The disks are
+identical&colon. the address comes from the IPL parameters, not from the
+disk. Give Hercules enough storage for CP's paging store&colon.
+:xph.MAINSIZE 256:exph. (the kit's value) for two Linux users, more for
+more. With too little, CP fills its DASD paging space (:xph.DMKPGT400I
+SYSTEM TEMP SPACE FULL:exph.) and the Linux machines fail.
+:p.Two Debian systems run at the same time&colon. CP gives virtual
+machine pages frames above 16 MB (with :xph.MAINSIZE 256:exph., up to
+160 MB), so both working sets stay in storage. With :xph.CP IPL
+LINUX:exph. from the disk, each system takes the IP address in the
+disk's own parameters; give the second one its address with :xph.ip
+addr:exph. (or IPL it from the reader with LINUX EXEC and its LXPARM).
+:h2.Linux and CMS side by side
+:p.Linux users and CMS users share the system as any two VM/370 users
+do. Tested&colon. one user runs Debian and writes and reads files under
+load, while another user works in CMS (LISTFILE, COPYFILE, TYPE, ERASE),
+defines 64 MB, starts Linux with :xph.LINUX:exph., stops it with
+:xph.poweroff:exph. and goes back to CMS with :xph.IPL CMS:exph.; the
+Debian system's files are unchanged throughout.
+:h1.Service Machines
+:p.A service machine is a virtual machine that works for other
+users&colon. it runs disconnected, takes requests and sends answers.
+VM/370 has always had them (the operator, RSCS); VM/370plus adds new
+ones. The first is CHATBOT. Others are planned (see the end of this
+chapter).
+:h2.CHATBOT
+:p.CHATBOT is the persona chatbot of MCchat, written by the project
+owner in cREXX and run by RXBVM8. It has ten personas, each in English
+and German, and a knowledge base, all as CMS files; every answer is
+authored text chosen the way the original bot chooses it. There is no
+language model and no network.
+:p.Users talk to it through the spool. :xph.CHAT:exph. punches the
+question to CHATBOT's reader. CHATBOT reads its reader, runs the bot
+once for all waiting questions, and punches each answer to the reader of
+the user who sent the question (the spool file's origin, so nobody can
+read another user's answers). The bot keeps each user's conversation
+(persona, language, topic) in :xph.userid CBSESS:exph. on its 191 disk.
+:fig.
+:xmp.
+chat hello there
+Hello.
+I’m Tchaika.
+So - what brings you here today?
+Ready;
+chat /LIST
+Personas (name/language): amicus/de amicus/en andron/de andron/en ...
+chat /npc elena de
+Oh - du bist es.
+chat wie geht es dir?
+Gut genug, um dich dasselbe zu fragen und es ernst zu meinen. Also - wie geht es dir wirklich?
+chat /WHO
+You are CMSUSER. You are talking to elena (de).
+:exmp.
+:figcap.Talking to CHATBOT from CMS
+:efig.
+:p.An answer takes a second or two&colon. CHATBOT waits with :xph.WAKEUP
+(RDR:exph., which returns as soon as a file arrives in its reader, and
+looks for a stop request every 30 seconds (INTERVAL in CHATBOT CONFIG).
+:xph.CHAT:exph. alone starts a conversation that ends with an empty
+line.
+:fig.
+:table cols='2600 7038'.
+:thd.
+:row.
+:c.Command
+:c.Meaning
+:ethd.
+:row.
+:c.:xph./HELP:exph.
+:c.the commands
+:row.
+:c.:xph./LIST:exph.
+:c.the personas and languages installed
+:row.
+:c.:xph./NPC name [en|de]:exph.
+:c.talk to another persona
+:row.
+:c.:xph./LANG en|de:exph.
+:c.change the language
+:row.
+:c.:xph./RESET:exph.
+:c.start the conversation again
+:row.
+:c.:xph./WHO:exph.
+:c.who you are and whom you talk to
+:row.
+:c.:xph./DEBUG ON|OFF:exph.
+:c.show how the bot chose its answer
+:etable.
+:figcap.CHATBOT commands
+:efig.
+:h2.Running CHATBOT
+:p.The directory entry is in place&colon. 32 MB, :xph.OPTION
+ECMODE:exph., :xph.IPL 290:exph., a 60-cylinder 191 on VM50U1 that holds
+the bot, its data and the sessions. Start it from the operator
+console&colon.
+:fig.
+:xmp.
+autolog chatbot chatbot
+AUTO LOGON   ***   CHATBOT  USERS = 005
+:exmp.
+:figcap.Starting CHATBOT
+:efig.
+:p.Its PROFILE EXEC starts the bot when the machine is disconnected, as
+after AUTOLOG. An interactive logon (:xph.logon chatbot:exph.) gets CMS
+instead, for maintenance&colon. :xph.EXEC CHATBOT (LOUD:exph. then runs
+the bot on the console, :xph.EXEC CHATBOT (ONCE LOUD:exph. answers what
+is waiting and stops. To stop the service, create :xph.CHATBOT STOP
+A:exph. on its 191 (the loop ends at its next look) or :xph.FORCE
+CHATBOT:exph.. To start it with the system, add :xph.AUTOLOG CHATBOT
+CHATBOT:exph. to the start-up (AUTOLOG1's PROFILE EXEC).
+:fig.
+:table cols='3000 6638'.
+:thd.
+:row.
+:c.CHATBOT CONFIG key
+:c.Meaning
+:ethd.
+:row.
+:c.:xph.DEFNPC:exph., :xph.DEFLANG:exph.
+:c.persona and language for a new user (tchaika, en)
+:row.
+:c.:xph.WIDTH:exph.
+:c.line width of the answers (72)
+:row.
+:c.:xph.CRISIS:exph.
+:c.YES&colon. words from a persona's crisis list get its care text
+:row.
+:c.:xph.BOTCMD:exph.
+:c.the command that runs the bot&colon. :xph.RXBVM8 CHATBOT -a CMS:exph.
+:row.
+:c.:xph.MAXBATCH:exph., :xph.INTERVAL:exph.
+:c.questions per run of the bot (20), seconds between looks at the
+reader (30)
+:row.
+:c.:xph.VAR name value:exph.
+:c.variables the persona scripts may use
+:etable.
+:figcap.CHATBOT CONFIG
+:efig.
+:note.The upstream bot (build 1) runs unchanged. Its EXECs were adapted
+to VM/370 and BREXX (no WAKEUP, no UPPER, EXECIO with variable records,
+AUTOLOG instead of XAUTOLOG) and one bug was fixed; the list is in
+:xph.vm370plus/chatbot/VM370PLUS.TXT:exph..
+:h2.SQLSERV
+:p.SQLSERV, the SQLite service machine, is in service&colon. see Chapter
+8, SQLite. It is the model for the service machines below&colon. a
+request is a file punched to the machine, the answer is punched back to
+the sender.
+:h2.Planned service machines
+:fig.
+:table cols='2200 7438'.
+:thd.
+:row.
+:c.Machine
+:c.Purpose
+:ethd.
+:row.
+:c.ASKSERV
+:c.an AI gateway&colon. a Linux guest that relays questions to a
+language model on the PC or in the cloud; CMS users ask it through the
+spool, like CHAT
+:row.
+:c.Spool bridge
+:c.a daemon in the Debian guest that takes requests from its virtual
+reader (vmur) and answers through the punch, so Linux services
+(Asterisk&colon. :xph.PHONE:exph., MQTT, MariaDB) speak the same spool
+protocol as CHATBOT and SQLSERV
+:row.
+:c.RXPIPSRV
+:c.REXX packages from rexxpository (RXPIP) for CMS users&colon.
+:xph.RXPIP INSTALL pkg:exph. through the spool
+:row.
+:c.MQ, MQTT
+:c.a queue manager on CMS; the mosquitto broker on Debian
+:row.
+:c.Network pack
+:c.optional&colon. a firewall guest (BORDER), an HTTP load balancer, and
+a machine that starts more web guests under load
+:row.
+:c.SMAPI
+:c.a subset of z/VM's systems management API
+:etable.
+:figcap.Planned service machines
+:efig.
+:h1.cREXX on VM/370plus
+:p.cREXX is a REXX implementation built as a compiler (RXC), an
+assembler (RXAS), a disassembler (RXDAS) and a virtual machine (RXBVM,
+RXVM). It needs more than 16 MB to compile larger programs, which is
+where VM/370plus came from.
+:h2.The 2022 release, built on VM/370plus
+:p.CMSUSER's disks hold the 2022 cREXX tree (F0041). In the EC-mode CMS
+it is compiled by GCC380 with GCCLIB31 and runs in 31-bit mode with its
+heap above 16 MB&colon.
+:fig.
+:xmp.
+logon cmsuser
+cp define storage 256m
+cp link maint 290 290 rr
+ipl 290
+exec crxmk31
+...
+rxcn basic
+rxasn basic
+rxbvmn basic
+0.1
+Ready;
+:exmp.
+:figcap.Building and running cREXX on VM/370plus
+:efig.
+:p.:xph.CRXMK31 EXEC:exph. compiles the tree and links :xph.RXCN:exph.,
+:xph.RXASN:exph., :xph.RXBVMN:exph. and :xph.RXDASN:exph. (about 90
+seconds of CPU time). :xph.GCLB31 EXEC:exph. builds the GCCLIB31 library
+itself. The output equals that of the cross-compiled build line for
+line.
+:h2.The 24-bit build
+:p.The same tree also builds with GCC370 as a 24-bit program
+(:xph.rxc:exph., :xph.rxas:exph., :xph.rxdas:exph., :xph.rxbvm:exph. on
+CMSUSER's E disk); in the EC-mode CMS with :xph.global txtlib
+gcclib:exph., :xph.rxbvm -l d ascommon:exph. and :xph.rxbvm -l d
+asebcdic:exph. run their test sets.
+:h2.Cross-compiled programs
+:p.:xph.rxc31:exph., :xph.rxas31:exph. and :xph.rxbvm31:exph. on
+CMSUSER's A disk were compiled on the PC with GCC 13 (:xph.-m31:exph.),
+newlib and a small CMS runtime (:xph.vm370plus/m5f/:exph.). They need
+Hercules 4.x.
+:fig.
+:xmp.
+ipl 290
+rxc31 basic
+rxas31 basic
+rxbvm31 basic
+libctest a b
+:exmp.
+:figcap.Cross-compiled cREXX
+:efig.
+:h2.The current cREXX release
+:p.The current release (1.0.0-beta.3) needs a C99 compiler; GCC380 is
+GCC 3.2.3. It runs on VM/370plus cross-compiled with GCC 13
+(:xph.RXC8:exph., :xph.RXAS8:exph., :xph.RXBVM8:exph., milestone M8.1).
+:xph.RXC8:exph. needs :xph.LIBRARY RXBIN:exph. and :xph.RXCEXITS
+RXBIN:exph. on the disk named by :xph.-l:exph.; source files are :xph.fn
+CREXX:exph.&colon.
+:fig.
+:xmp.
+rxc8 -l a -i a hello
+rxas8 -l a hello
+rxbvm8 -l a hello
+Hello from current cREXX on VM/370plus
+sum 1..10 = 55
+Ready;
+:exmp.
+:figcap.The current cREXX on CMS
+:efig.
+:p.Milestone M8.2 builds the same release natively with GCC380 and
+GCCLIB31 (:xph.RXC82:exph., :xph.RXAS82:exph., :xph.RXBVM82:exph.). The
+three work for programs that call no library functions; the library
+itself does not build natively yet (Chapter 9). Until it does, use the
+M8.1 tools. Native cREXX on CMS runs in EBCDIC (IBM-1047) throughout, as
+IBM REXX does.
+:h2.Languages written in cREXX
+:p.Several languages are implemented as cREXX programs. They are
+compiled once on the PC and run unchanged on CMS (through
+:xph.RXBVM8:exph.) and on Linux (through :xph.rxvm:exph.). Floating
+point comes from :xph.rxfloat:exph., a cREXX version of the cREXX float
+plugin, so no native plugin is needed.
+:fig.
+:table cols='1400 2100 2100 4038'.
+:thd.
+:row.
+:c.Language
+:c.CMS
+:c.Linux
+:c.Notes
+:ethd.
+:row.
+:c.BASIC
+:c.:xph.BASIC fn.bas:exph.
+:c.:xph.basic fn.bas:exph.
+:c.classic, MS and ANSI dialects (:xph.-MS:exph., :xph.-FB:exph.,
+:xph.-ANSI:exph.)
+:row.
+:c.SNOBOL4
+:c.:xph.SNOBOL fn.sno:exph.
+:c.:xph.snobol fn.sno:exph.
+:c.patterns, tables, arrays
+:row.
+:c.Pascal
+:c.:xph.PASCAL fn:exph.
+:c.:xph.pasc fn.pas:exph.
+:c.compiles Pascal to cREXX, then runs it
+:row.
+:c.Lisp
+:c.:xph.LISP fn.lisp:exph.
+:c.:xph.lisp fn.lisp:exph.
+:c.a Common Lisp subset; without a file, a read-eval-print loop
+:row.
+:c.Smalltalk
+:c.:xph.SMALLTLK fn.st:exph.
+:c.:xph.smalltalk fn.st:exph.
+:c.Smalltalk-80 with GNU Smalltalk bracket syntax; class library in
+:xph.*.ST:exph.
+:row.
+:c.PL/M
+:c.:xph.PLM fn:exph.
+:c.:xph.plmc fn.plm:exph.
+:c.PL/M-80 compiled to cREXX; :xph.( COMPILE:exph. or :xph.-c:exph.
+compiles only
+:row.
+:c.Prolog
+:c.:xph.PROLOG:exph.
+:c.:xph.prolog:exph.
+:c.consult files with :xph.consult('family.pl')?:exph.
+:row.
+:c.LOGO
+:c.:xph.LOGO fn.logo out:exph.
+:c.:xph.logo fn.logo out.svg:exph.
+:c.turtle graphics written as SVG
+:etable.
+:figcap.Languages in cREXX
+:efig.
+:p.On CMS the languages arrive as one reader deck (:xph.LANGS:exph.);
+:xph.READCARD *:exph. puts the files on your A disk and :xph.LANGSUP
+EXEC:exph. rebuilds the modules from their hex form. Use one of
+CMSUSER's large disks as A for it (for example :xph.ACCESS 196 A:exph.).
+CMS cuts a command argument to eight characters, so the EXECs pass file
+names through the program stack&colon. type the names as usual.
+:p.The languages need an EC-mode CMS with a large virtual machine&colon.
+:xph.CP DEFINE STORAGE 256M:exph. and :xph.IPL 290:exph.. Their storage
+comes from above 16 MB through HIGHSTOR; Smalltalk alone uses about 100
+MB, so it is practical only when Hercules gives VM/370plus real storage
+to match (the kit's :xph.MAINSIZE 256:exph.); with 16 MB of real storage
+CP pages it to a crawl. Programs cross-built for CMS run on an 8 MB
+stack.
+:p.On Debian the languages are part of the cREXX bundle
+(:xph.lxcrexx.tgz:exph.), unpacked under :xph./usr/local:exph.; the
+examples are in :xph./usr/local/share/:exph.:hp1.language:ehp1..
+:h2.Turbo CREXX
+:p.Turbo CREXX is a small Turbo-Pascal-style front end&colon. a menu
+that creates, edits, compiles and runs one cREXX program at a time. It
+does not implement REXX; it calls the real cREXX tools.
+:fig.
+:table cols='1400 8238'.
+:thd.
+:row.
+:c.Key
+:c.Action
+:ethd.
+:row.
+:c.N
+:c.new program (from a template), then edit it
+:row.
+:c.O / E
+:c.open an existing program; edit it
+:row.
+:c.C
+:c.compile&colon. compiler and assembler, no run
+:row.
+:c.R
+:c.compile and run
+:row.
+:c.L
+:c.copy an example (hello, fibfact) to your disk or directory
+:row.
+:c.D
+:c.show the versions of the tools
+:row.
+:c.Q
+:c.quit
+:etable.
+:figcap.Turbo CREXX menu
+:efig.
+:p.:hp2.On Debian:ehp2., type :xph.turbocrexx:exph. (or
+:xph.turbocrexx:exph. :hp1.file:ehp1.:xph..crexx:exph.). The editor is
+:xph.$EDITOR:exph., else nano or vi. Underneath, :xph.crexx:exph.
+:hp1.file:ehp1.:xph..crexx:exph. compiles and runs a program (:xph.crexx
+-noexec:exph. only compiles)&colon. a small driver of VM/370plus for
+:xph.rxc:exph., :xph.rxas:exph. and :xph.rxvm:exph., since the upstream
+:xph.crexx:exph. driver is not yet built for s390.
+:p.:hp2.On CMS:ehp2., type :xph.TURBO:exph. (or :xph.TURBO fn:exph.).
+Programs are :xph.fn CREXX A:exph.; the editor is EDIT; compile and run
+use :xph.RXC8:exph., :xph.RXAS8:exph. and :xph.RXBVM8:exph. with
+:xph.LIBRARY RXBIN:exph. on A. Without the menu&colon. :xph.TURBO C
+fn:exph., :xph.TURBO R fn:exph., :xph.TURBO E fn:exph.. The examples are
+:xph.HELLO TCEXAMPL:exph. and :xph.FIBFACT TCEXAMPL:exph..
+:fig.
+:xmp.
+turbo
+  T U R B O   C R E X X   ---   VM/370plus CMS
+  Current file: (none)
+  N New    O Open    E Edit    C Compile    R Run
+  L Examples         D Versions             Q Quit
+Command:
+:exmp.
+:figcap.Turbo CREXX on CMS
+:efig.
+:h1.Compilers on CMS
+:p.VM/370plus runs current compilers natively on CMS&colon. GCC 13 for C
+and C++, GnuCOBOL 3.1.2 for COBOL, and a PL/I translator. They need the
+EC-mode CMS (:xph.IPL 290:exph.), a large virtual machine (:xph.CP
+DEFINE STORAGE 256M:exph.) and Hercules 4. Their headers and libraries
+come from two tar files on an accessed disk, :xph.SYSROOT TAR:exph. (C)
+and :xph.CXXROOT TAR:exph. (C++); programs see them as
+:xph./usr/include:exph. and :xph./usr/lib:exph., read only.
+:h2.The language disk&colon. LANG
+:p.All the compilers and interpreters of this chapter are on one disk,
+MAINT 19F (volume VMLANG, a 3380 at real address 182, attached to the
+system by AUTOLOG1 at every IPL). :xph.LANG:exph. (on the Y disk) links
+it read-only and accesses it as L; :xph.LANG fm:exph. uses another
+letter. A file of the same name on one of your own disks comes first in
+the search order, so erase old copies of these EXECs and MODULEs from
+your A disk. :xph.TYPE LANG README L:exph. lists what is there.
+:fig.
+:xmp.
+cp def stor 256m
+ipl 290
+lang
+L (19F) R/O
+LANG: language disk 19F is L -- HELP: LANG README
+Ready;
+:exmp.
+:figcap.Accessing the language disk
+:efig.
+:h2.C and C++&colon. the CC EXEC
+:p.:xph.CC fn:exph. compiles :xph.fn C:exph. with GCC 13 and links
+:xph.fn MODULE:exph.; a file type of :xph.CPP:exph., :xph.CC:exph. or
+:xph.CXX:exph. (or the option :xph.CPP:exph.) selects C++. The steps are
+those of GCC on Linux&colon. the compiler proper (:xph.CC1 XIMAGE:exph.
+or :xph.CC1PLUS XIMAGE:exph., run from above 16 MB by the :xph.XL:exph.
+loader), the GNU assembler (:xph.AS:exph.) and linker (:xph.LD:exph.,
+binutils 2.42), then :xph.ELF2CMS:exph., which turns the linked program
+into a TEXT deck for :xph.LOAD:exph. and :xph.GENMOD:exph..
+:fig.
+:table cols='2400 7238'.
+:thd.
+:row.
+:c.Option
+:c.Effect
+:ethd.
+:row.
+:c.:xph.OPT -O0:exph. … :xph.-O2:exph.
+:c.optimization (default :xph.-O2:exph.)
+:row.
+:c.:xph.CPP:exph.
+:c.C++ for any file type
+:row.
+:c.:xph.NOLINK:exph.
+:c.stop after :xph.fn O:exph.
+:row.
+:c.:xph.LIB name:exph.
+:c.also link :xph./usr/lib/libname.a:exph. from the sysroot
+:etable.
+:figcap.CC EXEC options
+:efig.
+:fig.
+:xmp.
+cp define storage 256m
+ipl 290
+access 1b0 a
+cc primes
+primes 2000
+PRIMES: 303 primes up to 2000, sum 277050, avg 914.356
+Ready;
+:exmp.
+:figcap.Compiling a C program on CMS
+:efig.
+:p.Programs are compiled for 31-bit addressing, z900 instructions and
+software floating point (IEEE, not hexadecimal), with newlib as the C
+library&colon. the same as the programs cross-compiled on the PC
+(Chapter 7). Inside a program, characters are ASCII; the run-time
+converts to EBCDIC at the CMS file and terminal boundary. File names are
+CMS file ids&colon. :xph.fopen("data.txt", "r"):exph. opens :xph.DATA
+TXT:exph. on any accessed disk.
+:p.C++ has the standard library of GCC 13 (strings, containers,
+algorithms, iostreams) in the C locale. There are no exceptions&colon. a
+:xph.throw:exph. ends the program with a message. Static destructors do
+not run at exit.
+:p.A compile of a small program takes about half a minute of CPU time.
+Keep the work files on a large disk&colon. the compiler writes :xph.fn
+S:exph., :xph.fn O:exph. and :xph.fn ELF:exph. beside the source and
+erases them when it is done.
+:h2.COBOL&colon. GnuCOBOL
+:p.:xph.COBOL fn:exph. compiles :xph.fn COB:exph. to :xph.fn
+MODULE:exph.&colon. :xph.COBC MODULE:exph. (GnuCOBOL 3.1.2) translates
+the program to C, and the CC EXEC compiles and links it with libcob and
+GMP from :xph.SYSROOT TAR:exph.. :xph.COBOL fn ( C:exph. stops after
+:xph.fn C:exph.. Subprograms are linked statically (:xph.CALL:exph. of a
+literal name).
+:fig.
+:xmp.
+cobol hello
+hello
+      HELLO FROM GNUCOBOL ON VM/370PLUS
+SUM 1..1000 = 000000000000500500
+INTEREST =         89.51
+Ready;
+:exmp.
+:figcap.COBOL on CMS
+:efig.
+:p.Files&colon. SEQUENTIAL, RELATIVE and SORT work files are binary CMS
+files; LINE SEQUENTIAL files are text, converted between ASCII and
+EBCDIC. :xph.SELECT f ASSIGN TO "rel.dat":exph. names :xph.REL DAT
+A:exph.. INDEXED files and the SCREEN SECTION are not available. On
+Debian, GnuCOBOL is a package of its own
+(:xph.gnucobol-3.1.2-s390.tgz:exph.)&colon. :xph.cobc -x prog.cob:exph.
+compiles with Debian's gcc.
+:h2.COBOL with OO&colon. COBX
+:p.:xph.COBX fn:exph. translates :xph.fn COB:exph. with :xph.COB2C
+MODULE:exph. (mikebeer/cobol&colon. COBOL-85 with classes, methods and
+:xph.INVOKE:exph., indexed files, SORT, free format and user functions)
+into C89 and compiles it with the CC EXEC to :xph.fn MODULE:exph.;
+:xph.COBX fn ( C:exph. stops after :xph.fn C:exph.. The run time is one
+header, :xph.COBRT H:exph.. COPY books are :xph.name CPY:exph. files. On
+Debian the same translator is :xph.cobol:exph.&colon. :xph.cobol
+prog.cob -o prog.c:exph., then gcc.
+:h2.PL/I
+:p.The Community Edition's IBM PL/I (F) compiler is on the Y disk
+(:xph.PLI fn:exph., then :xph.GLOBAL TXTLIB PLILIB:exph. and :xph.LOAD
+fn (START:exph.). VM/370plus adds a PL/I-to-C translator
+(mikebeer/pli)&colon. :xph.PLIC fn:exph. translates :xph.fn PLI:exph. to
+C with :xph.PLI2C MODULE:exph. and compiles it with the CC EXEC to
+:xph.fn MODULE:exph. (:xph.PLIC fn ( GCC380:exph. uses GCC380 instead).
+SYSIN is the terminal and the console stack; a line of just
+:xph./*:exph. is end of file. PL/I file names become CMS file ids&colon.
+:xph.data/plitest_out.txt:exph. is :xph.PLITTOUT TXT:exph. (a part
+longer than eight characters keeps its first and last four). On Debian,
+:xph.plic fn.pli:exph. translates and compiles with gcc.
+:h2.Python
+:p.:xph.PYTHON fn [args]:exph. runs :xph.fn PY:exph. with the C89 Python
+3 interpreter of mikebeer/python; :xph.PYTHON:exph. alone reads
+statements from the terminal. NumPy, pandas and SciPy (the interpreter's
+own versions), re, json, struct, cmath, complex numbers, classes,
+generators and exceptions are built in. The interpreter (:xph.PY
+XIMAGE:exph., 2.3 MB) runs above 16 MB through the XL loader. Integers
+beyond ±999,999,999 are big integers. There are no sockets on CMS yet,
+and modules of your own are :xph.name PY:exph. files on an accessed
+disk.
+:h2.Pascal
+:p.:xph.PCPAS fn:exph. compiles :xph.fn PASCAL:exph. with the New
+Stanford Pascal compiler (2026.10, Bernd Oppolzer) into P-code (:xph.fn
+PCODE:exph.), and :xph.PCRUN fn:exph. runs it with the P-code
+interpreter PCINT. Files are passed as :xph.DD_x=val:exph. arguments
+(PCRUN), as the compiler documents. CE's own Pascal (:xph.PASCAL:exph.
+on the Y disk) is unchanged.
+:h2.APL
+:p.:xph.APL fn.apl:exph. runs an APL script, :xph.APL:exph. alone is the
+interactive session (type :xph.)OFF:exph. to leave). It is mikebeer/apl,
+a C89 APL interpreter that writes primitives as words (:xph.rho:exph.,
+:xph.iota:exph., ...), so it needs no APL keyboard; the module is
+:xph.APLM:exph..
+:h2.xBase and Smalltalk
+:p.:xph.XBASE fn.prg:exph. runs a Clipper/dBASE-style program
+(mikebeer/xbase) with the C89 interpreter :xph.XBASEC XIMAGE:exph.
+(through the XL loader), or with the cREXX one when only :xph.XBASE
+RXBIN:exph. is there. Tables are :xph.name DBF:exph. files with
+:xph.DBT:exph. memos and :xph.XDX:exph. indexes. :xph.SMALLTLK
+fn.st:exph. runs a Smalltalk-80 program (mikebeer/smalltalk, GNU
+Smalltalk bracket syntax) with the C89 interpreter :xph.SMALLTC
+MODULE:exph., or the cREXX :xph.SMALLTLK RXBIN:exph.; :xph.SMALLTLK
+-i:exph. is the interactive prompt. Its class library is the
+:xph.ST:exph. files :xph.KERNEL:exph., :xph.NUMBERS:exph.,
+:xph.COLLECTI:exph. and so on. SmallIntegers are ±2^30 on CMS; larger
+numbers are big integers. Both are on Debian as :xph.xbase-c:exph. and
+:xph.stc:exph..
+:h2.ZIP, UNZIP and GZIP
+:p.:xph.ZIP zipfile files:exph. and :xph.UNZIP zipfile:exph. are
+Info-ZIP zip 3.0 and unzip 6.0, so archives travel between CMS and the
+PC&colon. text files are stored in ASCII, and CMS dates become the
+archive dates. :xph.UNZIP -l:exph. lists, :xph.-t:exph. tests and
+:xph.-o:exph. overwrites. A file extracts to its :xph.fn.ft:exph. name,
+as text unless its file type is a binary one (ZIP, GZ, TAR, DB, O, ...).
+:xph.GZIP fn.ft:exph. writes :xph.fn ft-GZ:exph. in gzip format, and
+:xph.GZIP -d fn.ft-gz:exph. restores the file. Encryption is not
+included. CE's MINIZIP and MINIUNZ remain on the Y disk.
+:fig.
+:xmp.
+zip notes.zip report.txt data.csv
+  adding: report.txt (deflated 61%)
+  adding: data.csv (deflated 48%)
+Ready;
+unzip -l notes.zip
+Archive:  notes.zip
+...
+:exmp.
+:figcap.ZIP on CMS
+:efig.
+:p.:xph.UNTERSE fn.trs out.ft:exph. unpacks an IBM TERSE file (PACK or
+SPACK, as AMATERSE or TRSMAIN write it on z/OS) into a CMS text file,
+one record per line; :xph.UNTERSE -b:exph. keeps the bytes (variable
+records get their 4-byte RDW), for binary data such as load modules or
+dumps; :xph.UNTERSE -i:exph. shows the header (PACK/SPACK, RECFM,
+LRECL). It is the Open Mainframe Project's tersedecompress, in C.
+:xph.TERSE fn.ft out.trs:exph. goes the other way&colon. SPACK format,
+RECFM F with the longest line as LRECL (:xph.-l n:exph. sets it,
+:xph.-v:exph. makes V records); :xph.TERSE -b -l n:exph. packs binary
+data. The encoder runs the decoder's own model and compresses as well as
+IBM's SPACK.
+:h2.File names in C programs
+:p.Programs built with the CMS runtime (all those of this chapter) use
+Unix file names and map them to CMS files&colon. :xph.fn.ft:exph. is
+:xph.fn ft *:exph. for reading (any accessed disk) and :xph.fn ft
+A:exph. for writing; :xph.fn.ft.fm:exph. and :xph.x/fn.ft:exph. give the
+mode; :xph./tmp/fn.ft:exph. is a scratch file on A; a name without a dot
+is :xph.FILE name:exph., as FILEDEF defaults it; parts longer than eight
+characters are cut to eight. Text files are converted between ASCII and
+EBCDIC (IBM-1047); file types such as :xph.O:exph., :xph.TEXT:exph.,
+:xph.TAR:exph., :xph.ZIP:exph., :xph.GZ:exph., :xph.DB:exph.,
+:xph.DBF:exph. and :xph.BIN:exph. are binary and passed through
+unchanged. Absolute paths under :xph./usr:exph. are read from SYSROOT
+TAR. File dates come from the CMS file status table.
+:h2.SQLite
+:p.:xph.SQLITE fn.db:exph. starts the sqlite3 shell (SQLite 3.46) on the
+database :xph.fn DB:exph.; :xph.SQLITE fn.db:exph. :hp1.statement:ehp1.
+runs one statement or dot command, for example :xph.SQLITE emp.db .read
+load.sql:exph. for a script :xph.LOAD SQL:exph.. A database is one
+binary CMS file; its rollback journal is :xph.fn DB-JOURN:exph. while a
+transaction is open. One user at a time&colon. there is no locking
+between virtual machines, so give each database to one user, or to the
+SQLSERV service machine.
+:p.:hp2.SQLSERV.:ehp2. A service machine that owns the databases and
+runs requests for other users one at a time. :xph.SQLSERV:exph. waits
+for reader files (:xph.WAKEUP:exph.); each request is punched to it, run
+by :xph.SQLRUN:exph. against :xph.name DB:exph., and the answer is
+punched back to the sender (its ORIGINID). From any user&colon. :xph.SQL
+name:exph. :hp1.statement:ehp1. runs one statement, :xph.SQL name (FILE
+fn ft fm:exph. a script, and :xph.SQL STOP:exph. ends the server;
+:xph.(SERVER userid:exph. names another server than SQLSERV. Results are
+rows with columns joined by :xph.|:exph., then :xph.SQLRUN&colon. n
+statements, n errors:exph.. At the server console, :xph.STOP:exph. ends
+it; :xph.SQLSERV (LOUD:exph. logs each request.
+:fig.
+:xmp.
+sql emp select count(*) n, sum(salary) total from emp
+n|total
+3|25100.0
+SQLRUN: 1 statements, 0 errors
+Ready;
+:exmp.
+:figcap.A request to SQLSERV
+:efig.
+:fig.
+:xmp.
+sqlite emp.db .read sqltest.sql
+dept   n  avg_sal  top
+-----  -  -------  ------
+Ops    2  7000.13  7100.0
+R&amp.D    2  9000.25  9200.5
+Ready;
+:exmp.
+:figcap.SQLite on CMS
+:efig.
+:h1.Restrictions and Known Problems
+:fig.
+:table cols='2400 7238'.
+:thd.
+:row.
+:c.Area
+:c.Restriction
+:ethd.
+:row.
+:c.Real storage
+:c.CP's frames are in the low 16 MB; storage above is a paging store.
+Large guests page heavily.
+:row.
+:c.Linux disk I/O
+:c.The initramfs still limits disk requests to 128 KB (from the time of
+the 64-CCW limit, now gone); :xph.echo 760 >
+/sys/block/dasda/queue/max_sectors_kb:exph. allows larger ones.
+:row.
+:c.Shared systems
+:c.The models of a shared named system are not freed when the last user
+leaves; they stay until CP is IPLed.
+:row.
+:c.CP dump
+:c.DMKDMP cannot write its dump under ESA/390 (I-201); after an abend
+the registers must be taken from Hercules.
+:row.
+:c.CMS
+:c.The CMS nucleus is 24-bit; programs above 16 MB use HIGHSTOR and SVC
+120.
+:row.
+:c.EDF disks
+:c.Only under :xph.IPL 290:exph. (the 190 CMS sees an EDF disk as
+unknown). A V-format file can only be extended at its end. Commands that
+take record numbers (TYPE, COPYFILE FROM/FOR) reach records 1 to 65,535
+directly; beyond that only in sequence. LISTFILE shows counts above
+99,999 in thousands (:xph.1400K:exph.). The A-disk accessed at IPL must
+be in 800-byte format. DISK DUMP/LOAD, TAPE, MOVEFILE and FULIST are not
+yet checked on EDF disks.
+:row.
+:c.CPWATCH
+:c.Loops under this CP; not autologged.
+:row.
+:c.QUERY VIRTUAL STORAGE
+:c.Shows five digits.
+:row.
+:c.Multiprocessing
+:c.One CPU only.
+:row.
+:c.cREXX, native
+:c.The natively built current cREXX (M8.2) cannot build its library yet;
+use RXC8, RXAS8 and RXBVM8 (M8.1).
+:row.
+:c.CMS file names
+:c.Programs cross-compiled for CMS cut a file name longer than eight
+characters to eight (Smalltalk's :xph.collections.st:exph. is
+:xph.COLLECTI ST:exph.).
+:row.
+:c.C and C++ on CMS
+:c.No C++ exceptions (a :xph.throw:exph. ends the program), no threads,
+only the "C" locale. A compile needs :xph.CP DEFINE STORAGE 256M:exph.;
+cc1plus takes one to two minutes of CPU.
+:row.
+:c.Language disk
+:c.An old copy of an EXEC or MODULE of the same name on one of your own
+disks comes first in the search order (PLIC, COBOL, APL ...); erase it.
+:row.
+:c.ZIP, GZIP
+:c.No encryption. A file extracted from a .zip is text unless its file
+type is binary. GZIP writes :xph.fn ft-GZ:exph. (CMS has no second dot).
+:row.
+:c.TERSE
+:c.Files packed by TERSE read back with UNTERSE; that z/OS AMATERSE
+reads them has not been tested yet.
+:row.
+:c.Smalltalk, xBase
+:c.With a 32-bit :xph.long:exph., Smalltalk SmallIntegers are ±2^30
+(larger ones are big integers); CMS has no directories.
+:row.
+:c.Linux
+:c.Linux 4.0 31-bit is the last kernel with 31-bit support; Debian 7 is
+the last Debian for s390 (31-bit).
+:etable.
+:figcap.Restrictions
+:efig.
+:appendix.
+:h1.Command Summary
+:h2.SET ESA
+:fig.
+:xmp.
+SET ESA ON
+SET ESA OFF
+:exmp.
+:figcap.SET ESA
+:efig.
+:p.Class G. :hp2.ON:ehp2.&colon. the next IPL of a device (not an IPL by
+name) makes the virtual machine an ESA/390 machine; it stays pending
+across :xph.IPL CMS:exph.. :hp2.OFF:ehp2.&colon. the machine is a
+System/370 machine at once and nothing is pending. Any operand other
+than OFF means ON.
+:h2.SET MACHINE, QUERY MACHINE
+:fig.
+:xmp.
+SET MACHINE 370|XA|ESA
+QUERY MACHINE
+:exmp.
+:figcap.SET MACHINE
+:efig.
+:p.Class G; the names z/VM uses. :xph.SET MACHINE ESA:exph. and :xph.SET
+MACHINE XA:exph. are :xph.SET ESA ON:exph., :xph.SET MACHINE 370:exph.
+is :xph.SET ESA OFF:exph.. :xph.QUERY MACHINE:exph. answers :xph.MACHINE
+370:exph., :xph.MACHINE ESA:exph., or :xph.MACHINE 370, ESA
+PENDING:exph. while an ESA/390 IPL is pending. :xph.SET MACHINE Z:exph.
+comes with milestone M9.
+:fig.
+:xmp.
+cp query machine
+MACHINE 370
+cp set machine esa
+cp q mach
+MACHINE 370, ESA PENDING
+:exmp.
+:figcap.QUERY MACHINE
+:efig.
+:h2.IPL
+:p.As in VM/370, with three changes&colon. :xph.IPL LINUX:exph. IPLs the
+disk at 250 as an ESA/390 machine; any other IPL by name gives a
+System/370 machine; an IPL of a device by a user who runs a shared named
+system is done with CLEAR.
+:h2.QUERY SET
+:p.As in VM/370, with a fifth line&colon. :xph.ESA ON:exph. (an ESA/390
+machine), :xph.ESA PENDING:exph. (:xph.SET ESA ON:exph. given, takes
+effect at the next IPL of a device) or :xph.ESA OFF:exph..
+:fig.
+:xmp.
+cp query set
+MSG ON , WNG ON , EMSG TEXT, ACNT ON , RUN OFF
+LINEDIT ON , TIMER ON  , ISAM OFF, ECMODE ON
+ASSIST OFF           , PAGEX OFF, AUTOPOLL OFF
+IMSG ON , SMSG OFF, AFFINITY NONE   , NOTRANS OFF
+STBYPASS OFF , ESA PENDING
+:exmp.
+:figcap.QUERY SET after SET ESA ON
+:efig.
+:h2.CHAT EXEC
+:fig.
+:xmp.
+CHAT [question] [(WAIT n BOT name LOUD]
+:exmp.
+:figcap.CHAT EXEC
+:efig.
+:p.On MAINT 19D. Sends the question to the CHATBOT service machine and
+types the answer; without a question it asks repeatedly until an empty
+line. :hp2.WAIT:ehp2. is the time to wait for the answer (default 60
+seconds), :hp2.BOT:ehp2. another service machine, :hp2.LOUD:ehp2. shows
+the steps. Keep your reader empty of other files while you use it.
+Chapter 6.
+:h2.WAKEUP
+:fig.
+:xmp.
+WAKEUP [+hhmmss|+mmss|+ss] [(RDR QUIET]
+:exmp.
+:figcap.WAKEUP
+:efig.
+:p.On MAINT 19D (new; VM/370 had none). Waits until the interval has
+passed (return code 2) or, with :hp2.RDR:ehp2., until a file arrives in
+the virtual reader (return code 3); 24 means an invalid operand. A file
+already in the reader does not end the wait, so look at the reader first
+(:xph.QUERY READER:exph.). WAKEUP sets :xph.CP SET TIMER REAL:exph. so
+that the interval timer runs while the machine waits. Service machines
+use it instead of polling.
+:fig.
+:xmp.
+wakeup +000005
+Ready(00002);
+wakeup +000500 (rdr
+PUN FILE 0002 FROM CMSUSER  COPY 01 NOHOLD
+Ready(00003);
+:exmp.
+:figcap.WAKEUP
+:efig.
+:h2.FULIST
+:fig.
+:xmp.
+FULIST [fn [ft [fm]]]
+FL [fn [ft [fm]]]
+:exmp.
+:figcap.FULIST
+:efig.
+:p.On MAINT 19D; a full-screen file list in the manner of IBM's
+FILELIST, written in REXX with the REXX full-screen package; it runs
+under :xph.IPL CMS:exph. and under the EC-mode CMS on 290. The default
+is :xph.:hp1. :ehp1. A:exph.. Each line is an input field&colon. type a
+command over the start of a line and press Enter. :xph./:exph. in the
+command stands for the file (:xph.fn ft fm:exph.), :xph./n:exph.,
+:xph./t:exph., :xph./m:exph. for its parts; without a :xph./:exph. the
+file is appended. Abbreviations&colon. :hp2.E:ehp2. or :hp2.X:ehp2. edit
+(EE), :hp2.B:ehp2. browse (FSVIEW), :hp2.D:ehp2. discard (ERASE),
+:hp2.=:ehp2. repeats the last command. The status column shows
+:xph.:hp1.:exph. or :xph.:ehp1.rc:exph. for each command run.
+:fig.
+:table cols='2400 7238'.
+:thd.
+:row.
+:c.Key
+:c.Action
+:ethd.
+:row.
+:c.PF1
+:c.HELP FULIST
+:row.
+:c.PF2
+:c.refresh the list
+:row.
+:c.PF3, PF15
+:c.quit
+:row.
+:c.PF4, PF5, PF6
+:c.sort by type, date (newest first), size
+:row.
+:c.PF7, PF8
+:c.page back, forward
+:row.
+:c.PF9
+:c.FULIST of all files with the name at the cursor
+:row.
+:c.PF10
+:c.sort by name
+:row.
+:c.PF11
+:c.edit the file at the cursor
+:row.
+:c.PF12
+:c.cursor to the command line and back
+:etable.
+:figcap.FULIST keys
+:efig.
+:p.On the command line (:xph.====>:exph.)&colon. QUIT, TOP, BOTTOM,
+REFRESH, SORT NAME|TYPE|DATE|SIZE, FULIST pattern, or any CMS or CP
+command.
+:h2.TDISK
+:fig.
+:xmp.
+TDISK [cyls] [fm]
+:exmp.
+:figcap.TDISK
+:efig.
+:p.On MAINT 19D (new). A temporary disk in one step&colon. CP defines it
+(:xph.DEFINE T3350:exph.) at the first free address from D00 to D1F, CMS
+formats it with the label TMPvaddr and, if a file mode is given,
+accesses it. :hp2.cyls:ehp2. is 1 to 100 cylinders, default 10 (about 5
+MB); without :hp2.fm:ehp2. the disk is formatted but not accessed. The
+operands may come in either order. Return codes&colon. 24 invalid
+operands, 28 the file mode is in use, 32 no free address or no TEMP
+space; otherwise FORMAT's. The contents are lost at LOGOFF or DETACH.
+:xph.HELP TDISK:exph. describes it.
+:fig.
+:xmp.
+tdisk 5 t
+DASD D00 DEFINED 0005 CYL
+TDISK: disk D00 is ready as T, 5 cylinders, label TMPD00
+Ready;
+:exmp.
+:figcap.TDISK
+:efig.
+:h2.FORMAT (BLKSIZE 4096)
+:fig.
+:xmp.
+FORMAT vaddr fm [cyls] (BLKSIZE 4096|4K|800
+:exmp.
+:figcap.FORMAT
+:efig.
+:p.Under :xph.IPL 290:exph. (changed). :hp2.BLKSIZE 4096:ehp2. formats
+the disk in IBM's Enhanced Disk Format&colon. 4096-byte blocks, the file
+directory and the allocation map kept as files, records counted in
+fullwords. Without :hp2.cyls:ehp2. the whole minidisk is used, whatever
+its size (FORMAT's usual 800-byte limit, 121 cylinders on a 3380, does
+not apply). 3350 and 3380 disks. FORMAT asks for confirmation and a
+label as usual and then accesses the disk. :hp2.BLKSIZE 800:ehp2. is the
+usual format. A disk written by :xph.tools/edf.py:exph. on the PC can be
+accessed too, and the reverse.
+:fig.
+:xmp.
+format 1b0 y (blksize 4096
+DMSFOR603R FORMAT WILL ERASE ALL FILES ON DISK 'Y(1B0)'. DO YOU WISH TO CONTINUE? (YES|NO):
+yes
+DMSFOR605R ENTER DISK LABEL:
+edf002
+FORMATTING DISK 'Y'.
+Ready;
+q disk y
+Label  CUU M  Stat  Cyl Type Blksize   Files  Blks Used-(%) Blks Left  Blk Total
+EDF002 1B0 Y   R/W  885 3380 4096          0         10-00     132740     132750
+Ready;
+:exmp.
+:figcap.FORMAT (BLKSIZE 4096)
+:efig.
+:h2.GLOBALV
+:fig.
+:xmp.
+GLOBALV [SELECT group] SET|SETS|SETL|SETP name value
+GLOBALV [SELECT group] PUT|PUTS|PUTL|PUTP name ...
+GLOBALV [SELECT group] GET|STACK name ...
+GLOBALV [SELECT group] LIST [name ...]|PURGE
+GLOBALV GRPLIST
+:exmp.
+:figcap.GLOBALV
+:efig.
+:p.New; a subset of z/VM's GLOBALV. Variables live in groups (UNNAMED
+unless SELECT names one). :hp2.SET:ehp2. keeps a value until the next
+IPL of CMS, :hp2.SETS:ehp2. also in :xph.SESSION GLOBALV A:exph. (erased
+at the next IPL), :hp2.SETL:ehp2. in :xph.LASTING GLOBALV A:exph. (read
+again at every IPL), :hp2.SETP:ehp2. both. :hp2.PUT:ehp2. takes the
+values of the calling EXEC's REXX variables, :hp2.GET:ehp2. sets them,
+:hp2.STACK:ehp2. puts values on the console stack. A null value drops a
+variable. Names up to 32 characters, values up to 255, 128 variables.
+GLOBALV is a nucleus extension, loaded at IPL by the system profile.
+:fig.
+:xmp.
+globalv select fulist setl editor EE
+globalv select fulist list
+FULIST   EDITOR = EE
+:exmp.
+:figcap.GLOBALV
+:efig.
+:p.FULIST takes its editor and browser from the group FULIST
+(:xph.EDITOR:exph., :xph.BROWSER:exph.) when they are set.
+:h2.LANG
+:p.:xph.LANG [fm]:exph. links MAINT 19F read-only (if it is not linked)
+and accesses it as :xph.fm:exph. (default L).
+:h2.ZIP, UNZIP, GZIP
+:p.:xph.ZIP zipfile files:exph., :xph.UNZIP [-l|-t|-o] zipfile
+[files]:exph., :xph.GZIP [-d] fn.ft:exph. (Info-ZIP zip 3.0 and unzip
+6.0; gzip format from zlib).
+:h2.TERSE, UNTERSE
+:p.:xph.TERSE [-v] [-l lrecl] in out:exph. packs a file in IBM TERSE
+SPACK format (:xph.-b:exph. binary); :xph.UNTERSE [-b] in out:exph.
+unpacks PACK and SPACK files, :xph.UNTERSE -i in:exph. shows the header.
+:h2.SQL, SQLSERV
+:p.:xph.SQL db statement:exph., :xph.SQL db (FILE fn ft fm:exph.,
+:xph.SQL STOP:exph., :xph.(SERVER userid:exph.; :xph.SQLSERV
+[(LOUD]:exph. runs the service machine.
+:h2.LINUX EXEC
+:fig.
+:xmp.
+LINUX [DISK|READER]
+:exmp.
+:figcap.LINUX EXEC
+:efig.
+:p.On MAINT 19D. :hp2.DISK:ehp2. (the default) issues :xph.CP IPL
+LINUX:exph.. :hp2.READER:ehp2. punches :xph.LINUX48 KERNEL1:exph.,
+:xph.KERNEL2:exph. and :xph.userid LXPARM:exph. (or :xph.DEFAULT
+LXPARM:exph.) to the user's reader, holding the other reader files, and
+IPLs the reader as an ESA/390 machine. Needs 64 MB and, for Debian, the
+devices listed in Chapter 5 under "What a Linux user needs".
+:h1.Contents of the Kit
+:fig.
+:table cols='3200 6438'.
+:thd.
+:row.
+:c.Path
+:c.Contents
+:ethd.
+:row.
+:c.:xph.vm370ce.conf:exph.
+:c.ESA/390 configuration, MAINSIZE 256, the CTC and 3390 lines for Linux
+:row.
+:c.:xph.disks/shadows/*_1.shadow:exph.
+:c.the VM/370plus system&colon. CP nucleus, CMS, directory, user disks
+:row.
+:c.:xph.disks/vm50-4.cckd:exph.
+:c.VM50-4 with the paging area record corrected
+:row.
+:c.:xph.disks/lnx190.cckd:exph.
+:c.the Debian disk, a 3390-9 (after joining parts 6-13)
+:row.
+:c.:xph.disks/lang.cckd:exph.
+:c.the language disk VMLANG, a 3380 at address 182 (after joining parts
+14-15)
+:row.
+:c.:xph.README-VM370PLUS.txt:exph.
+:c.the short form of this manual
+:row.
+:c.:xph.vm370plus/linux/:exph.
+:c.linux48.rdr, lxparm.rdr, lxparmram.rdr, kernel configuration,
+patches, initramfs sources, the Debian post-install script
+:row.
+:c.:xph.vm370plus/m5f/:exph.
+:c.the CMS runtime for cross-compiled 31-bit C programs
+:row.
+:c.:xph.vm370plus/:hp1..EXEC:exph., :xph.:ehp1..C:exph.
+:c.GCC31 EXEC, CRXMAKE EXEC, examples
+:row.
+:c.:xph.vm370plus/chatbot/:exph.
+:c.the CHATBOT service machine&colon. source, data deck, the VM/370
+changes (already installed on the system)
+:etable.
+:figcap.Kit contents
+:efig.
+:h1.ESA/390 Deviations of the Virtual Machine
+:p.The ESA/390 virtual machine is complete enough for Linux. Where it
+deviates from the architecture, the deviation is recorded in the
+project's register (documents 39 and 40). The ones a user may
+notice&colon.
+:ul.
+:li.A format-1 channel program is converted to format 0 in place while
+it runs (any length; at most 32 TIC targets).
+:li.No SCLP and no z/VM interfaces (DIAGNOSE codes of z/VM); Linux must
+be told :xph.conmode=3215 condev=0x0009:exph..
+:li.One processor; SIGP is answered for that processor only.
+:li.Selector channels of an ESA/390 guest behave as block multiplexer
+channels.
+:li.Linux's machine-check handling is not exercised&colon. CP presents
+no machine checks to the guest.
+:eul.
+:h1.CP and CMS Command Tables
+:p.These tables are generated from the system itself
+(:xph.tools/cmdtables.py:exph., document 50 in the repository)&colon.
+the CP commands from CP's command table in DMKCFC, in the order CP
+searches it; the QUERY and SET operands from its operand lists; the CMS
+commands from the nucleus function table and from the MODULE and EXEC
+files on the system disks. :hp2.Abbrev:ehp2. is the shortest form CP
+accepts, :hp2.Class:ehp2. the privilege class (any&colon. no class
+needed). :hp2.+:ehp2. marks a VM/370plus addition or change.
+:h2.CP commands
+:p.From the :xph.COMND:exph. table in DMKCFC (CE source plus XA0054DK,
+XA0055DK), in table order (CP searches it in this order, so an
+abbreviation goes to the first match). :hp1.Abbrev:ehp1. is the shortest
+accepted form; :hp1.Class:ehp1. is the privilege class (any = no class
+needed, also before LOGON).
+:fig.
+:table cols='1500 1100 1000 1500 4538'.
+:thd.
+:row.
+:c.Command
+:c.Abbrev
+:c.Class
+:c.Routine
+:c.Function
+:ethd.
+:row.
+:c.LOGON
+:c.L
+:c.any
+:c.DMKLOGON
+:c.log on to a virtual machine
+:row.
+:c.LOGIN
+:c.L
+:c.any
+:c.DMKLOGON
+:c.synonym of LOGON
+:row.
+:c.DIAL
+:c.D
+:c.any
+:c.DMKDIAL
+:c.connect a terminal to a multi-access virtual machine
+:row.
+:c.ATTACH
+:c.ATT
+:c.B
+:c.DMKVDAAT
+:c.attach a real device to a virtual machine
+:row.
+:c.ATTN
+:c.ATTN
+:c.G
+:c.DMKCFCRQ
+:c.enter CP (attention) from a virtual console
+:row.
+:c.ADSTOP
+:c.ADSTOP
+:c.G
+:c.DMKCFDAD
+:c.set an address stop
+:row.
+:c.ACNT
+:c.ACNT
+:c.A
+:c.DMKCPVAC
+:c.create accounting records now
+:row.
+:c.AUTOLOG
+:c.AUTOLO
+:c.AB
+:c.DMKALGON
+:c.log on a virtual machine disconnected
+:row.
+:c.BEGIN
+:c.B
+:c.G
+:c.DMKCFCBE
+:c.resume the virtual machine
+:row.
+:c.BACKSPAC
+:c.BA
+:c.D
+:c.DMKCSOBS
+:c.backspace a spooled printer or punch
+:row.
+:c.CHANGE
+:c.CH
+:c.DG
+:c.DMKCSUCH
+:c.change attributes of spool files
+:row.
+:c.CLOSE
+:c.C
+:c.G
+:c.DMKCSQCL
+:c.close a virtual spool device
+:row.
+:c.COUPLE
+:c.COUPLE
+:c.G
+:c.DMKDIBCP
+:c.connect two virtual channel-to-channel adapters
+:row.
+:c.DISPLAY
+:c.D
+:c.G
+:c.DMKCDBDI
+:c.display storage, registers, PSW, keys; :hp2.+:ehp2. addresses above
+16 MB
+:row.
+:c.DCP
+:c.DCP
+:c.CE
+:c.DMKCDBDC
+:c.display real (CP) storage
+:row.
+:c.DEFINE
+:c.DEF
+:c.G
+:c.DMKDEFIN
+:c.define virtual storage or devices; :hp2.+:ehp2. :xph.DEFINE
+STORAGE:exph. above 16 MB (to 256M)
+:row.
+:c.DETACH
+:c.DET
+:c.BG
+:c.DMKVDDDE
+:c.detach a real or virtual device
+:row.
+:c.DISCONN
+:c.DISC
+:c.any
+:c.DMKUSODS
+:c.disconnect the terminal, keep the machine running
+:row.
+:c.DISABLE
+:c.DISA
+:c.AB
+:c.DMKCPVDS
+:c.disable lines for logon
+:row.
+:c.DMCP
+:c.DMCP
+:c.CE
+:c.DMKCDMDM
+:c.dump real (CP) storage to the reader
+:row.
+:c.DRAIN
+:c.DR
+:c.D
+:c.DMKCSODR
+:c.drain a spooling device
+:row.
+:c.DUMP
+:c.DU
+:c.G
+:c.DMKCDMDU
+:c.dump virtual storage to the reader
+:row.
+:c.ECHO
+:c.EC
+:c.G
+:c.DMKMSGEC
+:c.terminal echo test
+:row.
+:c.EXTERNAL
+:c.EXT
+:c.G
+:c.DMKCPBEX
+:c.present an external interrupt
+:row.
+:c.ENABLE
+:c.EN
+:c.AB
+:c.DMKCPVEN
+:c.enable lines for logon
+:row.
+:c.FLUSH
+:c.F
+:c.D
+:c.DMKCSOFL
+:c.cancel the current spool output
+:row.
+:c.FORCE
+:c.FORCE
+:c.A
+:c.DMKUSOFL
+:c.log off another user
+:row.
+:c.HALT
+:c.HALT
+:c.A
+:c.DMKCPSH
+:c.halt a real device
+:row.
+:c.HCP
+:c.HCP
+:c.A
+:c.DMKCPSCP
+:c.CE&colon. run a Hercules command
+:row.
+:c.HOLD
+:c.HO
+:c.D
+:c.DMKCSQHL
+:c.hold spool files
+:row.
+:c.IPL
+:c.I
+:c.G
+:c.DMKCFGIP
+:c.IPL a device or a saved system; :hp2.+:ehp2. :xph.IPL
+LINUX:exph.&colon. SET MACHINE ESA and IPL 250 (M7.10)
+:row.
+:c.LINK
+:c.LINK
+:c.G
+:c.DMKLNKIN
+:c.link to another user's minidisk
+:row.
+:c.LOADBUF
+:c.LOADBUF
+:c.D
+:c.DMKCSBLD
+:c.load a printer UCS/FCB buffer
+:row.
+:c.LOADVFCB
+:c.LOADVFCB
+:c.G
+:c.DMKCSBVL
+:c.load a virtual printer FCB
+:row.
+:c.LOCATE
+:c.LOC
+:c.CE
+:c.DMKCFDLO
+:c.locate CP control blocks
+:row.
+:c.LOCK
+:c.LOCK
+:c.C
+:c.DMKCPVLK
+:c.lock pages in real storage
+:row.
+:c.LOGOFF
+:c.LOG
+:c.any
+:c.DMKUSOLG
+:c.end the session
+:row.
+:c.LOGOUT
+:c.LOG
+:c.any
+:c.DMKUSOLG
+:c.synonym of LOGOFF
+:row.
+:c.MONITOR
+:c.MON
+:c.AE
+:c.DMKMCCCL
+:c.start/stop the system monitor
+:row.
+:c.MSG
+:c.M
+:c.BG
+:c.DMKMSGMS
+:c.send a message
+:row.
+:c.MSGNOH
+:c.MSGNOH
+:c.AB
+:c.DMKMSGNH
+:c.send a message without header
+:row.
+:c.MESSAGE
+:c.ME
+:c.BG
+:c.DMKMSGMS
+:c.synonym of MSG
+:row.
+:c.NETWORK
+:c.NET
+:c.ABF
+:c.DMKNETWK
+:c.control 3270 and RSCS lines
+:row.
+:c.NOTREADY
+:c.NOTR
+:c.G
+:c.DMKCPBNR
+:c.make a virtual device not ready
+:row.
+:c.ORDER
+:c.ORD
+:c.DG
+:c.DMKCSVOR
+:c.reorder spool files
+:row.
+:c.PURGE
+:c.PUR
+:c.DG
+:c.DMKCSVPU
+:c.purge spool files
+:row.
+:c.QUERY
+:c.Q
+:c.ABCDEFGH
+:c.DMKCFCQU
+:c.query status (operands below)
+:row.
+:c.READY
+:c.READY
+:c.G
+:c.DMKCPBRY
+:c.present device end on a virtual device
+:row.
+:c.FREE
+:c.FR
+:c.D
+:c.DMKCSQFR
+:c.release held spool files
+:row.
+:c.REPEAT
+:c.REP
+:c.D
+:c.DMKCSORP
+:c.repeat a printer file
+:row.
+:c.REQUEST
+:c.REQ
+:c.G
+:c.DMKCFCRQ
+:c.present an attention to the virtual console
+:row.
+:c.RESET
+:c.RESET
+:c.G
+:c.DMKCPBRS
+:c.reset a virtual device
+:row.
+:c.REWIND
+:c.REW
+:c.G
+:c.DMKCPBRW
+:c.rewind a tape
+:row.
+:c.SYSTEM
+:c.SYS
+:c.G
+:c.DMKCPBSR
+:c.reset/clear/restart the virtual machine
+:row.
+:c.SAVESYS
+:c.SAVESYS
+:c.C
+:c.DMKCFHSV
+:c.save a named system
+:row.
+:c.INDICATE
+:c.IND
+:c.EG
+:c.DMKTHIEN
+:c.system load and user resource use
+:row.
+:c.TRANSFER
+:c.TRAN
+:c.DG
+:c.DMKCSVTR
+:c.transfer spool files to another user
+:row.
+:c.SET
+:c.SET
+:c.ABFGH
+:c.DMKCFCSE
+:c.set options (operands below)
+:row.
+:c.SHUTDOWN
+:c.SHUTDOWN
+:c.A
+:c.DMKCPRSH
+:c.shut the system down
+:row.
+:c.SLEEP
+:c.SL
+:c.any
+:c.DMKCFCSL
+:c.put the virtual machine to sleep
+:row.
+:c.SPACE
+:c.SPA
+:c.D
+:c.DMKCSOSP
+:c.single-space a printer file
+:row.
+:c.SPOOL
+:c.SP
+:c.G
+:c.DMKCSPSP
+:c.set spooling options
+:row.
+:c.STORE
+:c.ST
+:c.G
+:c.DMKCDSTO
+:c.store into storage, registers, PSW; :hp2.+:ehp2. addresses above 16
+MB
+:row.
+:c.START
+:c.STA
+:c.D
+:c.DMKCSOST
+:c.start a spooling device
+:row.
+:c.STCP
+:c.STCP
+:c.C
+:c.DMKCDSCP
+:c.store into real (CP) storage
+:row.
+:c.TAG
+:c.TA
+:c.G
+:c.DMKCSTAG
+:c.set spool file tags
+:row.
+:c.TERMINAL
+:c.TERM
+:c.G
+:c.DMKCFTRM
+:c.set terminal characteristics
+:row.
+:c.TRACE
+:c.TR
+:c.G
+:c.DMKTRACE
+:c.trace virtual machine events
+:row.
+:c.PER
+:c.PER
+:c.G
+:c.DMKPECMD
+:c.PER tracing (CE)
+:row.
+:c.UNLOCK
+:c.UNLOCK
+:c.C
+:c.DMKCPVUL
+:c.unlock pages
+:row.
+:c.VARY
+:c.VARY
+:c.B
+:c.DMKCPSRY
+:c.vary devices online/offline
+:row.
+:c.VMDUMP
+:c.VMD
+:c.G
+:c.DMKVMDEP
+:c.dump virtual storage in VMDUMP format
+:row.
+:c.WNG
+:c.W
+:c.AB
+:c.DMKMSGWN
+:c.send a warning
+:row.
+:c.WARNING
+:c.W
+:c.AB
+:c.DMKMSGWN
+:c.synonym of WNG
+:row.
+:c.SMSG
+:c.SM
+:c.G
+:c.DMKMSGSM
+:c.send a special message (VMCF)
+:row.
+:c.*
+:c.*
+:c.any
+:c.(DMKCFC)
+:c.comment
+:row.
+:c.CP
+:c.CP
+:c.any
+:c.(DMKCFC)
+:c.pass a command to CP
+:etable.
+:efig.
+:h3.QUERY operands
+:p.From QRYLIST. The same word appears twice when classes B and G get
+different answers (B&colon. the real device, G&colon. the virtual one).
+:fig.
+:table cols='1500 1100 1000 1500 4538'.
+:thd.
+:row.
+:c.Operand
+:c.Abbrev
+:c.Class
+:c.Module
+:c.Note
+:ethd.
+:row.
+:c.SYSTEM
+:c.SYS
+:c.B
+:c.DMKCQP
+:c.
+:row.
+:c.DASD
+:c.DA
+:c.B
+:c.DMKCQP
+:c.
+:row.
+:c.TAPES
+:c.TA
+:c.B
+:c.DMKCQP
+:c.
+:row.
+:c.LINES
+:c.LINES
+:c.B
+:c.DMKCQP
+:c.
+:row.
+:c.UR
+:c.UR
+:c.BD
+:c.DMKCQP
+:c.
+:row.
+:c.STORAGE
+:c.STOR
+:c.B
+:c.DMKCQP
+:c.
+:row.
+:c.ALL
+:c.ALL
+:c.B
+:c.DMKCQP
+:c.
+:row.
+:c.LINKS
+:c.L
+:c.G
+:c.DMKCQP
+:c.
+:row.
+:c.GRAF
+:c.GR
+:c.B
+:c.DMKCQP
+:c.
+:row.
+:c.TDSK
+:c.TD
+:c.B
+:c.DMKCQP
+:c.
+:row.
+:c.PROCESSR
+:c.PROC
+:c.ABCEG
+:c.DMKCQP
+:c.
+:row.
+:c.VIRTUAL
+:c.V
+:c.G
+:c.DMKCQG
+:c.
+:row.
+:c.DASD
+:c.DA
+:c.G
+:c.DMKCQG
+:c.
+:row.
+:c.TAPES
+:c.TA
+:c.G
+:c.DMKCQG
+:c.
+:row.
+:c.LINES
+:c.LINES
+:c.G
+:c.DMKCQG
+:c.
+:row.
+:c.UR
+:c.UR
+:c.G
+:c.DMKCQG
+:c.
+:row.
+:c.STORAGE
+:c.STOR
+:c.G
+:c.DMKCQG
+:c.
+:row.
+:c.ALL
+:c.ALL
+:c.G
+:c.DMKCQG
+:c.
+:row.
+:c.GRAF
+:c.GR
+:c.G
+:c.DMKCQG
+:c.
+:row.
+:c.CONSOLE
+:c.CON
+:c.G
+:c.DMKCQG
+:c.
+:row.
+:c.CHANNELS
+:c.CHAN
+:c.G
+:c.DMKCQG
+:c.
+:row.
+:c.FILES
+:c.F
+:c.DG
+:c.DMKCQR
+:c.
+:row.
+:c.SET
+:c.S
+:c.G
+:c.DMKCQR
+:c.:hp2.+:ehp2. line 5&colon. ESA ON / PENDING / OFF
+:row.
+:c.DUMP
+:c.DUMP
+:c.B
+:c.DMKCQR
+:c.
+:row.
+:c.PAGING
+:c.PAG
+:c.AE
+:c.DMKCQR
+:c.
+:row.
+:c.HOLD
+:c.H
+:c.D
+:c.DMKCQR
+:c.
+:row.
+:c.PRIORITY
+:c.PRIOR
+:c.ACE
+:c.DMKCQR
+:c.
+:row.
+:c.TERMINAL
+:c.TERM
+:c.G
+:c.DMKCQR
+:c.
+:row.
+:c.AFFINITY
+:c.AFF
+:c.AE
+:c.DMKCQR
+:c.
+:row.
+:c.MACHINE
+:c.MACH
+:c.G
+:c.DMKCQR
+:c.:hp2.+:ehp2. MACHINE 370 / ESA / 370, ESA PENDING (z/VM name)
+:row.
+:c.TIME
+:c.T
+:c.G
+:c.DMKCQY
+:c.
+:row.
+:c.LOGMSG
+:c.LOG
+:c.ABCDEFG
+:c.DMKCQY
+:c.
+:row.
+:c.NAMES
+:c.N
+:c.ABCDEFG
+:c.DMKCQY
+:c.
+:row.
+:c.USERS
+:c.U
+:c.ABCDEFG
+:c.DMKCQY
+:c.
+:row.
+:c.PF
+:c.PF
+:c.GH
+:c.DMKCQY
+:c.
+:row.
+:c.SASSIST
+:c.SAS
+:c.AE
+:c.DMKCQY
+:c.
+:row.
+:c.CPASSIST
+:c.CPA
+:c.AE
+:c.DMKCQY
+:c.
+:row.
+:c.CPUID
+:c.CPU
+:c.G
+:c.DMKCQY
+:c.
+:row.
+:c.USERID
+:c.USERI
+:c.G
+:c.DMKCQY
+:c.
+:row.
+:c.JOURNAL
+:c.JO
+:c.A
+:c.DMKJRL
+:c.
+:row.
+:c.READER
+:c.R
+:c.DG
+:c.DMKCQH
+:c.
+:row.
+:c.RDR
+:c.RDR
+:c.DG
+:c.DMKCQH
+:c.
+:row.
+:c.PRINTER
+:c.P
+:c.DG
+:c.DMKCQH
+:c.
+:row.
+:c.PRT
+:c.PRT
+:c.DG
+:c.DMKCQH
+:c.
+:row.
+:c.PUNCH
+:c.PU
+:c.DG
+:c.DMKCQH
+:c.
+:row.
+:c.PCH
+:c.PCH
+:c.DG
+:c.DMKCQH
+:c.
+:row.
+:c.PRIV
+:c.PRIV
+:c.G
+:c.HDKCQU
+:c.
+:row.
+:c.MAXIMUM
+:c.MAX
+:c.ACE
+:c.HDKCQU
+:c.
+:row.
+:c.CPLEVEL
+:c.CP
+:c.G
+:c.HDKCQU
+:c.
+:row.
+:c.ALLOC
+:c.ALLOC
+:c.ACE
+:c.HDKCQA
+:c.
+:etable.
+:efig.
+:h3.SET operands
+:fig.
+:table cols='1500 1100 1000 1500 4538'.
+:thd.
+:row.
+:c.Operand
+:c.Abbrev
+:c.Class
+:c.Module
+:c.Note
+:ethd.
+:row.
+:c.ASSIST
+:c.AS
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.NOTRANS
+:c.NOTR
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.TIMER
+:c.TIMER
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.EMSG
+:c.EMSG
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.IMSG
+:c.IMSG
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.ACNT
+:c.ACNT
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.PAGEX
+:c.PAGEX
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.LINEDIT
+:c.LINED
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.RUN
+:c.RUN
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.WNG
+:c.WNG
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.MSG
+:c.MSG
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.ECMODE
+:c.EC
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.ISAM
+:c.ISAM
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.AUTOPOLL
+:c.AUTOP
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.PF
+:c.PF
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.CPUID
+:c.CPU
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.AFFINITY
+:c.AFF
+:c.AG
+:c.DMKCFS
+:c.
+:row.
+:c.SMSG
+:c.SM
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.PRIV
+:c.PRIV
+:c.G
+:c.DMKCFS
+:c.
+:row.
+:c.ESA
+:c.ESA
+:c.G
+:c.DMKCFS
+:c.:hp2.+:ehp2. ON / OFF&colon. ESA/390 architecture at the next IPL
+(M7)
+:row.
+:c.MACHINE
+:c.MACH
+:c.G
+:c.DMKCFS
+:c.:hp2.+:ehp2. 370 / XA / ESA (z/VM name; SET ESA is the synonym)
+:row.
+:c.PRIORITY
+:c.PRIOR
+:c.C
+:c.DMKCFO
+:c.
+:row.
+:c.FAVORED
+:c.FAVOR
+:c.C
+:c.DMKCFO
+:c.
+:row.
+:c.RESERVE
+:c.RES
+:c.C
+:c.DMKCFO
+:c.
+:row.
+:c.SASSIST
+:c.SAS
+:c.C
+:c.DMKCFO
+:c.
+:row.
+:c.CPASSIST
+:c.CPA
+:c.C
+:c.DMKCFO
+:c.
+:row.
+:c.RECORD
+:c.REC
+:c.F
+:c.DMKCFO
+:c.
+:row.
+:c.MODE
+:c.MODE
+:c.F
+:c.DMKCFO
+:c.
+:row.
+:c.DUMP
+:c.DUMP
+:c.B
+:c.DMKCFO
+:c.
+:row.
+:c.LOGMSG
+:c.LOG
+:c.B
+:c.DMKCFO
+:c.
+:row.
+:c.MAX
+:c.MAX
+:c.A
+:c.DMKCFO
+:c.
+:row.
+:c.STBYPASS
+:c.STB
+:c.G
+:c.DMKCFO
+:c.
+:row.
+:c.JOURNAL
+:c.JO
+:c.C
+:c.DMKJRL
+:c.
+:etable.
+:efig.
+:h2.CMS commands
+:h3.In the nucleus
+:p.From the JFUN table in DMSFNC (internal DMSxxx entries left out).
+Always available, no disk needed.
+:fig.
+:table cols='1700 1700 6238'.
+:thd.
+:row.
+:c.Command
+:c.Entry
+:c.Function
+:ethd.
+:row.
+:c.ATTN
+:c.DMSCAT
+:c.stack a line (program call)
+:row.
+:c.CARDPH
+:c.CARDPH
+:c.punch a card (program call)
+:row.
+:c.CARDRD
+:c.CARDRD
+:c.read a card (program call)
+:row.
+:c.CMSTIME
+:c.GETCLK
+:c.time of day (program call)
+:row.
+:c.CONREAD
+:c.DMSCRD
+:c.console read (program call)
+:row.
+:c.CONWAIT
+:c.DMSCWT
+:c.wait for console I/O (program call)
+:row.
+:c.CP
+:c.DMSCPF
+:c.pass a command to CP
+:row.
+:c.DEBUG
+:c.DMSDBG
+:c.CMS debug environment
+:row.
+:c.DESBUF
+:c.DMSCITDB
+:c.clear the console stack
+:row.
+:c.DROPBUF
+:c.DMSBUFDB
+:c.drop stack buffers
+:row.
+:c.ERASE
+:c.ERASE
+:c.erase files
+:row.
+:c.EXEC
+:c.DMSEXC
+:c.run an EXEC
+:row.
+:c.FETCH
+:c.DMSFET
+:c.fetch a DOS phase
+:row.
+:c.FINIS
+:c.FINIS
+:c.close files
+:row.
+:c.GENMOD
+:c.DMSMOD
+:c.generate a MODULE
+:row.
+:c.IDENTIFY
+:c.DMSIDE
+:c.user, node and time
+:row.
+:c.INCLUDE
+:c.DMSLOA
+:c.load more TEXT files
+:row.
+:c.LOAD
+:c.DMSLOA
+:c.load TEXT files
+:row.
+:c.LOADMOD
+:c.DMSMOD
+:c.load a MODULE
+:row.
+:c.MAKEBUF
+:c.DMSBUFMK
+:c.new console stack buffer
+:row.
+:c.NUCEXT
+:c.DMSSNXNU
+:c.nucleus extensions
+:row.
+:c.POINT
+:c.POINT
+:c.position in a file (program call)
+:row.
+:c.PRINTIO
+:c.DMSPIO
+:c.print I/O (program call)
+:row.
+:c.PRINTR
+:c.PRINTR
+:c.print a line (program call)
+:row.
+:c.RDBUF
+:c.RDBUF
+:c.read a record (program call)
+:row.
+:c.RETURN
+:c.RETSET
+:c.return to CMS (program call)
+:row.
+:c.SENTRIES
+:c.DMSBUFSE
+:c.number of stacked lines
+:row.
+:c.START
+:c.DMSLDRA
+:c.start a loaded program
+:row.
+:c.STATE
+:c.STATE
+:c.is a file there?
+:row.
+:c.STATEW
+:c.STATEW
+:c.STATE, writable disks only
+:row.
+:c.SUBCOM
+:c.DMSSNXSB
+:c.subcommand environments
+:row.
+:c.SUBSET
+:c.SUBSET
+:c.CMS subset (CMS-only commands)
+:row.
+:c.SVCFREE
+:c.DMSFREES
+:c.get storage (program call)
+:row.
+:c.SVCFRET
+:c.DMSFRETS
+:c.free storage (program call)
+:row.
+:c.TAPEIO
+:c.TAPEIO
+:c.tape I/O (program call)
+:row.
+:c.TRAP
+:c.DMSITET
+:c.trap I/O (program call)
+:row.
+:c.TYPLIN
+:c.DMSCWR
+:c.type a line (program call)
+:row.
+:c.VMNET
+:c.NETCMD
+:c.VNET/RSCS interface
+:row.
+:c.WAIT
+:c.WAIT
+:c.wait for devices (program call)
+:row.
+:c.WAITRD
+:c.DMSCRD
+:c.read with wait (program call)
+:row.
+:c.WRBUF
+:c.DMSBWR
+:c.write a record (program call)
+:etable.
+:efig.
+:h3.MODULE files on S (190, the CMS system disk)
+:fig.
+:table cols='1900 7738'.
+:thd.
+:row.
+:c.Command
+:c.Function
+:ethd.
+:row.
+:c.ACCESS
+:c.access a minidisk
+:row.
+:c.AMSERV
+:c.VSAM access method services
+:row.
+:c.ASMAHL
+:c.High Level Assembler-compatible assembler
+:row.
+:c.ASSEMBLE
+:c.assembler (IFOX00)
+:row.
+:c.ASSGN
+:c.assign DOS logical units
+:row.
+:c.CMSBATCH
+:c.CMS batch facility
+:row.
+:c.COMPARE
+:c.compare files
+:row.
+:c.COPYFILE
+:c.copy files
+:row.
+:c.DDR
+:c.DASD dump/restore
+:row.
+:c.DIRECT
+:c.CP directory program
+:row.
+:c.DISK
+:c.DISK DUMP / LOAD via the punch/reader
+:row.
+:c.DLBL
+:c.define a DOS/VSAM label
+:row.
+:c.EDIT
+:c.the CMS editor
+:row.
+:c.EDMAIN
+:c.EDIT main module
+:row.
+:c.EXECIO
+:c.EXEC I/O (disk, reader, CP)
+:row.
+:c.EXECUTIL
+:c.EXEC utilities
+:row.
+:c.FILEDEF
+:c.define an OS file
+:row.
+:c.FORMAT
+:c.format a minidisk
+:row.
+:c.GLOBAL
+:c.set MACLIB/TXTLIB/LOADLIB search
+:row.
+:c.HNDINT
+:c.handle interrupts
+:row.
+:c.LISTFILE
+:c.list files
+:row.
+:c.LISTIO
+:c.list DOS assignments
+:row.
+:c.LKED
+:c.linkage editor
+:row.
+:c.MACLIB
+:c.maintain macro libraries
+:row.
+:c.MOVEFILE
+:c.move data between devices
+:row.
+:c.PRINT
+:c.print a file
+:row.
+:c.PUNCH
+:c.punch a file
+:row.
+:c.QUERY
+:c.query CMS settings
+:row.
+:c.READCARD
+:c.read a reader file to disk
+:row.
+:c.RELEASE
+:c.release a minidisk
+:row.
+:c.RENAME
+:c.rename files
+:row.
+:c.SET
+:c.set CMS options
+:row.
+:c.SORT
+:c.sort a file
+:row.
+:c.SYNONYM
+:c.set command synonyms
+:row.
+:c.TAPE
+:c.tape utilities
+:row.
+:c.TXTLIB
+:c.maintain text libraries
+:row.
+:c.TYPE
+:c.type a file
+:row.
+:c.UPDATE
+:c.apply update decks
+:row.
+:c.VMFPLC2
+:c.tape load/dump
+:row.
+:c.ZAP
+:c.patch modules
+:etable.
+:efig.
+:p.Also&colon. CKSHRSEG, CPEREP, DMSEXT, DMSOVS, DMSVPD, DOSLIB,
+DOSLKED, DSERV, DUMPSCAN, GEN3705, GENDIRT, GENIMAGE, HNDSVC, IFLDUMP,
+IFOX00, IFOX01, IFOX02, IFOX03, IFOX04, IFOX05, IFOX06, IFOX07, IFOX11,
+IFOX21, IFOX31, IFOX41, IFOX42, IFOX51, IFOX61, IFOX62, IMAGELIB,
+LISTDS, MODMAP, NCPDUMP, NUCXDROP, NUCXMAP, NUCXTEXT, OPTION, PROB,
+PSERV, RENUM, RESLIB, RSERV, RXLOCFN, SAVENCP, SEGMENT, SETKEY, SSERV,
+STAT, SUMMARY, SVCTRACE, TAPEMAC, TAPPDS, VMFDATE, VMFDUMP, VMFDUMP2,
+VMFLOAD, VRSIZE.
+:h3.EXEC files on S (190, the CMS system disk)
+:p.$DUP, $MOVE, CMSXGEN, CPEREP, DOSPLI, ESERV, FCOBOL, GENERATE, IVP,
+PRB, RUN, SYSPROF, VMFASM, VMFMAC.
+:h3.MODULE files on U (MAINT 19D, VM/370plus additions)
+:fig.
+:table cols='1900 7738'.
+:thd.
+:row.
+:c.Command
+:c.Function
+:ethd.
+:row.
+:c.RXBVM8
+:c.:hp2.+:ehp2. cREXX VM (native CMS)
+:row.
+:c.UNHEX
+:c.:hp2.+:ehp2. hex text to binary
+:row.
+:c.WAKEUP
+:c.:hp2.+:ehp2. wait for a reader file or a time (rc 2 time, 3 reader)
+:etable.
+:efig.
+:h3.EXEC files on U (MAINT 19D, VM/370plus additions)
+:fig.
+:table cols='1900 7738'.
+:thd.
+:row.
+:c.Command
+:c.Function
+:ethd.
+:row.
+:c.CHAT
+:c.:hp2.+:ehp2. ask the CHATBOT service machine
+:row.
+:c.FL
+:c.:hp2.+:ehp2. synonym of FULIST
+:row.
+:c.FULIST
+:c.:hp2.+:ehp2. full-screen file list in the manner of FILELIST
+:row.
+:c.HELP
+:c.HELP (19D copy)
+:row.
+:c.HELPFS
+:c.full-screen HELP
+:row.
+:c.LINUX
+:c.:hp2.+:ehp2. IPL the Debian disk (:xph.LINUX:exph., :xph.LINUX
+READER:exph.)
+:etable.
+:efig.
+:h3.MODULE files on Y (19E, CE tools and languages)
+:fig.
+:table cols='1900 7738'.
+:thd.
+:row.
+:c.Command
+:c.Function
+:ethd.
+:row.
+:c.BASIC
+:c.BASIC
+:row.
+:c.BISON
+:c.bison
+:row.
+:c.BWBASIC
+:c.Bywater BASIC
+:row.
+:c.DIFF
+:c.diff
+:row.
+:c.EE$D
+:c.MECAFF EE editor (full screen)
+:row.
+:c.EE$S
+:c.MECAFF FSLIST / FSVIEW
+:row.
+:c.EXECUTIL
+:c.EXEC utilities
+:row.
+:c.FLEX
+:c.flex
+:row.
+:c.FORTH
+:c.Forth
+:row.
+:c.FORTRAN
+:c.FORTRAN G
+:row.
+:c.FORTRANH
+:c.FORTRAN H
+:row.
+:c.HEXDUMP
+:c.hex dump
+:row.
+:c.M4
+:c.m4
+:row.
+:c.MINIUNZ
+:c.unzip
+:row.
+:c.MINIZIP
+:c.zip
+:row.
+:c.PL360
+:c.PL360
+:row.
+:c.PLI
+:c.PL/I
+:row.
+:c.SCRIPT
+:c.SCRIPT text formatter
+:row.
+:c.SED
+:c.sed
+:row.
+:c.SNOBOL4
+:c.SNOBOL4
+:row.
+:c.VMARC
+:c.VMARC archives
+:row.
+:c.WATFIV
+:c.WATFIV
+:etable.
+:efig.
+:p.Also&colon. ASMPOBJ, ASSIST, BLOCKTAP, CHECK380, CLRSCRN, CLS, CMP,
+CPYFIL, DIFF3, DIR, EMIT, FLIST4PK, FLISTREP, FLISTREV, FORTGMOD,
+FORTRANG, FSCTL, FSQRY, FSRDTEST, FSRDTSTS, GCC370, GCC380, GCCCSECT,
+GCIC, IEKAA00, IEYALL, IEYEXT, IEYFORT, IEYGEN, IEYPAR, IEYUNF,
+IKFCBL00, IND$FILD, IND$FILS, MATCH, MVSENDEC, MVSUNZIP, NAMCSECT,
+OLDLISTF, OSSORT, PATCH, PDPTEST, PL360VM, PLCT, REXXEC2, RUNPARM,
+RXFNCMGR, RXUSERFN, SCAN, SDIFF, SFBROWSE, TAPEMAP, VMARC370, WAITC,
+XCOMPARE, XRUNPARM, YATA.
+:h3.EXEC files on Y (19E, CE tools and languages)
+:fig.
+:table cols='1900 7738'.
+:thd.
+:row.
+:c.Command
+:c.Function
+:ethd.
+:row.
+:c.BISON
+:c.bison
+:row.
+:c.COBOL
+:c.COBOL (IKFCBL00)
+:row.
+:c.FLIST
+:c.CE full-screen file list (FLISTREP/REV)
+:row.
+:c.GCC
+:c.GCC for CMS (C)
+:row.
+:c.GCCE
+:c.GCC compile and run
+:row.
+:c.MAIL
+:c.send mail (spool)
+:row.
+:c.PASCAL
+:c.Pascal/VS-style compiler
+:row.
+:c.RECEIVE
+:c.receive a reader file
+:row.
+:c.REXXTRY
+:c.try REXX statements
+:row.
+:c.SENDFILE
+:c.send a file (spool)
+:row.
+:c.SNOBOL4
+:c.SNOBOL4
+:row.
+:c.WATFIV
+:c.WATFIV
+:row.
+:c.XLIST
+:c.MECAFF file list
+:row.
+:c.XXLIST
+:c.MECAFF file list (extended)
+:etable.
+:efig.
+:p.Also&colon. ASSIST, BOOGIE, CKFSTYPE, CLOAD, DISCOMM, DROP, EXPLOIT,
+GCCSEG, GCOMD, GENFORTG, GFILE1, GIMME, HEXPRINT, PASC370, PASCOMP,
+PASFORM, PASLINK, PASRUN, PASRUNC, PASRUNS, PLCT, REXXCPS, REXXTEST,
+RUNGCIC, SYSPROFB, SYSPROFX.
+:h3.Nucleus extensions loaded at IPL
+:p.Loaded by the system profile (SYSPROFX EXEC on 19E) from TEXT files,
+so they are commands like the nucleus functions, resident until the next
+IPL of CMS.
+:fig.
+:table cols='1900 7738'.
+:thd.
+:row.
+:c.Command
+:c.Function
+:ethd.
+:row.
+:c.GLOBALV
+:c.:hp2.+:ehp2. global variables, in the manner of z/VM GLOBALV
+(SET/SETS/SETL/SETP, PUT*, GET, STACK, LIST, PURGE, GRPLIST)
+:row.
+:c.HIGHSTOR
+:c.:hp2.+:ehp2. storage above 16 MB for the EC-mode CMS
+:row.
+:c.GCCLIB
+:c.the GCC run-time library (CE)
+:etable.
+:efig.
+:p.CP&colon. DEFINE CPU / NIC / LAN / VSWITCH / MDISK, QUERY FRAMES,
+QUERY NSS, IUCV. CMS&colon. XEDIT (THE), RDRLIST, NOTE / TELL, PIPE,
+NUCXLOAD.
+:euserdoc.

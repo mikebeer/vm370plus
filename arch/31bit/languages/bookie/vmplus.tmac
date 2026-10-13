@@ -63,8 +63,14 @@
 .    sp 1
 .  \}
 .  ev
+.  nr bk-top \\n[nl]
+.  if \\n[bk-hashdr] .bk-print-hdr
 ..
 .de BK-FOOT
+.  if \\n[bk-hashdr] \{\
+.    nr T. 1
+.    T#
+.  \}
 .  ev bk-hf
 .  ie t \{\
 .    sp |28.0c
@@ -231,7 +237,8 @@
 .\" BK-BODY: the front matter ends; running head and foot from here
 .de BK-BODY
 .  nr bk-front 0
-.  BK-FRONTPAGE
+.  nr bk-needbp 0
+.  if \\n[nl]>\\n[bk-top] .bp
 ..
 .\" ---------------------------------------------------------------- headings
 .\" BK-H level text...   (level 1: a chapter)
@@ -239,8 +246,7 @@
 .  in 0
 .  BK-ELIST-ALL
 .  ie \\$1=1 \{\
-.    if !\\n[bk-first] .bp
-.    nr bk-first 0
+.    if \\n[nl]>\\n[bk-top] .bp
 .    nr bk-sec 0 1
 .    nr bk-ch +1
 .    ie t \{\
@@ -248,7 +254,7 @@
 .      ps 18
 .      vs 22p
 .      ad l
-.      nop Chapter \\n[bk-ch]. \\$2
+.      nop \\*[bk-chw] \\n[bk-ch]. \\$2
 .      br
 .      sp 0.15c
 .      nop \D't 1.8p'\D'l 17c 0'\D't 0.5p'
@@ -258,12 +264,12 @@
 .    \}
 .    el \{\
 .      sp 2
-.      nop Chapter \\n[bk-ch]. \\$2
+.      nop \\*[bk-chw] \\n[bk-ch]. \\$2
 .      br
 .      nop \l'\\n[.l]u\(ul'
 .      sp 1
 .    \}
-.    tm BKTOC 1 \\n% Chapter \\n[bk-ch]. \\$2
+.    tm BKTOC 1 \\n% \\*[bk-chw] \\n[bk-ch]. \\$2
 .  \}
 .  el \{\
 .    ne 4v
@@ -298,10 +304,20 @@
 .  fi
 ..
 .nr bk-first 1
+.ds bk-chw Chapter
+.\" BK-APPENDIX: from here level-1 headings are Appendix A, B, ...
+.de BK-APPENDIX
+.  ds bk-chw Appendix
+.  nr bk-ch 0 1
+.  af bk-ch A
+..
 .\" a heading in the front matter (preface, abstract): no number, no TOC
 .de BK-FH
 .  BK-FRONTPAGE
+.  tm BKTOC 1 \\n% \\$1
+.  br
 .  ie t \{\
+.    sp 0.3c
 .    ft HB
 .    ps 13
 .    nop \\$1
@@ -447,10 +463,56 @@
 .\" tables: tbl, grey rules
 .de BK-TS
 .  br
+.  ad l
 .  if t .sp 0.4v
 .  if t .gcolor bk-rule
 ..
 .de BK-TE
+.  ad b
 .  if t .gcolor
 .  if t .sp 0.2v
+..
+.\" long tables: .TS H ... .TH repeats the header rows on every page
+.nr bk-hashdr 0
+.de TS
+.  if '\\$1'H' .di bk-thd
+..
+.de TH
+.  if '\\n[.z]'bk-thd' \{\
+.    nr T. 0
+.    T#
+.    br
+.    di
+.    nr bk-hashdr 1
+.    bk-print-hdr
+.  \}
+..
+.de bk-print-hdr
+.  bk-thd
+.  mk #T
+..
+.de TE
+.  nr bk-hashdr 0
+..
+.de T&
+..
+.\" BK-FH2 text: a smaller heading in the front matter, not in the contents
+.de BK-FH2
+.  br
+.  ne 4v
+.  ie t \{\
+.    sp 0.4c
+.    ft HB
+.    ps 11
+.    nop \\$1
+.    br
+.    ft R
+.    ps \\n[bk-PS]
+.    sp 0.1c
+.  \}
+.  el \{\
+.    sp 1
+.    nop \\$1
+.    br
+.  \}
 ..
