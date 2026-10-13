@@ -1,0 +1,65 @@
+# RXPIP on VM/370plus (milestone 9.26)
+
+[mikebeer/rexxpository](https://github.com/mikebeer/rexxpository) is the
+RXPIP REXX package manager. On VM/370plus it runs in the Debian guest:
+- the repository server, `rxpip_server.rexx`, under Regina;
+- the `rxpip` client;
+- a spool bridge service (9.25), through which CMS users get the same
+  packages.
+
+```
+CMS:  RXPIP RUN DEMO                     Debian guest
+      DEMO REXX (with  REQUIRE pkg )  -> vmspoold -> /etc/vmspool.d/rxpip
+                                         rxpip build demo.rexx (installs the
+                                         packages from the local repository)
+      DEMO EXEC A  <-  the merged, standalone program
+      runs it
+```
+
+## CMS commands (RXPIP EXEC)
+
+| Command | Result |
+|---|---|
+| `RXPIP AVAIL` | Every package in the repository. |
+| `RXPIP SEARCH term`, `RXPIP SHOW name` | Asks the repository. |
+| `RXPIP BUILD fn` | Takes `fn REXX *`, a program with `/* REQUIRE pkg */` comments, and writes `fn EXEC A` with its packages merged in, as `rxpip build` does. |
+| `RXPIP RUN fn [args]` | BUILD, then runs `fn EXEC`. |
+| `RXPIP GET name` | Fetches the package's source files as `file REXX A`. |
+
+Verified in pd19 (13 October), as OPERATOR:
+- `RXPIP RUN DEMO` prints `HELLO, WORLD!!!`, `square of 7 is 49`,
+  `cube of 3 is 27` and `17 is prime`.
+- `RXPIP GET STRUTILS` and `RXPIP SEARCH MATH` work.
+
+**Speed.** On the emulated machine every repository request costs a few
+seconds, and a first `BUILD` that installs three packages takes minutes. The
+bridge timeout is 900 s.
+
+## Debian side
+
+`setup.sh`, run as root in a directory that also holds a copy of
+rexxpository, installs the following:
+- `/opt/rxpip`: the server, the client and the examples.
+- `rxpipd.py`: rexxpository's `tests/cgi_harness.py`, made to run on
+  wheezy's Python 3.2. It is started by `/etc/init.d/rxpipd` and listens
+  on `127.0.0.1:8089`; the repository is `/var/lib/rxpip/repo`.
+- `/usr/local/bin/rxpip` (Regina) and `/usr/local/bin/curl`. The guest has
+  no curl, so the second one is `minicurl.py`, which does what rxpip asks
+  of curl (`-s -f -o -X -H` including `-H @file`, `--data-binary @file`).
+- The example packages (mathutils, strutils, greetutils), published by the
+  user `vm370`.
+- The vmspoold service `rxpip` (`rxpip.handler`).
+
+## Notes
+
+- **rexxpository bug.** `rxpip build` failed for a program with REQUIREs
+  ("Incorrect call to routine") because `CmdBuild` did not expose `cfg.`.
+  The one-word fix is on branch `fix-build-cfg` of mikebeer/rexxpository;
+  our copy carries it.
+- **I-277: no more than 7 arguments.** A REXX EXEC called with 8 or more
+  arguments ends CMS when the GCCLIB segment is loaded. This happens in
+  stock CE too. RXPIP therefore hands LXCALL its options in
+  `LXCALL OPTIONS A`.
+- **Not done yet.** Publishing from CMS (`RXPIP PUBLISH`) and an external
+  repository (www.rexxpository.org). The guest's network reaches only the
+  PC.
