@@ -520,3 +520,12 @@ and then put the cross compiler back.
 `long` overflowing; the other was an uninitialised flag field that happened
 to read as zero on the PC. `gcc -m32 -msse2 -mfpmath=sse` reproduces both
 the way VM/370 shows them.
+
+## A tool timeout takes background processes with it (13 Oct, run i285)
+
+A Bash tool call that runs past its time limit is stopped together with
+everything its shell started in the background -- including a Hercules run
+started earlier with `(nohup ... &)` from the same shell. Run i285 ended that
+way at 21:18 (CMS idle at Ready); cckdcdsk -3 afterwards found only free-space
+errors on three shadows (rebuilt with -f -3). Start drive.py with `setsid`
+(its own session), and keep each tool call well under the limit.
