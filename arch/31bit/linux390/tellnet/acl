@@ -1,0 +1,3 @@
+# /etc/mosquitto/acl -- outside users may only TELL (9.32)
+pattern write vm/tell/from/%u/to/+
+pattern read vm/tell/out/%u

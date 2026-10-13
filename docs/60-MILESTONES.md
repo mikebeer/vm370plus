@@ -92,10 +92,11 @@ and the work after 64-bit is **M11**.
 | M9 | 9.29 | Ghostscript, ps2pdf | Ghostscript in the Debian guest: PS->PDF (ps2pdf), PDF->PS (pdf2ps), PS/PDF->PCL/raster for printers; PS2PDF EXEC on CMS | Done |  | Ghostscript 10.02.1 cross-built (languages/ghostscript/mkgs.sh), gs + ps2pdf/pdf2ps/ps2ps in /usr/local/bin of the Debian guest; PS->PDF verified pd19 |
 | M9 | 9.30 | BookMaster | A BookMaster-compatible formatter (BookMaster is IBM-licensed; we build our own): :userdoc./:h1./:p./:ol./:dl. GML tags to SCRIPT-style line output, PS and PDF (via 9.29); BOOKIE EXEC on CMS | Done |  | bookie: our BookMaster-compatible formatter (languages/bookie/bookie.py -> troff ms+tbl -> groff), BOOKIE EXEC on CMS: text and PostScript, PSPRINT to printer/PDF (pd19). Not done: index, running heads, revision codes |
 | M9 | 9.31 | Graphical printing | PS/PDF from CMS or Linux to a real printer: (a) bridge: PSPRINT EXEC -> Debian -> Ghostscript -> CUPS/LPD/IPP/port 9100 printer on the PC LAN (needs routing/NAT on the PC for the guest's CTC network); (b) spool: PostScript text on a virtual printer, Hercules 1403 to a file or socket on the PC, a PC script hands it to the printer (PS only, lines up to 132; PDF goes through (a) or ps first) | Done |  | both paths verified pd19: spool (PSPRINT -> 00E -> PC psprint.py, PS byte-identical, ps2pdf) and bridge (PSPRINT (BRIDGE -> Debian gs -> pdf/ps/pcl -> printer port 9100 or lp queue, print.conf); a real printer on the user's LAN still to try |
+| M9 | 9.32 | TELL internet | TELL to and from users on the internet: CMS TELL user AT NET publishes to MQTT topic vm/tell/out/<user>; outside users (any MQTT client, password, ACL) publish to vm/tell/from/<user>/to/<vmuser>, a gateway in the Debian guest turns it into CP MSG '(net:user) text'; a forwarder on the PC exposes the broker (router port forward is the owner's) | Done | 13 Oct | 13 Oct (pd24): TELL user AT NET -> MQTT vm/tell/out/user; outside users publish vm/tell/from/<login>/to/<userid>, tellgw sends CP MSG '(net:login)'; logins (tellnet-user) + ACL on the guest's outside listener, local listener unchanged; tools/netfwd.py (--tls, port 8883) on the PC, tools/nettell.py client. Verified both ways, not-logged-on answer, wrong password and forged sender rejected, TLS. The router's port forward is the owner's. Interim until BORDER (9.12c). |
 | M10 |  | 64-bit | z/Architecture (64-bit) | Planned |  |  |
 | M10 | 10.1 | Documentation | Migration documentation 31 -> 64 bit |  |  |  |
 | M10 | 10.2 | Documentation | Manual Update |  |  |  |
-| M10 | 10.3 | Snapshot | Kit 8 |  |  |  |
+| M10 | 10.3 | Snapshot | Kit after 64-bit (z/Architecture) |  |  |  |
 | M11 | 11.1 | Multiprocessor-Support | MP (CP on several CPUs, virtual MP) |   |  |  |
 | M11 | 11.2 | More Languages | GNU APL, full C++, Java on CMS, NetRexx 4 |   |  |  |
 | M11 | 11.3 | VoIP | FreeSWITCH |   |  |  |
@@ -103,7 +104,7 @@ and the work after 64-bit is **M11**.
 | M11 | 11.5 | Container | Docker, QEMU/ReactOS,  Bochs/DOS |   |  |  |
 | M11 | 11.6 | CF | CFSERV |   |  |  |
 | M11 | 11.7 | Documentation | Manual Update |  |  |  |
-| M11 | 11.8 | Snapshot | Kit 9 |  |  |  |
+| M11 | 11.8 | Snapshot | Kit after M11 |  |  |  |
 | M12 | 12a | DOS/VSE | DOS/VS Release 34 installed in a virtual machine (system packs, directory entry, IPL) | Planned |  | Owner request 11 Oct; S/370-mode guest |
 | M12 | 12b | DOS/VSE | DOS/VS under our CP as a regression of the S/370 guest paths (SIO/TIO, CCW translation, V=V) | Planned |  |  |
 | M12 | 12c | DOS/VSE | POWER spooling through VM reader/punch; jobs submitted from CMS | Planned |  |  |

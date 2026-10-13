@@ -40,7 +40,7 @@ cp -r $R/arch/31bit/linux390/cms $K/vm370plus/linux/   # LINUX EXEC and LXPARM f
 test -n "$GUIDE" && cp "$GUIDE" $K/vm370plus/linux/VM370PLUS-Guide.docx
 mkdir -p $K/vm370plus/chatbot; cp -r $R/arch/31bit/chatbot/{upstream-b1,cbpatch.py,mkcbdeck.sh,VM370PLUS.TXT} $K/vm370plus/chatbot/
 cp $R/arch/31bit/linux390/debian/vmzipl $K/vm370plus/linux/
-mkdir -p $K/vm370plus/tools; cp $R/arch/31bit/tools/psprint.py $K/vm370plus/tools/
+mkdir -p $K/vm370plus/tools; cp $R/arch/31bit/tools/psprint.py $R/arch/31bit/tools/netfwd.py $R/arch/31bit/tools/nettell.py $K/vm370plus/tools/
 mkdir -p $D; cd $W
 zip -qr $D/VM370PLUS-kit-$STAMP-part1.zip VM370CE.V1.R1.2 -x "VM370CE.V1.R1.2/disks/vm50-4.cckd" "VM370CE.V1.R1.2/disks/shadows/vm50u0_1.shadow" "VM370CE.V1.R1.2/vm370plus/linux/*" "VM370CE.V1.R1.2/disks/shadows/vm50-2_1.shadow" "VM370CE.V1.R1.2/disks/shadows/vm50-3_1.shadow"
 zip -q  $D/VM370PLUS-kit-$STAMP-part5.zip VM370CE.V1.R1.2/disks/shadows/vm50-3_1.shadow

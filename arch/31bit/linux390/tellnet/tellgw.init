@@ -1,0 +1,19 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          tellgw
+# Required-Start:    $local_fs $network vmspoold
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: TELL from the internet (VM/370plus 9.32)
+### END INIT INFO
+D=/usr/local/sbin/tellgw
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+stop() { for p in $(pgrep -f "^/bin/sh $D"); do kill $p; done
+         for p in $(pgrep -f "mosquitto_sub .* -i tellgw "); do kill $p; done; }
+case "$1" in
+start) setsid $D >/dev/null 2>&1 </dev/null & echo "tellgw started" ;;
+stop) stop ;;
+restart) stop; sleep 1; setsid $D >/dev/null 2>&1 </dev/null & ;;
+*) echo "usage: $0 start|stop|restart"; exit 1 ;;
+esac

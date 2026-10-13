@@ -1,0 +1,15 @@
+#!/bin/sh
+# tellnet -- vmspoold: TELL user AT NET (9.32).  The message (input cards)
+# is published to vm/tell/out/<user> on the broker, where the outside user
+# reads it with any MQTT client.  /etc/vmspool.d/tellnet.conf has the
+# gateway's broker login.
+. /etc/vmspool.d/tellnet.conf
+PATH=$PATH:/usr/local/bin
+from=${VMSPOOL_FROM:-?}
+u=$(echo "$1" | tr A-Z a-z)
+case "$u" in ''|*[!a-z0-9_.-]*) echo "tell: bad user name: $1"; exit 4;; esac
+msg=$(sed 's/[[:space:]]*$//' | tr '\n' ' ' | tr -d '\000-\010\013-\037' | sed 's/ *$//')
+[ -n "$msg" ] || { echo "tell: no message"; exit 4; }
+mosquitto_pub -h localhost -p "$MQTT_PORT" -q 1 \
+  -t "vm/tell/out/$u" -m "MSG FROM $from: $msg" || { echo "tell: broker error"; exit 8; }
+echo "tell: $u: sent to the net (vm/tell/out/$u)"

@@ -3,6 +3,8 @@
 /*   TELL user AT LINUX message      to a user of the Debian guest,    */
 /*                                   through the spool bridge          */
 /*                                   (user ALL: everybody logged on)   */
+/*   TELL user AT NET message        to a user on the internet (MQTT   */
+/*                                   topic vm/tell/out/user, 9.32)     */
 /*   TELL user [AT LINUX]            with no message: asks for it, and */
 /*                                   takes the line exactly as typed   */
 /* Linux users answer with  tell userid message ; they read what came  */
@@ -16,7 +18,7 @@ IF TRANSLATE(WORD(REST, 1)) = 'AT' THEN DO
   REST = SUBWORD(REST, 3)
 END
 IF WHO = '' THEN DO
-  SAY 'TELL: usage: TELL userid [AT LINUX] [message]'
+  SAY 'TELL: usage: TELL userid [AT LINUX|NET] [message]'
   EXIT 24
 END
 IF STRIP(REST) = '' THEN DO
@@ -28,9 +30,13 @@ IF NODE = '' THEN DO
   'CP MSG' WHO REST
   EXIT RC
 END
-IF NODE <> 'LINUX' & NODE <> 'DEBIAN' THEN DO
-  SAY 'TELL: no route to node' NODE '(only LINUX; RSCS is 9.13b)'
-  EXIT 24
+SELECT
+  WHEN NODE = 'LINUX' | NODE = 'DEBIAN' THEN SVC = 'TELL'
+  WHEN NODE = 'NET' | NODE = 'INTERNET' THEN SVC = 'TELLNET'
+  OTHERWISE DO
+    SAY 'TELL: no route to node' NODE '(LINUX or NET; RSCS is 9.13b)'
+    EXIT 24
+  END
 END
 /* the text goes as input cards, so ( and many words are safe        */
 CALL QUIET 'ERASE TELLMSG CARDS A'
@@ -41,7 +47,7 @@ DO WHILE REST <> ''
   N = N + 1
 END
 'EXECIO' N 'DISKW TELLMSG CARDS A (FINIS'
-'EXEC LXCALL TELL' WHO '(FILE TELLMSG CARDS A'
+'EXEC LXCALL' SVC WHO '(FILE TELLMSG CARDS A'
 R = RC
 CALL QUIET 'ERASE TELLMSG CARDS A'
 EXIT R

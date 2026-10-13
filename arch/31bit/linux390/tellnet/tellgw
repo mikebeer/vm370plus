@@ -1,0 +1,28 @@
+#!/bin/sh
+# tellgw -- VM/370plus 9.32: messages from the internet to VM/370 users.
+# An outside user publishes to  vm/tell/from/<own login>/to/<userid>  (the
+# broker's ACL allows only the own login there), and this gateway sends
+#     CP MSG userid (net:login) text
+# An answer to the sender goes to vm/tell/out/<login> when the user is not
+# logged on.
+. /etc/vmspool.d/tellnet.conf
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+while :; do   # the broker may start later or restart: subscribe again
+mosquitto_sub -h localhost -p "$MQTT_PORT" -q 1 \
+    -c -i tellgw -v -t 'vm/tell/from/+/to/+' |
+while read -r topic text; do
+  from=$(echo "$topic" | cut -d/ -f4 | tr A-Z a-z)
+  to=$(echo "$topic" | cut -d/ -f6 | tr a-z A-Z)
+  case "$from" in ''|*[!a-z0-9_.-]*) continue;; esac
+  case "$to" in ''|?????????*|*[!A-Z0-9\$#@]*) continue;; esac
+  text=$(printf '%s' "$text" | tr -d '\000-\037' | cut -c1-120)
+  [ -n "$text" ] || continue
+  if vmcp -k "MSG $to (net:$from) $text" >/dev/null 2>&1; then
+    logger -t tellgw "$from -> $to"
+  else
+    mosquitto_pub -h localhost -p "$MQTT_PORT" -q 1 \
+      -t "vm/tell/out/$from" -m "tell: $to is not logged on" 
+  fi
+done
+sleep 5
+done

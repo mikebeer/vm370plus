@@ -1,0 +1,26 @@
+#!/usr/bin/python3
+# tellnet-user NAME PASSWORD | -d NAME | -l -- the outside TELL users (9.32)
+# This mosquitto is built without OpenSSL, so it reads the passwords as
+# plain text: the file is root's alone (0600), and the outside link is
+# encrypted on the PC (netfwd.py --tls).
+import sys, os, re, subprocess
+F = '/etc/mosquitto/passwd'
+lines = [l.rstrip('\n') for l in open(F)] if os.path.exists(F) else []
+a = sys.argv[1:]
+if a[:1] == ['-l']:
+    for l in lines: print(l.split(':')[0])
+    sys.exit(0)
+if a[:1] == ['-d'] and len(a) == 2:
+    lines = [l for l in lines if l.split(':')[0] != a[1]]
+elif len(a) == 2 and re.match(r'^[a-z0-9_.-]{1,32}$', a[0]):
+    if ':' in a[1] or not a[1]:
+        print('tellnet-user: the password must not be empty or contain :'); sys.exit(4)
+    lines = [l for l in lines if l.split(':')[0] != a[0]]
+    lines.append('%s:%s' % (a[0], a[1]))
+else:
+    print('usage: tellnet-user name password | -d name | -l  (names: a-z 0-9 _ . -)')
+    sys.exit(4)
+fd = os.open(F, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+os.write(fd, ('\n'.join(lines) + '\n').encode() if lines else b'')
+os.close(fd)
+subprocess.call('pkill -HUP -x mosquitto', shell=True)
