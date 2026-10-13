@@ -20,6 +20,12 @@ VM/370plus language disk (MAINT 19F, volume VMLANG)
   CPM             CP/M 2.2 (RunCPM Z80 emulator): drive X: is CMS disk X,
                   L: has PIP, STAT, ASM, LOAD, DDT, ED; CPM IMPORT fn ft
                   makes a CMS text file a CP/M one (EXPORT: back)
+  NHFS31 ...      NICOF host files (GCC 13): LIST, GET, PUT, TYPE, MKDIR in
+                  your area of the PC's nhfs directory; HACC31 any PC file
+  IPLOOK31 name   name or address lookup through the PC (NICOF)
+  HTTPD31         a web server for a CMS disk (-p port -d fm -n count -k key)
+  NCTEST          a NICOF socket test against an echo server on the PC
+                  (NICOF's proxies: nicof/nicof.sh start on the PC)
 
 Headers and libraries: SYSROOT TAR and CXXROOT TAR (read as /usr/...).
 Large programs (CC1, PY, XBASEC) run from above 16 MB through XL.

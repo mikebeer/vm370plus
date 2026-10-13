@@ -60,6 +60,12 @@ add DEMO REXX /home/claude/mikebeer/rexxpository/examples/demo.rexx F
 add RUNCPM TEXT ${CPMO:-/home/claude/src/cpm}/runcpm.text BIN
 add CPM EXEC $L/cpm/CPM.EXEC F; add HELLO ASM $L/cpm/HELLO.ASM F
 for f in $L/cpm/A0/*; do b=$(basename $f); add ${b%%.*} ${b#*.} $f RAW; done
+# NICOF's client tools built with GCC 13 (9.5; nicof/gcc13): host files
+# (NHFS31, HACC31), name lookup, the web server, the socket test
+N13=$R/nicof/gcc13/out
+for p in NHFS:NHFS31 HACC:HACC31 IPLOOKUP:IPLOOK31 HTTPD31:HTTPD31 NCTEST:NCTEST; do
+  add ${p#*:} TEXT $N13/${p%%:*}.text BIN; done
+add INDEX HTML $R/nicof/httpd/INDEX.HTML V
 # the disk's own files
 add LANG EXEC $K/LANG.EXEC F; add LANGGEN EXEC $K/LANGGEN.EXEC F; add LANG README $K/README.txt V
 sed -i 's/ F$/ F 80/' $LST

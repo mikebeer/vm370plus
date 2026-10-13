@@ -59,8 +59,8 @@ shutdown and the rules that keep the system healthy.
 machines, the Linux kernel, the Debian system and the network connection
 to the PC.
 :li.:hp2.Chapter 6, Service Machines:ehp2., describes CHATBOT, the spool
-bridge to Linux services (LXCALL, PHONE, MQTT), RXPIP, and the service
-machines that are planned.
+bridge to Linux services (LXCALL, PHONE, MQTT, TELL), RXPIP, and the
+service machines that are planned.
 :li.:hp2.Chapter 7, cREXX on VM/370plus:ehp2., describes the REXX
 compiler and virtual machine built for and on VM/370plus, the languages
 written in cREXX that run on CMS and on Linux, and Turbo CREXX.
@@ -87,6 +87,31 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.13 October 2026, night.:ehp2. NICOF's tools for the EC-mode
+CMS, built with GCC 13, on the language disk&colon. :xph.NHFS31:exph.,
+:xph.HACC31:exph., :xph.IPLOOK31:exph., the web server
+:xph.HTTPD31:exph. and :xph.NCTEST:exph. (Chapter 6). NICOF programs no
+longer wait forever under :xph.IPL 290:exph. (I-285), and HX under
+:xph.IPL 290:exph. no longer ends in a disabled wait (I-286).
+:li.:hp2.13 October 2026, late evening.:ehp2. CP/M 2.2 (Chapter
+8)&colon. :xph.CPM:exph. runs CP/M on CMS, with the CP/M programs on the
+language disk, and in the Debian guest. TK5 (MVS 3.8j) and a 31-bit MVS
+are in the plan as M13.
+:li.:hp2.13 October 2026, evening.:ehp2. NICOF (Chapter 6)&colon.
+sockets for CMS programs, the FTP server CMSFTPD and NHFS file transfer
+to the PC. BREXX in a machine without :xph.OPTION ECMODE:exph. no longer
+ends with an operation exception (I-283).
+:li.:hp2.13 October 2026, late afternoon.:ehp2. :xph.TELL user AT
+NET:exph.&colon. messages to and from users on the internet through the
+MQTT broker of the Debian guest, with a login per outside user and TLS
+on the PC (Chapter 6).
+:li.:hp2.13 October 2026, afternoon.:ehp2. :xph.TELL:exph. (Chapter
+6)&colon. messages between CMS users, and between CMS and Linux users
+(:xph.TELL user AT LINUX:exph., :xph.tell:exph. on Linux). The bridge
+and document EXECs are on MAINT's 19D disk, so they work under :xph.IPL
+CMS:exph.. A REXX EXEC with eight or more arguments no longer ends CMS
+in small machines&colon. the GCCLIB segment was saved from an older
+library and has been saved again (I-277).
 :li.:hp2.13 October 2026.:ehp2. The spool bridge (Chapter 6)&colon. CMS
 users call Linux services with :xph.LXCALL:exph., :xph.PHONE:exph.
 (Asterisk) and :xph.MQTT:exph.; :xph.RXPIP:exph. brings REXX packages
@@ -1077,6 +1102,78 @@ topic message:exph. publishes a message (or, with :xph.(FILE fn
 ft:exph., each line of a file) to the mosquitto broker; :xph.MQTT SUB
 topic [n [secs]]:exph. waits for n messages. The broker can be another
 one&colon. :xph.MQTT_HOST:exph. in :xph./etc/vmspool.d/mqtt.conf:exph..
+:h2.NICOF&colon. sockets, FTP and PC files
+:p.NICOF (devhawala, public domain) gives CMS a BSD-style socket API
+(:xph.NICOFLIB TXTLIB:exph., :xph.SOCKET H:exph.), the FTP server
+:xph.CMSFTPD:exph. and the commands :xph.NHFS:exph. and :xph.HACC:exph.,
+which copy files between CMS and the PC. The sockets are the PC's
+own&colon. a Java program on the PC does the network work and talks to
+the service machines NICOFPXY and TCPIPPXY, which AUTOLOG1 starts at
+IPL, over one 3270 line each (03CD, 03CE).
+:fig.
+:xmp.
+sh vm370plus/nicof/nicof.sh start
+nicof: started (pid 2174, log nicof.log)
+:exmp.
+:figcap.Starting the PC half of NICOF (Java on the PATH)
+:efig.
+:p.On CMS, :xph.NCFACC:exph. accesses NICOF's disk as N. :xph.NHFS
+LIST:exph., :xph.NHFS GET fn ft (REPLACE:exph. and :xph.NHFS PUT fn
+ft:exph. work on the files in :xph.vm370plus/nicof/nhfs/<user>:exph. on
+the PC. :xph.CMSFTPD -p 2121 -usecmscmds:exph. serves the user's disks
+to any FTP client on the PC's port 2121 until the client quits; each
+disk is a directory (a, b, ...). :xph.-pwd x:exph. asks for a password.
+:p.The modules on NICOF's disk are built with CE's GCC and run under
+:xph.IPL CMS:exph.. Under the EC-mode CMS (:xph.IPL 290:exph.) use the
+versions on the language disk, built with GCC 13 (:xph.LANG:exph.
+first)&colon. :xph.NHFS31:exph. and :xph.HACC31:exph. (the same commands
+as NHFS and HACC), :xph.IPLOOK31 name:exph. (a name or address lookup
+through the PC), :xph.HTTPD31:exph. and :xph.NCTEST:exph.. CMS cuts
+every argument to 8 characters, so :xph.IPLOOK31 localhost:exph. asks
+for :xph.localhos:exph.; :xph.IPLOOK31 -ME:exph. gives the PC's own
+name.
+:h3.HTTPD&colon. a web server for a CMS disk
+:p.:xph.HTTPD31 -p port [-d fm] [-n count] [-k key] [-v]:exph. serves
+the files of a CMS disk (default A) on the PC's port&colon. :xph.GET
+/fn.ft:exph. sends :xph.fn ft:exph., text files as ASCII lines and GIF,
+PNG, JPG, ICO, PDF, ZIP and BIN files as their bytes; :xph.GET /:exph.
+sends :xph.INDEX HTML:exph. if the disk has one, otherwise a list of its
+files. :xph.-n count:exph. ends the server after so many requests,
+:xph.-k key:exph. lets :xph.GET /.stop/key:exph. end it. :xph.INDEX
+HTML:exph. on the language disk is a small example page.
+(:xph.HTTPD:exph. for IPL CMS, built with CE's GCC, is in
+:xph.vm370plus/nicof/httpd:exph..)
+:fig.
+:xmp.
+httpd31 -p 8080 -k bye
+HTTPD: serving the A disk on port 8080
+:exmp.
+:figcap.A web server on CMS; on the PC,
+http&colon.//localhost&colon.8080/
+:efig.
+:p.A program that ends abnormally (HX, an abend) leaves its sockets in
+NICOF's proxy&colon. a server port stays in use until :xph.nicof.sh
+stop:exph. and :xph.start:exph. on the PC. End HTTPD with :xph.-n:exph.
+or :xph.-k:exph. when you can.
+:h2.TELL
+:p.:xph.TELL userid message:exph. sends a message to a VM/370 user (CP
+MSG). :xph.TELL user AT LINUX message:exph. sends it to a user of the
+Debian guest through the spool bridge&colon. it appears on that user's
+terminals, and is kept until the user reads it with :xph.tell:exph..
+:xph.TELL ALL AT LINUX message:exph. reaches everybody logged on to
+Linux. A Linux user answers with :xph.tell userid message:exph., which
+arrives on CMS as :xph.MSG FROM MAINT&colon. (user) message:exph..
+:p.:xph.TELL user AT NET message:exph. reaches a user on the internet.
+The message is published on the MQTT broker of the Debian guest as topic
+:xph.vm/tell/out/user:exph., which the user reads with any MQTT client.
+The user answers by publishing to
+:xph.vm/tell/from/user/to/userid:exph.; it arrives as :xph.MSG FROM
+MAINT&colon. (net&colon.user) message:exph.. Outside users need a login
+(:xph.tellnet-user name password:exph. in the guest) and may only use
+their own TELL topics. On the PC, :xph.tools/netfwd.py --tls cert key
+8883 10.1.1.2&colon.1883:exph. makes the broker reachable, encrypted;
+the router has to forward that port to the PC.
+:xph.tools/nettell.py:exph. is a small client for the outside user.
 :fig.
 :xmp.
 mqtt sub vm/test 1 20
@@ -1601,6 +1698,37 @@ Ready;
 :exmp.
 :figcap.SQLite on CMS
 :efig.
+:h2.CP/M 2.2
+:p.:xph.CPM:exph. starts CP/M 2.2 in your CMS machine (RunCPM, a Z80
+emulator; after :xph.LANG:exph., under :xph.IPL 290:exph. in more than
+16 MB). CP/M drive X&colon. is the CMS disk X&colon. A&colon. is your A
+disk, and L&colon. the language disk with the CP/M programs PIP, STAT,
+ASM, LOAD, DDT, ED, DUMP, SUBMIT and others. :xph.EXIT:exph. leaves
+CP/M. :xph.CPM command; command:exph. runs CP/M commands and returns. A
+CP/M file is the plain bytes of a CMS file of the same name, so a CMS
+text file must be converted first&colon. :xph.CPM IMPORT fn ft:exph.
+makes it a CP/M text file (ASCII, CR LF), :xph.CPM EXPORT fn ft:exph.
+makes it CMS text again.
+:fig.
+:xmp.
+copyfile hello asm l = = a
+cpm import hello asm
+CPM: HELLO ASM A is now a CP/M file
+cpm l:asm hello; l:load hello; hello
+CP/M ASSEMBLER - VER 2.0
+012E
+END OF ASSEMBLY
+Hello from CP/M 2.2 on VM/370plus!
+Ready;
+:exmp.
+:figcap.Assembling and running an 8080 program under CP/M on CMS
+:efig.
+:p.The CMS terminal is line-oriented&colon. CP/M sees each typed line,
+and ^C does not stop a running program. Full-screen CP/M programs work
+in the Debian guest instead&colon. :xph.runcpm:exph. in an ssh session,
+or from CMS :xph.CPM command (LINUX:exph. through the spool bridge, with
+:xph.CPM PUT fn ft (LINUX:exph. and :xph.CPM GET fn ft (LINUX:exph. to
+move files.
 :h1.Documents and Printing
 :p.VM/370plus formats documents in the Debian guest through the spool
 bridge and gives the result back to CMS&colon. plain text as a CMS file,
@@ -1665,6 +1793,14 @@ Ghostscript in the Debian guest converts it to :xph.ps:exph.,
 :xph.pdf:exph., :xph.ljet4:exph., :xph.pxlmono:exph. or
 :xph.pxlcolor:exph. and sends it to the printer named in
 :xph./etc/vmspool.d/print.conf:exph..
+:p.On a newly installed system the real printer 00E is drained, so
+spooled print files wait. An operator starts it once with :xph.START
+00E:exph. (from MAINT, or :xph.vmcp start 00e:exph. in the Debian
+guest). The EXECs of this chapter are on MAINT's 19D disk, so they work
+under the usual :xph.IPL CMS:exph.; the samples (:xph.SAMPLE
+SCRIPT:exph., :xph.GUIDE SCRIPT:exph., :xph.HELLO TEX:exph., :xph.HELLO
+TROFF:exph.) are on the language disk, which uses EDF and needs the
+EC-mode CMS&colon. :xph.IPL 290:exph., then :xph.LANG:exph..
 :fig.
 :xmp.
 bookie sample (ps
@@ -1756,11 +1892,6 @@ reads them has not been tested yet.
 :c.Smalltalk, xBase
 :c.With a 32-bit :xph.long:exph., Smalltalk SmallIntegers are ±2^30
 (larger ones are big integers); CMS has no directories.
-:row.
-:c.REXX EXECs
-:c.An EXEC called with eight or more arguments ends CMS when the GCCLIB
-segment is loaded (machines below about 15 MB); this is so in the
-Community Edition too (I-277). Keep to seven.
 :row.
 :c.Spool bridge
 :c.Requests and answers are 80-column cards&colon. a longer line of a
@@ -2021,6 +2152,11 @@ and accesses it as :xph.fm:exph. (default L).
 :p.:xph.ZIP zipfile files:exph., :xph.UNZIP [-l|-t|-o] zipfile
 [files]:exph., :xph.GZIP [-d] fn.ft:exph. (Info-ZIP zip 3.0 and unzip
 6.0; gzip format from zlib).
+:h2.CPM
+:p.:xph.CPM:exph., :xph.CPM command [; command ...]:exph., :xph.CPM
+IMPORT|EXPORT fn ft [fm]:exph.; with :xph.(LINUX:exph.&colon. :xph.CPM
+command (LINUX:exph., :xph.CPM PUT|GET fn ft (LINUX:exph., :xph.CPM
+DIR|RESET (LINUX:exph..
 :h2.TERSE, UNTERSE
 :p.:xph.TERSE [-v] [-l lrecl] in out:exph. packs a file in IBM TERSE
 SPACK format (:xph.-b:exph. binary); :xph.UNTERSE [-b] in out:exph.
@@ -2033,7 +2169,7 @@ unpacks PACK and SPACK files, :xph.UNTERSE -i in:exph. shows the header.
 :p.:xph.LXCALL service [args] (FILE fn ft fm | SERVER userid | WAIT n |
 NOTYPE:exph.; :xph.PHONE STATUS|CHANNELS|PEERS|CALL ext [ctx]|HANGUP
 channel:exph.; :xph.MQTT PUB topic message:exph., :xph.MQTT SUB topic [n
-[secs]]:exph..
+[secs]]:exph.; :xph.TELL userid [AT LINUX|NET] message:exph..
 :h2.RXPIP
 :p.:xph.RXPIP AVAIL:exph., :xph.SEARCH term:exph., :xph.SHOW name:exph.,
 :xph.BUILD fn:exph., :xph.RUN fn [args]:exph., :xph.GET name:exph..
