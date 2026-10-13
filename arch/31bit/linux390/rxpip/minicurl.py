@@ -3,7 +3,7 @@
 guest of VM/370plus, which has no curl (VM/370plus 9.26).  Python 3.2.
 
   curl [-s] [-f] [-o FILE] [-X METHOD] [-H 'Name: value' | -H @FILE]...
-       [--data-binary @FILE|DATA] [-d DATA] [-w '%{http_code}'] URL
+       [--data-binary @FILE|DATA] [-d DATA] [-w '%{http_code}'] [--connect-timeout S] [-m S] URL
 
 Exit codes as curl: 0 ok, 22 HTTP error with -f, 6/7 cannot connect.
 """
@@ -14,7 +14,7 @@ import urllib.error
 
 def main(argv):
     out = None; method = None; headers = []; data = None
-    fail = False; wfmt = None; url = None
+    fail = False; wfmt = None; url = None; timeout = 120
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -42,6 +42,12 @@ def main(argv):
                 data = open(d[1:], 'rb').read()
             else:
                 data = d.encode('latin-1')
+        elif a == '--connect-timeout':
+            # urllib has one timeout for connect and read; the repository
+            # (Regina CGI on the guest) answers slowly, so only lengthen it
+            timeout = max(timeout, float(val())); i += 1
+        elif a in ('-m', '--max-time'):
+            timeout = float(val()); i += 1
         elif a in ('-w', '--write-out'):
             wfmt = val(); i += 1
         elif a.startswith('-'):
@@ -63,7 +69,7 @@ def main(argv):
         req.add_header('Content-Type', 'application/x-www-form-urlencoded')
     code = 0
     try:
-        r = urllib.request.urlopen(req, timeout=120)
+        r = urllib.request.urlopen(req, timeout=timeout)
         code = r.getcode(); body = r.read()
     except urllib.error.HTTPError as e:
         code = e.code; body = e.read()

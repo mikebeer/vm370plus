@@ -529,3 +529,12 @@ started earlier with `(nohup ... &)` from the same shell. Run i285 ended that
 way at 21:18 (CMS idle at Ready); cckdcdsk -3 afterwards found only free-space
 errors on three shadows (rebuilt with -f -3). Start drive.py with `setsid`
 (its own session), and keep each tool call well under the limit.
+
+## Ending a drive.py hold on the second terminal (14 Oct, run rx1)
+
+A `term` step's `expect` is matched against `<name>.term.log`, not the
+Hercules log: a `* MARKER` comment at the panel does not end it, and a CP
+MSG to a user in CP READ after a Linux halt did not reach the file either.
+Append the marker to `<name>.term.log` itself (`echo X-DONE >> rx1.term.log`).
+And end a Linux hold with the Linux `poweroff` before releasing it -- the
+kt26 step list has a `poweroff` term step after the hold for that reason.
