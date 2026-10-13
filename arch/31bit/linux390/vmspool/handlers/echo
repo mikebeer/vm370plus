@@ -1,0 +1,4 @@
+#!/bin/sh
+# echo -- vmspoold test service: the request comes back
+echo "echo from $(hostname) for $VMSPOOL_FROM: $*"
+cat

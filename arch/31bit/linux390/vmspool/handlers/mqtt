@@ -1,0 +1,21 @@
+#!/bin/sh
+# mqtt -- vmspoold: MQTT from CMS (MQTT EXEC)
+#   PUB topic [message]   publish message (or the input lines) to topic
+#   SUB topic [n [secs]]  wait for n messages (1) for at most secs (10)
+# The broker: MQTT_HOST in /etc/vmspool.d/mqtt.conf (default localhost).
+MQTT_HOST=localhost; MQTT_PORT=1883
+[ -r /etc/vmspool.d/mqtt.conf ] && . /etc/vmspool.d/mqtt.conf
+PATH=$PATH:/usr/local/bin
+cmd=$(echo "$1" | tr a-z A-Z); topic=$2
+case "$topic" in ''|*[!A-Za-z0-9_/.+#-]*) echo "mqtt: bad topic: $topic"; exit 4;; esac
+case "$cmd" in
+PUB) shift 2
+     if [ $# -gt 0 ]; then mosquitto_pub -h "$MQTT_HOST" -p "$MQTT_PORT" -t "$topic" -m "$*"
+     else mosquitto_pub -h "$MQTT_HOST" -p "$MQTT_PORT" -t "$topic" -l; fi
+     rc=$?; [ $rc = 0 ] && echo "mqtt: published to $topic"; exit $rc ;;
+SUB) n=${3:-1}; w=${4:-10}
+     case "$n$w" in *[!0-9]*) echo "mqtt: bad count"; exit 4;; esac
+     mosquitto_sub -h "$MQTT_HOST" -p "$MQTT_PORT" -t "$topic" -C "$n" -W "$w" -v
+     rc=$?; [ $rc = 27 ] && { echo "mqtt: no message in $w s"; exit 1; }; exit $rc ;;
+*) echo "mqtt: PUB topic [message], SUB topic [n [secs]]"; exit 4 ;;
+esac

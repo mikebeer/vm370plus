@@ -1,0 +1,12 @@
+/* PHONE EXEC -- Asterisk in the Debian guest, from CMS (9.25)         */
+/*   PHONE STATUS            uptime and version of Asterisk            */
+/*   PHONE CHANNELS          the active channels                       */
+/*   PHONE PEERS             the SIP peers                             */
+/*   PHONE CALL ext [ctx]    ring extension ext (context ctx, default  */
+/*                           DEFAULT) and play a greeting              */
+/*   PHONE HANGUP channel    hang a channel up                         */
+/* over LXCALL: the options of LXCALL (SERVER userid ...) work here.   */
+PARSE ARG LINE
+IF STRIP(LINE) = '' THEN LINE = 'STATUS'
+'EXEC LXCALL PHONE' LINE
+EXIT RC

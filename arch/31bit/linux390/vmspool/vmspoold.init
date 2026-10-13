@@ -1,0 +1,33 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          vmspoold
+# Required-Start:    $local_fs $syslog
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: VM/370plus spool bridge (9.25)
+### END INIT INFO
+# vmspoold: CMS users call Linux services by punch and reader.  The MQTT
+# broker is started first when it is installed and not running.
+D=/usr/local/sbin/vmspoold   # matched as "^$D": this script is called vmspoold too
+[ -x $D ] || exit 0
+[ -r /etc/default/vmspoold ] && . /etc/default/vmspoold
+case "$1" in
+start)
+  if [ -x /usr/local/sbin/mosquitto ] && ! pgrep -x mosquitto >/dev/null; then
+    # -c with "user root": the default config drops to a user "mosquitto",
+    # whose lookup kills this static build (glibc NSS)
+    (nohup /usr/local/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf >/dev/null 2>&1 &)
+  fi
+  pgrep -f "^$D" >/dev/null && exit 0
+  echo -n "Starting VM/370 spool bridge: vmspoold"
+  (nohup $D $VMSPOOLD_OPTS >>/var/log/vmspoold.log 2>&1 &)
+  echo "." ;;
+stop)
+  echo -n "Stopping VM/370 spool bridge: vmspoold"
+  pkill -f "^$D"; echo "." ;;
+restart) $0 stop; sleep 1; $0 start ;;
+status) pgrep -f "^$D" >/dev/null && echo "vmspoold is running" || { echo "vmspoold is not running"; exit 3; } ;;
+*) echo "Usage: $0 {start|stop|restart|status}"; exit 1 ;;
+esac
+exit 0

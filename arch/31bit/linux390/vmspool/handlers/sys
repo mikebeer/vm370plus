@@ -1,0 +1,6 @@
+#!/bin/sh
+# sys -- vmspoold: what the Debian guest is
+uname -a
+uptime
+df -h / | tail -1
+free | head -2

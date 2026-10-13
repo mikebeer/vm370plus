@@ -1,0 +1,14 @@
+#!/bin/sh
+# phone -- vmspoold: Asterisk (PHONE EXEC on CMS)
+#   STATUS | CHANNELS | PEERS | CALL ext [context] | HANGUP channel
+cmd=$(echo "$1" | tr a-z A-Z)
+ok() { case "$1" in ''|*[!A-Za-z0-9_*#/.@-]*) echo "phone: bad argument: $1"; exit 4;; esac; }
+case "$cmd" in
+STATUS|'') asterisk -rx "core show version"; asterisk -rx "core show uptime" ;;
+CHANNELS) asterisk -rx "core show channels" ;;
+PEERS) asterisk -rx "sip show peers" ;;
+CALL) ok "$2"; ctx=$(echo "${3:-default}" | tr A-Z a-z); ok "$ctx"
+      asterisk -rx "channel originate Local/$2@$ctx application Playback hello-world" ;;
+HANGUP) ok "$2"; asterisk -rx "channel request hangup $2" ;;
+*) echo "phone: STATUS, CHANNELS, PEERS, CALL ext [context], HANGUP channel"; exit 4 ;;
+esac

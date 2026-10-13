@@ -1,0 +1,90 @@
+/* LXCALL EXEC -- call a Linux service through the spool bridge (9.25) */
+/*   LXCALL service [argument ...]   (options                          */
+/* options:  FILE fn [ft [fm]]   the input of the service, from a file */
+/*           SERVER userid       the Linux machine (default MAINT, or  */
+/*                               GLOBALV LXCALL SERVER)                */
+/*           WAIT n              seconds to wait for the answer (120)  */
+/*           NOTYPE              keep the answer, do not show it       */
+/* The request goes to vmspoold in the Debian guest as a punch file;   */
+/* its answer is kept as LXCALL RESULT A (without the RC line) and the */
+/* RC of LXCALL is the RC of the service (404: no such service).       */
+PARSE ARG SVC ARGS
+OPT = ''
+P = LASTPOS('(', ARGS)
+IF P > 0 THEN DO; OPT = SUBSTR(ARGS, P + 1); ARGS = LEFT(ARGS, P - 1); END
+IF SVC = '' | SVC = '?' THEN DO
+  SAY 'LXCALL: usage: LXCALL service [arguments] (options'
+  SAY '  options: FILE fn ft fm, SERVER userid, WAIT n, NOTYPE'
+  EXIT 24
+END
+SERVER = ''
+'GLOBALV SELECT LXCALL GET SERVER'
+IF SERVER = '' THEN SERVER = 'MAINT'
+FILE = ''; WAIT = 120; TYPE = 1
+UOPT = TRANSLATE(OPT)
+DO WHILE UOPT <> ''
+  PARSE VAR UOPT W UOPT
+  SELECT
+    WHEN W = 'FILE' THEN DO
+      PARSE VAR UOPT FN FT FM UOPT
+      IF FT = '' THEN FT = 'DATA'
+      IF FM = '' THEN FM = '*'
+      FILE = FN FT FM
+    END
+    WHEN W = 'SERVER' THEN PARSE VAR UOPT SERVER UOPT
+    WHEN W = 'WAIT' THEN PARSE VAR UOPT WAIT UOPT
+    WHEN W = 'NOTYPE' THEN TYPE = 0
+    OTHERWISE DO; SAY 'LXCALL: unknown option' W; EXIT 24; END
+  END
+END
+CALL QUIET 'ERASE LXREQ CARDS A'
+QUEUE STRIP(SVC 'FROM' USERID() ARGS)
+N = 1
+IF FILE <> '' THEN DO
+  'EXECIO * DISKR' FILE '(FINIS STEM L.'
+  IF RC <> 0 THEN DO; SAY 'LXCALL:' FILE 'not found'; EXIT 28; END
+  DO I = 1 TO L.0; QUEUE L.I; N = N + 1; END
+END
+'EXECIO' N 'DISKW LXREQ CARDS A (FINIS'
+'CP SPOOL PUNCH TO' SERVER 'CLASS A'
+'PUNCH LXREQ CARDS A (NOHEADER'
+'CP SPOOL PUNCH OFF'
+CALL QUIET 'ERASE LXREQ CARDS A'
+GOT = 0
+DO T = 1 TO (WAIT + 1) % 2
+  'MAKEBUF'
+  'EXECIO * CP (STRING QUERY READER ALL' USERID()
+  DO WHILE QUEUED() > 0
+    PARSE PULL ROW
+    IF WORD(ROW, 1) = SERVER & WORD(ROW, 10) = 'VMSPOOL' THEN GOT = 1
+  END
+  'DROPBUF'
+  IF GOT THEN LEAVE
+  'WAKEUP +000002 (RDR QUIET'
+END
+IF \GOT THEN DO; SAY 'LXCALL: no answer from' SERVER; EXIT 8; END
+CALL QUIET 'ERASE LXCALL RESULT A'
+CALL QUIET 'ERASE LXCALL CARDS A'
+'READCARD LXCALL CARDS A (NOHEADER'
+'EXECIO * DISKR LXCALL CARDS A (FINIS STEM R.'
+CALL QUIET 'ERASE LXCALL CARDS A'
+PARSE VAR R.1 W1 W2 SRC .
+IF W1 <> 'VMSPOOL' | W2 <> 'RC' THEN SRC = 0
+ELSE DO
+  DO I = 2 TO R.0; J = I - 1; R.J = R.I; END
+  R.0 = R.0 - 1
+END
+DO I = 1 TO R.0
+  R.I = STRIP(R.I, 'T')
+  IF TYPE THEN SAY R.I
+  QUEUE R.I
+END
+IF R.0 > 0 THEN 'EXECIO' R.0 'DISKW LXCALL RESULT A (FINIS'
+EXIT SRC
+
+QUIET: PROCEDURE
+  PARSE ARG CMD
+  'SET CMSTYPE HT'
+  CMD
+  'SET CMSTYPE RT'
+  RETURN

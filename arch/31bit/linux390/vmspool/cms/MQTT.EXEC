@@ -1,0 +1,8 @@
+/* MQTT EXEC -- MQTT in the Debian guest, from CMS (9.25)              */
+/*   MQTT PUB topic message      publish a message                     */
+/*   MQTT PUB topic (FILE fn ft  publish each line of a file           */
+/*   MQTT SUB topic [n [secs]]   wait for n messages (1), secs (10)    */
+/* over LXCALL: the options of LXCALL (SERVER userid ...) work here.   */
+PARSE ARG LINE
+'EXEC LXCALL MQTT' LINE
+EXIT RC
