@@ -1,0 +1,13 @@
+.TL
+VM/370plus and groff
+.AU
+The CMS user
+.NH
+Introduction
+.PP
+This document was written on CMS, formatted by groff in the Debian
+guest, and came back through the spool bridge.
+.IP \(bu
+the request is a punch file,
+.IP \(bu
+the answer arrives in the reader.

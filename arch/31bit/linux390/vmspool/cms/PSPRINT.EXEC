@@ -1,0 +1,18 @@
+/* PSPRINT EXEC -- a PostScript file to a real printer (9.31)          */
+/*   PSPRINT fn [ft [fm]]     ft default PS                            */
+/* The file goes to the virtual printer without page headers; CP's    */
+/* printer 00E writes it on the PC, where tools/psprint.py takes the  */
+/* PostScript out and hands it to the printer (lp, port 9100) or     */
+/* makes a PDF. Lines must be at most 132 characters.                 */
+PARSE UPPER ARG FN FT FM .
+IF FN = '' THEN DO; SAY 'PSPRINT: usage: PSPRINT fn [ft [fm]]'; EXIT 24; END
+IF FT = '' THEN FT = 'PS'
+IF FM = '' THEN FM = '*'
+'STATE' FN FT FM
+IF RC <> 0 THEN DO; SAY 'PSPRINT:' FN FT FM 'not found'; EXIT 28; END
+'EXECIO 1 DISKR' FN FT FM '1 (FINIS STEM L.'
+IF LEFT(L.1, 4) <> '%!PS' THEN DO
+  SAY 'PSPRINT:' FN FT FM 'is not PostScript (no %!PS in line 1)'; EXIT 32
+END
+'PRINT' FN FT FM '(LINECOUNT 0'
+EXIT RC

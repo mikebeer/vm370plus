@@ -1,0 +1,24 @@
+#!/bin/sh
+# troff -- vmspoold: groff from CMS (TROFF EXEC, 9.28)
+#   TEXT [macros]        the input formatted as plain text
+#   PS name [macros]     PostScript, kept as /var/spool/vmspool/out/<user>/name.ps
+#                        and sent back after a  ::PS  line
+# macros: ms, me, mm, man, mom or none.  groff-base in the guest has only
+# man; the others come from groff 1.23 in /usr/local/share/groff/tmac123.
+M=/usr/local/share/groff/tmac123
+cmd=$(echo "$1" | tr a-z A-Z); shift
+mac() { m=$(echo "${1:-none}" | tr A-Z a-z)
+        case "$m" in ms|me|mm|man|mom) echo "-m$m" ;; none) ;; *) echo "BAD" ;; esac; }
+case "$cmd" in
+TEXT) a=$(mac "$1"); [ "$a" = BAD ] && { echo "troff: macros ms, me, mm, man, mom or none"; exit 4; }
+      groff -M$M $a -Tascii -P-cbou 2>&1 ;;
+PS)   n=$(echo "$1" | tr A-Z a-z); case "$n" in ''|*[!a-z0-9_@#$-]*) echo "troff: bad name: $1"; exit 4;; esac
+      a=$(mac "$2"); [ "$a" = BAD ] && { echo "troff: macros ms, me, mm, man, mom or none"; exit 4; }
+      d=/var/spool/vmspool/out/$(echo "$VMSPOOL_FROM" | tr A-Z a-z); mkdir -p $d
+      groff -M$M $a -Tps > $d/$n.ps 2>$d/$n.log; rc=$?
+      cat $d/$n.log
+      echo "troff: $d/$n.ps, $(wc -c < $d/$n.ps) bytes, $(grep -c '^%%Page:' $d/$n.ps) page(s)"
+      [ $rc = 0 ] && { echo "::PS"; cat $d/$n.ps; }     # back to CMS as fn PS
+      exit $rc ;;
+*) echo "troff: TEXT [macros], PS name [macros]"; exit 4 ;;
+esac

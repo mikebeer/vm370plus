@@ -1,0 +1,56 @@
+/* TROFF EXEC -- groff in the Debian guest, from CMS (9.28)            */
+/*   TROFF fn [ft [fm]] [(options]     ft default TROFF                */
+/* options:  MACROS m   ms, me, mm, man, mom (default none)            */
+/*           PS         PostScript: fn PS A, and kept in the Debian    */
+/*                      guest as /var/spool/vmspool/out/<userid>/fn.ps */
+/* Without PS the text comes back as fn DOCUMENT A.                     */
+PARSE UPPER ARG LINE
+OPT = ''; P = POS('(', LINE)     /* (no literal in the PARSE template:  */
+IF P > 0 THEN DO                 /* CE's BREXX ignored it)              */
+  OPT = SUBSTR(LINE, P + 1); LINE = LEFT(LINE, P - 1)
+END
+PARSE VAR LINE FN FT FM .
+IF FN = '' THEN DO
+  SAY 'TROFF: usage: TROFF fn [ft [fm]] (MACROS m PS'; EXIT 24
+END
+IF FT = '' THEN FT = 'TROFF'
+IF FM = '' THEN FM = '*'
+MAC = 'NONE'; PS = 0
+DO WHILE OPT <> ''
+  PARSE VAR OPT W OPT
+  IF W = 'MACROS' THEN PARSE VAR OPT MAC OPT
+  ELSE IF W = 'PS' THEN PS = 1
+  ELSE DO; SAY 'TROFF: unknown option' W; EXIT 24; END
+END
+'STATE' FN FT FM
+IF RC <> 0 THEN DO; SAY 'TROFF:' FN FT FM 'not found'; EXIT 28; END
+/* LXCALL gets its options in a file (I-277: 8 arguments end CMS)     */
+'SET CMSTYPE HT'
+'ERASE LXCALL OPTIONS A'
+'SET CMSTYPE RT'
+QUEUE 'FILE' FN FT FM 'NOTYPE'
+'EXECIO 1 DISKW LXCALL OPTIONS A (FINIS'
+IF PS THEN 'EXEC LXCALL TROFF PS' FN MAC
+ELSE 'EXEC LXCALL TROFF TEXT' MAC
+SRC = RC
+'EXECIO * DISKR LXCALL RESULT A (FINIS STEM L.'
+FT = 'DOCUMENT'; FIRST = 2
+IF PS | SRC <> 0 THEN DO       /* messages, then (PS) the PostScript  */
+  DO I = 2 TO L.0
+    IF STRIP(L.I) = '::PS' THEN LEAVE
+    SAY STRIP(L.I, 'T')
+  END
+  IF SRC <> 0 | I > L.0 THEN EXIT SRC
+  FT = 'PS'; FIRST = I + 1
+END
+'SET CMSTYPE HT'
+'ERASE' FN FT 'A'
+'SET CMSTYPE RT'
+N = 0
+DO I = FIRST TO L.0
+  IF L.I = '' THEN QUEUE ' '; ELSE QUEUE L.I
+  N = N + 1
+END
+IF N > 0 THEN 'EXECIO' N 'DISKW' FN FT 'A (FINIS'
+SAY 'TROFF:' FN FT 'A,' N 'lines'
+EXIT 0

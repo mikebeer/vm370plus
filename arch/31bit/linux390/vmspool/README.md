@@ -44,6 +44,7 @@ avoids that.
 | `echo` | `LXCALL ECHO text (FILE fn ft fm` | Sends the text and the input back (test). |
 | `sys` | `LXCALL SYS` | `uname`, `uptime`, disk and memory of the guest. |
 | `phone` | `PHONE STATUS`, `CHANNELS`, `PEERS`, `CALL ext [context]`, `HANGUP channel` | Asterisk, through `asterisk -rx`. Arguments are checked: `PHONE CALL 1;reboot` gives `bad argument`, RC 4. |
+| `troff` | `TROFF fn [ft [fm]] (MACROS ms PS` | groff 1.21 (groff-base) with the ms, me, mm and mom macros of groff 1.23 (`/usr/local/share/groff/tmac123`). Plain text comes back as `fn DOCUMENT A`; with PS, PostScript comes back as `fn PS A`, and a copy stays in `/var/spool/vmspool/out/<user>/`. (9.28) |
 | `mqtt` | `MQTT PUB topic message`, `MQTT PUB topic (FILE fn ft`, `MQTT SUB topic [n [secs]]` | mosquitto_pub and mosquitto_sub against `MQTT_HOST` (`/etc/vmspool.d/mqtt.conf`, default localhost). |
 
 A new service is any executable dropped into `/etc/vmspool.d`.
@@ -87,3 +88,22 @@ To get the EXECs to CMS, punch them from Linux:
 
 Write to the punch in multiples of 80 bytes. That is why `dd obs=8000` is
 used: iconv's own writes fail.
+
+## Printing PostScript (9.31, by spool)
+
+`PSPRINT fn [ft [fm]]` checks that the file begins with `%!PS` and runs
+`PRINT ... (LINECOUNT 0`, so CMS adds no page headers. CP's printer 00E
+then writes the file to the PC's 1403 file (`io/print1.listing`). On the
+PC, `tools/psprint.py LISTING OUTDIR [--follow] [--lp QUEUE | --raw
+HOST:9100 | --pdf]` does the rest:
+- takes each PostScript job out (from `%!PS-Adobe` to `%%EOF`), without
+  CP's separator pages or the blanks that pad the lines;
+- writes each job as a `.ps` file;
+- sends it to a printer or makes a PDF.
+
+Lines must be at most 132 characters; groff's PostScript lines are at most
+80.
+
+Verified (pd19, 13 October): `TROFF HELLO (MACROS MS PS` and then `PSPRINT
+HELLO`. The PostScript on the PC matched the original in the Debian guest
+byte for byte, and Ghostscript rendered it and turned it into a PDF.
