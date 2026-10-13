@@ -81,4 +81,4 @@ out.push('.* GUIDE SCRIPT -- the VM/370plus Guide in BookMaster markup,',
 out.push(':eedition.', ':toc.');
 require('./content.js')({ P, H1, H1plain, H2, H3, B, N, NOTE, ATTN, SCREEN, TABLE, setAppendix });
 out.push(':euserdoc.');
-process.stdout.write(out.join('\n') + '\n');
+process.stdout.write(Buffer.from(out.join('\n') + '\n', 'latin1'));

@@ -1484,7 +1484,7 @@ statements from the terminal. NumPy, pandas and SciPy (the interpreter's
 own versions), re, json, struct, cmath, complex numbers, classes,
 generators and exceptions are built in. The interpreter (:xph.PY
 XIMAGE:exph., 2.3 MB) runs above 16 MB through the XL loader. Integers
-beyond Â±999,999,999 are big integers. There are no sockets on CMS yet,
+beyond ±999,999,999 are big integers. There are no sockets on CMS yet,
 and modules of your own are :xph.name PY:exph. files on an accessed
 disk.
 :h2.Pascal
@@ -1511,7 +1511,7 @@ Smalltalk bracket syntax) with the C89 interpreter :xph.SMALLTC
 MODULE:exph., or the cREXX :xph.SMALLTLK RXBIN:exph.; :xph.SMALLTLK
 -i:exph. is the interactive prompt. Its class library is the
 :xph.ST:exph. files :xph.KERNEL:exph., :xph.NUMBERS:exph.,
-:xph.COLLECTI:exph. and so on. SmallIntegers are Â±2^30 on CMS; larger
+:xph.COLLECTI:exph. and so on. SmallIntegers are ±2^30 on CMS; larger
 numbers are big integers. Both are on Debian as :xph.xbase-c:exph. and
 :xph.stc:exph..
 :h2.ZIP, UNZIP and GZIP
@@ -1754,7 +1754,7 @@ type is binary. GZIP writes :xph.fn ft-GZ:exph. (CMS has no second dot).
 reads them has not been tested yet.
 :row.
 :c.Smalltalk, xBase
-:c.With a 32-bit :xph.long:exph., Smalltalk SmallIntegers are Â±2^30
+:c.With a 32-bit :xph.long:exph., Smalltalk SmallIntegers are ±2^30
 (larger ones are big integers); CMS has no directories.
 :row.
 :c.REXX EXECs

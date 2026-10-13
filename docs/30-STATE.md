@@ -8,6 +8,8 @@ Last updated **11 October 2026, 08:00 UTC**. **Read this first in a new session.
 
 ## Current position, 10 October evening -- kit build 6
 
+**Delivered (13 Oct, 12:15): kit build 9**, `dist/VM370PLUS-kit-20261013-b9-part1..18.zip`. Adds the spool bridge (vmspoold; LXCALL, PHONE, MQTT, RXPIP), documents and printing (TROFF, BOOKIE with the vmplus style, LATEX, Ghostscript, PSPRINT + tools/psprint.py) and Linux kernel #10. Verified on a fresh CE V1R1.2 (kt22): LXCALL SYS, BOOKIE SAMPLE (PS, LATEX HELLO, PSPRINT -> PDF. Notes: LANG needs IPL 290 (EDF); on a fresh system the real printer 00E is drained (`START 00E`).
+
 **Delivered (12 Oct, 20:35): kit build 8**, `dist/VM370PLUS-kit-20261012-b8-part1..15.zip`. It adds the language disk VMLANG (MAINT 19F; parts 14-15 with JOINLANG): GCC 13 C/C++, GnuCOBOL, COBX, PL/I, Python, SQLite + SQLSERV, Pascal, APL, xBase and Smalltalk on CMS, and `LANG` EXEC. AUTOLOG1 attaches the volume at IPL. Debian carries APL, COBOL, PL/I, xBase C and Smalltalk C.
 
 Verified on a fresh CE (kt17-kt21):

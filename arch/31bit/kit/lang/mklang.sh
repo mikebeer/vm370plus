@@ -47,6 +47,13 @@ for e in ZIP UNZIP GZIP; do add $e EXEC $L/zip/cms/$e.EXEC F; done
 # UNTERSE (9.22)
 add UNTRS TEXT ${TERSEO:-/home/claude/src/terse}/untrs.text BIN; add UNTERSE EXEC $L/terse/cms/UNTERSE.EXEC F
 add TRS TEXT ${TERSEO:-/home/claude/src/terse}/trs.text BIN; add TERSE EXEC $L/terse/cms/TERSE.EXEC F
+# the spool bridge and documents (9.25-9.31): EXECs and samples
+V=$R/linux390/vmspool/cms
+for e in LXCALL PHONE MQTT TROFF BOOKIE LATEX PSPRINT; do add $e EXEC $V/$e.EXEC F; done
+add RXPIP EXEC $R/linux390/rxpip/cms/RXPIP.EXEC F
+add GUIDE SCRIPT $R/manual/GUIDE.SCRIPT F; add SAMPLE SCRIPT $L/bookie/SAMPLE.SCRIPT F
+add HELLO TEX $L/latex/HELLO.TEX F; add HELLO TROFF $V/HELLO.TROFF F
+add DEMO REXX /home/claude/mikebeer/rexxpository/examples/demo.rexx F
 # the disk's own files
 add LANG EXEC $K/LANG.EXEC F; add LANGGEN EXEC $K/LANGGEN.EXEC F; add LANG README $K/README.txt V
 sed -i 's/ F$/ F 80/' $LST

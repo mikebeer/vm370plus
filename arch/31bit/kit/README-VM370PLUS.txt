@@ -1,7 +1,37 @@
-VM/370plus  --  overlay kit, 12 October 2026 (build 8)
+VM/370plus  --  overlay kit, 13 October 2026 (build 9)
 =======================================================
 
-NEW IN BUILD 8
+NEW IN BUILD 9
+  - THE SPOOL BRIDGE: CMS users call Linux services through reader and
+    punch, as with SQLSERV.  Start Debian (cp ipl linux in MAINT, as
+    before); vmspoold starts with it.  On the language disk (lang):
+        LXCALL service [args]   any service in /etc/vmspool.d of Debian
+        PHONE STATUS|CALL ext   Asterisk;  MQTT PUB|SUB topic   mosquitto
+        RXPIP RUN fn            REXX packages (rexxpository) for fn REXX
+  - DOCUMENTS AND PRINTING (Guide, Chapter 9):
+        TROFF fn (MACROS ms [PS   groff        -> fn DOCUMENT / fn PS
+        BOOKIE fn [(PS]           BookMaster markup, in the style of the
+                                  Guide (try BOOKIE GUIDE (PS)
+        LATEX fn [(PDF]           LaTeX (TeX Live 2023) -> fn PS
+        PSPRINT fn [(BRIDGE]      PostScript to a printer: by spool (the
+                                  00E printer file on the PC, then
+                                  vm370plus/tools/psprint.py) or through
+                                  Ghostscript in Debian (print.conf)
+    Samples on the language disk: GUIDE SCRIPT, SAMPLE SCRIPT, HELLO TEX,
+    HELLO TROFF, DEMO REXX.  Ghostscript, groff and LaTeX are also there
+    for Linux users.  Source lines are cards: at most 80 columns.
+    The language disk is EDF: IPL 290 first (cp def stor 64m, ipl 290,
+    lang).  Under IPL 190 (ipl cms) LANG ends with DMSACC112S.
+    PSPRINT by spool needs the real printer started: on a fresh system
+    00E is drained, so an operator enters  start 00e  once (MAINT, or
+    vmcp start 00e  in Debian).
+    Verified on a fresh CE V1R1.2 with this kit (kt22): LXCALL SYS,
+    BOOKIE SAMPLE (PS, LATEX HELLO, PSPRINT SAMPLE -> psprint.py -> PDF.
+  - Linux kernel #10: the virtual reader is read to its end (I-276, I-280).
+  - Note: a REXX EXEC called with 8 or more arguments ends CMS when the
+    GCCLIB segment is loaded -- in the Community Edition too (I-277).
+
+IN BUILD 8
   - THE LANGUAGE DISK (MAINT 19F, volume VMLANG on the new 3380 at 182):
     current compilers and interpreters that run natively on CMS.  After
         ipl 290                     (the EC-mode CMS)
@@ -67,14 +97,14 @@ WHAT YOU NEED
 
 INSTALL
   1. Unzip VM370CE_V1_R1_2.zip into a new directory.
-  2. Unzip ALL kit parts (1-15) OVER it, replacing files:
+  2. Unzip ALL kit parts (1-18) OVER it, replacing files:
      part 1: config, system shadows, tools, README; part 2:
      disks/vm50-4.cckd; part 3: the CMSUSER volume's shadow; part 4:
      Linux files (vm370plus/linux/, the Guide) and the VM50-2 shadow
-     (MAINT's 19D); part 5: the VM50-3 shadow; parts 6-13: the Debian
+     (MAINT's 19D); part 5: the VM50-3 shadow; parts 6-16: the Debian
      disk in pieces -- then join it: JOINDEB.CMD (Windows) or
      sh joindeb.sh (Linux/WSL), see INSTALL THE DEBIAN DISK; parts
-     14-15: the language disk -- join it: JOINLANG.CMD or sh joinlang.sh.
+     17-18: the language disk -- join it: JOINLANG.CMD or sh joinlang.sh.
      so the files below replace or add:
         vm370ce.conf                 ARCHMODE ESA/390, CPUMODEL 3090,
                                      ECPSVM NO (CE's own S/370 settings
@@ -181,10 +211,10 @@ LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
       lxparmram.rdr   the same + vmroot=ram: stay in the BusyBox system
                       even if Debian is on the disk (repairs)
   and disks/lnx190.cckd -- the Debian disk, a 3390-9 (build 6; it was a
-  3390-1 before), parts 6-13 of the kit, see INSTALL THE DEBIAN DISK.
+  3390-1 before), parts 6-16 of the kit, see INSTALL THE DEBIAN DISK.
   INSTALL THE DEBIAN DISK
-    The disk is about 210 MB compressed, shipped in eight pieces (parts
-    6-13).  After unzipping them into the CE directory, run there
+    The disk is about 290 MB compressed, shipped in eleven pieces (parts
+    6-16).  After unzipping them into the CE directory, run there
         JOINDEB.CMD            (Windows cmd.exe)
         sh joindeb.sh          (Linux/WSL; also checks lnx190.sha256)
     which joins disks/lnx190.cckd.001-008 into disks/lnx190.cckd.
