@@ -12,16 +12,18 @@ B(['**Chapter 1, Introduction**, says what VM/370plus is and what it is for.',
    '**Chapter 3, Installing VM/370plus**, takes you from a fresh Community Edition to a running VM/370plus system.',
    '**Chapter 4, Operating VM/370plus**, covers start-up, shutdown and the rules that keep the system healthy.',
    '**Chapter 5, Running Linux/390**, describes ESA/390 virtual machines, the Linux kernel, the Debian system and the network connection to the PC.',
-   '**Chapter 6, Service Machines**, describes CHATBOT, the chatbot service machine, and the service machines that are planned.',
+   '**Chapter 6, Service Machines**, describes CHATBOT, the spool bridge to Linux services (LXCALL, PHONE, MQTT), RXPIP, and the service machines that are planned.',
    '**Chapter 7, cREXX on VM/370plus**, describes the REXX compiler and virtual machine built for and on VM/370plus, the languages written in cREXX that run on CMS and on Linux, and Turbo CREXX.',
    '**Chapter 8, Compilers on CMS**, describes the language disk and what is on it: GCC 13 for C and C++, GnuCOBOL, COBOL with OO, PL/I, Python, SQLite and SQLSERV, Pascal, APL, xBase, Smalltalk, ZIP and TERSE.',
-   '**Chapter 9, Restrictions and Known Problems**, lists what does not work yet.',
+   '**Chapter 9, Documents and Printing**, describes TROFF, BOOKIE (BookMaster markup), LaTeX and how PostScript reaches a printer.',
+   '**Chapter 10, Restrictions and Known Problems**, lists what does not work yet.',
    '**Appendix A** summarizes the new and changed commands, **Appendix B** lists the files in the installation kit, **Appendix C** gives the ESA/390 deviations of the virtual machine, **Appendix D** lists all CP and CMS commands.']);
 H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**12 October 2026, evening (kit build 8).** The language disk VMLANG (MAINT 19F, `LANG`) carries every compiler and tool of Chapter 8; AUTOLOG1 attaches it at IPL. New on CMS: COBOL with OO (`COBX`), xBase and Smalltalk as C programs, the SQLSERV service machine (`SQL`), Stanford Pascal (`PCPAS`, `PCRUN`), APL, `ZIP`, `UNZIP`, `GZIP`, `TERSE` and `UNTERSE`. C programs see real CMS file dates, `/tmp` files and FILEDEF-style names. Debian carries APL, COBOL, PL/I, xBase and Smalltalk with their tests.',
+B(['**13 October 2026.** The spool bridge (Chapter 6): CMS users call Linux services with `LXCALL`, `PHONE` (Asterisk) and `MQTT`; `RXPIP` brings REXX packages from the rexxpository repository to CMS. Documents and printing (new Chapter 9): `TROFF` (groff), `BOOKIE` (our BookMaster-compatible formatter, which formats this Guide on VM/370plus), `LATEX` (TeX Live 2023), Ghostscript, and `PSPRINT` to a real printer. An ESA/390 guest reading the virtual reader to its end no longer waits forever (I-276).',
+   '**12 October 2026, evening (kit build 8).** The language disk VMLANG (MAINT 19F, `LANG`) carries every compiler and tool of Chapter 8; AUTOLOG1 attaches it at IPL. New on CMS: COBOL with OO (`COBX`), xBase and Smalltalk as C programs, the SQLSERV service machine (`SQL`), Stanford Pascal (`PCPAS`, `PCRUN`), APL, `ZIP`, `UNZIP`, `GZIP`, `TERSE` and `UNTERSE`. C programs see real CMS file dates, `/tmp` files and FILEDEF-style names. Debian carries APL, COBOL, PL/I, xBase and Smalltalk with their tests.',
    '**12 October 2026.** Compilers on CMS (new Chapter 8): GCC 13 for C and C++ (`CC`), GnuCOBOL (`COBOL`), PL/I (`PLIC`, also on Debian), Python (`PYTHON`) and SQLite (`SQLITE`); MODULEs run from EDF disks (I-271).',
    '**11 October 2026, evening.** Larger minidisks: CMS under `IPL 290` reads, writes and formats IBM’s Enhanced Disk Format (4 KB blocks): `FORMAT vaddr fm (BLKSIZE 4096`, a full 3380 as one disk, files with more than 65,535 records.',
    '**11 October 2026, late afternoon.** `TDISK` (a temporary disk in one step); Linux IPLs from the reader again (I-265); `LPSW`/SVC fast paths for PSWs above 16 MB.',
@@ -317,14 +319,23 @@ TABLE(['CHATBOT CONFIG key', 'Meaning'], [
 NOTE('The upstream bot (build 1) runs unchanged. Its EXECs were adapted to VM/370 and BREXX (no WAKEUP, no UPPER, EXECIO with variable records, AUTOLOG instead of XAUTOLOG) and one bug was fixed; the list is in `vm370plus/chatbot/VM370PLUS.TXT`.');
 H2('SQLSERV');
 P('SQLSERV, the SQLite service machine, is in service: see Chapter 8, SQLite. It is the model for the service machines below: a request is a file punched to the machine, the answer is punched back to the sender.');
+H2('The spool bridge: LXCALL');
+P('The spool bridge gives CMS users the services of the Debian guest through the same protocol as SQLSERV and CHATBOT. `vmspoold`, a daemon in the Debian guest, reads its virtual reader, runs the requested service and punches the answer back to the sender. The guest is MAINT unless `GLOBALV SELECT LXCALL SET SERVER userid` names another.');
+P('`LXCALL service [arguments]` sends a request and shows the answer, which is also kept as `LXCALL RESULT A` (its first line is `VMSPOOL RC n`); the return code of LXCALL is that of the service, 404 if there is no such service. Options: `(FILE fn ft fm` sends a file as the input of the service, `(SERVER userid`, `(WAIT n` (seconds, default 900), `(NOTYPE`. A service is any executable in `/etc/vmspool.d` of the guest; `echo` and `sys` are there to try the bridge.');
+SCREEN(['lxcall sys', 'Linux vm370plus 4.0.0+ #8 Tue Oct 13 00:11:13 UTC 2026 s390 GNU/Linux', ' 01:26:49 up 10 min,  1 user,  load average: 0.93, 1.75, 1.15', 'Ready;'], 'A Linux service called from CMS');
+H2('PHONE and MQTT');
+P('`PHONE STATUS`, `PHONE CHANNELS`, `PHONE PEERS`, `PHONE CALL ext [context]` and `PHONE HANGUP channel` reach the Asterisk PBX in the Debian guest. `MQTT PUB topic message` publishes a message (or, with `(FILE fn ft`, each line of a file) to the mosquitto broker; `MQTT SUB topic [n [secs]]` waits for n messages. The broker can be another one: `MQTT_HOST` in `/etc/vmspool.d/mqtt.conf`.');
+SCREEN(['mqtt sub vm/test 1 20', 'vm/test hello from linux', 'Ready;'], 'A message from Linux arrives on CMS');
+H2('RXPIP: REXX packages');
+P('RXPIP is the package manager of rexxpository: REXX routines are published as packages, and a program names what it needs with `/* REQUIRE pkg */` comments. The repository server and the rxpip client run in the Debian guest; the bridge service `rxpip` serves CMS users.');
+P('`RXPIP AVAIL`, `RXPIP SEARCH term` and `RXPIP SHOW name` ask the repository. `RXPIP BUILD fn` takes `fn REXX`, installs the packages it requires and writes `fn EXEC A`, a standalone program with the packages merged in; `RXPIP RUN fn [args]` builds and runs it. `RXPIP GET name` fetches a package as `file REXX A`.');
+SCREEN(['rxpip run demo', 'rxpip: mathutils 1.0.0 already installed', 'rxpip: greetutils 1.0.0 already installed', 'RXPIP: DEMO EXEC A written, 71 lines', 'HELLO, WORLD!!!', 'square of 7 is 49', 'Ready;'], 'A REXX program with its packages');
 H2('Planned service machines');
 TABLE(['Machine', 'Purpose'], [
   ['ASKSERV', 'an AI gateway: a Linux guest that relays questions to a language model on the PC or in the cloud; CMS users ask it through the spool, like CHAT'],
-  ['Spool bridge', 'a daemon in the Debian guest that takes requests from its virtual reader (vmur) and answers through the punch, so Linux services (Asterisk: `PHONE`, MQTT, MariaDB) speak the same spool protocol as CHATBOT and SQLSERV'],
-  ['RXPIPSRV', 'REXX packages from rexxpository (RXPIP) for CMS users: `RXPIP INSTALL pkg` through the spool'],
-  ['MQ, MQTT', 'a queue manager on CMS; the mosquitto broker on Debian'],
+  ['MQ', 'a queue manager on CMS'],
   ['Network pack', 'optional: a firewall guest (BORDER), an HTTP load balancer, and a machine that starts more web guests under load'],
-  ['SMAPI', 'a subset of z/VM’s systems management API'],
+  ['SMAPI', 'a subset of z/VM\u2019s systems management API'],
 ], [2200, 7438], 'Planned service machines');
 
 // ---------------------------------------------------------------- chapter 7
@@ -423,7 +434,23 @@ P('**SQLSERV.** A service machine that owns the databases and runs requests for 
 SCREEN(['sql emp select count(*) n, sum(salary) total from emp', 'n|total', '3|25100.0', 'SQLRUN: 1 statements, 0 errors', 'Ready;'], 'A request to SQLSERV');
 SCREEN(['sqlite emp.db .read sqltest.sql', 'dept   n  avg_sal  top', '-----  -  -------  ------', 'Ops    2  7000.13  7100.0', 'R&D    2  9000.25  9200.5', 'Ready;'], 'SQLite on CMS');
 
-// ---------------------------------------------------------------- chapter 7
+// ---------------------------------------------------------------- chapter 9
+H1('Documents and Printing');
+P('VM/370plus formats documents in the Debian guest through the spool bridge and gives the result back to CMS: plain text as a CMS file, PostScript as a CMS file that can be printed. Three formatters are there: troff, BookMaster markup and LaTeX.');
+H2('TROFF');
+P('`TROFF fn [ft [fm]] (MACROS m` formats a troff document (file type TROFF by default) with groff and the ms, me, mm, man or mom macros; the text comes back as `fn DOCUMENT A`. With `(PS` the result is PostScript, `fn PS A`.');
+H2('BOOKIE: BookMaster markup');
+P('BookMaster is IBM\u2019s licensed program for GML markup. BOOKIE is our own formatter for that markup: `BOOKIE fn [ft [fm]]` (file type SCRIPT by default) gives `fn DOCUMENT A`, `BOOKIE fn (PS` gives `fn PS A`. Its style is the style of this Guide: a title page and an edition notice, a contents page with page numbers, chapters on new pages, running heads and feet, screens in framed boxes, tables and figures. This Guide is itself available as `GUIDE SCRIPT` and is formatted on VM/370plus with `BOOKIE GUIDE (PS`.');
+P('The tags are those of BookMaster: `:userdoc`, `:prolog` with `:title`, `:docnum` and the title-page tags `:prodname :subtitle :version :based :filenum`, `:frontm :tipage :edition :toc :body :appendix`, headings `:h1`\u2013`:h6`, `:p :note :attention`, lists `:ol :ul :sl :li :dl :dt :dd`, `:xmp` for screens, `:fig :figcap`, `:table :row :c`, highlighting `:hp1`\u2013`:hp3`, `:q`, `:xph`, symbols such as `&colon.` and `&amp.`, and the control words `.*`, `.sp`, `.br`, `.pa`, `.im`.');
+SCREEN([':h1.Introduction', ':p.This book is written in :hp2.BookMaster:ehp2. markup.', ':ul.', ':li.headings, paragraphs and highlighting;', ':li.lists, screens, figures and tables.', ':eul.'], 'BookMaster markup');
+H2('LaTeX');
+P('`LATEX fn [ft [fm]]` (file type TEX by default) runs LaTeX (pdfTeX, TeX Live 2023) twice, for the contents and references, and dvips; the PostScript comes back as `fn PS A`. `LATEX fn (PDF` runs pdfLaTeX and leaves the PDF in the Debian guest. The packages are those of LaTeX itself, amsmath, graphics, tools, geometry and url; a run takes about a minute.');
+H2('Printing PostScript');
+P('`PSPRINT fn [ft [fm]]` (file type PS by default) prints a PostScript file. By default it goes to the virtual printer without page headers; CP\u2019s printer 00E writes it on the PC, where `tools/psprint.py` takes each PostScript job out unchanged and hands it to the printer (lp, or a printer\u2019s port 9100) or makes a PDF. With `(BRIDGE [format]` it goes through the spool bridge: Ghostscript in the Debian guest converts it to `ps`, `pdf`, `ljet4`, `pxlmono` or `pxlcolor` and sends it to the printer named in `/etc/vmspool.d/print.conf`.');
+SCREEN(['bookie sample (ps', 'bookie: /var/spool/vmspool/out/operator/sample.ps, 12369 bytes, 5 page(s)', 'BOOKIE: SAMPLE PS A, 354 lines', 'Ready;', 'psprint sample', 'PRT  00E OUTPUT OF OPERATOR FILE  = 0041 RECDS= 000355 COPY= 01  A PRT', 'Ready;'], 'A document formatted and printed');
+P('Ghostscript itself (`gs`, `ps2pdf`, `pdf2ps`) is in the Debian guest for Linux users.');
+
+// ---------------------------------------------------------------- chapter 10
 H1('Restrictions and Known Problems');
 TABLE(['Area', 'Restriction'], [
   ['Real storage', 'CP’s frames are in the low 16 MB; storage above is a paging store. Large guests page heavily.'],
@@ -442,6 +469,8 @@ TABLE(['Area', 'Restriction'], [
   ['ZIP, GZIP', 'No encryption. A file extracted from a .zip is text unless its file type is binary. GZIP writes `fn ft-GZ` (CMS has no second dot).'],
   ['TERSE', 'Files packed by TERSE read back with UNTERSE; that z/OS AMATERSE reads them has not been tested yet.'],
   ['Smalltalk, xBase', 'With a 32-bit `long`, Smalltalk SmallIntegers are \u00b12^30 (larger ones are big integers); CMS has no directories.'],
+  ['REXX EXECs', 'An EXEC called with eight or more arguments ends CMS when the GCCLIB segment is loaded (machines below about 15 MB); this is so in the Community Edition too (I-277). Keep to seven.'],
+  ['Spool bridge', 'Requests and answers are 80-column cards: a longer line of a TeX or BookMaster source is cut.'],
   ['Linux', 'Linux 4.0 31-bit is the last kernel with 31-bit support; Debian 7 is the last Debian for s390 (31-bit).'],
 ], [2400, 7238], 'Restrictions');
 
@@ -498,6 +527,12 @@ H2('TERSE, UNTERSE');
 P('`TERSE [-v] [-l lrecl] in out` packs a file in IBM TERSE SPACK format (`-b` binary); `UNTERSE [-b] in out` unpacks PACK and SPACK files, `UNTERSE -i in` shows the header.');
 H2('SQL, SQLSERV');
 P('`SQL db statement`, `SQL db (FILE fn ft fm`, `SQL STOP`, `(SERVER userid`; `SQLSERV [(LOUD]` runs the service machine.');
+H2('LXCALL, PHONE, MQTT');
+P('`LXCALL service [args] (FILE fn ft fm | SERVER userid | WAIT n | NOTYPE`; `PHONE STATUS|CHANNELS|PEERS|CALL ext [ctx]|HANGUP channel`; `MQTT PUB topic message`, `MQTT SUB topic [n [secs]]`.');
+H2('RXPIP');
+P('`RXPIP AVAIL`, `SEARCH term`, `SHOW name`, `BUILD fn`, `RUN fn [args]`, `GET name`.');
+H2('TROFF, BOOKIE, LATEX, PSPRINT');
+P('`TROFF fn [ft [fm]] (MACROS m PS`; `BOOKIE fn [ft [fm]] (PS`; `LATEX fn [ft [fm]] (PDF`; `PSPRINT fn [ft [fm]] (BRIDGE [format]`.');
 H2('LINUX EXEC');
 SCREEN(['LINUX [DISK|READER]'], 'LINUX EXEC');
 P('On MAINT 19D. **DISK** (the default) issues `CP IPL LINUX`. **READER** punches `LINUX48 KERNEL1`, `KERNEL2` and `userid LXPARM` (or `DEFAULT LXPARM`) to the user’s reader, holding the other reader files, and IPLs the reader as an ESA/390 machine. Needs 64 MB and, for Debian, the devices listed in Chapter 5 under “What a Linux user needs”.');

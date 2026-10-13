@@ -58,8 +58,9 @@ shutdown and the rules that keep the system healthy.
 :li.:hp2.Chapter 5, Running Linux/390:ehp2., describes ESA/390 virtual
 machines, the Linux kernel, the Debian system and the network connection
 to the PC.
-:li.:hp2.Chapter 6, Service Machines:ehp2., describes CHATBOT, the
-chatbot service machine, and the service machines that are planned.
+:li.:hp2.Chapter 6, Service Machines:ehp2., describes CHATBOT, the spool
+bridge to Linux services (LXCALL, PHONE, MQTT), RXPIP, and the service
+machines that are planned.
 :li.:hp2.Chapter 7, cREXX on VM/370plus:ehp2., describes the REXX
 compiler and virtual machine built for and on VM/370plus, the languages
 written in cREXX that run on CMS and on Linux, and Turbo CREXX.
@@ -67,7 +68,9 @@ written in cREXX that run on CMS and on Linux, and Turbo CREXX.
 and what is on it&colon. GCC 13 for C and C++, GnuCOBOL, COBOL with OO,
 PL/I, Python, SQLite and SQLSERV, Pascal, APL, xBase, Smalltalk, ZIP and
 TERSE.
-:li.:hp2.Chapter 9, Restrictions and Known Problems:ehp2., lists what
+:li.:hp2.Chapter 9, Documents and Printing:ehp2., describes TROFF,
+BOOKIE (BookMaster markup), LaTeX and how PostScript reaches a printer.
+:li.:hp2.Chapter 10, Restrictions and Known Problems:ehp2., lists what
 does not work yet.
 :li.:hp2.Appendix A:ehp2. summarizes the new and changed commands,
 :hp2.Appendix B:ehp2. lists the files in the installation kit,
@@ -84,6 +87,15 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.13 October 2026.:ehp2. The spool bridge (Chapter 6)&colon. CMS
+users call Linux services with :xph.LXCALL:exph., :xph.PHONE:exph.
+(Asterisk) and :xph.MQTT:exph.; :xph.RXPIP:exph. brings REXX packages
+from the rexxpository repository to CMS. Documents and printing (new
+Chapter 9)&colon. :xph.TROFF:exph. (groff), :xph.BOOKIE:exph. (our
+BookMaster-compatible formatter, which formats this Guide on
+VM/370plus), :xph.LATEX:exph. (TeX Live 2023), Ghostscript, and
+:xph.PSPRINT:exph. to a real printer. An ESA/390 guest reading the
+virtual reader to its end no longer waits forever (I-276).
 :li.:hp2.12 October 2026, evening (kit build 8).:ehp2. The language disk
 VMLANG (MAINT 19F, :xph.LANG:exph.) carries every compiler and tool of
 Chapter 8; AUTOLOG1 attaches it at IPL. New on CMS&colon. COBOL with OO
@@ -1033,6 +1045,70 @@ AUTOLOG instead of XAUTOLOG) and one bug was fixed; the list is in
 8, SQLite. It is the model for the service machines below&colon. a
 request is a file punched to the machine, the answer is punched back to
 the sender.
+:h2.The spool bridge&colon. LXCALL
+:p.The spool bridge gives CMS users the services of the Debian guest
+through the same protocol as SQLSERV and CHATBOT. :xph.vmspoold:exph., a
+daemon in the Debian guest, reads its virtual reader, runs the requested
+service and punches the answer back to the sender. The guest is MAINT
+unless :xph.GLOBALV SELECT LXCALL SET SERVER userid:exph. names another.
+:p.:xph.LXCALL service [arguments]:exph. sends a request and shows the
+answer, which is also kept as :xph.LXCALL RESULT A:exph. (its first line
+is :xph.VMSPOOL RC n:exph.); the return code of LXCALL is that of the
+service, 404 if there is no such service. Options&colon. :xph.(FILE fn
+ft fm:exph. sends a file as the input of the service, :xph.(SERVER
+userid:exph., :xph.(WAIT n:exph. (seconds, default 900),
+:xph.(NOTYPE:exph.. A service is any executable in
+:xph./etc/vmspool.d:exph. of the guest; :xph.echo:exph. and
+:xph.sys:exph. are there to try the bridge.
+:fig.
+:xmp.
+lxcall sys
+Linux vm370plus 4.0.0+ #8 Tue Oct 13 00:11:13 UTC 2026 s390 GNU/Linux
+ 01:26:49 up 10 min,  1 user,  load average: 0.93, 1.75, 1.15
+Ready;
+:exmp.
+:figcap.A Linux service called from CMS
+:efig.
+:h2.PHONE and MQTT
+:p.:xph.PHONE STATUS:exph., :xph.PHONE CHANNELS:exph., :xph.PHONE
+PEERS:exph., :xph.PHONE CALL ext [context]:exph. and :xph.PHONE HANGUP
+channel:exph. reach the Asterisk PBX in the Debian guest. :xph.MQTT PUB
+topic message:exph. publishes a message (or, with :xph.(FILE fn
+ft:exph., each line of a file) to the mosquitto broker; :xph.MQTT SUB
+topic [n [secs]]:exph. waits for n messages. The broker can be another
+one&colon. :xph.MQTT_HOST:exph. in :xph./etc/vmspool.d/mqtt.conf:exph..
+:fig.
+:xmp.
+mqtt sub vm/test 1 20
+vm/test hello from linux
+Ready;
+:exmp.
+:figcap.A message from Linux arrives on CMS
+:efig.
+:h2.RXPIP&colon. REXX packages
+:p.RXPIP is the package manager of rexxpository&colon. REXX routines are
+published as packages, and a program names what it needs with
+:xph./:hp1. REQUIRE pkg :ehp1./:exph. comments. The repository server
+and the rxpip client run in the Debian guest; the bridge service
+:xph.rxpip:exph. serves CMS users.
+:p.:xph.RXPIP AVAIL:exph., :xph.RXPIP SEARCH term:exph. and :xph.RXPIP
+SHOW name:exph. ask the repository. :xph.RXPIP BUILD fn:exph. takes
+:xph.fn REXX:exph., installs the packages it requires and writes :xph.fn
+EXEC A:exph., a standalone program with the packages merged in;
+:xph.RXPIP RUN fn [args]:exph. builds and runs it. :xph.RXPIP GET
+name:exph. fetches a package as :xph.file REXX A:exph..
+:fig.
+:xmp.
+rxpip run demo
+rxpip: mathutils 1.0.0 already installed
+rxpip: greetutils 1.0.0 already installed
+RXPIP: DEMO EXEC A written, 71 lines
+HELLO, WORLD!!!
+square of 7 is 49
+Ready;
+:exmp.
+:figcap.A REXX program with its packages
+:efig.
 :h2.Planned service machines
 :fig.
 :table cols='2200 7438'.
@@ -1047,18 +1123,8 @@ the sender.
 language model on the PC or in the cloud; CMS users ask it through the
 spool, like CHAT
 :row.
-:c.Spool bridge
-:c.a daemon in the Debian guest that takes requests from its virtual
-reader (vmur) and answers through the punch, so Linux services
-(Asterisk&colon. :xph.PHONE:exph., MQTT, MariaDB) speak the same spool
-protocol as CHATBOT and SQLSERV
-:row.
-:c.RXPIPSRV
-:c.REXX packages from rexxpository (RXPIP) for CMS users&colon.
-:xph.RXPIP INSTALL pkg:exph. through the spool
-:row.
-:c.MQ, MQTT
-:c.a queue manager on CMS; the mosquitto broker on Debian
+:c.MQ
+:c.a queue manager on CMS
 :row.
 :c.Network pack
 :c.optional&colon. a firewall guest (BORDER), an HTTP load balancer, and
@@ -1535,6 +1601,84 @@ Ready;
 :exmp.
 :figcap.SQLite on CMS
 :efig.
+:h1.Documents and Printing
+:p.VM/370plus formats documents in the Debian guest through the spool
+bridge and gives the result back to CMS&colon. plain text as a CMS file,
+PostScript as a CMS file that can be printed. Three formatters are
+there&colon. troff, BookMaster markup and LaTeX.
+:h2.TROFF
+:p.:xph.TROFF fn [ft [fm]] (MACROS m:exph. formats a troff document
+(file type TROFF by default) with groff and the ms, me, mm, man or mom
+macros; the text comes back as :xph.fn DOCUMENT A:exph.. With
+:xph.(PS:exph. the result is PostScript, :xph.fn PS A:exph..
+:h2.BOOKIE&colon. BookMaster markup
+:p.BookMaster is IBM's licensed program for GML markup. BOOKIE is our
+own formatter for that markup&colon. :xph.BOOKIE fn [ft [fm]]:exph.
+(file type SCRIPT by default) gives :xph.fn DOCUMENT A:exph.,
+:xph.BOOKIE fn (PS:exph. gives :xph.fn PS A:exph.. Its style is the
+style of this Guide&colon. a title page and an edition notice, a
+contents page with page numbers, chapters on new pages, running heads
+and feet, screens in framed boxes, tables and figures. This Guide is
+itself available as :xph.GUIDE SCRIPT:exph. and is formatted on
+VM/370plus with :xph.BOOKIE GUIDE (PS:exph..
+:p.The tags are those of BookMaster&colon. :xph.&colon.userdoc:exph.,
+:xph.&colon.prolog:exph. with :xph.&colon.title:exph.,
+:xph.&colon.docnum:exph. and the title-page tags :xph.&colon.prodname
+&colon.subtitle &colon.version &colon.based &colon.filenum:exph.,
+:xph.&colon.frontm &colon.tipage &colon.edition &colon.toc &colon.body
+&colon.appendix:exph., headings
+:xph.&colon.h1:exph.-:xph.&colon.h6:exph., :xph.&colon.p &colon.note
+&colon.attention:exph., lists :xph.&colon.ol &colon.ul &colon.sl
+&colon.li &colon.dl &colon.dt &colon.dd:exph., :xph.&colon.xmp:exph. for
+screens, :xph.&colon.fig &colon.figcap:exph., :xph.&colon.table
+&colon.row &colon.c:exph., highlighting
+:xph.&colon.hp1:exph.-:xph.&colon.hp3:exph., :xph.&colon.q:exph.,
+:xph.&colon.xph:exph., symbols such as :xph.&amp.colon.:exph. and
+:xph.&amp.amp.:exph., and the control words :xph..*:exph.,
+:xph..sp:exph., :xph..br:exph., :xph..pa:exph., :xph..im:exph..
+:fig.
+:xmp.
+:h1.Introduction
+:p.This book is written in :hp2.BookMaster:ehp2. markup.
+:ul.
+:li.headings, paragraphs and highlighting;
+:li.lists, screens, figures and tables.
+:eul.
+:exmp.
+:figcap.BookMaster markup
+:efig.
+:h2.LaTeX
+:p.:xph.LATEX fn [ft [fm]]:exph. (file type TEX by default) runs LaTeX
+(pdfTeX, TeX Live 2023) twice, for the contents and references, and
+dvips; the PostScript comes back as :xph.fn PS A:exph.. :xph.LATEX fn
+(PDF:exph. runs pdfLaTeX and leaves the PDF in the Debian guest. The
+packages are those of LaTeX itself, amsmath, graphics, tools, geometry
+and url; a run takes about a minute.
+:h2.Printing PostScript
+:p.:xph.PSPRINT fn [ft [fm]]:exph. (file type PS by default) prints a
+PostScript file. By default it goes to the virtual printer without page
+headers; CP's printer 00E writes it on the PC, where
+:xph.tools/psprint.py:exph. takes each PostScript job out unchanged and
+hands it to the printer (lp, or a printer's port 9100) or makes a PDF.
+With :xph.(BRIDGE [format]:exph. it goes through the spool bridge&colon.
+Ghostscript in the Debian guest converts it to :xph.ps:exph.,
+:xph.pdf:exph., :xph.ljet4:exph., :xph.pxlmono:exph. or
+:xph.pxlcolor:exph. and sends it to the printer named in
+:xph./etc/vmspool.d/print.conf:exph..
+:fig.
+:xmp.
+bookie sample (ps
+bookie: /var/spool/vmspool/out/operator/sample.ps, 12369 bytes, 5 page(s)
+BOOKIE: SAMPLE PS A, 354 lines
+Ready;
+psprint sample
+PRT  00E OUTPUT OF OPERATOR FILE  = 0041 RECDS= 000355 COPY= 01  A PRT
+Ready;
+:exmp.
+:figcap.A document formatted and printed
+:efig.
+:p.Ghostscript itself (:xph.gs:exph., :xph.ps2pdf:exph.,
+:xph.pdf2ps:exph.) is in the Debian guest for Linux users.
 :h1.Restrictions and Known Problems
 :fig.
 :table cols='2400 7238'.
@@ -1612,6 +1756,15 @@ reads them has not been tested yet.
 :c.Smalltalk, xBase
 :c.With a 32-bit :xph.long:exph., Smalltalk SmallIntegers are ±2^30
 (larger ones are big integers); CMS has no directories.
+:row.
+:c.REXX EXECs
+:c.An EXEC called with eight or more arguments ends CMS when the GCCLIB
+segment is loaded (machines below about 15 MB); this is so in the
+Community Edition too (I-277). Keep to seven.
+:row.
+:c.Spool bridge
+:c.Requests and answers are 80-column cards&colon. a longer line of a
+TeX or BookMaster source is cut.
 :row.
 :c.Linux
 :c.Linux 4.0 31-bit is the last kernel with 31-bit support; Debian 7 is
@@ -1876,6 +2029,18 @@ unpacks PACK and SPACK files, :xph.UNTERSE -i in:exph. shows the header.
 :p.:xph.SQL db statement:exph., :xph.SQL db (FILE fn ft fm:exph.,
 :xph.SQL STOP:exph., :xph.(SERVER userid:exph.; :xph.SQLSERV
 [(LOUD]:exph. runs the service machine.
+:h2.LXCALL, PHONE, MQTT
+:p.:xph.LXCALL service [args] (FILE fn ft fm | SERVER userid | WAIT n |
+NOTYPE:exph.; :xph.PHONE STATUS|CHANNELS|PEERS|CALL ext [ctx]|HANGUP
+channel:exph.; :xph.MQTT PUB topic message:exph., :xph.MQTT SUB topic [n
+[secs]]:exph..
+:h2.RXPIP
+:p.:xph.RXPIP AVAIL:exph., :xph.SEARCH term:exph., :xph.SHOW name:exph.,
+:xph.BUILD fn:exph., :xph.RUN fn [args]:exph., :xph.GET name:exph..
+:h2.TROFF, BOOKIE, LATEX, PSPRINT
+:p.:xph.TROFF fn [ft [fm]] (MACROS m PS:exph.; :xph.BOOKIE fn [ft [fm]]
+(PS:exph.; :xph.LATEX fn [ft [fm]] (PDF:exph.; :xph.PSPRINT fn [ft [fm]]
+(BRIDGE [format]:exph..
 :h2.LINUX EXEC
 :fig.
 :xmp.

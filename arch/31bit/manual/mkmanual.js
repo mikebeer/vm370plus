@@ -104,7 +104,7 @@ const title = [
   new Paragraph({ children: [new TextRun({ text: 'Introduction, Installation', font: HEAD, bold: true, size: 40 })] }),
   new Paragraph({ children: [new TextRun({ text: 'and User’s Guide', font: HEAD, bold: true, size: 40 })], spacing: { after: 400 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 24, color: '000000', space: 8 } } }),
-  new Paragraph({ children: [new TextRun({ text: 'Release 1  •  Kit Build 5, updated 10 October 2026', font: HEAD, size: 24 })], spacing: { after: 120 } }),
+  new Paragraph({ children: [new TextRun({ text: 'Release 1  •  Kit Build 8, updated 13 October 2026', font: HEAD, size: 24 })], spacing: { after: 120 } }),
   new Paragraph({ children: [new TextRun({ text: 'based on VM/370 Community Edition V1 R1.2', font: HEAD, size: 22 })], spacing: { after: 2400 } }),
   new Paragraph({ children: [new TextRun({ text: 'Publication VMP-0001-0', font: HEAD, size: 22 })] }),
   new Paragraph({ children: [new TextRun({ text: 'File No. S370-34', font: HEAD, size: 22 })] }),
