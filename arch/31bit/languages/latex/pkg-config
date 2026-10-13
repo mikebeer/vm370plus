@@ -1,0 +1,11 @@
+#!/bin/sh
+# pkg-config for the s390 cross build: our static zlib and libpng only
+case "$*" in
+*--version*) echo 0.29; exit 0;;
+*--exists*) case "$*" in *libpng*|*zlib*) exit 0;; *) exit 1;; esac;;
+*--modversion*) case "$*" in *libpng*) echo 1.6.43;; *zlib*) echo 1.3;; *) exit 1;; esac;;
+*--cflags*) case "$*" in *libpng*|*zlib*) echo -I/home/claude/src/tex/s390root/include;; *) exit 1;; esac;;
+*--libs*) case "$*" in *libpng*) echo -L/home/claude/src/tex/s390root/lib -lpng16 -lz -lm;; *zlib*) echo -L/home/claude/src/tex/s390root/lib -lz;; *) exit 1;; esac;;
+esac
+case "$*" in *libpng*|*zlib*) exit 0;; esac
+exit 1

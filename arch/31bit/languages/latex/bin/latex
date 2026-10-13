@@ -1,0 +1,4 @@
+#!/bin/sh
+# latex -- LaTeX (pdfTeX in DVI mode), VM/370plus 9.27
+. /usr/local/texlive/bin/texenv
+exec pdftex -fmt=latex -progname=latex "$@"

@@ -1,0 +1,3 @@
+% language.def -- VM/370plus: English only
+\addlanguage {USenglish}{hyphen}{}{2}{3}
+\uselanguage {USenglish}

@@ -1,0 +1,7 @@
+#!/bin/sh
+# mklatexfmt -- make the LaTeX formats once, after installing the tree
+. /usr/local/texlive/bin/texenv
+d=/usr/local/texlive/texmf-var/web2c; mkdir -p $d && cd $d || exit 1
+pdftex -ini -etex -jobname=latex -progname=latex -translate-file=cp227.tcx -interaction=nonstopmode '*latex.ini' >latex.out 2>&1
+pdftex -ini -etex -jobname=pdflatex -progname=pdflatex -translate-file=cp227.tcx -interaction=nonstopmode '*pdflatex.ini' >pdflatex.out 2>&1
+ls -la $d/*.fmt; tail -3 latex.out pdflatex.out

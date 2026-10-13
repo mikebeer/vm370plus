@@ -1,0 +1,4 @@
+#!/bin/sh
+# pdflatex -- LaTeX to PDF, VM/370plus 9.27
+. /usr/local/texlive/bin/texenv
+exec pdftex -fmt=pdflatex -progname=pdflatex "$@"

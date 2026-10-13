@@ -2,6 +2,9 @@
    glibc than wheezy's 2.13 (C11/C++11 additions); wc++ includes it first */
 #ifndef WHEEZY_CXX_H
 #define WHEEZY_CXX_H
+/* glibc 2.13's math.h declares int isinf(double) and isnan(double) */
+#define _GLIBCXX_HAVE_OBSOLETE_ISINF 1
+#define _GLIBCXX_HAVE_OBSOLETE_ISNAN 1
 #include <stddef.h>
 #include <time.h>
 #ifdef __cplusplus

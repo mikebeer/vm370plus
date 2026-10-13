@@ -1,0 +1,30 @@
+#!/bin/sh
+# latex -- vmspoold: LaTeX from CMS (LATEX EXEC, 9.27)
+#   PS name     LaTeX (twice, for contents and references), dvips: the
+#               PostScript comes back after a  ::PS  line
+#   PDF name    pdfLaTeX: the PDF stays in /var/spool/vmspool/out/<user>/
+# The input is the .tex source.  The log's errors come back as messages.
+. /usr/local/texlive/bin/texenv
+cmd=$(echo "$1" | tr a-z A-Z)
+n=$(echo "$2" | tr A-Z a-z); case "$n" in ''|*[!a-z0-9_@#$-]*) echo "latex: bad name: $2"; exit 4;; esac
+d=/var/spool/vmspool/out/$(echo "$VMSPOOL_FROM" | tr A-Z a-z); mkdir -p $d/tex
+cd $d/tex || exit 8
+sed 's/ *$//' > $n.tex
+case "$cmd" in
+PS)  latex -interaction=nonstopmode $n.tex >/dev/null 2>&1
+     latex -interaction=nonstopmode $n.tex >/dev/null 2>&1; rc=$?
+     grep -A2 '^!' $n.log | head -30
+     [ -s $n.dvi ] || { echo "latex: no DVI (see $d/tex/$n.log)"; exit 12; }
+     dvips -q -o $d/$n.ps $n.dvi || exit 16
+     echo "latex: $d/$n.ps, $(wc -c < $d/$n.ps) bytes, $(grep -c '^%%Page:' $d/$n.ps) page(s)"
+     echo "::PS"; cat $d/$n.ps
+     exit $rc ;;
+PDF) pdflatex -interaction=nonstopmode $n.tex >/dev/null 2>&1
+     pdflatex -interaction=nonstopmode $n.tex >/dev/null 2>&1; rc=$?
+     grep -A2 '^!' $n.log | head -30
+     [ -s $n.pdf ] || { echo "latex: no PDF (see $d/tex/$n.log)"; exit 12; }
+     cp $n.pdf $d/$n.pdf
+     echo "latex: $d/$n.pdf, $(wc -c < $d/$n.pdf) bytes"
+     exit $rc ;;
+*) echo "latex: PS name, PDF name"; exit 4 ;;
+esac

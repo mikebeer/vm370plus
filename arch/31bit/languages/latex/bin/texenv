@@ -1,0 +1,3 @@
+# sourced by the wrappers: where the tree is
+TEXMFCNF=/usr/local/texlive/texmf-dist/web2c; export TEXMFCNF
+PATH=/usr/local/texlive/bin:$PATH; export PATH
