@@ -972,6 +972,53 @@ load, while another user works in CMS (LISTFILE, COPYFILE, TYPE, ERASE),
 defines 64 MB, starts Linux with :xph.LINUX:exph., stops it with
 :xph.poweroff:exph. and goes back to CMS with :xph.IPL CMS:exph.; the
 Debian system's files are unchanged throughout.
+:h2.The guest LAN
+:p.Linux guests can talk to each other over a LAN that CP simulates,
+like the z/VM guest LAN, with no real device and no PC in between. Each
+guest gets a LAN adapter of its own&colon. two virtual devices that CP
+presents as a 3088 model 60 LCS (a read and a write subchannel). Define
+them before Linux starts, at an even address and the one after it&colon.
+:fig.
+:xmp.
+cp define lcs 640
+DEV 640 DEFINED
+cp define lcs 641
+DEV 641 DEFINED
+cp ipl linux
+:exmp.
+:figcap.A LAN adapter for this user
+:efig.
+:p.Linux's :xph.lcs:exph. driver makes the pair :xph.eth0:exph.. On the
+Debian disk the boot script :xph.vm370plus-lan:exph. (run from
+:xph.rc.local:exph.) groups the pair, sets it online and gives it its
+address on the segment 10.3.0.0/24&colon. the address for this user in
+:xph./etc/vm370plus-lan.conf:exph. (:xph.USERID ADDRESS:exph. lines; the
+kit has MAINT 10.3.0.2 and CMSUSER 10.3.0.3), or else 10.3.0.(n+1) for
+the user's CTC pair n. By hand, or in the in-storage system
+(:xph.vmroot=ram:exph.)&colon.
+:fig.
+:xmp.
+echo 0.0.0640,0.0.0641 > /sys/bus/ccwgroup/drivers/lcs/group
+echo 1 > /sys/bus/ccwgroup/devices/0.0.0640/online
+ifconfig eth0 10.3.0.3 netmask 255.255.255.0 up
+ping -c 3 10.3.0.2
+64 bytes from 10.3.0.2: seq=0 ttl=64 time=33.490 ms
+:exmp.
+:figcap.eth0 by hand
+:efig.
+:p.Every adapter on the system is on the one segment. CP gives each a
+MAC address of its own (02, then three bytes of the user's VMBLOK and
+the device address) and passes each frame to the adapter it is addressed
+to, or to all of them for a broadcast such as ARP. A user who logs off
+or DETACHes the adapter simply leaves the LAN.
+:p.Limits of this first version&colon. at most 16 adapters on the
+system; at most 64 frames waiting for a guest that does not read (more
+are dropped, as on a real LAN); no IPv6 and no multicast groups (the lcs
+driver says so at start-up); frames up to 1,600 bytes (MTU 1500). The
+LAN has no way out yet&colon. the BORDER service machine, which will
+connect it to the PC and the internet, and DHCP and DNS for it, are the
+next steps of the network work. Expect round trips of tens to hundreds
+of milliseconds&colon. every frame is a channel program CP simulates.
 :h1.Service Machines
 :p.A service machine is a virtual machine that works for other
 users&colon. it runs disconnected, takes requests and sends answers.

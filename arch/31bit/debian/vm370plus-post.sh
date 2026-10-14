@@ -73,4 +73,41 @@ echo "vm370plus-net: ctc0 $ip (peer $peer), from CTC $dev"
 NET
 chmod 755 /usr/local/sbin/vm370plus-net
 grep -q vm370plus-net /etc/rc.local || sed -i 's|^exit 0|/usr/local/sbin/vm370plus-net\nexit 0|' /etc/rc.local
+cat > /usr/local/sbin/vm370plus-lan <<'LAN'
+#!/bin/sh
+# VM/370plus: eth0 on the CP guest LAN (9.12b).  CP DEFINE LCS 640 and
+# CP DEFINE LCS 641 (before the IPL) give this machine a CP-simulated
+# 3088-60 LCS on the one internal segment 10.3.0.0/24; Linux's lcs
+# driver makes it eth0.  The address: /etc/vm370plus-lan.conf (USERID
+# ADDRESS lines) for this user, else 10.3.0.(n+1) for the CTC pair n of
+# vm370plus-net (MAINT 10.3.0.2, CMSUSER 10.3.0.3), else none.
+# Run from /etc/rc.local.
+r=
+for d in /sys/bus/ccw/devices/*; do
+  [ "$(cat $d/cutype 2>/dev/null)" = 3088/60 ] || continue
+  b=${d##*/}; x=$(( 0x${b##*.} ))
+  [ $(( x % 2 )) = 0 ] && { r=$b; break; }
+done
+[ -n "$r" ] || exit 0
+w=$(printf '0.0.%04x' $(( 0x${r##*.} + 1 )))
+[ -e /sys/bus/ccwgroup/devices/$r ] || echo $r,$w > /sys/bus/ccwgroup/drivers/lcs/group
+echo 1 > /sys/bus/ccwgroup/devices/$r/online 2>/dev/null
+sleep 2
+u=$(vmcp q userid 2>/dev/null | awk '{print $1}')
+ip=
+[ -n "$u" ] && [ -r /etc/vm370plus-lan.conf ] && ip=$(awk -v u="$u" 'toupper($1)==toupper(u) {print $2}' /etc/vm370plus-lan.conf)
+if [ -z "$ip" ]; then
+  c=$(readlink /sys/class/net/ctc0/device 2>/dev/null); c=${c##*.}
+  case $c in
+    062?) ip=10.3.0.$(( (0x$c - 0x620) / 2 + 2 ));;
+    06[01]?) ip=10.3.0.$(( (0x$c - 0x600) / 2 + 2 ));;
+  esac
+fi
+[ -n "$ip" ] || { echo "vm370plus-lan: eth0 up, no address for ${u:-this user} (see /etc/vm370plus-lan.conf)"; ifconfig eth0 up; exit 0; }
+ifconfig eth0 $ip netmask 255.255.255.0 up
+echo "vm370plus-lan: eth0 $ip on the guest LAN (LCS $r)"
+LAN
+chmod 755 /usr/local/sbin/vm370plus-lan
+[ -e /etc/vm370plus-lan.conf ] || printf '# USERID ADDRESS on the CP guest LAN (10.3.0.0/24)\nMAINT 10.3.0.2\nCMSUSER 10.3.0.3\n' > /etc/vm370plus-lan.conf
+grep -q vm370plus-lan /etc/rc.local || sed -i 's|^exit 0|/usr/local/sbin/vm370plus-lan\nexit 0|' /etc/rc.local
 echo "VM/370plus post-install done"

@@ -92,6 +92,18 @@ This is CP work and the largest step of 9.12.
 | C | the switch: unicast, broadcast, queues | two guests ping each other (ARP over the LAN) -- **done 14 Oct (lb6)**: MAINT and CMSUSER, each a ramdisk Linux (kernel #11 from the reader), 10.3.0.2 and 10.3.0.3; ARP, ping, ping -s 1400 (19 of 20, 25-900 ms). Frames for another member are queued; its read side gets a PCI interruption with the CPA unchanged (Linux takes no buffer) and its own TSCH pumps the frames -- no cross-user TRANS, no CPEXBLOK (I-292). Test `tests/runs/m9-guestlan-2ram.json` with a second terminal (holdterm) for CMSUSER. |
 | D | DETACH, LOGOFF, HSCH/CSCH, recovery | offline/online in Linux; a guest leaves while the other sends -- **done 14 Oct (lb8)**: MAINT pings CMSUSER every 2 s (`ping -i 2 -c 600 10.3.0.3 &`); CMSUSER `#cp logoff` (CP stays up), logs on again, rejoins (pings answered again), takes eth0 offline and online (HSCH/CSCH), pings back, then `#cp detach 650` and `651` under traffic. VLVALID checks every destination before a frame is queued or a member kicked: its user must be in the VMBLOK chain (round once from the system VMBLOK's VMPNT -- the system VMBLOK is not in the cycle; the first version looped, lb7) and its read device must still be an LCS (DMKSCNVU); a stale member's frames are freed and its slot cleared. Test `tests/runs/m9-guestlan-stepd.json` + `m9-guestlan-cmsuser.sh`. |
 
+### Debian on the LAN (14 Oct, lb9)
+
+`/usr/local/sbin/vm370plus-lan` (from `rc.local`, written by
+`arch/31bit/debian/vm370plus-post.sh`, installed on the dev Debian disk):
+finds the even subchannel of a 3088/60 pair, groups it with the next one,
+sets it online and gives eth0 the address for `vmcp q userid` in
+`/etc/vm370plus-lan.conf` (MAINT 10.3.0.2, CMSUSER 10.3.0.3), else
+10.3.0.(n+1) for the CTC pair n. MAINT Debian (kernel #11, `CP DEFINE LCS
+640/641` before `CP IPL LINUX`) and CMSUSER's ramdisk Linux: ping both
+ways, a TCP connect to Debian's sshd, and 200,000 bytes by nc from CMSUSER
+to Debian in 5.4 s with the same MD5 (about 37 KB/s).
+
 ## 9.12c — BORDER, and the network configuration
 
 BORDER is the only machine with a link to the PC's network. It does three things:
