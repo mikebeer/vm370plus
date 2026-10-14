@@ -668,3 +668,18 @@ From three documents supplied 26 September:
   - He is on **Hercules 4.9.1**, so `FEATURE_370_EXTENSION` is available to
     him — useless for addressing but it backports relative branches,
     immediates, MVCLE and CMPSC into S/370 mode.
+
+## Kit b16 (14 October 2026, afternoon)
+
+Java and NetRexx on both sides (9.34, 9.35) and the I-290 CP fix. Built
+from the dev pack after LANGGEN (lg16) and the directory change (MAINT
+16M 256M, DIRUP EXEC). 18 parts: 1-5 as before, Debian 6-15 (255 MB),
+LANG 16-18 (60 MB). Verified on a fresh CE + all parts (kt30): CMSUSER
+JAVA HELLO 3.3 s, JAVAC HELLO 24 s, NETREXX HELLO 24 s, NETREXX HELLO
+COMPILE 45 s, JAVA HELLO (NetRexx class) 3.6 s, LOGOFF clean; MAINT
+Debian at 192 MB: java -version, javac Hello.java && java Hello 294 s;
+poweroff, SHUTDOWN clean.
+
+JamVM on CMS: arch/31bit/java/cms (green threads, generated JNI stubs,
+Classpath natives, dlsym table, cmsrt additions). ecj 3.5.2 built from
+eclipse-jdt tag R3_5_2 (compiler, batch, compiler.tool) against glibj.
