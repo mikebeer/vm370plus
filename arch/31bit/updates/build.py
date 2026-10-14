@@ -3759,9 +3759,27 @@ def m7decks():
         "         B     SETCCX",
         "SETCC1N  DS    0H",
     ])
+    # I-287: VCSSSCH makes a CTCA's channel a block multiplexer, and the
+    # BMX rescan here (and in DMKVSJ) keeps a channel ACTIVE while any
+    # non-terminal device on it is busy.  Linux's ctcm keeps a READ
+    # waiting on its read adapter all the time, so VMIOACTV never cleared:
+    # DMKDSP never let the guest go idle, it held its queue slot and the
+    # storage it was charged for, and the other guest starved in the
+    # eligible list (vc3, vc4).  A virtual CTCA waits on its partner, not
+    # on a channel, so it is skipped like a terminal.
+    d.insert('00666000', first='00666100', inc=100,
+             limit=next_seq(src('DMKVIO'), '00666000'), lines=[
+        "         CLI   VDEVTYPE,TYPCTCA  I-287: A VIRTUAL CTCA WAITS",
+        "         BE    RESXDV         ON ITS PARTNER: NOT ACTIVE I/O",
+    ])
     decks['DMKVIO'] = d
 
     d = Deck(XA54)
+    d.insert('00393000', first='00393100', inc=100,
+             limit=next_seq(src('DMKVSJ'), '00393000'), lines=[
+        "         CLI   VDEVTYPE,TYPCTCA  I-287: A VIRTUAL CTCA WAITS",
+        "         BE    RESXDV         ON ITS PARTNER: NOT ACTIVE I/O",
+    ])
     d.insert('00500000', first='00500110', inc=10,
              limit=next_seq(src('DMKVSJ'), '00500000'), lines=M7EQU[:1] + [
         "         ENTRY DMKVSJTE",

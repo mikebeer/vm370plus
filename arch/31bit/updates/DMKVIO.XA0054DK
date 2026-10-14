@@ -15,3 +15,6 @@ SETCC1   EQU   *                                               XA0054DK
          SR    R2,R2          CC 0                             XA0054DK         
          B     SETCCX                                          XA0054DK         
 SETCC1N  DS    0H                                              XA0054DK         
+./ I 00666000 $ 00666100 100                                                    
+         CLI   VDEVTYPE,TYPCTCA  I-287: A VIRTUAL CTCA WAITS   XA0054DK         
+         BE    RESXDV         ON ITS PARTNER: NOT ACTIVE I/O   XA0054DK         
