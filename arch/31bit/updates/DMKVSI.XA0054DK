@@ -1262,8 +1262,7 @@ DMKVLN   CSECT                                                 XA0054DK
          DROP  R10,R12                                         XA0054DK         
          USING DMKVLN,R12                                      XA0054DK         
          USING VLMEM,R10                                       XA0054DK         
-         ENTRY DMKVLNEX,DMKVLNPX                               XA0054DK         
-         EXTRN DMKSTKCP                                        XA0054DK         
+         ENTRY DMKVLNEX                                        XA0054DK         
 *  DMKVLNEX: FROM DMKVCS'S DISPATCH (R12 = A(DMKVCS) THERE)    XA0054DK         
 DMKVLNEX LR    R12,R15        R15 = A(DMKVLNEX) = A(DMKVLN)    XA0054DK         
          CLI   VMINST+1,X'34' STSCH AND MSCH STAY DMKVCS'S     XA0054DK         
@@ -1550,10 +1549,9 @@ VLQINT   MVC   VLTRW(1),SEV(R5)  TRACE: AN INTERRUPTION        XA0054DK
          LA    R1,VLCSW                                        XA0054DK         
          L     R15,=A(DMKVCSC1)                                XA0054DK         
          BALR  R14,R15                                         XA0054DK         
-         CL    R11,RUNUSER    ANOTHER USER'S ADAPTER (A        XA0054DK         
-         BE    VLQ9           DMKVLNPX PUMP): WAKE IT          XA0054DK         
-         NI    VMRSTAT,255-VMEXWAIT                            XA0054DK         
-         CALL  DMKSCHDL                                        XA0054DK         
+         CL    R11,RUNUSER    ANOTHER USER'S (VLKICK):         XA0054DK         
+         BE    VLQ9           LET THE SCHEDULER LOOK AT IT,    XA0054DK         
+         CALL  DMKSCHDL       AS DMKVCA DOES                   XA0054DK         
 VLQ9     LM    R0,R15,VLSAVQ                                   XA0054DK         
          BR    R9                                              XA0054DK         
 *                                                              XA0054DK         
@@ -1801,57 +1799,34 @@ VLE3     ST    R1,MQT-VLMEM(,R2)                               XA0054DK
 VLE9     L     R9,VLLNK4                                       XA0054DK         
          BR    R9                                              XA0054DK         
 *                                                              XA0054DK         
-*  VLKICK: EVERY OTHER MEMBER WITH NEW FRAMES GETS ITS READ    XA0054DK         
-*  PUMPED IN ITS OWN CONTEXT: A CPEXBLOK TO DMKVLNPX           XA0054DK         
+*  VLKICK: EVERY OTHER MEMBER WITH NEW FRAMES WHOSE READ IS    XA0054DK         
+*  RUNNING GETS A PCI INTERRUPTION (CPA UNCHANGED, SO LINUX    XA0054DK         
+*  TAKES NO BUFFER); ITS TSCH THEN PUMPS THE READ IN ITS OWN   XA0054DK         
+*  CONTEXT.  A SUSPENDED READ IS PUMPED BY ITS RSCH.  NO       XA0054DK         
+*  CROSS-USER TRANS, NO CPEXBLOK (I-292).  UNDER VCSLOCK.      XA0054DK         
 VLKICK   ST    R9,VLLNK3                                       XA0054DK         
-         L     R2,=A(VLMEMS)                                   XA0054DK         
+         STM   R5,R11,VLSAVK                                   XA0054DK         
+         L     R10,=A(VLMEMS)                                  XA0054DK         
          LA    R0,VLNMEM                                       XA0054DK         
-VLK1     TM    MFLG-VLMEM(R2),MKICK                            XA0054DK         
+VLK1     TM    MFLG,MKICK                                      XA0054DK         
          BZ    VLK8                                            XA0054DK         
-         NI    MFLG-VLMEM(R2),255-MKICK                        XA0054DK         
-         TM    MFLG-VLMEM(R2),MSTK  ONE ALREADY STACKED        XA0054DK         
+         NI    MFLG,255-MKICK                                  XA0054DK         
+         ICM   R11,15,MVM                                      XA0054DK         
+         BZ    VLK8                                            XA0054DK         
+         LA    R5,MREAD                                        XA0054DK         
+         TM    SST(R5),SACT   RUNNING, NOT SUSPENDED           XA0054DK         
+         BZ    VLK8                                            XA0054DK         
+         TM    SDEV(R5),SDPEND  AN INTERRUPTION IS COMING      XA0054DK         
          BO    VLK8                                            XA0054DK         
-         OI    MFLG-VLMEM(R2),MSTK                             XA0054DK         
-         STM   R0,R2,VLSAVK                                    XA0054DK         
-         LA    R0,VLCPXSZ                                      XA0054DK         
-         CALL  DMKFREE                                         XA0054DK         
-         LM    R0,R2,VLSAVK                                    XA0054DK         
-         XC    0(VLCPXSZ*8,R1),0(R1)                           XA0054DK         
-         L     R4,=A(DMKVLNPX)                                 XA0054DK         
-         ST    R4,VLCPXAD(,R1)                                 XA0054DK         
-         MVC   VLCPXRG+44(4,R1),MVM-VLMEM(R2)  R11             XA0054DK         
-         ST    R2,VLCPXRG+40(,R1)  R10: THE MEMBER             XA0054DK         
-         L     R4,=A(DMKVLN)                                   XA0054DK         
-         ST    R4,VLCPXRG+48(,R1)  R12                         XA0054DK         
-         STM   R0,R2,VLSAVK                                    XA0054DK         
-         CALL  DMKSTKCP                                        XA0054DK         
-         LM    R0,R2,VLSAVK                                    XA0054DK         
-VLK8     LA    R2,VLMEMLN(,R2)                                 XA0054DK         
+         OI    SEV(R5),EVPCI                                   XA0054DK         
+         ST    R0,VLSAVK+28                                    XA0054DK         
+         BAL   R9,VLQINT                                       XA0054DK         
+         L     R0,VLSAVK+28                                    XA0054DK         
+VLK8     LA    R10,VLMEMLN(,R10)                               XA0054DK         
          BCT   R0,VLK1                                         XA0054DK         
+         LM    R5,R11,VLSAVK                                   XA0054DK         
          L     R9,VLLNK3                                       XA0054DK         
          BR    R9                                              XA0054DK         
-*                                                              XA0054DK         
-*  DMKVLNPX: THE PUMP OF ANOTHER USER'S READ SIDE (CPEXBLOK).  XA0054DK         
-*  R10 = THE MEMBER, R11 = ITS VMBLOK, R12 = A(DMKVLN).  IT    XA0054DK         
-*  TAKES DMKVCS'S LOCK (ITS WORK AREAS AND OURS ARE STATIC);   XA0054DK         
-*  A BUSY LOCK STACKS IT AGAIN.                                XA0054DK         
-DMKVLNPX L     R12,=A(DMKVLN)                                  XA0054DK         
-         NI    MFLG,255-MSTK                                   XA0054DK         
-         C     R11,MVM        STILL THE MEMBER'S USER?         XA0054DK         
-         BNE   VLPXDSP                                         XA0054DK         
-         L     R1,=A(VCSLOCK)                                  XA0054DK         
-         ICM   R2,15,0(R1)                                     XA0054DK         
-         BZ    VLPX2                                           XA0054DK         
-         CR    R2,R11                                          XA0054DK         
-         BE    VLPX2                                           XA0054DK         
-         OI    MFLG,MKICK     BUSY: AGAIN LATER                XA0054DK         
-         BAL   R9,VLKICK                                       XA0054DK         
-         B     VLPXDSP                                         XA0054DK         
-VLPX2    ST    R11,0(,R1)                                      XA0054DK         
-         BAL   R9,VLPUMP                                       XA0054DK         
-         L     R1,=A(VCSLOCK)                                  XA0054DK         
-         XC    0(4,R1),0(R1)                                   XA0054DK         
-VLPXDSP  GOTO  DMKDSPCH                                        XA0054DK         
 *                                                              XA0054DK         
 *  VLFIND: R10 = THIS USER'S MEMBER FOR DEVICE R13 (EVEN =     XA0054DK         
 *  READ, ODD = WRITE), A NEW ONE IF NEEDED; R5 = THE SIDE.     XA0054DK         
@@ -1997,7 +1972,7 @@ VLSAVR   DS    3F                                              XA0054DK
 VLTRW    DS    F                                               XA0054DK         
 VLTRNXT  DC    F'0'                                            XA0054DK         
 VLSAVQ   DS    16F                                             XA0054DK         
-VLSAVK   DS    3F                                              XA0054DK         
+VLSAVK   DS    8F                                              XA0054DK         
 VLSAVS   DS    2F                                              XA0054DK         
 VLSAVE   DS    F                                               XA0054DK         
 VLCHUNK  DS    F                                               XA0054DK         
