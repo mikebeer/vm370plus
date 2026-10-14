@@ -12,7 +12,7 @@ B(['**Chapter 1, Introduction**, says what VM/370plus is and what it is for.',
    '**Chapter 3, Installing VM/370plus**, takes you from a fresh Community Edition to a running VM/370plus system.',
    '**Chapter 4, Operating VM/370plus**, covers start-up, shutdown and the rules that keep the system healthy.',
    '**Chapter 5, Running Linux/390**, describes ESA/390 virtual machines, the Linux kernel, the Debian system and the network connection to the PC.',
-   '**Chapter 6, Service Machines**, describes CHATBOT, the spool bridge to Linux services (LXCALL, PHONE, MQTT, TELL), RXPIP, NICOF, MQ, and the service machines that are planned.',
+   '**Chapter 6, Service Machines**, describes CHATBOT, the spool bridge to Linux services (LXCALL, PHONE, MQTT, TELL), RXPIP, NICOF, MQ, PGSQL, and the service machines that are planned.',
    '**Chapter 7, cREXX on VM/370plus**, describes the REXX compiler and virtual machine built for and on VM/370plus, the languages written in cREXX that run on CMS and on Linux, and Turbo CREXX.',
    '**Chapter 8, Compilers on CMS**, describes the language disk and what is on it: GCC 13 for C and C++, GnuCOBOL, COBOL with OO, PL/I, Python, SQLite and SQLSERV, Pascal, APL, xBase, Smalltalk, ZIP and TERSE.',
    '**Chapter 9, Documents and Printing**, describes TROFF, BOOKIE (BookMaster markup), LaTeX and how PostScript reaches a printer.',
@@ -22,7 +22,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**14 October 2026.** `MQ` (Chapter 6): message queues for CMS programs on a RabbitMQ broker (PUT, GET, DEPTH, PURGE, GET onto the stack). The RXPIP bridge follows the current rexxpository client.',
+B(['**14 October 2026, night.** `PGSQL` (Chapter 6): PostgreSQL 16 in the Debian guest, from CMS through the spool bridge; each CMS user gets a database of its own.',
+   '**14 October 2026.** `MQ` (Chapter 6): message queues for CMS programs on a RabbitMQ broker (PUT, GET, DEPTH, PURGE, GET onto the stack). The RXPIP bridge follows the current rexxpository client.',
    '**13 October 2026, night.** NICOF’s tools for the EC-mode CMS, built with GCC 13, on the language disk: `CMSFTP31`, `NHFS31`, `HACC31`, `IPLOOK31`, the web server `HTTPD31` and `NCTEST` (Chapter 6). NICOF programs no longer wait forever under `IPL 290` (I-285), and HX under `IPL 290` no longer ends in a disabled wait (I-286).',
    '**13 October 2026, late evening.** CP/M 2.2 (Chapter 8): `CPM` runs CP/M on CMS, with the CP/M programs on the language disk, and in the Debian guest. TK5 (MVS 3.8j) and a 31-bit MVS are in the plan as M13.',
    '**13 October 2026, evening.** NICOF (Chapter 6): sockets for CMS programs, the FTP server CMSFTPD and NHFS file transfer to the PC. BREXX in a machine without `OPTION ECMODE` no longer ends with an operation exception (I-283).',
@@ -351,6 +352,10 @@ TABLE(['Command', 'Does'], [
 ], [3200, 6438], 'MQ commands');
 P('`MQ OPTIONS` (any accessed disk) names the broker, one `key value` per line: `HOST`, `PORT`, `USER`, `PASSWORD`, `VHOST`. The defaults, `localhost 5672 guest guest /`, reach a broker on the PC itself. Message bodies are UTF-8 on the broker and Latin-1 on CMS. `MQTEST` is an example EXEC.');
 SCREEN(['mq put orders 3 widgets for Zurich', 'Ready;', 'mq depth orders', '1', 'Ready;', 'mq get orders', '3 widgets for Zurich', 'Ready;'], 'A queue on the PC’s RabbitMQ');
+H2('PGSQL: PostgreSQL in the Debian guest');
+P('The Debian guest runs **PostgreSQL 16**, cross-built with GCC 13 for the 31-bit guest, installed under `/usr/local/pgsql` with its data in `/var/lib/pgsql16`, and started at boot. It is set for a small machine (10 connections, 4 MB of shared buffers) and accepts local connections only. In the guest, `psql -U postgres` talks to it.');
+P('From CMS, `PGSQL` sends SQL to it over the spool bridge (`LXCALL`, service `pgsql`), so it works under `IPL CMS` and `IPL 290` alike. Each CMS user gets a role and a database named after the user ID (lower case) on first use. `PGSQL statement` runs one statement; the `;` at the end is optional. `PGSQL (FILE fn [ft [fm]]` runs the statements of a file, file type `SQL` by default. The console takes about 130 characters, so longer statements belong in a file.');
+SCREEN(['pgsql create table parts (no int, name text)', 'CREATE TABLE', 'Ready;', "pgsql insert into parts values (1, 'widget')", 'INSERT 0 1', 'Ready;', 'pgsql select * from parts', ' no |  name', '----+--------', '  1 | widget', '(1 row)', 'Ready;'], 'PostgreSQL from CMS');
 H2('TELL');
 P('`TELL userid message` sends a message to a VM/370 user (CP MSG). `TELL user AT LINUX message` sends it to a user of the Debian guest through the spool bridge: it appears on that user\u2019s terminals, and is kept until the user reads it with `tell`. `TELL ALL AT LINUX message` reaches everybody logged on to Linux. A Linux user answers with `tell userid message`, which arrives on CMS as `MSG FROM MAINT: (user) message`.');
 P('`TELL user AT NET message` reaches a user on the internet. The message is published on the MQTT broker of the Debian guest as topic `vm/tell/out/user`, which the user reads with any MQTT client. The user answers by publishing to `vm/tell/from/user/to/userid`; it arrives as `MSG FROM MAINT: (net:user) message`. Outside users need a login (`tellnet-user name password` in the guest) and may only use their own TELL topics. On the PC, `tools/netfwd.py --tls cert key 8883 10.1.1.2:1883` makes the broker reachable, encrypted; the router has to forward that port to the PC. `tools/nettell.py` is a small client for the outside user.');
@@ -564,6 +569,8 @@ H2('SQL, SQLSERV');
 P('`SQL db statement`, `SQL db (FILE fn ft fm`, `SQL STOP`, `(SERVER userid`; `SQLSERV [(LOUD]` runs the service machine.');
 H2('LXCALL, PHONE, MQTT');
 P('`LXCALL service [args] (FILE fn ft fm | SERVER userid | WAIT n | NOTYPE`; `PHONE STATUS|CHANNELS|PEERS|CALL ext [ctx]|HANGUP channel`; `MQTT PUB topic message`, `MQTT SUB topic [n [secs]]`; `TELL userid [AT LINUX|NET] message`.');
+H2('PGSQL');
+P('`PGSQL statement`, `PGSQL (FILE fn [ft [fm]]`.');
 H2('RXPIP');
 P('`RXPIP AVAIL`, `SEARCH term`, `SHOW name`, `BUILD fn`, `RUN fn [args]`, `GET name`.');
 H2('TROFF, BOOKIE, LATEX, PSPRINT');

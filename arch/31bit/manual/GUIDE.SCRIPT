@@ -60,7 +60,7 @@ machines, the Linux kernel, the Debian system and the network connection
 to the PC.
 :li.:hp2.Chapter 6, Service Machines:ehp2., describes CHATBOT, the spool
 bridge to Linux services (LXCALL, PHONE, MQTT, TELL), RXPIP, NICOF, MQ,
-and the service machines that are planned.
+PGSQL, and the service machines that are planned.
 :li.:hp2.Chapter 7, cREXX on VM/370plus:ehp2., describes the REXX
 compiler and virtual machine built for and on VM/370plus, the languages
 written in cREXX that run on CMS and on Linux, and Turbo CREXX.
@@ -87,6 +87,9 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.14 October 2026, night.:ehp2. :xph.PGSQL:exph. (Chapter
+6)&colon. PostgreSQL 16 in the Debian guest, from CMS through the spool
+bridge; each CMS user gets a database of its own.
 :li.:hp2.14 October 2026.:ehp2. :xph.MQ:exph. (Chapter 6)&colon. message
 queues for CMS programs on a RabbitMQ broker (PUT, GET, DEPTH, PURGE,
 GET onto the stack). The RXPIP bridge follows the current rexxpository
@@ -1213,6 +1216,38 @@ Ready;
 :exmp.
 :figcap.A queue on the PC's RabbitMQ
 :efig.
+:h2.PGSQL&colon. PostgreSQL in the Debian guest
+:p.The Debian guest runs :hp2.PostgreSQL 16:ehp2., cross-built with GCC
+13 for the 31-bit guest, installed under :xph./usr/local/pgsql:exph.
+with its data in :xph./var/lib/pgsql16:exph., and started at boot. It is
+set for a small machine (10 connections, 4 MB of shared buffers) and
+accepts local connections only. In the guest, :xph.psql -U
+postgres:exph. talks to it.
+:p.From CMS, :xph.PGSQL:exph. sends SQL to it over the spool bridge
+(:xph.LXCALL:exph., service :xph.pgsql:exph.), so it works under
+:xph.IPL CMS:exph. and :xph.IPL 290:exph. alike. Each CMS user gets a
+role and a database named after the user ID (lower case) on first use.
+:xph.PGSQL statement:exph. runs one statement; the :xph.;:exph. at the
+end is optional. :xph.PGSQL (FILE fn [ft [fm]]:exph. runs the statements
+of a file, file type :xph.SQL:exph. by default. The console takes about
+130 characters, so longer statements belong in a file.
+:fig.
+:xmp.
+pgsql create table parts (no int, name text)
+CREATE TABLE
+Ready;
+pgsql insert into parts values (1, 'widget')
+INSERT 0 1
+Ready;
+pgsql select * from parts
+ no |  name
+----+--------
+  1 | widget
+(1 row)
+Ready;
+:exmp.
+:figcap.PostgreSQL from CMS
+:efig.
 :h2.TELL
 :p.:xph.TELL userid message:exph. sends a message to a VM/370 user (CP
 MSG). :xph.TELL user AT LINUX message:exph. sends it to a user of the
@@ -2228,6 +2263,8 @@ unpacks PACK and SPACK files, :xph.UNTERSE -i in:exph. shows the header.
 NOTYPE:exph.; :xph.PHONE STATUS|CHANNELS|PEERS|CALL ext [ctx]|HANGUP
 channel:exph.; :xph.MQTT PUB topic message:exph., :xph.MQTT SUB topic [n
 [secs]]:exph.; :xph.TELL userid [AT LINUX|NET] message:exph..
+:h2.PGSQL
+:p.:xph.PGSQL statement:exph., :xph.PGSQL (FILE fn [ft [fm]]:exph..
 :h2.RXPIP
 :p.:xph.RXPIP AVAIL:exph., :xph.SEARCH term:exph., :xph.SHOW name:exph.,
 :xph.BUILD fn:exph., :xph.RUN fn [args]:exph., :xph.GET name:exph..
