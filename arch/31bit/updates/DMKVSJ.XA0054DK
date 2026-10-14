@@ -1,6 +1,6 @@
 ./ I 00393000 $ 00393100 100                                                    
-         CLI   VDEVTYPE,TYPCTCA  I-287: A VIRTUAL CTCA WAITS   XA0054DK         
-         BE    RESXDV         ON ITS PARTNER: NOT ACTIVE I/O   XA0054DK         
+         CLI   VDEVTYPC,CLASSPEC  I-287: A CTCA (VIRTUAL OR    XA0054DK         
+         BE    RESXDV         DEDICATED) WAITS ON ITS PARTNER  XA0054DK         
 ./ I 00500000 $ 00500110 010                                                    
 VMESA390 EQU   X'02'          VMFSTAT: ESA/390 MACHINE         XA0054DK         
          ENTRY DMKVSJTE                                        XA0054DK         
