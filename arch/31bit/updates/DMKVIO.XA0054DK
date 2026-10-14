@@ -9,7 +9,7 @@ SETCC1   EQU   *                                               XA0054DK
          BNE   SETCC1N                                         XA0054DK         
          TM    VDEVSTAT,VDEVDED                                XA0054DK         
          BO    SETCC1N                                         XA0054DK         
-         LM    R4,R5,IOBCSW                                    XA0054DK         
+         LA    R1,IOBCSW                                       XA0054DK         
          L     R15,=V(DMKVCSC1)                                XA0054DK         
          BALR  R14,R15                                         XA0054DK         
          SR    R2,R2          CC 0                             XA0054DK         

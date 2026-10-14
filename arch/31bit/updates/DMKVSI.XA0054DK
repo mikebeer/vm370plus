@@ -444,17 +444,15 @@ SSCC1    LA    R5,X'40'                                        XA0054DK
          LA    R4,2                                            XA0054DK         
          LA    R0,1                                            XA0054DK         
          BAL   R9,GUESTIO     THE CSW DMKVSJ STORED            XA0054DK         
-SSCC1Q   LA    R1,VCSBUF                                       XA0054DK         
+SSCC1Q   LA    R15,VCSBUF                                      XA0054DK         
          BAL   R9,QSTAT                                        XA0054DK         
          MVI   VCSCC,0                                         XA0054DK         
          B     SEBACK                                          XA0054DK         
-*  QSTAT: R1 -> A CSW FOR DEVICE R13, QUEUED AS ITS PENDING    XA0054DK         
-*  I/O INTERRUPTION (SSCC1Q, DMKVCSC1)                         XA0054DK         
-QSTAT    ST    R1,VCSQSRC                                      XA0054DK         
-         ST    R9,VCSQRET                                      XA0054DK         
+*  QSTAT: R15 -> A CSW FOR DEVICE R13, QUEUED AS ITS PENDING   XA0054DK         
+*  I/O INTERRUPTION (SSCC1Q, DMKVCSC1). R14 = THE RETURN.      XA0054DK         
+QSTAT    LR    R14,R9                                          XA0054DK         
          BAL   R9,FINDSN      R6-R8: THE DEVICE'S BLOCKS       XA0054DK         
-         L     R1,VCSQSRC                                      XA0054DK         
-         MVC   VDEVCSW,0(R1)  DMKDSP'S CHANNEL-END PATH        XA0054DK         
+         MVC   VDEVCSW,0(R15) DMKDSP'S CHANNEL-END PATH        XA0054DK         
          OI    VDEVSTAT,VDEVCHAN  (POST) TAKES THE WHOLE CSW   XA0054DK         
          OI    VCHSTAT,VCHCEPND   FROM VDEVCSW; VDEVPEND'S     XA0054DK         
          TM    VCHTYPE,VCHSEL     A SELECTOR CHANNEL NAMES     XA0054DK         
@@ -475,8 +473,7 @@ QSTAT    ST    R1,VCSQSRC                                      XA0054DK
          AR    R4,R2                                           XA0054DK         
          OC    VMIOINT,0(R4)                                   XA0054DK         
          OI    VMPEND,VMIOPND                                  XA0054DK         
-         L     R9,VCSQRET                                      XA0054DK         
-         BR    R9                                              XA0054DK         
+         BR    R14                                             XA0054DK         
 TSEND    MVI   VCSOP,0        TSCH                             XA0054DK         
          BAL   R9,GETENT                                       XA0054DK         
          CLI   VCSCC,X'10'    TIO STORED A CSW?                XA0054DK         
@@ -543,28 +540,6 @@ DMKVCSIN STM   R14,R13,VCSSAVI-DMKVCSIN(R15)                   XA0054DK
          BAL   R9,FINDSN                                       XA0054DK         
          ST    R1,VCSSAVI+12  R1                               XA0054DK         
          LM    R14,R13,VCSSAVI  (R13 TOO: IT IS THE CALLER'S)  XA0054DK         
-         BR    R14                                             XA0054DK         
-*                                                              XA0054DK         
-* DMKVCSC1: BALR FROM DMKVIO SETCC1 (I-287). AN ESA/390        XA0054DK         
-* GUEST'S SSCH TO A VIRTUAL CTCA ENDED WITH CC 1 AND A CSW     XA0054DK         
-* (DMKVCA: ATTENTION+BUSY WHEN BOTH SIDES START, BUSY, UNIT    XA0054DK         
-* CHECK). A CHANNEL SUBSYSTEM STARTS THE FUNCTION (CC 0) AND   XA0054DK         
-* MAKES THE STATUS PENDING; LINUX'S CTCM WANTS IT SO (CC 1 IS  XA0054DK         
-* -EBUSY: 'THE COMMUNICATION PEER IS BUSY'). R4-R5 = THE       XA0054DK         
-* CSW, R6-R8 = THE BLOCKS. DMKVIO THEN SETS CC 0.              XA0054DK         
-*                                                              XA0054DK         
-DMKVCSC1 STM   R14,R13,VCSSAVC-DMKVCSC1(R15)                   XA0054DK         
-         L     R12,AVCSC1-DMKVCSC1(,R15)                       XA0054DK         
-         STM   R4,R5,VCSC1CSW                                  XA0054DK         
-         LH    R13,VDEVADD                                     XA0054DK         
-         AH    R13,VCUADD                                      XA0054DK         
-         AH    R13,VCHADD                                      XA0054DK         
-         BAL   R9,GETTAB                                       XA0054DK         
-         BAL   R9,GETENT                                       XA0054DK         
-         OI    ENTFLG(R3),ENTACT                               XA0054DK         
-         LA    R1,VCSC1CSW                                     XA0054DK         
-         BAL   R9,QSTAT                                        XA0054DK         
-         LM    R14,R13,VCSSAVC                                 XA0054DK         
          BR    R14                                             XA0054DK         
 *                                                              XA0054DK         
 * DMKVCSSN: BALR. R1 = DEVICE IN, ITS SUBCHANNEL NUMBER OUT.   XA0054DK         
@@ -1098,12 +1073,6 @@ STFLN3   DC    X'80000000'                                     XA0054DK
 XPFX     DC    X'7FFFF000'                                     XA0054DK         
 AVCSIN   DC    A(DMKVCS)                                       XA0054DK         
 AVCSSN   DC    A(DMKVCS)                                       XA0054DK         
-AVCSC1   DC    A(DMKVCS)                                       XA0054DK         
-VCSSAVC  DS    16F                                             XA0054DK         
-VCSQSRC  DC    F'0'                                            XA0054DK         
-VCSQRET  DC    F'0'                                            XA0054DK         
-         DS    0D                                              XA0054DK         
-VCSC1CSW DC    2F'0'                                           XA0054DK         
 VCSSAVI  DS    16F                                             XA0054DK         
 VCSSAVN  DS    16F                                             XA0054DK         
 VCSSAVA  DS    16F                                             XA0054DK         
@@ -1183,6 +1152,30 @@ VCSSTOP  MVC   VMPSW(4),=X'000A0000'                           XA0054DK
          L     R12,=V(DMKDSPB)  ITS BASE IS R12 ON ENTRY       XA0054DK         
          BR    R12            (AS GOTO DOES)                   XA0054DK         
          DROP  R15                                             XA0054DK         
+*                                                              XA0054DK         
+* DMKVCSC1: BALR FROM DMKVIO SETCC1 (I-287). AN ESA/390        XA0054DK         
+* GUEST'S SSCH TO A VIRTUAL CTCA ENDED WITH CC 1 AND A CSW     XA0054DK         
+* (DMKVCA: ATTENTION+BUSY WHEN BOTH SIDES START, BUSY, UNIT    XA0054DK         
+* CHECK). A CHANNEL SUBSYSTEM STARTS THE FUNCTION (CC 0) AND   XA0054DK         
+* MAKES THE STATUS PENDING; LINUX'S CTCM WANTS IT SO (CC 1 IS  XA0054DK         
+* -EBUSY: 'THE COMMUNICATION PEER IS BUSY'). R1 -> THE CSW,    XA0054DK         
+* R6-R8 = THE BLOCKS; DMKVIO THEN SETS CC 0. BEYOND R12'S      XA0054DK         
+* REACH: ITS OWN DATA FOLLOWS IT, ADDRESSED FROM R15 AND R1.   XA0054DK         
+DMKVCSC1 STM   R14,R13,C1SAVE-DMKVCSC1(R15)                    XA0054DK         
+         L     R12,C1BASE-DMKVCSC1(,R15)                       XA0054DK         
+         LR    R15,R1         THE CSW (KEPT BY GETTAB)         XA0054DK         
+         LH    R13,VDEVADD                                     XA0054DK         
+         AH    R13,VCUADD                                      XA0054DK         
+         AH    R13,VCHADD                                      XA0054DK         
+         BAL   R9,GETTAB                                       XA0054DK         
+         BAL   R9,GETENT                                       XA0054DK         
+         OI    ENTFLG(R3),ENTACT                               XA0054DK         
+         BAL   R9,QSTAT                                        XA0054DK         
+         BALR  R1,0                                            XA0054DK         
+C1RET    LM    R14,R13,C1SAVE-C1RET(R1)                        XA0054DK         
+         BR    R14                                             XA0054DK         
+C1BASE   DC    A(DMKVCS)                                       XA0054DK         
+C1SAVE   DS    16F                                             XA0054DK         
          LTORG                                                 XA0054DK         
 ENTFLG   EQU   2              ENTRY: DEVICE H, FLAGS, ISC,     XA0054DK         
 ENTISC   EQU   3              INTERRUPTION PARAMETER, AND      XA0054DK         

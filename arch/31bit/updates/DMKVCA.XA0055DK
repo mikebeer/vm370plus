@@ -1,0 +1,8 @@
+./ R 00544000          $ 00544000 010                                           
+         L     R14,=V(DMKPGTXT) TOP OF REAL STORAGE (I-287)    XA0055DK         
+./ R 01103000          $ 01103000 010                                           
+         L     R1,=V(DMKPGTXT) TOP OF REAL STORAGE (I-287)     XA0055DK         
+./ R 01140000          $ 01140000 010                                           
+         TM    0(R4),X'80'    31-BIT IDAW: BIT 0 ZERO (I-287)  XA0055DK         
+./ R 01605000          $ 01605000 010                                           
+         TM    0(R1),X'80'    31-BIT IDAW: BIT 0 ZERO (I-287)  XA0055DK         
