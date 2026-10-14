@@ -1704,9 +1704,19 @@ VLB9     L     R9,VLLNK2                                       XA0054DK
 *  CODE, INITIATOR, SEQUENCE, RETURN CODE, PARAMETERS)         XA0054DK         
 VLCMD    ST    R9,VLLNK3                                       XA0054DK         
          XC    VLFRM+4(2),VLFRM+4  RETURN CODE 0               XA0054DK         
-         CLI   VLFRM,X'04'    LANSTAT: OUR MAC ADDRESS         XA0054DK         
-         BNE   VLC2                                            XA0054DK         
-         MVC   VLFRM+18(6),MMAC                                XA0054DK         
+         CLI   VLFRM,X'04'    LANSTAT: OUR MAC ADDRESS, IN A   XA0054DK         
+         BNE   VLC2           REPLY LONGER THAN THE COMMAND    XA0054DK         
+         L     R1,VLFLEN      (16 BYTES; THE REPLY HAS THE     XA0054DK         
+         LA    R14,VLFRM(R1)  STATISTICS: 64)                  XA0054DK         
+         LA    R15,60                                          XA0054DK         
+         SR    R15,R1                                          XA0054DK         
+         BNP   VLC1                                            XA0054DK         
+         SR    R0,R0                                           XA0054DK         
+         SR    R1,R1                                           XA0054DK         
+         MVCL  R14,R0         ZEROS                            XA0054DK         
+         LA    R1,60                                           XA0054DK         
+         ST    R1,VLFLEN                                       XA0054DK         
+VLC1     MVC   VLFRM+18(6),MMAC                                XA0054DK         
          B     VLC8                                            XA0054DK         
 VLC2     CLI   VLFRM,X'01'    STARTLAN                         XA0054DK         
          BNE   VLC3                                            XA0054DK         
@@ -1887,7 +1897,8 @@ VLSIDE   LA    R5,MREAD                                        XA0054DK
 *  THE FIRST WORD OF VLFRM (DCP VLNRING IN DMKVLN)             XA0054DK         
 VLTR     STM   R0,R2,VLSAVR                                    XA0054DK         
          L     R1,VLTRNXT                                      XA0054DK         
-         LA    R2,VLRING(R1)                                   XA0054DK         
+         L     R2,=A(VLRING)                                   XA0054DK         
+         AR    R2,R1                                           XA0054DK         
          MVC   0(4,R2),VLTRW                                   XA0054DK         
          STH   R13,4(,R2)                                      XA0054DK         
          STH   R10,6(,R2)                                      XA0054DK         
@@ -1985,8 +1996,6 @@ VLSAVT   DS    F                                               XA0054DK
 VLSAVR   DS    3F                                              XA0054DK         
 VLTRW    DS    F                                               XA0054DK         
 VLTRNXT  DC    F'0'                                            XA0054DK         
-         DC    C'VLNRING '                                     XA0054DK         
-VLRING   DC    64XL16'00'                                      XA0054DK         
 VLSAVQ   DS    16F                                             XA0054DK         
 VLSAVK   DS    3F                                              XA0054DK         
 VLSAVS   DS    2F                                              XA0054DK         
@@ -2008,6 +2017,8 @@ VLSLOT   DS    X                                               XA0054DK
          DS    0D                                              XA0054DK         
 VLIRB    DS    XL64                                            XA0054DK         
 VLFRM    DS    XL1608                                          XA0054DK         
+         DC    C'VLNRING '                                     XA0054DK         
+VLRING   DC    64XL16'00'                                      XA0054DK         
 VLNMEM   EQU   16                                              XA0054DK         
 VLMEMS   DC    176D'0'        16 MEMBERS OF 88 BYTES           XA0054DK         
 *                                                              XA0054DK         
