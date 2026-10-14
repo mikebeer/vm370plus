@@ -1,7 +1,21 @@
-VM/370plus  --  overlay kit, 13 October 2026 (build 13)
+VM/370plus  --  overlay kit, 14 October 2026 (build 16)
 ========================================================
 
-NEW IN BUILD 15
+NEW IN BUILD 16
+  - Java and NetRexx on CMS (language disk, after LANG; IPL 290 and
+    DEFINE STORAGE 128M or more):  JAVA class  runs fn CLASS (JamVM 2.0,
+    GNU Classpath 0.99),  JAVAC fn  compiles fn JAVA (Eclipse compiler
+    ecj 3.5.2),  NETREXX fn  runs fn NRX (NetRexx 3.05) and
+    NETREXX fn COMPILE  makes fn CLASS.  Try JAVA HELLO, NETREXX HELLO.
+  - Java and NetRexx in the Debian guest: java, javac (ecj), nrc
+    (NetRexx compiler), nr (run a .nrx).  Give Linux 192 MB for them:
+    MAINT may now DEFINE STORAGE up to 256M (was 64M).
+  - CP no longer stops (PGS001/PTR018) when one user pages more than
+    128 MB (I-290).  Large programs started with XL get more storage, and
+    no longer print "Invalid character in fileID" (I-289).
+
+
+IN BUILD 15
   - Debian keeps running when its terminal goes away (I-288).  Closing the
     window or losing the connection used to stop the whole guest (no ssh,
     no spool bridge) and log it off after 15 minutes.  Now it is just
@@ -186,14 +200,14 @@ WHAT YOU NEED
 
 INSTALL
   1. Unzip VM370CE_V1_R1_2.zip into a new directory.
-  2. Unzip ALL kit parts (1-16) OVER it, replacing files:
+  2. Unzip ALL kit parts (1-18) OVER it, replacing files:
      part 1: config, system shadows, tools, README; part 2:
      disks/vm50-4.cckd; part 3: the CMSUSER volume's shadow; part 4:
      Linux files (vm370plus/linux/, the Guide) and the VM50-2 shadow
-     (MAINT's 19D); part 5: the VM50-3 shadow; parts 6-14: the Debian
+     (MAINT's 19D); part 5: the VM50-3 shadow; parts 6-15: the Debian
      disk in pieces -- then join it: JOINDEB.CMD (Windows) or
      sh joindeb.sh (Linux/WSL), see INSTALL THE DEBIAN DISK; parts
-     15-16: the language disk -- join it: JOINLANG.CMD or sh joinlang.sh.
+     16-18: the language disk -- join it: JOINLANG.CMD or sh joinlang.sh.
      so the files below replace or add:
         vm370ce.conf                 ARCHMODE ESA/390, CPUMODEL 3090,
                                      ECPSVM NO (CE's own S/370 settings
@@ -300,10 +314,10 @@ LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
       lxparmram.rdr   the same + vmroot=ram: stay in the BusyBox system
                       even if Debian is on the disk (repairs)
   and disks/lnx190.cckd -- the Debian disk, a 3390-9 (build 6; it was a
-  3390-1 before), parts 6-14 of the kit, see INSTALL THE DEBIAN DISK.
+  3390-1 before), parts 6-15 of the kit, see INSTALL THE DEBIAN DISK.
   INSTALL THE DEBIAN DISK
-    The disk is about 245 MB compressed, shipped in nine pieces (parts
-    6-14).  After unzipping them into the CE directory, run there
+    The disk is about 255 MB compressed, shipped in ten pieces (parts
+    6-15).  After unzipping them into the CE directory, run there
         JOINDEB.CMD            (Windows cmd.exe)
         sh joindeb.sh          (Linux/WSL; also checks lnx190.sha256)
     which joins disks/lnx190.cckd.001-009 into disks/lnx190.cckd.

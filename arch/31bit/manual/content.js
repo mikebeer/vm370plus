@@ -98,7 +98,7 @@ TABLE(['Item', 'Community Edition', 'VM/370plus'], [
   ['Segment size', '64 KB', '1 MB (ESA/390 has no other)'],
 ], [2400, 3200, 4038], 'The real machine');
 H2('Virtual machines');
-B(['**Storage.** A virtual machine may have up to 256 MB. The directory’s maximum (the second size on the USER statement) is checked as before; the kit’s directory allows 256 MB for CMSUSER and 64 MB for MAINT.',
+B(['**Storage.** A virtual machine may have up to 256 MB. The directory’s maximum (the second size on the USER statement) is checked as before; the kit’s directory allows 256 MB for CMSUSER and for MAINT.',
    '**Shared CMS.** The CMS saved system is shared by page frame rather than by segment: with 1 MB segments, sharing whole segments would expose private CMS storage to other users. The effect for the user is none.',
    '**31-bit virtual machines.** A virtual machine in EC mode may run with PSW bit 32 on (31-bit addressing); CP translates its addresses in 31 bits.',
    '**ESA/390 virtual machines.** New command `SET ESA ON|OFF`; see Chapter 5 and Appendix A.',
@@ -260,6 +260,7 @@ P('The kernel’s initramfs (BusyBox) brings the 3390 online, creates a partitio
 H3('Debian');
 P('The disk is a 3390 model 9 (10,017 cylinders, about 7 GB). It holds Debian 7.11 (wheezy) for s390: sysvinit, udev, rsyslog, cron, OpenSSH, apt and dpkg, root on ext2 (6.8 GB, about 6 GB free), a 128 MB swap file. The disk carries its own kernel and IPL records, so `IPL LINUX` starts it. Log in as `root` with password `vm370plus`, and change the password.');
 P('Development tools are installed: GNU C and C++ 4.6.3 with make, Python 2.7.3 (`python`) and Python 3.2.3 (`python3`), Regina REXX 3.6 (`regina` or `rexx`, classic REXX as on CMS) and THE 3.3, The Hessling Editor (`the`, an XEDIT-like editor; use it over SSH, since the 3215 console cannot show a full screen). cREXX and the languages of Chapter 7 are in `/usr/local/bin`.');
+P('Java and NetRexx: `java` (JamVM 2.0 with GNU Classpath 0.99, Java 5/6 level), `javac` (the Eclipse compiler ecj 3.5.2, Java 5 source by default), `nrc prog` (NetRexx 3.05: translates and compiles `prog.nrx` into `prog.class`, which `java prog` runs) and `nr prog` (runs `prog.nrx` interpreted). They are interpreters without a JIT, and slow under CP: give the machine 192 MB (`DEFINE STORAGE 192M`; MAINT may define up to 256 MB), and expect a first compilation to take minutes. The same programs run faster on CMS (Chapter 8).');
 P('Servers are installed too. **mosquitto 1.6.15**, an MQTT broker (`/usr/local/sbin/mosquitto`, configuration `/etc/mosquitto/mosquitto.conf`, port 1883), with the clients `mosquitto_pub` and `mosquitto_sub`; start it with `mosquitto -d -c /etc/mosquitto/mosquitto.conf`. **Asterisk 1.8.13**, the telephone exchange, starts at boot and listens for SIP on UDP port 5060; `asterisk -rx "core show uptime"` talks to it. Both are offered as experiments: they work, at the speed of an emulated mainframe.');
 SCREEN(['root@vm370plus:~# mosquitto -d -c /etc/mosquitto/mosquitto.conf',
         'root@vm370plus:~# mosquitto_sub -t vm370plus/test -C 1 &',

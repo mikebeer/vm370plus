@@ -391,8 +391,7 @@ FreeSWITCH; Node-RED; Docker, QEMU, Bochs; CFSERV; kit build 10
 :ul.
 :li.:hp2.Storage.:ehp2. A virtual machine may have up to 256 MB. The
 directory's maximum (the second size on the USER statement) is checked
-as before; the kit's directory allows 256 MB for CMSUSER and 64 MB for
-MAINT.
+as before; the kit's directory allows 256 MB for CMSUSER and for MAINT.
 :li.:hp2.Shared CMS.:ehp2. The CMS saved system is shared by page frame
 rather than by segment&colon. with 1 MB segments, sharing whole segments
 would expose private CMS storage to other users. The effect for the user
@@ -865,6 +864,16 @@ on CMS) and THE 3.3, The Hessling Editor (:xph.the:exph., an XEDIT-like
 editor; use it over SSH, since the 3215 console cannot show a full
 screen). cREXX and the languages of Chapter 7 are in
 :xph./usr/local/bin:exph..
+:p.Java and NetRexx&colon. :xph.java:exph. (JamVM 2.0 with GNU Classpath
+0.99, Java 5/6 level), :xph.javac:exph. (the Eclipse compiler ecj 3.5.2,
+Java 5 source by default), :xph.nrc prog:exph. (NetRexx 3.05&colon.
+translates and compiles :xph.prog.nrx:exph. into :xph.prog.class:exph.,
+which :xph.java prog:exph. runs) and :xph.nr prog:exph. (runs
+:xph.prog.nrx:exph. interpreted). They are interpreters without a JIT,
+and slow under CP&colon. give the machine 192 MB (:xph.DEFINE STORAGE
+192M:exph.; MAINT may define up to 256 MB), and expect a first
+compilation to take minutes. The same programs run faster on CMS
+(Chapter 8).
 :p.Servers are installed too. :hp2.mosquitto 1.6.15:ehp2., an MQTT
 broker (:xph./usr/local/sbin/mosquitto:exph., configuration
 :xph./etc/mosquitto/mosquitto.conf:exph., port 1883), with the clients

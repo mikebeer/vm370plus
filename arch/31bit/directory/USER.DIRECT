@@ -273,7 +273,7 @@ USER KICKS KICKS 14M 16M G
  MDISK 194 3350 000 555 VSAMIN MR ALL WRITE MULT
  MDISK 195 3350 150 035 KICKS0 MR ALL WRITE MULT
                                                                         02330000
-USER MAINT CPCMS 16M 64M ABCDEFGH                                       02340000
+USER MAINT CPCMS 16M 256M ABCDEFGH                                      02340000
  OPTION ECMODE LNKNOPAS                                                 02350000
  IPL CMS                                                                02360000
  CONSOLE 009 3215                                                       02370000
