@@ -32,8 +32,65 @@ DHCP inside VM/370plus needs a shared segment first (9.12b).
 
 ## 9.12b — guest LAN
 
-CP gives each guest a virtual NIC, LCS or QETH style, on one internal segment,
-like z/VM's Guest LAN or VSWITCH. This is CP work and the largest step of 9.12.
+CP gives each guest a virtual NIC on one internal segment, like z/VM's Guest LAN.
+This is CP work and the largest step of 9.12.
+
+### Why LCS, and why simulated by CP (14 Oct)
+
+- QETH (z/VM's Guest LAN device) is QDIO: SIGA, shared queues, adapter
+  interrupts -- far more machinery than an ESA/390 CP has. LCS (3088 model 60,
+  Linux's `lcs` driver, kernel #11 has it) is a channel-program device.
+- The intermediate step, a real Hercules LCS dedicated to a guest and bridged on
+  the PC (tap0/tap1 in br9), fails (I-291): Linux's LCS driver runs its read and
+  write rings with CCW **suspend** flags, **PCI** and **RSCH**, and changes the
+  suspend flags in its own storage between resumes. CP translates a dedicated
+  device's channel program once into a real copy and has neither suspend nor
+  RSCH. A device that CP simulates reads the guest's own CCWs as it goes, so
+  suspend, resume and PCI are natural there. Kept from the step: kernel #11
+  (CONFIG_LCS), and dedicated devices now answer SENSE ID themselves.
+
+### The design
+
+- `DEFINE LCS vdev [LAN name]` (default LAN `SYSTEM`) defines the pair vdev
+  (read, even) and vdev+1 (write): class special, a new type TYPLCS. SENSE ID
+  answers CU 3088 model 60 (SIDTAB). `DETACH vdev` leaves the LAN.
+- Each LAN member has a MAC address made by CP: 02-00-00-uu-uu-vv (locally
+  administered; uuuu from the user's VMBLOK slot, vv from vdev).
+- **Write device.** At SSCH/RSCH CP walks the guest's format-1 CCWs from the
+  current one: each WRITE's buffer holds LCS frames (header: offset of the next
+  frame, type, slot; offset 0 ends the buffer). Type 0 is a control command --
+  STARTUP, STARTLAN, LANSTAT (CP answers with the member's MAC), STOPLAN,
+  SHUTDOWN, QIPASSIST (no assists), SETIPM/DELIPM (multicast: accepted) -- and
+  its reply (same frame, return code 0) is queued for the read device. Type 1
+  is an Ethernet frame: CP switches it -- to the member with that destination
+  MAC, or to every other member for broadcast and multicast.
+  A CCW with the suspend flag suspends the subprogram (SCSW activity
+  "suspended", status to the guest as the channel subsystem would give it);
+  RSCH resumes at that CCW, which the guest has meanwhile changed. TIC and
+  command chaining as usual.
+- **Read device.** Received frames wait in the member's queue (CP free
+  storage, bounded: drop when full, as a LAN does). While the read program is
+  active, CP fills the current READ CCW's buffer with as many frames as fit
+  (each with its LCS header, then a terminating offset 0), advances, and
+  presents intermediate status when that CCW had PCI; a CCW with the suspend
+  flag suspends. With nothing queued the read waits (no status), as a real LCS
+  read does.
+- HSCH/CSCH end the subprogram at once (the driver uses them at offline and
+  recovery).
+- Interrupts and status go through DMKVCS's TSCH/IRB path, which needs the
+  SCSW's activity-control bits for suspend and the PCI intermediate status.
+- Later (9.12c): one LAN member may be an uplink -- a Hercules tap through a
+  dedicated device once CP can carry it, or BORDER as the only member with two
+  NICs.
+
+### Steps
+
+| Step | What | Test |
+|---|---|---|
+| A | DEFINE LCS, TYPLCS, SENSE ID 3088-60 | Linux binds `lcs` to the pair |
+| B | write and read programs, suspend/RSCH/PCI, control commands | `eth0` up with CP's MAC (`ifconfig`) |
+| C | the switch: unicast, broadcast, queues | two guests ping each other (ARP over the LAN) |
+| D | DETACH, LOGOFF, HSCH/CSCH, recovery | offline/online in Linux; a guest leaves while the other sends |
 
 ## 9.12c — BORDER, and the network configuration
 
