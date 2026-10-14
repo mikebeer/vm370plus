@@ -1,0 +1,8 @@
+/* hello.nrx -- NetRexx on VM/370plus */
+say 'Hello from NetRexx on VM/370plus'
+sum = 0
+loop i = 1 to 3
+  say i i*i
+  sum = sum + i
+end
+say 'sum' sum 'pi approx' 355/113

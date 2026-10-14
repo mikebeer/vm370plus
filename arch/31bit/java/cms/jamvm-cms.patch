@@ -16,3 +16,36 @@ index 3661c64..3ee9a0e 100644
  #define JAMVM_CLASSES INSTALL_DIR"/share/jamvm/classes.zip"
  #define CLASSPATH_CLASSES CLASSPATH_INSTALL_DIR"/share/classpath/glibj.zip"
  #else
+diff --git a/src/interp/direct.c b/src/interp/direct.c
+index d644e57..fde50a1 100644
+--- a/src/interp/direct.c
++++ b/src/interp/direct.c
+@@ -120,6 +120,13 @@ retry:
+ 
+     TRACE("Preparing %s.%s%s\n", CLASS_CB(mb->class)->name, mb->name, mb->type);
+ 
++#ifdef CMS_DIAG
++    {   /* 9.35 diagnosis: does the bytecode overlap this stack frame? */
++        extern void cms_diag_prepare(void *, int, void *, void *, const char *);
++        cms_diag_prepare(code, code_len, cache_depth, map, mb->name);
++    }
++#endif
++
+ #ifdef USE_CACHE
+     /* Initialise cache depth array, indicating that
+        the depth of every bytecode is unknown */
+@@ -187,6 +194,14 @@ retry:
+                 default:
+                     jam_printf("Unrecognised bytecode %d found while preparing %s.%s%s\n",
+                                opcode, CLASS_CB(mb->class)->name, mb->name, mb->type);
++#ifdef __CMS__
++                    {   /* the VM cannot shut down with this method half
++                           prepared (other threads wait for it): end now */
++                        extern void cms_diag_dump(void *, int);
++                        cms_diag_dump(code, code_len);
++                        exit(1);
++                    }
++#endif
+                     exitVM(1);
+ 
+                 case OPC_ALOAD_0:

@@ -565,3 +565,21 @@ then LOGON (the password on its own line: `logon maint`, then `cpcms`).
 Check a CP fix is really in the written nucleus before testing it: dump
 the first bytes of the entry point (nucsyms.txt + the ESD offset) with
 Hercules `r` -- one test (i288t) ran a nucleus without the DMKQCN change.
+
+## A program looping on console 0009 cannot be interrupted from the console (14 Oct, 9.35)
+
+The 3215 on 0009 has no attention key: a line typed while the user's program
+runs (no read outstanding) is discarded, so neither `#CP` nor `LOGOFF`
+reaches CP, and with the OPERATOR disconnected and line 00A disabled there is
+no other terminal. Do not kill Hercules. Send the Hercules panel command
+`restart` (HTTP): CP takes its restart path, warm-starts by itself, the
+looping user is gone and OPERATOR is back on 0009; then the normal
+SHUTDOWN and `exit`. Test builds of long-running CMS programs should have a
+watchdog (JamVM's test build: `-DCMS_WATCHDOG=900`).
+
+## mmap emulations must hand out whole pages (14 Oct, 9.35)
+
+JamVM's `gcMemRealloc` grows a mapping in place while the new size stays in
+the same page, trusting the kernel's page rounding. A malloc-backed mmap that
+returned exactly `len` bytes let its GC lists overrun the next heap block:
+freed bytecode, "Unrecognised bytecode 255 found while preparing ...".

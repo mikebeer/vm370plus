@@ -219,6 +219,17 @@ static void heap_init(void)
     heap_brk = heap_base;
 }
 
+/* 9.35: give back the heap above the break (whole pages), so the XL
+   loader keeps only what the image needs and the program it starts gets
+   the rest of HIGHSTOR.  The caller must not grow its heap afterwards. */
+void cms_heap_trim(void)
+{
+    if (!heap_base || heap_base == low_heap) return;
+    char *cut = (char *)(((u32)heap_brk + 4095) & ~4095u);
+    if (cut < heap_end && !highstor("RELEASE", heap_end - cut, (u32)cut))
+        heap_end = cut;
+}
+
 static void heap_fini(void)
 {
     if (heap_base && heap_base != low_heap)
@@ -231,7 +242,13 @@ void *_sbrk(int incr)
     char *old = heap_brk;
     if (!heap_base) heap_init();
     old = heap_brk;
-    if (incr < 0 || heap_brk + incr > heap_end) {
+    /* newlib's free() gives storage back with a negative increment */
+    if (incr < 0) {
+        if (heap_brk + incr < heap_base) { errno = EINVAL; return (void *)-1; }
+        heap_brk += incr;
+        return old;
+    }
+    if (heap_brk + incr > heap_end) {
         static int told;
         if (!told++) {          /* say so once: a program may not check */
             static const char m[] = "CMSRT: out of storage (heap above 16 MB is full)\n";
@@ -619,7 +636,10 @@ int _lseek(int fd, int off, int whence)
 static int bcd2(unsigned char b) { return (b >> 4) * 10 + (b & 15); }
 static time_t cms_mtime(const struct cfile *f)
 {
-    static unsigned int plw[8];                      /* static: below 16 MB */
+    /* the plist must be below 16 MB (SVC 202 runs in AMODE 24): the low
+       block, not a static, which an XL program has above 16 MB (9.35: every
+       fstat of an XL program printed "Invalid character in fileID") */
+    unsigned int *plw = (unsigned int *)L->dirpl;
     unsigned char *pl = (unsigned char *)plw;
     static const unsigned char state[8] = { 0xE2,0xE3,0xC1,0xE3,0xC5,0x40,0x40,0x40 };
     memcpy(pl, state, 8); memcpy(pl + 8, f->fn, 8); memcpy(pl + 16, f->ft, 8);

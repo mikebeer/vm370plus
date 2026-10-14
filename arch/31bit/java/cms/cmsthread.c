@@ -114,6 +114,17 @@ static void reschedule(void)
             fprintf(stderr, "cmsthread: all threads are waiting -- deadlock\n");
             exit(99);
         }
+#ifdef CMS_WATCHDOG
+        {   /* test builds: a VM that is only waiting cannot hang the run */
+            static long long t0;
+            long long n = now_us();
+            if (!t0) t0 = n;
+            if (n - t0 > CMS_WATCHDOG * 1000000LL) {
+                fprintf(stderr, "cmsthread: watchdog: %d s, ending\n", CMS_WATCHDOG);
+                exit(98);
+            }
+        }
+#endif
         while (now_us() < soonest) ;        /* nothing to run: wait */
     }
 }
@@ -442,6 +453,10 @@ extern void *cms_fd_take(int, unsigned int *);
 void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off)
 {
     char *p;
+    /* whole pages, as the kernel gives: JamVM's gcMemRealloc grows a
+       mapping in place up to the end of its last page (9.35: without this
+       its GC lists overran the next heap block -- freed bytecode) */
+    len = (len + 4095) & ~(size_t)4095;
     if (!(flags & MAP_ANONYMOUS) && off == 0) {
         unsigned int have;
         p = cms_fd_take(fd, &have);         /* the file's storage, once */
@@ -486,3 +501,32 @@ int scandir(const char *d, struct dirent ***list, int (*sel)(const struct dirent
             int (*cmp)(const struct dirent **, const struct dirent **))
 { *list = 0; return 0; }
 int alphasort(const struct dirent **a, const struct dirent **b) { return 0; }
+
+/* Java needs an absolute user.dir: the accessed disks are "/" ("/fn.ft"
+   is a CMS file id, the way cmsrt reads it).  Overrides cmsrt's weak ".". */
+char *getcwd(char *buf, size_t n)
+{
+    if (!buf || n < 2) { errno = ERANGE; return 0; }
+    strcpy(buf, "/"); return buf;
+}
+
+/* ----------------------------------------------------------- diagnosis */
+void cms_diag_dump(void *code, int len)
+{
+    unsigned char *c = code;
+    int i;
+    fprintf(stderr, "CMSDIAG code %p len %d thread %p stack %p-%p sp~%p:",
+            code, len, (void *)cur, cur ? cur->stack : 0,
+            cur ? cur->stack + cur->stacksize : 0, (void *)&i);
+    for (i = 0; i < len && i < 48; i++) fprintf(stderr, " %02x", c[i]);
+    fprintf(stderr, "\n");
+}
+
+void cms_diag_prepare(void *code, int len, void *cd, void *map, const char *name)
+{
+    char *c = code, *s = cur ? cur->stack : 0, *e = s ? s + cur->stacksize : 0;
+    char here;
+    if ((s && c + len > s && c < e) || (c + len > (char *)&here - 65536 && c < (char *)&here + 65536))
+        fprintf(stderr, "CMSDIAG overlap: %s code %p+%d stack %p-%p cd %p map %p sp %p\n",
+                name, code, len, s, e, cd, map, (void *)&here);
+}

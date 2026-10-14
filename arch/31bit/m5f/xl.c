@@ -38,6 +38,7 @@ struct xlsvc {
 };
 
 int cms202(void *plist);
+void cms_heap_trim(void);
 static struct lowdata low;
 static jmp_buf back;
 static int xl_rc;
@@ -110,6 +111,8 @@ int main(int argc, char **argv)
     free(file);
     fflush(stdout);
     fflush(stderr);
+    /* keep only the image: the program's own heap gets the rest */
+    cms_heap_trim();
     svc.cms202 = cms202;
     svc.exit = xl_exit;
     svc.low = &low;
