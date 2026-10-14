@@ -746,6 +746,8 @@ UNCVT    TM    ENTFLG2(R3),ENTCVT                              XA0054DK
 *  THIS WAY. CHAIN IN FORMAT 0 HERE; R8 = VDEVBLOK.            XA0054DK         
 SIDCHK   ST    R9,VCSLNK5                                      XA0054DK         
          NI    ENTFLG2(R3),255-ENTSID                          XA0054DK         
+         TM    VDEVSTAT,VDEVDED  A DEDICATED DEVICE ANSWERS    XA0054DK         
+         BO    SIDCX          ITSELF (9.12B: LCS IS 3088-60)   XA0054DK         
          L     R2,VCRLAST     RING: C'1' SIDCHK REACHED,       XA0054DK         
          MVI   14(R2),C'1'    C'2' TYPE KNOWN, C'3' AN E4      XA0054DK         
          MVC   15(1,R2),VDEVTYPC                               XA0054DK         

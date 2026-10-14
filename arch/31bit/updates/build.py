@@ -3026,6 +3026,8 @@ VCSCODE = [
     "*  THIS WAY. CHAIN IN FORMAT 0 HERE; R8 = VDEVBLOK.",
     "SIDCHK   ST    R9,VCSLNK5",
     "         NI    ENTFLG2(R3),255-ENTSID",
+    "         TM    VDEVSTAT,VDEVDED  A DEDICATED DEVICE ANSWERS",
+    "         BO    SIDCX          ITSELF (9.12B: LCS IS 3088-60)",
     "         L     R2,VCRLAST     RING: C'1' SIDCHK REACHED,",
     "         MVI   14(R2),C'1'    C'2' TYPE KNOWN, C'3' AN E4",
     "         MVC   15(1,R2),VDEVTYPC",
