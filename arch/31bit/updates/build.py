@@ -3544,6 +3544,21 @@ def m7decks():
         "         N     R2,=X'F0FFFFFF'  DROP THE MARK",
         "         B     TSTDED1",
         "VSIOCAW  LA    R1,CAW         LOGICAL ADDRESS OF USER'S CAW"])
+    # I-287: an SIO on a block multiplexer flags its control unit ACTIVE
+    # (VCUACTV) unless the device is a terminal, and DMKVIO/DMKVSJ's
+    # rescan then keeps the channel in VMIOACTV while any CU on it is
+    # flagged -- after ANY interrupt on that channel.  A CTCA's READ
+    # waits on the partner for ever, so the guest never went idle and
+    # held its queue slot (vc6: MAINT in a disabled wait, still in Q2,
+    # VMIOACTV X'0200').  The special class is treated like a terminal.
+    d.replace('00328000', to='00330000', first='00328000', inc=10,
+              limit=next_seq(src('DMKVSI'), '00330000'), lines=[
+        "         TM    VDEVTYPC,CLASTERM IS THIS A TERMINAL DEVICE?",
+        "         BO    GETIOBNA       YES: NOT ACTIVE",
+        "         CLI   VDEVTYPC,CLASSPEC  I-287: A CTCA WAITS ON ITS",
+        "         BNE   IOBFREE        PARTNER: NOT ACTIVE EITHER",
+        "GETIOBNA NI    VCUSTAT,255-VCUACTV RESET ACTIVE FLAG",
+    ])
     # DMKVCS outgrew the 999 numbers between COPY SAVE (01636000) and the
     # END card (01637000): the END card is replaced, DMKVCS ahead of it,
     # so the numbers run on past 01637000 with nothing after them.

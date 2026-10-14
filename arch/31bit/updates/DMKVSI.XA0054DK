@@ -8,6 +8,12 @@
          N     R2,=X'F0FFFFFF'  DROP THE MARK                  XA0054DK         
          B     TSTDED1                                         XA0054DK         
 VSIOCAW  LA    R1,CAW         LOGICAL ADDRESS OF USER'S CAW    XA0054DK         
+./ R 00328000 00330000 $ 00328000 010                                           
+         TM    VDEVTYPC,CLASTERM IS THIS A TERMINAL DEVICE?    XA0054DK         
+         BO    GETIOBNA       YES: NOT ACTIVE                  XA0054DK         
+         CLI   VDEVTYPC,CLASSPEC  I-287: A CTCA WAITS ON ITS   XA0054DK         
+         BNE   IOBFREE        PARTNER: NOT ACTIVE EITHER       XA0054DK         
+GETIOBNA NI    VCUSTAT,255-VCUACTV RESET ACTIVE FLAG           XA0054DK         
 ./ R 01637000          $ 01636001 001                                           
 VMESA390 EQU   X'02'          VMFSTAT: ESA/390 MACHINE         XA0054DK         
 VMVCSIX  EQU   VMUSERH1       ITS TABLE: SLOT IN DMKVCS        XA0054DK         
