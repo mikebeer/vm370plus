@@ -53,7 +53,7 @@ zip -q  $D/VM370PLUS-kit-$STAMP-part3.zip VM370CE.V1.R1.2/disks/shadows/vm50u0_1
 if [ -n "$DEBDISK" ]; then
   mkdir -p $W/deb/VM370CE.V1.R1.2/disks
   # free ext2 blocks zeroed, all-zero tracks null (cckdzero.py, b14)
-  python3 $(dirname "$0")/../tools/cckdzero.py $DEBDISK $W/deb/lnx190.cckd || exit 1
+  python3 $R/arch/31bit/tools/cckdzero.py $DEBDISK $W/deb/lnx190.cckd || exit 1
   split -b 28000000 -d -a 3 --numeric-suffixes=1 $W/deb/lnx190.cckd $W/deb/VM370CE.V1.R1.2/disks/lnx190.cckd.
   sha256sum $W/deb/lnx190.cckd | sed 's#  .*#  lnx190.cckd#' > $W/deb/VM370CE.V1.R1.2/disks/lnx190.sha256
   P=$(cd $W/deb/VM370CE.V1.R1.2/disks; ls lnx190.cckd.0??)

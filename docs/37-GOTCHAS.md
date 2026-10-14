@@ -547,3 +547,11 @@ Hercules `restart` panel command is the operator's RESTART key: CP takes its
 dump (`DMKDMP908I SYSTEM FAILURE; CODE PSA002`) and re-IPLs itself, after
 which the usual logoff, SHUTDOWN at 0009 and Hercules `exit` work. Check the
 packs with `cckdcdsk -3 -ro` afterwards.
+
+## A dropped terminal line goes OFFLINE (14 Oct, kt28)
+
+When a drive.py terminal (the 1052 at 000A on port 3270) is closed while a
+user is logged on there, CP marks the line `CONS 00A OFFLINE` and a new
+telnet connection gets no logo.  From OPERATOR: `VARY ONLINE 00A`, `ENABLE
+00A`, then connect and LOGON (RECONNECT).  A Linux guest left disconnected
+freezes in console wait (I-288) until it is reconnected.
