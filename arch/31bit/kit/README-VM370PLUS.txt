@@ -1,7 +1,27 @@
 VM/370plus  --  overlay kit, 13 October 2026 (build 13)
 ========================================================
 
-NEW IN BUILD 13
+NEW IN BUILD 14
+  - The Debian disk (LNX190) is a full 3390-9 again: 6.8 GB, 5.8 GB free
+    (it was 97% full).  Its free blocks are zeroed, so it downloads as
+    245 MB.  Join it with JOINDEB.CMD / joindeb.sh as before.
+  - PostgreSQL 16 in the Debian guest, started at boot.  From CMS (lang):
+        PGSQL create table t (a int, b text)
+        PGSQL select * from t
+        PGSQL (FILE QUERY SQL       the statements of QUERY SQL A
+    Each CMS user gets a database of its own.  In Debian: psql -U postgres.
+  - MQ: message queues for CMS programs on a RabbitMQ broker (IPL 290,
+    lang, NICOF proxies running): MQ PUT|GET|DEPTH|PURGE queue [message].
+    MQ OPTIONS names the broker (default: the PC, guest/guest).
+  - RXPIP: the Debian side follows the current rexxpository client
+    (no update check, private packages through a cmsbridge token).
+  - CP: a Linux guest with a CTC link no longer stays in the dispatch
+    queue while idle, so two Linux guests share the machine properly; a
+    virtual CTCA accepts guest buffers above 16 MB (I-287, in progress:
+    Linux-to-Linux virtual CTCAs do not connect yet).
+
+
+IN BUILD 13
   - NICOF for the EC-mode CMS (IPL 290), built with GCC 13, on the language
     disk (lang first; the NICOF proxies running: nicof.sh start):
         CMSFTP31 -p 2121           FTP server for your disks
@@ -12,8 +32,6 @@ NEW IN BUILD 13
         NCTEST                     socket test (echo server on PC port 8200)
   - I-285: NICOF programs no longer wait forever under IPL 290.
   - I-286: HX under IPL 290 no longer ends in a disabled wait.
-  - Not yet in the Debian guest: the rxpip handler changes (--global,
-    RXPIP_NO_UPDATE_CHECK); they come with the next Linux refresh.
 
 
 IN BUILD 12

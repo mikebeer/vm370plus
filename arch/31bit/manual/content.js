@@ -22,7 +22,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**14 October 2026, night.** `PGSQL` (Chapter 6): PostgreSQL 16 in the Debian guest, from CMS through the spool bridge; each CMS user gets a database of its own.',
+B(['**14 October 2026, morning (kit build 14).** The Debian disk is a full 3390-9 again (6.8 GB, 5.8 GB free) and is shipped with its free blocks zeroed (245 MB). CP: a Linux guest with a CTC link (the 3088 to the PC, or a virtual CTCA) now leaves the dispatch queue when it is idle, so two Linux guests share the machine; a virtual CTCA accepts guest buffers above 16 MB. Linux-to-Linux virtual CTCAs do not connect yet (I-287).',
+   '**14 October 2026, night.** `PGSQL` (Chapter 6): PostgreSQL 16 in the Debian guest, from CMS through the spool bridge; each CMS user gets a database of its own.',
    '**14 October 2026.** `MQ` (Chapter 6): message queues for CMS programs on a RabbitMQ broker (PUT, GET, DEPTH, PURGE, GET onto the stack). The RXPIP bridge follows the current rexxpository client.',
    '**13 October 2026, night.** NICOF’s tools for the EC-mode CMS, built with GCC 13, on the language disk: `CMSFTP31`, `NHFS31`, `HACC31`, `IPLOOK31`, the web server `HTTPD31` and `NCTEST` (Chapter 6). NICOF programs no longer wait forever under `IPL 290` (I-285), and HX under `IPL 290` no longer ends in a disabled wait (I-286).',
    '**13 October 2026, late evening.** CP/M 2.2 (Chapter 8): `CPM` runs CP/M on CMS, with the CP/M programs on the language disk, and in the Debian guest. TK5 (MVS 3.8j) and a 31-bit MVS are in the plan as M13.',

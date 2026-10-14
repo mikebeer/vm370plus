@@ -87,6 +87,13 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.14 October 2026, morning (kit build 14).:ehp2. The Debian disk
+is a full 3390-9 again (6.8 GB, 5.8 GB free) and is shipped with its
+free blocks zeroed (245 MB). CP&colon. a Linux guest with a CTC link
+(the 3088 to the PC, or a virtual CTCA) now leaves the dispatch queue
+when it is idle, so two Linux guests share the machine; a virtual CTCA
+accepts guest buffers above 16 MB. Linux-to-Linux virtual CTCAs do not
+connect yet (I-287).
 :li.:hp2.14 October 2026, night.:ehp2. :xph.PGSQL:exph. (Chapter
 6)&colon. PostgreSQL 16 in the Debian guest, from CMS through the spool
 bridge; each CMS user gets a database of its own.

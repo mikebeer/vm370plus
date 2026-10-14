@@ -27,6 +27,8 @@ VM/370plus language disk (MAINT 19F, volume VMLANG)
   HTTPD31         a web server for a CMS disk (-p port -d fm -n count -k key)
   MQ PUT|GET|DEPTH|PURGE queue [msg]  message queues on a RabbitMQ
                   broker through NICOF (MQ OPTIONS: HOST PORT USER ...)
+  PGSQL stmt      SQL for PostgreSQL 16 in the Debian guest, through the
+                  spool bridge; PGSQL (FILE fn [ft [fm]] runs a file
   NCTEST          a NICOF socket test against an echo server on the PC
                   (NICOF's proxies: nicof/nicof.sh start on the PC)
 
