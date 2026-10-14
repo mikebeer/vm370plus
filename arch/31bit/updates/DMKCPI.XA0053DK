@@ -31,6 +31,9 @@ DMKCPIB  CSECT                                                 XA0053DK
          CLR   R5,R10                                          XA0053DK         
          BNH   CPIB1                                           XA0053DK         
          L     R4,=A(DMKPGTXT)  M4B.2: STORAGE ABOVE 16 MB     XA0053DK         
+         CL    R5,CPIBXT      I-290: AT MOST 32767 SLOTS, AS   XA0053DK         
+         BNH   *+8            VMPDRUM IS A HALFWORD            XA0053DK         
+         L     R5,CPIBXT      ...                              XA0053DK         
          ST    R5,0(,R4)      IS DMKPGT'S PAGING STORE         XA0053DK         
          L     R6,CPIBFT      M4B.3: AND FRAMES UP TO CPIBFT   XA0053DK         
          CLR   R6,R5                                           XA0053DK         
@@ -115,6 +118,11 @@ CPIGO31  L     R12,ADSPCH     GOTO DMKDSPCH                    XA0053DK
 CPIGOFL  DC    V(DMKPSA31)                                     XA0053DK         
 CPIGOBIT DC    X'80000000'                                     XA0053DK         
 CPIBSAVE DS    15F                                             XA0053DK         
-CPIBFT   DC    A(X'0A000000') M4B.3: FRAMES UP TO 160 MB       XA0053DK         
+*  I-290: VMPAGES (RESIDENT FRAMES) IS A HALFWORD, READ        XA0053DK         
+*  SIGNED BY LH.  FRAMES TO 160 MB LET ONE USER HOLD 36000     XA0053DK         
+*  AND IT WENT NEGATIVE (PGS001, PTR018).  128 MB KEEPS        XA0053DK         
+*  EVERY FRAME COUNT BELOW 32768.                              XA0053DK         
+CPIBFT   DC    A(X'08000000') M4B.3: FRAMES UP TO 128 MB       XA0053DK         
+CPIBXT   DC    A(X'0FFFF000') I-290: STORE TOP                 XA0053DK         
 CPIBFTOP DS    F                                               XA0053DK         
          LTORG                                                 XA0053DK         
