@@ -87,6 +87,10 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.14 October 2026, forenoon (kit build 15).:ehp2. A Linux guest
+whose terminal drops is disconnected and keeps running, as under z/VM
+(I-288); before, CP stopped it and logged it off after 15 minutes. CMS
+users keep VM/370's rule.
 :li.:hp2.14 October 2026, morning (kit build 14).:ehp2. The Debian disk
 is a full 3390-9 again (6.8 GB, 5.8 GB free) and is shipped with its
 free blocks zeroed (245 MB). CP&colon. a Linux guest with a CTC link

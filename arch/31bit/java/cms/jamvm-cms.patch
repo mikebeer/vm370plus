@@ -1,0 +1,18 @@
+diff --git a/src/classlib/gnuclasspath/class.c b/src/classlib/gnuclasspath/class.c
+index 3661c64..3ee9a0e 100644
+--- a/src/classlib/gnuclasspath/class.c
++++ b/src/classlib/gnuclasspath/class.c
+@@ -109,7 +109,12 @@ Class *classlibBootPackagesArrayClass() {
+    the classes will be contained in ZIP files, else they will be
+    separate class files in a directory structure */
+ 
+-#ifdef USE_ZIP
++#ifdef __CMS__
++/* VM/370plus: the archives are CMS files JAMVM ZIP and GLIBJ ZIP on an
++   accessed disk ("/fn.ft" is a CMS file id) */
++#define JAMVM_CLASSES "/jamvm.zip"
++#define CLASSPATH_CLASSES "/glibj.zip"
++#elif defined(USE_ZIP)
+ #define JAMVM_CLASSES INSTALL_DIR"/share/jamvm/classes.zip"
+ #define CLASSPATH_CLASSES CLASSPATH_INSTALL_DIR"/share/classpath/glibj.zip"
+ #else

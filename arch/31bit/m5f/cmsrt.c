@@ -56,11 +56,15 @@ static void cms_init_array(void)
     if (!__init_array_start) return;
     for (f = __init_array_start; f < __init_array_end; f++) (*f)();
 }
+/* the main stack, for a thread package (JamVM's green threads, 9.35) */
+void *cms_main_stack_base, *cms_main_stack_top;
 static int cms_run_main(int argc, char **argv)
 {
     cms_init_array();
     char *s = malloc(cms_stack_mb << 20);
     if (!s) return main(argc, argv);
+    cms_main_stack_base = s;
+    cms_main_stack_top = s + (cms_stack_mb << 20);
     return cms_onstack(s + (cms_stack_mb << 20), main, argc, argv);
 }
 int main(int argc, char **argv);
@@ -316,7 +320,7 @@ static int parse_name(const char *name, struct cfile *f)
        toolchain's as/ld/ar read and write them through fopen) */
     static const char *const bin[] = { "RXBIN", "MODULE", "O", "A", "ELF", "OBJ",
         "XIMAGE", "LIB", "BIN", "OUT", "GCH", "TAR", "TMP", "DB", "SQLITE", "DB3", "DBF", "DBT", "XDX",
-        "ZIP", "GZ", "TGZ", "Z", "BZ2", "XZ", "TRS", "TERSE", "JAR", 0 };
+        "ZIP", "GZ", "TGZ", "Z", "BZ2", "XZ", "TRS", "TERSE", "JAR", "CLASS", 0 };
     for (int b = 0; bin[b]; b++) if (!strcmp(part[1], bin[b])) f->binary = 1;
     /* SQLite's journal of fn.db is fn.db-journal: filetype DB-JOURN */
     if (!strncmp(part[1], "DB-", 3)) f->binary = 1;
@@ -542,6 +546,18 @@ int _open(const char *name, int flags, int mode)
         }
     }
     return fd;
+}
+
+/* 9.35: hand a read-only file's storage to the caller (JamVM's mmap of a
+   class archive), so the archive is in storage once.  The caller frees it;
+   close() then has nothing to free.  0 if fd is not a file open for read. */
+void *cms_fd_take(int fd, unsigned int *len)
+{
+    if (fd < 3 || fd >= NFILES || !files[fd].used || files[fd].writing) return 0;
+    void *d = files[fd].data;
+    *len = files[fd].len;
+    files[fd].data = 0; files[fd].len = files[fd].cap = files[fd].pos = 0;
+    return d;
 }
 
 int _close(int fd)

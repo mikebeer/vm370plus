@@ -1,7 +1,16 @@
 VM/370plus  --  overlay kit, 13 October 2026 (build 13)
 ========================================================
 
-NEW IN BUILD 14
+NEW IN BUILD 15
+  - Debian keeps running when its terminal goes away (I-288).  Closing the
+    window or losing the connection used to stop the whole guest (no ssh,
+    no spool bridge) and log it off after 15 minutes.  Now it is just
+    disconnected, as under z/VM.  To get the console back: from OPERATOR
+    VARY ONLINE 00A and ENABLE 00A (with your terminal connected), then
+    LOGON MAINT and BEGIN.  CMS users keep VM/370's rule.
+
+
+IN BUILD 14
   - The Debian disk (LNX190) is a full 3390-9 again: 6.8 GB, 5.8 GB free
     (it was 97% full).  Its free blocks are zeroed, so it downloads as
     245 MB.  Join it with JOINDEB.CMD / joindeb.sh as before.

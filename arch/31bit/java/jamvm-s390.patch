@@ -1,0 +1,135 @@
+diff --git a/configure.ac b/configure.ac
+index 19f77e6..6530001 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -41,6 +41,7 @@ i386-*-solaris*) host_cpu=x86 host_os=solaris ;;
+ x86_64-*-linux*) host_os=linux ;;
+ hppa*-*-linux*) host_cpu=parisc host_os=linux ;;
+ mips*-*-linux*) host_cpu=mips host_os=linux ;;
++s390-*-linux*) host_cpu=s390 host_os=linux ;;
+ x86_64-*-openbsd*) host_os=bsd libdl_needed=no ;;
+ x86_64-*-freebsd*) host_os=bsd libdl_needed=no ;;
+ arm*-*-linux*) host_cpu=arm host_os=linux interp_cflags=-marm ;;
+@@ -408,6 +409,7 @@ AC_CONFIG_FILES(
+     src/os/linux/x86_64/Makefile \
+     src/os/linux/parisc/Makefile \
+     src/os/linux/mips/Makefile \
++    src/os/linux/s390/Makefile \
+     src/os/darwin/i386/Makefile \
+     src/os/darwin/arm/Makefile \
+     src/os/darwin/powerpc/Makefile \
+diff --git a/src/arch/Makefile.am b/src/arch/Makefile.am
+index 7580a1b..3a5e834 100644
+--- a/src/arch/Makefile.am
++++ b/src/arch/Makefile.am
+@@ -19,4 +19,4 @@
+ ## Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ ##
+ 
+-EXTRA_DIST = powerpc.h arm.h i386.h x86_64.h parisc.h mips.h sparc.h
++EXTRA_DIST = powerpc.h arm.h i386.h x86_64.h parisc.h mips.h sparc.h s390.h
+diff --git a/src/arch/s390.h b/src/arch/s390.h
+new file mode 100644
+index 0000000..9ad9a39
+--- /dev/null
++++ b/src/arch/s390.h
+@@ -0,0 +1,38 @@
++/*
++ * s390.h -- JamVM on 31-bit S/390 (ESA/390), VM/370plus 9.34.
++ * Big-endian like powerpc; atomics by GCC's __sync builtins (CS);
++ * no inlining interpreter (configure --disable-int-inlining), so the code
++ * generation macros are never used.  Native calls go through libffi.
++ */
++
++#define OS_ARCH "s390"
++
++/* a 64 MB virtual machine: keep the minimum heap small */
++#define DEFAULT_MIN_HEAP 1*MB
++
++#define HANDLER_TABLE_T static const void
++#define DOUBLE_1_BITS 0x3ff0000000000000LL
++
++#define READ_DBL(v,p,l) v = ((u8)p[0]<<56)|((u8)p[1]<<48)|((u8)p[2]<<40) \
++                            |((u8)p[3]<<32)|((u8)p[4]<<24)|((u8)p[5]<<16) \
++                            |((u8)p[6]<<8)|(u8)p[7]; p+=8
++
++#define FPU_HACK
++
++#define COMPARE_AND_SWAP_32(addr, old_val, new_val) \
++        __sync_bool_compare_and_swap((volatile int*)(addr), (int)(old_val), (int)(new_val))
++
++#define COMPARE_AND_SWAP(addr, old_val, new_val) \
++        COMPARE_AND_SWAP_32(addr, old_val, new_val)
++
++#define LOCKWORD_READ(addr) *addr
++#define LOCKWORD_WRITE(addr, value) *addr = value
++#define LOCKWORD_COMPARE_AND_SWAP(addr, old_val, new_val) \
++        COMPARE_AND_SWAP(addr, old_val, new_val)
++
++#define FLUSH_CACHE(addr, length)
++#define GEN_REL_JMP(target_addr, patch_addr, patch_size) FALSE
++
++#define MBARRIER() __sync_synchronize()
++#define JMM_LOCK_MBARRIER() __sync_synchronize()
++#define JMM_UNLOCK_MBARRIER() __sync_synchronize()
+diff --git a/src/os/linux/Makefile.am b/src/os/linux/Makefile.am
+index 542094e..e84bb54 100644
+--- a/src/os/linux/Makefile.am
++++ b/src/os/linux/Makefile.am
+@@ -20,7 +20,7 @@
+ ##
+ 
+ SUBDIRS = @arch@
+-DIST_SUBDIRS = powerpc arm i386 x86_64 parisc mips
++DIST_SUBDIRS = powerpc arm i386 x86_64 parisc mips s390
+ 
+ noinst_LTLIBRARIES = libos.la
+ libos_la_SOURCES = os.c
+diff --git a/src/os/linux/s390/Makefile.am b/src/os/linux/s390/Makefile.am
+new file mode 100644
+index 0000000..4c61ce1
+--- /dev/null
++++ b/src/os/linux/s390/Makefile.am
+@@ -0,0 +1,5 @@
++## s390 (31-bit), VM/370plus: native calls through libffi
++noinst_LTLIBRARIES = libnative.la
++libnative_la_SOURCES = init.c dll_md.c
++
++AM_CPPFLAGS = -I$(top_builddir)/src
+diff --git a/src/os/linux/s390/dll_md.c b/src/os/linux/s390/dll_md.c
+new file mode 100644
+index 0000000..1049727
+--- /dev/null
++++ b/src/os/linux/s390/dll_md.c
+@@ -0,0 +1,2 @@
++/* s390: native calls through libffi (--enable-ffi), nothing here */
++#include "../../../jam.h"
+diff --git a/src/os/linux/s390/init.c b/src/os/linux/s390/init.c
+new file mode 100644
+index 0000000..6422705
+--- /dev/null
++++ b/src/os/linux/s390/init.c
+@@ -0,0 +1,23 @@
++/*
++ * Copyright (C) 2003, 2004, 2006, 2007
++ * Robert Lougher <rob@jamvm.org.uk>.
++ *
++ * This file is part of JamVM.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2,
++ * or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
++ */
++
++void initialisePlatform() {
++}
