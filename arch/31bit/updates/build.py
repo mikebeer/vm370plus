@@ -3400,6 +3400,7 @@ VCSCODE = [
     "         DC    X'0440231400231400'  2314",
     "         DC    X'0810380300342000'  3420",
     "         DC    X'0280308808000000'  CTCA: 3088-08 (CTCM)",
+    "         DC    X'0208308860308801'  LCS: 3088-60 (9.12B)",
     "         DC    X'FF'",
     "         DS    0F",
     "VCRING   DC    32XL16'00'",
@@ -3568,6 +3569,15 @@ def m7decks():
         "         CLI   VDEVTYPC,CLASSPEC  I-287: A CTCA WAITS ON ITS",
         "         BNE   IOBFREE        PARTNER: NOT ACTIVE EITHER",
         "GETIOBNA NI    VCUSTAT,255-VCUACTV RESET ACTIVE FLAG",
+    ])
+    # 9.12b step A: a virtual LCS (DEFINE LCS, class special, TYPLCS)
+    # goes where a virtual CTCA goes; until its simulation exists it is
+    # an uncoupled adapter -- not ready, DMKDIBSM's status (DMKVCAST).
+    d.replace('00492000', to='00493000', first='00492000', inc=100,
+              limit=next_seq(src('DMKVSI'), '00493000'), lines=[
+        "TYPLCS   EQU   X'08'          9.12B: VIRTUAL LCS ADAPTER",
+        "         TM    VDEVTYPE,TYPCTCA+TYPLCS  CTCA OR LCS?",
+        "         BZ    VIOKNCP        NO...",
     ])
     # DMKVCS outgrew the 999 numbers between COPY SAVE (01636000) and the
     # END card (01637000): the END card is replaced, DMKVCS ahead of it,
@@ -3821,6 +3831,16 @@ def m7decks():
         "         BO    DSCEXIT        FOR AN ESA/390 GUEST",
     ])
     decks['DMKQCN'] = d
+
+    # 9.12b step A: DEFINE LCS vdev -- a virtual LAN adapter device
+    # (class special, TYPLCS X'08'); a pair is two DEFINEs (vdev, vdev+1).
+    d = Deck(XA54)
+    d.insert('01000200', first='01000300', inc=100,
+             limit=next_seq(src('DMKDEF'), '01000200'), lines=[
+        "TYPLCS   EQU   X'08'          9.12B: VIRTUAL LCS ADAPTER",
+        "         DC    C'LCS     ',H'2',AL1(CLASSPEC,TYPLCS) LAN",
+    ])
+    decks['DMKDEF'] = d
 
     # I-288: the line drop itself puts the user in CP mode (console
     # function), whose read then ends with 'line break' and leaves VMCFWAIT

@@ -87,7 +87,7 @@ This is CP work and the largest step of 9.12.
 
 | Step | What | Test |
 |---|---|---|
-| A | DEFINE LCS, TYPLCS, SENSE ID 3088-60 | Linux binds `lcs` to the pair |
+| A | DEFINE LCS, TYPLCS, SENSE ID 3088-60 | Linux binds `lcs` to the pair -- **done 14 Oct (la1)**: `CP DEFINE LCS 640`/`641` (DEV 640 DEFINED), Linux sees 3088/01 on 3088/60, driver lcs, `group` makes 0.0.0640. Until step B the pair is an uncoupled adapter (not ready, DMKVCAST/DMKDIBSM). |
 | B | write and read programs, suspend/RSCH/PCI, control commands | `eth0` up with CP's MAC (`ifconfig`) |
 | C | the switch: unicast, broadcast, queues | two guests ping each other (ARP over the LAN) |
 | D | DETACH, LOGOFF, HSCH/CSCH, recovery | offline/online in Linux; a guest leaves while the other sends |

@@ -1,0 +1,3 @@
+./ I 01000200 $ 01000300 100                                                    
+TYPLCS   EQU   X'08'          9.12B: VIRTUAL LCS ADAPTER       XA0054DK         
+         DC    C'LCS     ',H'2',AL1(CLASSPEC,TYPLCS) LAN       XA0054DK         
