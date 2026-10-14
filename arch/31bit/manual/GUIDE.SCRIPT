@@ -87,6 +87,11 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.14 October 2026, midday.:ehp2. Java and NetRexx on CMS&colon.
+:xph.JAVA:exph. and :xph.NETREXX:exph. (Chapter 8). CP&colon. a CMS user
+can page more than 128 MB without stopping CP (I-290); XL programs no
+longer print "Invalid character" messages when they look at a file
+(I-289).
 :li.:hp2.14 October 2026, forenoon (kit build 15).:ehp2. A Linux guest
 whose terminal drops is disconnected and keeps running, as under z/VM
 (I-288); before, CP stopped it and logged it off after 15 minutes. CMS
@@ -1801,6 +1806,46 @@ R&amp.D    2  9000.25  9200.5
 Ready;
 :exmp.
 :figcap.SQLite on CMS
+:efig.
+:h2.Java and NetRexx
+:p.:xph.JAVA class [args]:exph. runs a Java program on CMS with JamVM
+2.0 and the GNU Classpath 0.99 class library (Java 5 level&colon.
+generics, collections, threads, files, java.util.zip, text formatting).
+A class is the CMS file :xph.fn CLASS:exph. on any accessed disk, a jar
+is :xph.fn JAR:exph., named as :xph.-cp /fn.jar:exph.; :xph./fn.ft:exph.
+names a CMS file wherever Java expects a path. The command line may be
+typed in upper case&colon. :xph.JAVA HELLO:exph. finds :xph.HELLO
+CLASS:exph. and uses the class name it holds, and the options
+:xph.-cp:exph., :xph.-Xmx48m:exph., :xph.-Xss:exph., :xph.-D:exph. and
+:xph.-version:exph. are put back into their own case. The heap is 48 MB
+unless :xph.-Xmx:exph. says otherwise; the virtual machine needs
+:xph.IPL 290:exph. and :xph.CP DEFINE STORAGE 128M:exph. or more, as
+JamVM, the class library (:xph.GLIBJ ZIP:exph., 10 MB) and the heap all
+live above 16 MB. There are no sockets and no AWT on CMS; threads are
+run by JamVM's own scheduler inside the one CMS task and switch when one
+waits. Class files are compiled on the PC or in the Debian guest
+(:xph.javac -source 8 -target 8:exph.) and sent as binary files.
+:p.:xph.NETREXX fn [options]:exph. processes :xph.fn NRX:exph. with the
+NetRexx 3.05 processor (RexxLA), by default with :xph.-exec:exph.&colon.
+the program is interpreted and runs at once. Other NetRexxC options are
+passed on, for example :xph.-nocompile -keepasjava:exph. to translate to
+Java source only; there is no Java compiler on CMS yet.
+:fig.
+:xmp.
+java hello
+Hello from Java on CMS, VM/370plus
+thread says hi
+Ready; T=3.08/7.12
+netrexx hello
+NetRexx portable processor 3.05-GA
+Program HELLO.nrx
+===== Exec: HELLO =====
+Hello from NetRexx on VM/370plus
+sum 6 pi approx 3.14159292
+Processing of 'HELLO.nrx' complete
+Ready; T=25.30/33.77
+:exmp.
+:figcap.Java and NetRexx on CMS (samples on the language disk)
 :efig.
 :h2.CP/M 2.2
 :p.:xph.CPM:exph. starts CP/M 2.2 in your CMS machine (RunCPM, a Z80

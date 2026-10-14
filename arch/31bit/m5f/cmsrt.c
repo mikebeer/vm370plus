@@ -1017,6 +1017,10 @@ struct m8_dir *opendir(const char *name)
     unsigned char *pl = L->dirpl;    /* below 16 MB: the stack is not */
     char mode = 'A';
     if (name && name[0] && name[0] != '.') mode = name[0];
+    /* "/" is every accessed disk (Java's user.dir; 9.35: NetRexx lists
+       the directory of its jar, "/", which was LISTFILE * * / and an
+       "Invalid filemode" message) */
+    if (name && name[0] == '/' && (!name[1] || (name[1] == '.' && !name[2]))) mode = '*';
     if (mode >= 'a' && mode <= 'z') mode -= 32;
     const char *tok[6] = { "LISTFILE", "*", "*", 0, "(", "EXEC" };
     char m[2] = { mode, 0 };

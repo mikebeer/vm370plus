@@ -29,9 +29,12 @@ VM/370plus language disk (MAINT 19F, volume VMLANG)
                   broker through NICOF (MQ OPTIONS: HOST PORT USER ...)
   PGSQL stmt      SQL for PostgreSQL 16 in the Debian guest, through the
                   spool bridge; PGSQL (FILE fn [ft [fm]] runs a file
+  JAVA class      Java 5 programs (JamVM 2.0 + GNU Classpath 0.99): fn CLASS
+                  on any disk, -cp /fn.jar for a jar; JAVA HELLO runs a sample
+  NETREXX fn      NetRexx 3.05: runs fn NRX at once (-exec); NETREXX HELLO
   NCTEST          a NICOF socket test against an echo server on the PC
                   (NICOF's proxies: nicof/nicof.sh start on the PC)
 
 Headers and libraries: SYSROOT TAR and CXXROOT TAR (read as /usr/...).
-Large programs (CC1, PY, XBASEC) run from above 16 MB through XL.
+Large programs (CC1, PY, XBASEC, JAMVM) run from above 16 MB through XL.
 The VM/370plus Guide, chapter 8, describes each one.

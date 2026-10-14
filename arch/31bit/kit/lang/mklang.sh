@@ -70,6 +70,16 @@ add INDEX HTML $R/nicof/httpd/INDEX.HTML V
 # message queues on RabbitMQ (9.7): MQ EXEC + MQAMQP (rabbitmq-c, GCC 13)
 add MQAMQP TEXT $R/mq/MQAMQP.text BIN; add MQ EXEC $R/mq/cms/MQ.EXEC F
 add MQTEST EXEC $R/mq/cms/MQTEST.EXEC F
+# Java and NetRexx (9.35): JamVM 2.0 + GNU Classpath 0.99 (java/cms),
+# NetRexx 3.05; ZIP and JAR files RAW (exact bytes)
+JV=${JV:-/home/claude/src/java}; JX=$R/java/cms
+add JAMVM XIMAGE $JV/cms/out/jamvm.ximage BIN
+add JAMVM ZIP $JV/pc-inst/share/jamvm/classes.zip RAW
+add GLIBJ ZIP $JV/pc-inst/share/classpath/glibj.zip RAW
+add NETREXX JAR $JV/nr/NetRexxC-3.05.jar RAW
+add JAVA EXEC $JX/exec/JAVA.EXEC F; add NETREXX EXEC $JX/exec/NETREXX.EXEC F
+add HELLO NRX $JX/hello.nrx V; add HELLO JAVA $JX/hello.java V
+add HELLO CLASS $JV/cms/test/hello.class RAW; add 'HELLO$1' CLASS "$JV/cms/test/hello\$1.class" RAW
 # the disk's own files
 add LANG EXEC $K/LANG.EXEC F; add LANGGEN EXEC $K/LANGGEN.EXEC F; add LANG README $K/README.txt V
 sed -i 's/ F$/ F 80/' $LST

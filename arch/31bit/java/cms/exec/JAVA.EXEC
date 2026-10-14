@@ -1,0 +1,41 @@
+/* JAVA EXEC -- Java on CMS: JamVM 2.0 + GNU Classpath 0.99 (9.35)    */
+/*   JAVA [options] class [args]                                       */
+/*   class: fn CLASS on any accessed disk (case does not matter);      */
+/*   options as for java: -cp path, -Xmx48m, -Dname=value, -version.   */
+/*   A jar is the CMS file fn JAR: -cp /fn.jar.  Default heap 48 MB.   */
+/*   Needs DEF STOR 128M or more and the EC-mode CMS (IPL 290).        */
+PARSE ARG ARGS
+'STATE JAMVM XIMAGE *'
+IF RC <> 0 THEN DO
+  SAY 'JAVA: JAMVM XIMAGE not found -- enter LANG first'
+  EXIT 28
+END
+OUT = ''; HEAP = 0; INOPT = 1
+DO WHILE ARGS <> ''
+  PARSE VAR ARGS W ARGS
+  IF INOPT & LEFT(W, 1) = '-' THEN DO
+    U = TRANSLATE(W)
+    SELECT
+      WHEN U = '-CP' | U = '-CLASSPATH' THEN DO
+        PARSE VAR ARGS P ARGS
+        W = '-cp' P
+      END
+      WHEN LEFT(U, 4) = '-XMX' THEN DO
+        W = '-Xmx'LOW(SUBSTR(W, 5)); HEAP = 1
+      END
+      WHEN LEFT(U, 4) = '-XMS' THEN W = '-Xms'LOW(SUBSTR(W, 5))
+      WHEN LEFT(U, 4) = '-XSS' THEN W = '-Xss'LOW(SUBSTR(W, 5))
+      WHEN LEFT(U, 2) = '-D' THEN W = '-D'SUBSTR(W, 3)
+      OTHERWISE W = LOW(W)
+    END
+  END
+  ELSE INOPT = 0
+  OUT = OUT W
+END
+IF \HEAP THEN OUT = '-Xmx48m' OUT
+QUEUE 'JAMVM' STRIP(OUT)       /* CMS would cut each token to 8    */
+'XL =STACK'
+EXIT RC
+
+LOW: RETURN TRANSLATE(ARG(1), 'abcdefghijklmnopqrstuvwxyz',,
+                              'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
