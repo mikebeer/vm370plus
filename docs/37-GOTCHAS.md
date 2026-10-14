@@ -555,3 +555,13 @@ user is logged on there, CP marks the line `CONS 00A OFFLINE` and a new
 telnet connection gets no logo.  From OPERATOR: `VARY ONLINE 00A`, `ENABLE
 00A`, then connect and LOGON (RECONNECT).  A Linux guest left disconnected
 freezes in console wait (I-288) until it is reconnected.
+
+## Re-enabling a dropped 1052 line: connect FIRST (14 Oct, i288u)
+
+`ENABLE 00A` with no telnet client on port 3270 answers COMMAND COMPLETE
+and then `LINE 00A DISABLED` / `CONS 00A OFFLINE`.  Order that works:
+connect the client, then from OPERATOR `VARY ONLINE 00A`, `ENABLE 00A`,
+then LOGON (the password on its own line: `logon maint`, then `cpcms`).
+Check a CP fix is really in the written nucleus before testing it: dump
+the first bytes of the entry point (nucsyms.txt + the ESD offset) with
+Hercules `r` -- one test (i288t) ran a nucleus without the DMKQCN change.

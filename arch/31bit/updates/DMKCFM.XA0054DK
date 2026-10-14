@@ -1,0 +1,7 @@
+./ R 00283000          $ 00283000 010                                           
+         B     CFMLBRK        LINE BREAK (I-288)               XA0054DK         
+./ I 00290000 $ 00290100 100                                                    
+VMESA390 EQU   X'02'          VMFSTAT: ESA/390 MACHINE         XA0054DK         
+CFMLBRK  TM    VMFSTAT,VMESA390  I-288: AN ESA/390 GUEST RUNS  XA0054DK         
+         BO    CONFBGN2       ON, DISCONNECTED                 XA0054DK         
+         B     CONFBGN3       OTHERS STAY IN CF WAIT           XA0054DK         

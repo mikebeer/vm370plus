@@ -3790,6 +3790,45 @@ def m7decks():
     ])
     decks['DMKVIO'] = d
 
+    # I-288: a dropped terminal line (and a console read while
+    # disconnected) goes through DMKQCNTO, which stops the machine
+    # (VMCFWAIT) and logs it off after 15 minutes -- VM/370's rule for a
+    # CMS user.  A Linux guest then froze (no ssh, no spool bridge) when
+    # its terminal went away.  An ESA/390 guest is disconnected and runs
+    # on, as under z/VM; its console read ends with unit exception (Linux
+    # reads only after an attention, so nothing loops).  No time bomb.
+    d = Deck(XA54)
+    d.replace('00830000', first='00830000', inc=10,
+              limit=next_seq(src('DMKQCN'), '00830000'), lines=M7EQU[:1] + [
+        "         TM    VMFSTAT,VMESA390  I-288: AN ESA/390 GUEST RUNS",
+        "         BO    *+8            ON, DISCONNECTED",
+        "         OI    VMRSTAT,VMCFWAIT    DO NOT RUN THIS MACHINE",
+    ])
+    d.replace('00892000', first='00892000', inc=10,
+              limit=next_seq(src('DMKQCN'), '00892000'), lines=[
+        "DSCNMSG  EQU   *              DISCONNECT WITH NO OPERATOR MSG",
+        "         TM    VMFSTAT,VMESA390  I-288: NO 15-MINUTE LOGOFF",
+        "         BO    DSCEXIT        FOR AN ESA/390 GUEST",
+    ])
+    decks['DMKQCN'] = d
+
+    # I-288: the line drop itself puts the user in CP mode (console
+    # function), whose read then ends with 'line break' and leaves VMCFWAIT
+    # on (CONFBGN3): the guest stays stopped in CP READ.  An ESA/390 guest
+    # goes back to running (CONFBGN2), disconnected, as after #CP DISC.
+    d = Deck(XA54)
+    d.replace('00283000', first='00283000', inc=10,
+              limit=next_seq(src('DMKCFM'), '00283000'), lines=[
+        "         B     CFMLBRK        LINE BREAK (I-288)",
+    ])
+    d.insert('00290000', first='00290100', inc=100,
+             limit=next_seq(src('DMKCFM'), '00290000'), lines=M7EQU[:1] + [
+        "CFMLBRK  TM    VMFSTAT,VMESA390  I-288: AN ESA/390 GUEST RUNS",
+        "         BO    CONFBGN2       ON, DISCONNECTED",
+        "         B     CONFBGN3       OTHERS STAY IN CF WAIT",
+    ])
+    decks['DMKCFM'] = d
+
     d = Deck(XA54)
     d.insert('00393000', first='00393100', inc=100,
              limit=next_seq(src('DMKVSJ'), '00393000'), lines=[

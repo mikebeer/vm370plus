@@ -1,0 +1,9 @@
+./ R 00830000          $ 00830000 010                                           
+VMESA390 EQU   X'02'          VMFSTAT: ESA/390 MACHINE         XA0054DK         
+         TM    VMFSTAT,VMESA390  I-288: AN ESA/390 GUEST RUNS  XA0054DK         
+         BO    *+8            ON, DISCONNECTED                 XA0054DK         
+         OI    VMRSTAT,VMCFWAIT    DO NOT RUN THIS MACHINE     XA0054DK         
+./ R 00892000          $ 00892000 010                                           
+DSCNMSG  EQU   *              DISCONNECT WITH NO OPERATOR MSG  XA0054DK         
+         TM    VMFSTAT,VMESA390  I-288: NO 15-MINUTE LOGOFF    XA0054DK         
+         BO    DSCEXIT        FOR AN ESA/390 GUEST             XA0054DK         
