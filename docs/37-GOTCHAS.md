@@ -538,3 +538,12 @@ MSG to a user in CP READ after a Linux halt did not reach the file either.
 Append the marker to `<name>.term.log` itself (`echo X-DONE >> rx1.term.log`).
 And end a Linux hold with the Linux `poweroff` before releasing it -- the
 kt26 step list has a `poweroff` term step after the hold for that reason.
+
+## When CP stops answering every console (14 Oct, run vc1, I-287)
+
+A 3270 is the second way in: `s3270` (installed on the PC) connects to
+Hercules' port 3270 and can type a logon. If CP still does not answer, the
+Hercules `restart` panel command is the operator's RESTART key: CP takes its
+dump (`DMKDMP908I SYSTEM FAILURE; CODE PSA002`) and re-IPLs itself, after
+which the usual logoff, SHUTDOWN at 0009 and Hercules `exit` work. Check the
+packs with `cckdcdsk -3 -ro` afterwards.
