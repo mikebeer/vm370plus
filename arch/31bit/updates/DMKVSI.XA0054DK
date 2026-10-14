@@ -1268,6 +1268,7 @@ DMKVLNEX LR    R12,R15        R15 = A(DMKVLNEX) = A(DMKVLN)    XA0054DK
          BE    VLTOSTS                                         XA0054DK         
          CLI   VMINST+1,X'32'                                  XA0054DK         
          BE    VLTOMS                                          XA0054DK         
+         ST    R10,VLSVR10    DMKVCS'S VCSTAB                  XA0054DK         
          BAL   R9,VLFIND      R10 = THE MEMBER, R5 = THE SIDE  XA0054DK         
          CLI   VMINST+1,X'33' SSCH                             XA0054DK         
          BE    VLSSCH                                          XA0054DK         
@@ -1280,6 +1281,15 @@ DMKVLNEX LR    R12,R15        R15 = A(DMKVLNEX) = A(DMKVLN)    XA0054DK
          CLI   VMINST+1,X'30' CSCH                             XA0054DK         
          BE    VLHSCH                                          XA0054DK         
          B     VLEXIT         SAL, SCHM: NOTHING               XA0054DK         
+VLTOSSCH L     R10,VLSVR10    NOT AN LCS PROGRAM (SENSE ID,    XA0054DK         
+         L     R15,=A(VCSSSCH)  NOP...): DMKVCS'S              XA0054DK         
+         B     VLGOVCS                                         XA0054DK         
+VLTOTSCH L     R10,VLSVR10                                     XA0054DK         
+         L     R15,=A(VCSTSCH)                                 XA0054DK         
+         B     VLGOVCS                                         XA0054DK         
+VLTOCSCH L     R10,VLSVR10                                     XA0054DK         
+         L     R15,=A(VCSCSCH)                                 XA0054DK         
+         B     VLGOVCS                                         XA0054DK         
 VLTOSTS  L     R15,=A(VCSSTSCH)                                XA0054DK         
          B     VLGOVCS                                         XA0054DK         
 VLTOMS   L     R15,=A(VCSMSCH)                                 XA0054DK         
@@ -1303,7 +1313,19 @@ VLSSCH   TM    ENTFLG(R3),ENTPEND  STATUS PENDING: CC 1        XA0054DK
          LA    R0,VLORB                                        XA0054DK         
          LA    R4,12                                           XA0054DK         
          BAL   R9,VLGET                                        XA0054DK         
-         MVC   ENTIPRM(4,R3),VLORB  INTERRUPTION PARAMETER     XA0054DK         
+         NI    SDEV(R5),255-SDFWD                              XA0054DK         
+         L     R1,VLORB+8     THE FIRST CCW: AN LCS READ OR    XA0054DK         
+         N     R1,=X'7FFFFFF8'  WRITE IS OURS, ANY OTHER       XA0054DK         
+         LA    R0,VLCCW       (SENSE ID, NOP) DMKVCS'S         XA0054DK         
+         LA    R4,8                                            XA0054DK         
+         BAL   R9,VLGET                                        XA0054DK         
+         CLI   VLCCW,X'01'                                     XA0054DK         
+         BE    VLSS0                                           XA0054DK         
+         CLI   VLCCW,X'02'                                     XA0054DK         
+         BE    VLSS0                                           XA0054DK         
+         OI    SDEV(R5),SDFWD                                  XA0054DK         
+         B     VLTOSSCH                                        XA0054DK         
+VLSS0    MVC   ENTIPRM(4,R3),VLORB  INTERRUPTION PARAMETER     XA0054DK         
          MVI   SST(R5),SACT                                    XA0054DK         
          TM    VLORB+4,X'08'  SUSPEND CONTROL                  XA0054DK         
          BZ    *+8                                             XA0054DK         
@@ -1337,7 +1359,9 @@ VLRSCH   TM    SDEV(R5),SDPEND                                 XA0054DK
          B     VLEXIT                                          XA0054DK         
 *                                                              XA0054DK         
 *  HSCH/CSCH: THE SIDE STOPS, STATUS PENDING (HALT OR CLEAR)   XA0054DK         
-VLHSCH   NI    SST(R5),SSFL                                    XA0054DK         
+VLHSCH   TM    SDEV(R5),SDFWD                                  XA0054DK         
+         BO    VLTOCSCH                                        XA0054DK         
+         NI    SST(R5),SSFL                                    XA0054DK         
          MVI   SEV(R5),EVHALT                                  XA0054DK         
          CLI   VMINST+1,X'31'                                  XA0054DK         
          BE    *+8                                             XA0054DK         
@@ -1347,7 +1371,11 @@ VLHSCH   NI    SST(R5),SSFL                                    XA0054DK
          B     VLEXIT                                          XA0054DK         
 *                                                              XA0054DK         
 *  TSCH: THE IRB FROM THE SIDE'S STATE AND EVENTS              XA0054DK         
-VLTSCH   BAL   R9,VLOPAD                                       XA0054DK         
+VLTSCH   TM    SDEV(R5),SDFWD  DMKVCS STARTED IT               XA0054DK         
+         BZ    VLTSCH1                                         XA0054DK         
+         NI    SDEV(R5),255-SDFWD                              XA0054DK         
+         B     VLTOTSCH                                        XA0054DK         
+VLTSCH1  BAL   R9,VLOPAD                                       XA0054DK         
          ST    R1,VLIRBA                                       XA0054DK         
          XC    VLIRB(64),VLIRB                                 XA0054DK         
          TM    ENTFLG(R3),ENTPEND                              XA0054DK         
@@ -1914,6 +1942,7 @@ VLCA     DS    F                                               XA0054DK
 VLLEFT   DS    F                                               XA0054DK         
 VLSAVW   DS    F                                               XA0054DK         
 VLSAVE2  DS    F                                               XA0054DK         
+VLSVR10  DS    F                                               XA0054DK         
 VLSAVQ   DS    16F                                             XA0054DK         
 VLSAVK   DS    3F                                              XA0054DK         
 VLSAVS   DS    2F                                              XA0054DK         
@@ -1971,6 +2000,7 @@ EVHALT   EQU   X'10'                                           XA0054DK
 EVCLR    EQU   X'08'                                           XA0054DK         
 SDEV     EQU   22                                              XA0054DK         
 SDPEND   EQU   X'80'          AN INTERRUPTION IS QUEUED        XA0054DK         
+SDFWD    EQU   X'40'          DMKVCS RUNS THIS START           XA0054DK         
 SDST     EQU   23             UNIT STATUS AT THE END           XA0054DK         
 SKEY     EQU   24             THE ORB'S KEY                    XA0054DK         
 SIDE     EQU   25             0 READ, 1 WRITE                  XA0054DK         
