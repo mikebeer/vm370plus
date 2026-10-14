@@ -113,8 +113,10 @@ VCSNSIGP DS    0H                                              XA0054DK
          BAL   R9,FINDSUB     R6-R8, R13 = ITS DEVICE          XA0054DK         
          BNZ   VCSCC3                                          XA0054DK         
          BAL   R9,GETENT      R3 = ITS ENTRY                   XA0054DK         
-         CLI   VDEVTYPE,TYPLCS  9.12B: A VIRTUAL LCS IS        XA0054DK         
+         CLI   VDEVTYPC,CLASSPEC  9.12B: A VIRTUAL LCS IS      XA0054DK         
          BNE   VCSNLCS        DMKVLN'S (PAST R12'S REACH)      XA0054DK         
+         CLI   VDEVTYPE,TYPLCS                                 XA0054DK         
+         BNE   VCSNLCS                                         XA0054DK         
          L     R15,=A(DMKVLNEX)                                XA0054DK         
          BR    R15                                             XA0054DK         
 VCSNLCS  CLI   VMINST+1,X'34'                                  XA0054DK         
@@ -1270,6 +1272,9 @@ DMKVLNEX LR    R12,R15        R15 = A(DMKVLNEX) = A(DMKVLN)    XA0054DK
          BE    VLTOMS                                          XA0054DK         
          ST    R10,VLSVR10    DMKVCS'S VCSTAB                  XA0054DK         
          BAL   R9,VLFIND      R10 = THE MEMBER, R5 = THE SIDE  XA0054DK         
+         MVC   VLTRW(2),VMINST  TRACE: THE INSTRUCTION         XA0054DK         
+         MVC   VLTRW+2(2),=C'IN'                               XA0054DK         
+         BAL   R9,VLTR                                         XA0054DK         
          CLI   VMINST+1,X'33' SSCH                             XA0054DK         
          BE    VLSSCH                                          XA0054DK         
          CLI   VMINST+1,X'35' TSCH                             XA0054DK         
@@ -1530,7 +1535,13 @@ VLFINAL  ST    R9,VLLNK3                                       XA0054DK
 *  VLQINT: AN I/O INTERRUPTION FOR THE SIDE, UNLESS ONE IS     XA0054DK         
 *  ALREADY QUEUED OR PENDING: DMKVCSC1 QUEUES IT AS STATUS OF  XA0054DK         
 *  ITS DEVICE (R6-R8 FROM THE SIDE).  TSCH BUILDS THE SCSW.    XA0054DK         
-VLQINT   TM    SDEV(R5),SDPEND                                 XA0054DK         
+VLQINT   MVC   VLTRW(1),SEV(R5)  TRACE: AN INTERRUPTION        XA0054DK         
+         MVC   VLTRW+1(1),SST(R5)                              XA0054DK         
+         MVC   VLTRW+2(2),=C'QI'                               XA0054DK         
+         ST    R9,VLLNKT                                       XA0054DK         
+         BAL   R9,VLTR                                         XA0054DK         
+         L     R9,VLLNKT                                       XA0054DK         
+         TM    SDEV(R5),SDPEND                                 XA0054DK         
          BOR   R9                                              XA0054DK         
          OI    SDEV(R5),SDPEND                                 XA0054DK         
          STM   R0,R15,VLSAVQ                                   XA0054DK         
@@ -1575,6 +1586,11 @@ VLP3     ICM   R1,15,MQH      THE NEXT FRAME                   XA0054DK
          BAL   R9,VLDEQ                                        XA0054DK         
          B     VLP3                                            XA0054DK         
 VLP4     STH   R2,VLHDR       HEADER: NEXT OFFSET, TYPE, SLOT  XA0054DK         
+         MVC   VLTRW(2),QTYPE(R1)  TRACE: A FRAME DELIVERED    XA0054DK         
+         MVC   VLTRW+2(2),=C'RD'                               XA0054DK         
+         ST    R1,VLSAVT                                       XA0054DK         
+         BAL   R9,VLTR                                         XA0054DK         
+         L     R1,VLSAVT                                       XA0054DK         
          MVC   VLHDR+2(2),QTYPE(R1)                            XA0054DK         
          L     R1,VLBADR                                       XA0054DK         
          A     R1,VLBPOS                                       XA0054DK         
@@ -1618,6 +1634,9 @@ VLDEQ    ST    R9,VLLNK3                                       XA0054DK
          ICM   R1,15,MQH                                       XA0054DK         
          BZR   R9                                              XA0054DK         
          MVC   MQH,QNEXT(R1)                                   XA0054DK         
+         ICM   R0,15,MQH      EMPTY NOW: NO TAIL EITHER        XA0054DK         
+         BNZ   *+10                                            XA0054DK         
+         XC    MQT,MQT                                         XA0054DK         
          LH    R0,MQN                                          XA0054DK         
          BCTR  R0,0                                            XA0054DK         
          STH   R0,MQN                                          XA0054DK         
@@ -1664,6 +1683,9 @@ VLB1     L     R1,VLBPOS                                       XA0054DK
          LA    R0,VLFRM                                        XA0054DK         
          LR    R4,R2                                           XA0054DK         
          BAL   R9,VLGET                                        XA0054DK         
+         MVC   VLTRW(2),VLHDR+2  TRACE: A FRAME WRITTEN        XA0054DK         
+         MVC   VLTRW+2(2),=C'WR'                               XA0054DK         
+         BAL   R9,VLTR                                         XA0054DK         
          CLI   VLHDR+2,0      CONTROL                          XA0054DK         
          BNE   VLB5                                            XA0054DK         
          BAL   R9,VLCMD                                        XA0054DK         
@@ -1861,6 +1883,21 @@ VLSIDE   LA    R5,MREAD                                        XA0054DK
          LA    R5,MWRITE                                       XA0054DK         
          BR    R9                                              XA0054DK         
 *                                                              XA0054DK         
+*  VLTR: A TRACE ENTRY: VLTRW, DEVICE, SIDE'S CCW AND CPA,     XA0054DK         
+*  THE FIRST WORD OF VLFRM (DCP VLNRING IN DMKVLN)             XA0054DK         
+VLTR     STM   R0,R2,VLSAVR                                    XA0054DK         
+         L     R1,VLTRNXT                                      XA0054DK         
+         LA    R2,VLRING(R1)                                   XA0054DK         
+         MVC   0(4,R2),VLTRW                                   XA0054DK         
+         STH   R13,4(,R2)                                      XA0054DK         
+         STH   R10,6(,R2)                                      XA0054DK         
+         MVC   8(4,R2),SCCW(R5)                                XA0054DK         
+         MVC   12(4,R2),VLFRM                                  XA0054DK         
+         LA    R1,16(,R1)                                      XA0054DK         
+         N     R1,=F'1023'                                     XA0054DK         
+         ST    R1,VLTRNXT                                      XA0054DK         
+         LM    R0,R2,VLSAVR                                    XA0054DK         
+         BR    R9                                              XA0054DK         
 *  VLOPAD: R1 = THE INSTRUCTION'S OPERAND ADDRESS (AS OPADDR)  XA0054DK         
 VLOPAD   L     R1,VMINST                                       XA0054DK         
          N     R1,=F'4095'                                     XA0054DK         
@@ -1943,6 +1980,13 @@ VLLEFT   DS    F                                               XA0054DK
 VLSAVW   DS    F                                               XA0054DK         
 VLSAVE2  DS    F                                               XA0054DK         
 VLSVR10  DS    F                                               XA0054DK         
+VLLNKT   DS    F                                               XA0054DK         
+VLSAVT   DS    F                                               XA0054DK         
+VLSAVR   DS    3F                                              XA0054DK         
+VLTRW    DS    F                                               XA0054DK         
+VLTRNXT  DC    F'0'                                            XA0054DK         
+         DC    C'VLNRING '                                     XA0054DK         
+VLRING   DC    64XL16'00'                                      XA0054DK         
 VLSAVQ   DS    16F                                             XA0054DK         
 VLSAVK   DS    3F                                              XA0054DK         
 VLSAVS   DS    2F                                              XA0054DK         
