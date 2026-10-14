@@ -24,6 +24,7 @@ DMKVCS   CSECT                                                 XA0054DK
          USING DMKVCS,R12                                      XA0054DK         
          USING VCSTAB,R10                                      XA0054DK         
          ENTRY DMKVCSEX,DMKVCSSE,DMKVCSIN,DMKVCSSN,DMKVCSAR    XA0054DK         
+         ENTRY DMKVCSC1                                        XA0054DK         
 DMKVCSEX DS    0H             GOTO FROM DMKPRV: B212, B23X     XA0054DK         
 *  M7.8: ONE ESA/390 GUEST IN DMKVCS AT A TIME. ITS WORK       XA0054DK         
 *  FIELDS ARE STATIC AND LIVE ACROSS GUESTIO'S DEFERRED        XA0054DK         
@@ -330,7 +331,19 @@ SSCHF0   BAL   R9,SIDCHK      SENSE ID: OURS                   XA0054DK
 *                             NOT AT GUEST X48: PAGE 0 IS      XA0054DK         
 *                             THE GUESTS STORAGE (A 4-BYTE     XA0054DK         
 *                             HOLE IN LINUX DATA, I-256)       XA0054DK         
-         OI    ENTFLG(R3),ENTACT                               XA0054DK         
+*  I-287: A VIRTUAL CTCA'S SSCH WAITS IN DMKVCA FOR THE        XA0054DK         
+*  OTHER SIDE'S SSCH, WHICH THE LOCK WOULD HOLD BACK (IT       XA0054DK         
+*  SPINS ON ITS B233): THE LOCK GOES BEFORE DMKVSI. DMKVSI     XA0054DK         
+*  TAKES DMKVCSCW AT ONCE; NOTHING ELSE HERE IS SHARED.        XA0054DK         
+         BAL   R9,FINDSN      R6-R8 (R3 KEPT)                  XA0054DK         
+         CLI   VDEVTYPE,TYPCTCA                                XA0054DK         
+         BNE   SSCHLK                                          XA0054DK         
+         TM    VDEVSTAT,VDEVDED                                XA0054DK         
+         BO    SSCHLK                                          XA0054DK         
+         C     R11,VCSLOCK                                     XA0054DK         
+         BNE   SSCHLK                                          XA0054DK         
+         XC    VCSLOCK,VCSLOCK                                 XA0054DK         
+SSCHLK   OI    ENTFLG(R3),ENTACT                               XA0054DK         
          MVI   VCSOP,C'S'                                      XA0054DK         
          MVC   VMINST(2),SIOOP   SIO VDEV                      XA0054DK         
 VCSVSI   STH   R13,VMINST+2                                    XA0054DK         
@@ -431,8 +444,17 @@ SSCC1    LA    R5,X'40'                                        XA0054DK
          LA    R4,2                                            XA0054DK         
          LA    R0,1                                            XA0054DK         
          BAL   R9,GUESTIO     THE CSW DMKVSJ STORED            XA0054DK         
-SSCC1Q   BAL   R9,FINDSN      R6-R8: THE DEVICE'S BLOCKS       XA0054DK         
-         MVC   VDEVCSW,VCSBUF  DMKDSP'S CHANNEL-END PATH       XA0054DK         
+SSCC1Q   LA    R1,VCSBUF                                       XA0054DK         
+         BAL   R9,QSTAT                                        XA0054DK         
+         MVI   VCSCC,0                                         XA0054DK         
+         B     SEBACK                                          XA0054DK         
+*  QSTAT: R1 -> A CSW FOR DEVICE R13, QUEUED AS ITS PENDING    XA0054DK         
+*  I/O INTERRUPTION (SSCC1Q, DMKVCSC1)                         XA0054DK         
+QSTAT    ST    R1,VCSQSRC                                      XA0054DK         
+         ST    R9,VCSQRET                                      XA0054DK         
+         BAL   R9,FINDSN      R6-R8: THE DEVICE'S BLOCKS       XA0054DK         
+         L     R1,VCSQSRC                                      XA0054DK         
+         MVC   VDEVCSW,0(R1)  DMKDSP'S CHANNEL-END PATH        XA0054DK         
          OI    VDEVSTAT,VDEVCHAN  (POST) TAKES THE WHOLE CSW   XA0054DK         
          OI    VCHSTAT,VCHCEPND   FROM VDEVCSW; VDEVPEND'S     XA0054DK         
          TM    VCHTYPE,VCHSEL     A SELECTOR CHANNEL NAMES     XA0054DK         
@@ -453,8 +475,8 @@ SSCC1Q   BAL   R9,FINDSN      R6-R8: THE DEVICE'S BLOCKS       XA0054DK
          AR    R4,R2                                           XA0054DK         
          OC    VMIOINT,0(R4)                                   XA0054DK         
          OI    VMPEND,VMIOPND                                  XA0054DK         
-         MVI   VCSCC,0                                         XA0054DK         
-         B     SEBACK                                          XA0054DK         
+         L     R9,VCSQRET                                      XA0054DK         
+         BR    R9                                              XA0054DK         
 TSEND    MVI   VCSOP,0        TSCH                             XA0054DK         
          BAL   R9,GETENT                                       XA0054DK         
          CLI   VCSCC,X'10'    TIO STORED A CSW?                XA0054DK         
@@ -521,6 +543,28 @@ DMKVCSIN STM   R14,R13,VCSSAVI-DMKVCSIN(R15)                   XA0054DK
          BAL   R9,FINDSN                                       XA0054DK         
          ST    R1,VCSSAVI+12  R1                               XA0054DK         
          LM    R14,R13,VCSSAVI  (R13 TOO: IT IS THE CALLER'S)  XA0054DK         
+         BR    R14                                             XA0054DK         
+*                                                              XA0054DK         
+* DMKVCSC1: BALR FROM DMKVIO SETCC1 (I-287). AN ESA/390        XA0054DK         
+* GUEST'S SSCH TO A VIRTUAL CTCA ENDED WITH CC 1 AND A CSW     XA0054DK         
+* (DMKVCA: ATTENTION+BUSY WHEN BOTH SIDES START, BUSY, UNIT    XA0054DK         
+* CHECK). A CHANNEL SUBSYSTEM STARTS THE FUNCTION (CC 0) AND   XA0054DK         
+* MAKES THE STATUS PENDING; LINUX'S CTCM WANTS IT SO (CC 1 IS  XA0054DK         
+* -EBUSY: 'THE COMMUNICATION PEER IS BUSY'). R4-R5 = THE       XA0054DK         
+* CSW, R6-R8 = THE BLOCKS. DMKVIO THEN SETS CC 0.              XA0054DK         
+*                                                              XA0054DK         
+DMKVCSC1 STM   R14,R13,VCSSAVC-DMKVCSC1(R15)                   XA0054DK         
+         L     R12,AVCSC1-DMKVCSC1(,R15)                       XA0054DK         
+         STM   R4,R5,VCSC1CSW                                  XA0054DK         
+         LH    R13,VDEVADD                                     XA0054DK         
+         AH    R13,VCUADD                                      XA0054DK         
+         AH    R13,VCHADD                                      XA0054DK         
+         BAL   R9,GETTAB                                       XA0054DK         
+         BAL   R9,GETENT                                       XA0054DK         
+         OI    ENTFLG(R3),ENTACT                               XA0054DK         
+         LA    R1,VCSC1CSW                                     XA0054DK         
+         BAL   R9,QSTAT                                        XA0054DK         
+         LM    R14,R13,VCSSAVC                                 XA0054DK         
          BR    R14                                             XA0054DK         
 *                                                              XA0054DK         
 * DMKVCSSN: BALR. R1 = DEVICE IN, ITS SUBCHANNEL NUMBER OUT.   XA0054DK         
@@ -1054,6 +1098,12 @@ STFLN3   DC    X'80000000'                                     XA0054DK
 XPFX     DC    X'7FFFF000'                                     XA0054DK         
 AVCSIN   DC    A(DMKVCS)                                       XA0054DK         
 AVCSSN   DC    A(DMKVCS)                                       XA0054DK         
+AVCSC1   DC    A(DMKVCS)                                       XA0054DK         
+VCSSAVC  DS    16F                                             XA0054DK         
+VCSQSRC  DC    F'0'                                            XA0054DK         
+VCSQRET  DC    F'0'                                            XA0054DK         
+         DS    0D                                              XA0054DK         
+VCSC1CSW DC    2F'0'                                           XA0054DK         
 VCSSAVI  DS    16F                                             XA0054DK         
 VCSSAVN  DS    16F                                             XA0054DK         
 VCSSAVA  DS    16F                                             XA0054DK         

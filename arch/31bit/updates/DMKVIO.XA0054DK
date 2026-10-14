@@ -1,0 +1,17 @@
+./ R 00583000          $ 00583000 010                                           
+VMESA390 EQU   X'02'          VMFSTAT: ESA/390 MACHINE         XA0054DK         
+SETCC1   EQU   *                                               XA0054DK         
+         TM    VMFSTAT,VMESA390  I-287: AN ESA/390 GUEST'S     XA0054DK         
+         BZ    SETCC1N        SSCH TO A VIRTUAL CTCA: THE      XA0054DK         
+         TM    IOBSPEC,IOBTIO+IOBHIO  STATUS PENDING, CC 0     XA0054DK         
+         BNZ   SETCC1N                                         XA0054DK         
+         CLI   VDEVTYPE,TYPCTCA                                XA0054DK         
+         BNE   SETCC1N                                         XA0054DK         
+         TM    VDEVSTAT,VDEVDED                                XA0054DK         
+         BO    SETCC1N                                         XA0054DK         
+         LM    R4,R5,IOBCSW                                    XA0054DK         
+         L     R15,=V(DMKVCSC1)                                XA0054DK         
+         BALR  R14,R15                                         XA0054DK         
+         SR    R2,R2          CC 0                             XA0054DK         
+         B     SETCCX                                          XA0054DK         
+SETCC1N  DS    0H                                              XA0054DK         
