@@ -72,36 +72,8 @@ VCSLKOWN ST    R11,VCSLOCK                                     XA0054DK
          BAL   R9,GETTAB      R10 = THE USER'S TABLE           XA0054DK         
          MVI   VCSOP,0                                         XA0054DK         
          OI    VMVCSFL,X'80'  FROM NOW ON: ESA/390 I/O         XA0054DK         
-         CLI   VMINST,X'B2'   THE RING KEEPS THE CHANNEL       XA0054DK         
-         BNE   VCRDONE        SUBSYSTEM INSTRUCTIONS ONLY      XA0054DK         
-         CLI   VMINST+1,X'30' (B230-B23F): A GUEST'S OOPS      XA0054DK         
-         BL    VCRDONE        LOOP (SACF, STFL, STSI) NO       XA0054DK         
-         CLI   VMINST+1,X'3F' LONGER WIPES THEM                XA0054DK         
-         BH    VCRDONE                                         XA0054DK         
-         CLC   VMGPRS+4(4),SSIDW0  NOT SUBCHANNEL 0:           XA0054DK         
-         BE    VCRDONE        CONSOLE POLLING FILLS THE RING   XA0054DK         
-         L     R2,VCRLAST     DIAGNOSTIC RING (DCP DMKVCSRG):  XA0054DK         
-         CLC   0(4,R2),VMINST  INSTRUCTION, GR1, PSW ADDRESS,  XA0054DK         
-         BNE   VCRNEW         THE PSW BYTE 2 AT EXIT, AND      XA0054DK         
-         CLC   4(4,R2),VMGPRS+4  HOW OFTEN IT CAME AGAIN IN A  XA0054DK         
-         BNE   VCRNEW         ROW (A POLLING LOOP TAKES ONE    XA0054DK         
-         CLC   8(4,R2),VMPSW+4  ENTRY, NOT THE RING)           XA0054DK         
-         BNE   VCRNEW                                          XA0054DK         
-         LH    R1,14(,R2)                                      XA0054DK         
-         LA    R1,1(,R1)                                       XA0054DK         
-         STH   R1,14(,R2)                                      XA0054DK         
-         B     VCRDONE                                         XA0054DK         
-VCRNEW   L     R1,VCRNXT                                       XA0054DK         
-         L     R2,AVCRING                                      XA0054DK         
-         AR    R2,R1                                           XA0054DK         
-         MVC   0(4,R2),VMINST                                  XA0054DK         
-         MVC   4(4,R2),VMGPRS+4                                XA0054DK         
-         MVC   8(4,R2),VMPSW+4                                 XA0054DK         
-         XC    12(4,R2),12(R2)                                 XA0054DK         
-         ST    R2,VCRLAST                                      XA0054DK         
-         LA    R1,16(,R1)                                      XA0054DK         
-         N     R1,=F'511'                                      XA0054DK         
-         ST    R1,VCRNXT                                       XA0054DK         
+         L     R15,=A(VCRUPD)  THE DIAGNOSTIC RING, BEYOND     XA0054DK         
+         BALR  R9,R15         R12'S REACH (9.12B)              XA0054DK         
 VCRDONE  DS    0H                                              XA0054DK         
          CLI   VMINST,X'E5'   TPROT (E501)                     XA0054DK         
          BE    VCSTPROT                                        XA0054DK         
@@ -141,7 +113,11 @@ VCSNSIGP DS    0H                                              XA0054DK
          BAL   R9,FINDSUB     R6-R8, R13 = ITS DEVICE          XA0054DK         
          BNZ   VCSCC3                                          XA0054DK         
          BAL   R9,GETENT      R3 = ITS ENTRY                   XA0054DK         
-         CLI   VMINST+1,X'34'                                  XA0054DK         
+         CLI   VDEVTYPE,TYPLCS  9.12B: A VIRTUAL LCS IS        XA0054DK         
+         BNE   VCSNLCS        DMKVLN'S (PAST R12'S REACH)      XA0054DK         
+         L     R15,=A(DMKVLNEX)                                XA0054DK         
+         BR    R15                                             XA0054DK         
+VCSNLCS  CLI   VMINST+1,X'34'                                  XA0054DK         
          BE    VCSSTSCH                                        XA0054DK         
          CLI   VMINST+1,X'32'                                  XA0054DK         
          BE    VCSMSCH                                         XA0054DK         
@@ -1130,6 +1106,42 @@ SIDTAB   DC    X'80FF321500000000'  CONSOLE: 3215              XA0054DK
 VCRING   DC    32XL16'00'                                      XA0054DK         
 VCSSLOTS DC    64F'0'         32 SLOTS: OWNER VMBLOK, TABLE    XA0054DK         
 *                                                              XA0054DK         
+*  VCRUPD: THE DIAGNOSTIC RING (FROM DMKVCSEX). R15 IS ITS     XA0054DK         
+*  BASE; R12 STILL DMKVCS'S FOR THE FIELDS. BACK BY R9.        XA0054DK         
+VCRUPD   DS    0H                                              XA0054DK         
+         USING VCRUPD,R15                                      XA0054DK         
+         CLI   VMINST,X'B2'   THE RING KEEPS THE CHANNEL       XA0054DK         
+         BNER  R9             SUBSYSTEM INSTRUCTIONS ONLY      XA0054DK         
+         CLI   VMINST+1,X'30' (B230-B23F): A GUEST'S OOPS      XA0054DK         
+         BLR   R9             LOOP (SACF, STFL, STSI) NO       XA0054DK         
+         CLI   VMINST+1,X'3F' LONGER WIPES THEM                XA0054DK         
+         BHR   R9                                              XA0054DK         
+         CLC   VMGPRS+4(4),SSIDW0  NOT SUBCHANNEL 0:           XA0054DK         
+         BER   R9             CONSOLE POLLING FILLS THE RING   XA0054DK         
+         L     R2,VCRLAST     DIAGNOSTIC RING (DCP DMKVCSRG):  XA0054DK         
+         CLC   0(4,R2),VMINST  INSTRUCTION, GR1, PSW ADDRESS,  XA0054DK         
+         BNE   VCRNEW         THE PSW BYTE 2 AT EXIT, AND      XA0054DK         
+         CLC   4(4,R2),VMGPRS+4  HOW OFTEN IT CAME AGAIN IN A  XA0054DK         
+         BNE   VCRNEW         ROW (A POLLING LOOP TAKES ONE    XA0054DK         
+         CLC   8(4,R2),VMPSW+4  ENTRY, NOT THE RING)           XA0054DK         
+         BNE   VCRNEW                                          XA0054DK         
+         LH    R1,14(,R2)                                      XA0054DK         
+         LA    R1,1(,R1)                                       XA0054DK         
+         STH   R1,14(,R2)                                      XA0054DK         
+         BR    R9                                              XA0054DK         
+VCRNEW   L     R1,VCRNXT                                       XA0054DK         
+         L     R2,AVCRING                                      XA0054DK         
+         AR    R2,R1                                           XA0054DK         
+         MVC   0(4,R2),VMINST                                  XA0054DK         
+         MVC   4(4,R2),VMGPRS+4                                XA0054DK         
+         MVC   8(4,R2),VMPSW+4                                 XA0054DK         
+         XC    12(4,R2),12(R2)                                 XA0054DK         
+         ST    R2,VCRLAST                                      XA0054DK         
+         LA    R1,16(,R1)                                      XA0054DK         
+         N     R1,=F'511'                                      XA0054DK         
+         ST    R1,VCRNXT                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+         DROP  R15                                             XA0054DK         
 * SIGP (AE): ONE CPU, ADDRESS 0. STOP, STOP AND STORE STATUS   XA0054DK         
 * PUT THE VIRTUAL MACHINE IN A DISABLED WAIT (LINUX'S HALT     XA0054DK         
 * AND POWER OFF STOP THE CPU THIS WAY); SENSE IS CC 0; ANY     XA0054DK         
@@ -1240,4 +1252,737 @@ VCSSEGP  DS    F                      CVTCHN: THE ONE GROWING  XA0054DK
 VCSAR    DS    16F                    ACCESS REGISTERS         XA0054DK         
 VCSHDRL  EQU   *-VCSTAB                                        XA0054DK         
 VCSTABSZ EQU   (VCSHDRL+VCSNENT*ENTLEN+7)/8                    XA0054DK         
+*                                                              XA0054DK         
+* 9.12B: DMKVLN -- THE VIRTUAL LCS ADAPTER (3088-60) OF AN     XA0054DK         
+* ESA/390 GUEST, AND THE GUEST LAN SWITCH. DOCS/61             XA0054DK         
+*                                                              XA0054DK         
+DMKVLN   CSECT                                                 XA0054DK         
+         DROP  R10,R12                                         XA0054DK         
+         USING DMKVLN,R12                                      XA0054DK         
+         USING VLMEM,R10                                       XA0054DK         
+         ENTRY DMKVLNEX,DMKVLNPX                               XA0054DK         
+         EXTRN DMKSTKCP                                        XA0054DK         
+*  DMKVLNEX: FROM DMKVCS'S DISPATCH (R12 = A(DMKVCS) THERE)    XA0054DK         
+DMKVLNEX LR    R12,R15        R15 = A(DMKVLNEX) = A(DMKVLN)    XA0054DK         
+         CLI   VMINST+1,X'34' STSCH AND MSCH STAY DMKVCS'S     XA0054DK         
+         BE    VLTOSTS                                         XA0054DK         
+         CLI   VMINST+1,X'32'                                  XA0054DK         
+         BE    VLTOMS                                          XA0054DK         
+         BAL   R9,VLFIND      R10 = THE MEMBER, R5 = THE SIDE  XA0054DK         
+         CLI   VMINST+1,X'33' SSCH                             XA0054DK         
+         BE    VLSSCH                                          XA0054DK         
+         CLI   VMINST+1,X'35' TSCH                             XA0054DK         
+         BE    VLTSCH                                          XA0054DK         
+         CLI   VMINST+1,X'38' RSCH                             XA0054DK         
+         BE    VLRSCH                                          XA0054DK         
+         CLI   VMINST+1,X'31' HSCH                             XA0054DK         
+         BE    VLHSCH                                          XA0054DK         
+         CLI   VMINST+1,X'30' CSCH                             XA0054DK         
+         BE    VLHSCH                                          XA0054DK         
+         B     VLEXIT         SAL, SCHM: NOTHING               XA0054DK         
+VLTOSTS  L     R15,=A(VCSSTSCH)                                XA0054DK         
+         B     VLGOVCS                                         XA0054DK         
+VLTOMS   L     R15,=A(VCSMSCH)                                 XA0054DK         
+         B     VLGOVCS                                         XA0054DK         
+VLCC1    OI    VMPSW+2,X'10'                                   XA0054DK         
+         B     VLEXIT                                          XA0054DK         
+VLCC2    OI    VMPSW+2,X'20'                                   XA0054DK         
+         B     VLEXIT                                          XA0054DK         
+VLEXIT   L     R15,=A(VCSEXIT)                                 XA0054DK         
+VLGOVCS  L     R12,=A(DMKVCS)                                  XA0054DK         
+         BR    R15                                             XA0054DK         
+*                                                              XA0054DK         
+*  SSCH: THE ORB; START THE SIDE'S PROGRAM                     XA0054DK         
+VLSSCH   TM    ENTFLG(R3),ENTPEND  STATUS PENDING: CC 1        XA0054DK         
+         BO    VLCC1                                           XA0054DK         
+         TM    SDEV(R5),SDPEND                                 XA0054DK         
+         BO    VLCC1                                           XA0054DK         
+         TM    SST(R5),SACT+SSUSP  BUSY: CC 2                  XA0054DK         
+         BNZ   VLCC2                                           XA0054DK         
+         BAL   R9,VLOPAD      R1 = THE ORB                     XA0054DK         
+         LA    R0,VLORB                                        XA0054DK         
+         LA    R4,12                                           XA0054DK         
+         BAL   R9,VLGET                                        XA0054DK         
+         MVC   ENTIPRM(4,R3),VLORB  INTERRUPTION PARAMETER     XA0054DK         
+         MVI   SST(R5),SACT                                    XA0054DK         
+         TM    VLORB+4,X'08'  SUSPEND CONTROL                  XA0054DK         
+         BZ    *+8                                             XA0054DK         
+         OI    SST(R5),SSFL                                    XA0054DK         
+         MVC   SKEY(1,R5),VLORB+4                              XA0054DK         
+         NI    SKEY(R5),X'F0'                                  XA0054DK         
+         L     R0,VLORB+8                                      XA0054DK         
+         N     R0,=X'7FFFFFF8'                                 XA0054DK         
+         ST    R0,SCCW(R5)                                     XA0054DK         
+         MVI   SEV(R5),0                                       XA0054DK         
+         OI    ENTFLG(R3),ENTACT                               XA0054DK         
+         NI    ENTFLG(R3),255-ENTSOL                           XA0054DK         
+         TM    VLORB+5,X'80'  FORMAT-1 CCWS ONLY (LINUX)       XA0054DK         
+         BO    VLSS1                                           XA0054DK         
+         MVI   SDST(R5),X'02' UNIT CHECK: COMMAND REJECT       XA0054DK         
+         B     VLSSEND                                         XA0054DK         
+VLSS1    BAL   R9,VLRUN       RUN THE SIDE                     XA0054DK         
+         B     VLEXIT         CC 0                             XA0054DK         
+VLSSEND  BAL   R9,VLFINAL                                      XA0054DK         
+         B     VLEXIT                                          XA0054DK         
+*                                                              XA0054DK         
+*  RSCH: A SUSPENDED SIDE GOES ON AT ITS CURRENT CCW           XA0054DK         
+VLRSCH   TM    SDEV(R5),SDPEND                                 XA0054DK         
+         BO    VLCC1                                           XA0054DK         
+         TM    SST(R5),SSUSP                                   XA0054DK         
+         BZ    VLCC2          NOT SUSPENDED: NOT APPLICABLE    XA0054DK         
+         NI    SST(R5),255-SSUSP                               XA0054DK         
+         OI    SST(R5),SACT                                    XA0054DK         
+         NI    SEV(R5),255-EVSUSP                              XA0054DK         
+         BAL   R9,VLRUN                                        XA0054DK         
+         B     VLEXIT                                          XA0054DK         
+*                                                              XA0054DK         
+*  HSCH/CSCH: THE SIDE STOPS, STATUS PENDING (HALT OR CLEAR)   XA0054DK         
+VLHSCH   NI    SST(R5),SSFL                                    XA0054DK         
+         MVI   SEV(R5),EVHALT                                  XA0054DK         
+         CLI   VMINST+1,X'31'                                  XA0054DK         
+         BE    *+8                                             XA0054DK         
+         MVI   SEV(R5),EVCLR                                   XA0054DK         
+         MVI   SDST(R5),0                                      XA0054DK         
+         BAL   R9,VLQINT                                       XA0054DK         
+         B     VLEXIT                                          XA0054DK         
+*                                                              XA0054DK         
+*  TSCH: THE IRB FROM THE SIDE'S STATE AND EVENTS              XA0054DK         
+VLTSCH   BAL   R9,VLOPAD                                       XA0054DK         
+         ST    R1,VLIRBA                                       XA0054DK         
+         XC    VLIRB(64),VLIRB                                 XA0054DK         
+         TM    ENTFLG(R3),ENTPEND                              XA0054DK         
+         BZ    VLTS9          NOTHING PENDING: CC 1            XA0054DK         
+         MVC   VLIRB(1),SKEY(R5)                               XA0054DK         
+         TM    SST(R5),SSFL                                    XA0054DK         
+         BZ    *+8                                             XA0054DK         
+         OI    VLIRB,X'08'    S                                XA0054DK         
+         MVI   VLIRB+1,X'80'  F: FORMAT-1 CCWS                 XA0054DK         
+         MVI   VLIRB+2,X'40'  START FUNCTION                   XA0054DK         
+         MVC   VLIRB+4(4),SCPA(R5)                             XA0054DK         
+         TM    SEV(R5),EVHALT+EVCLR                            XA0054DK         
+         BZ    VLTS2                                           XA0054DK         
+         MVI   VLIRB+2,X'20'  HALT                             XA0054DK         
+         TM    SEV(R5),EVCLR                                   XA0054DK         
+         BZ    *+8                                             XA0054DK         
+         MVI   VLIRB+2,X'10'  CLEAR                            XA0054DK         
+         MVI   VLIRB+3,X'01'  STATUS PENDING                   XA0054DK         
+         XC    VLIRB+4(4),VLIRB+4                              XA0054DK         
+         B     VLTS8                                           XA0054DK         
+VLTS2    TM    SEV(R5),EVFIN                                   XA0054DK         
+         BZ    VLTS3                                           XA0054DK         
+         MVI   VLIRB+3,X'07'  PRIMARY, SECONDARY, PENDING      XA0054DK         
+         MVC   VLIRB+8(1),SDST(R5)                             XA0054DK         
+         B     VLTS6                                           XA0054DK         
+VLTS3    MVI   VLIRB+3,X'09'  INTERMEDIATE, PENDING            XA0054DK         
+         TM    SST(R5),SSUSP                                   XA0054DK         
+         BZ    VLTS4                                           XA0054DK         
+         OI    VLIRB+3,X'20'  SUSPENDED                        XA0054DK         
+         B     VLTS6                                           XA0054DK         
+VLTS4    TM    SST(R5),SACT                                    XA0054DK         
+         BZ    VLTS6                                           XA0054DK         
+         OI    VLIRB+3,X'C0'  SUBCHANNEL AND DEVICE ACTIVE     XA0054DK         
+VLTS6    MVC   VLIRB+9(1),SCST(R5)  CHANNEL STATUS             XA0054DK         
+         TM    SEV(R5),EVPCI                                   XA0054DK         
+         BZ    VLTS8                                           XA0054DK         
+         OI    VLIRB+9,X'80'  PCI                              XA0054DK         
+VLTS8    MVI   SEV(R5),0      EVENTS TAKEN                     XA0054DK         
+         MVI   SCST(R5),0                                      XA0054DK         
+         NI    SDEV(R5),255-SDPEND                             XA0054DK         
+         NI    ENTFLG(R3),255-ENTPEND-ENTSOL                   XA0054DK         
+         TM    SST(R5),SACT+SSUSP                              XA0054DK         
+         BNZ   *+8                                             XA0054DK         
+         NI    ENTFLG(R3),255-ENTACT                           XA0054DK         
+         BAL   R9,VLPUTIRB                                     XA0054DK         
+         TM    SST(R5),SACT   A WAITING READ MAY GO ON         XA0054DK         
+         BZ    VLEXIT                                          XA0054DK         
+         CLI   SIDE(R5),0                                      XA0054DK         
+         BNE   VLEXIT                                          XA0054DK         
+         BAL   R9,VLPUMP                                       XA0054DK         
+         B     VLEXIT                                          XA0054DK         
+VLTS9    BAL   R9,VLPUTIRB                                     XA0054DK         
+         B     VLCC1                                           XA0054DK         
+VLPUTIRB L     R1,VLIRBA                                       XA0054DK         
+         LA    R0,VLIRB                                        XA0054DK         
+         LA    R4,64                                           XA0054DK         
+         B     VLPUT                                           XA0054DK         
+*                                                              XA0054DK         
+*  VLRUN: RUN THE SIDE AT R5 FROM ITS CURRENT CCW              XA0054DK         
+VLRUN    CLI   SIDE(R5),0                                      XA0054DK         
+         BE    VLRREAD                                         XA0054DK         
+*  THE WRITE SIDE: EVERY CCW UP TO A SUSPEND OR THE END        XA0054DK         
+VLRWRITE ST    R9,VLLNK1                                       XA0054DK         
+VLW1     BAL   R9,VLFETCH     VLCCW = THE CCW, R0 = ITS FLAGS  XA0054DK         
+         BNZ   VLWX           SUSPENDED OR ENDED               XA0054DK         
+         CLI   VLCCW,X'01'    WRITE                            XA0054DK         
+         BNE   VLW2                                            XA0054DK         
+         ST    R5,VLSAVW                                       XA0054DK         
+         BAL   R9,VLWBUF      ITS FRAMES                       XA0054DK         
+         L     R5,VLSAVW                                       XA0054DK         
+VLW2     TM    VLCCW+1,X'40'  COMMAND CHAINING?                XA0054DK         
+         BZ    VLW3                                            XA0054DK         
+         L     R1,SCCW(R5)                                     XA0054DK         
+         LA    R1,8(,R1)                                       XA0054DK         
+         ST    R1,SCCW(R5)                                     XA0054DK         
+         B     VLW1                                            XA0054DK         
+VLW3     MVI   SDST(R5),X'0C' CHANNEL END, DEVICE END          XA0054DK         
+         BAL   R9,VLFINAL                                      XA0054DK         
+VLWX     ST    R5,VLSAVW                                       XA0054DK         
+         BAL   R9,VLPUMP      REPLIES FOR OUR OWN READ SIDE    XA0054DK         
+         BAL   R9,VLKICK      FRAMES FOR THE OTHERS            XA0054DK         
+         L     R5,VLSAVW                                       XA0054DK         
+         L     R9,VLLNK1                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*  THE READ SIDE: FETCH ITS CCW (SUSPEND, PCI), THEN PUMP      XA0054DK         
+VLRREAD  ST    R9,VLLNK1                                       XA0054DK         
+         BAL   R9,VLFETCH                                      XA0054DK         
+         BNZ   VLRR9                                           XA0054DK         
+         BAL   R9,VLPUMP                                       XA0054DK         
+VLRR9    L     R9,VLLNK1                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLFETCH: FETCH THE SIDE'S CURRENT CCW (TIC FOLLOWED) INTO   XA0054DK         
+*  VLCCW.  A SUSPEND FLAG SUSPENDS THE SIDE (CC NOT 0); PCI    XA0054DK         
+*  IS REPORTED; ANY OTHER CCW IS READY TO RUN (CC 0)           XA0054DK         
+VLFETCH  ST    R9,VLLNK2                                       XA0054DK         
+         LA    R0,32          AT MOST 32 TICS IN A ROW         XA0054DK         
+         ST    R0,VLTICS                                       XA0054DK         
+VLF1     L     R1,SCCW(R5)                                     XA0054DK         
+         LA    R0,VLCCW                                        XA0054DK         
+         LA    R4,8                                            XA0054DK         
+         BAL   R9,VLGET                                        XA0054DK         
+         CLI   VLCCW,X'08'    TIC                              XA0054DK         
+         BNE   VLF2                                            XA0054DK         
+         L     R1,VLCCW+4                                      XA0054DK         
+         N     R1,=X'7FFFFFF8'                                 XA0054DK         
+         ST    R1,SCCW(R5)                                     XA0054DK         
+         L     R1,VLTICS                                       XA0054DK         
+         BCTR  R1,0                                            XA0054DK         
+         ST    R1,VLTICS                                       XA0054DK         
+         LTR   R1,R1                                           XA0054DK         
+         BP    VLF1                                            XA0054DK         
+         B     VLFBAD         TIC TO TIC: PROGRAM CHECK        XA0054DK         
+VLF2     L     R1,SCCW(R5)                                     XA0054DK         
+         LA    R1,8(,R1)                                       XA0054DK         
+         ST    R1,SCPA(R5)    CPA: THIS CCW + 8                XA0054DK         
+         TM    VLCCW+1,X'02'  SUSPEND FLAG                     XA0054DK         
+         BZ    VLF3                                            XA0054DK         
+         TM    SST(R5),SSFL   ALLOWED BY THE ORB?              XA0054DK         
+         BZ    VLFBAD                                          XA0054DK         
+         NI    SST(R5),255-SACT                                XA0054DK         
+         OI    SST(R5),SSUSP                                   XA0054DK         
+         OI    SEV(R5),EVSUSP                                  XA0054DK         
+         BAL   R9,VLQINT                                       XA0054DK         
+         LTR   R9,R9          CC NOT 0                         XA0054DK         
+         L     R9,VLLNK2                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+VLF3     TM    VLCCW+1,X'04'  IDA: NOT SIMULATED               XA0054DK         
+         BO    VLFBAD                                          XA0054DK         
+         TM    VLCCW+1,X'08'  PCI                              XA0054DK         
+         BZ    VLF4                                            XA0054DK         
+         OI    SEV(R5),EVPCI                                   XA0054DK         
+         BAL   R9,VLQINT                                       XA0054DK         
+VLF4     SR    R0,R0          CC 0                             XA0054DK         
+         L     R9,VLLNK2                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+VLFBAD   MVI   SDST(R5),0     CHANNEL PROGRAM CHECK            XA0054DK         
+         MVI   SCST(R5),X'20'                                  XA0054DK         
+         BAL   R9,VLFINAL                                      XA0054DK         
+         LTR   R9,R9                                           XA0054DK         
+         L     R9,VLLNK2                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLFINAL: THE SIDE'S PROGRAM HAS ENDED (SDST = UNIT STATUS)  XA0054DK         
+VLFINAL  ST    R9,VLLNK3                                       XA0054DK         
+         NI    SST(R5),SSFL                                    XA0054DK         
+         OI    SEV(R5),EVFIN                                   XA0054DK         
+         BAL   R9,VLQINT                                       XA0054DK         
+         L     R9,VLLNK3                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLQINT: AN I/O INTERRUPTION FOR THE SIDE, UNLESS ONE IS     XA0054DK         
+*  ALREADY QUEUED OR PENDING: DMKVCSC1 QUEUES IT AS STATUS OF  XA0054DK         
+*  ITS DEVICE (R6-R8 FROM THE SIDE).  TSCH BUILDS THE SCSW.    XA0054DK         
+VLQINT   TM    SDEV(R5),SDPEND                                 XA0054DK         
+         BOR   R9                                              XA0054DK         
+         OI    SDEV(R5),SDPEND                                 XA0054DK         
+         STM   R0,R15,VLSAVQ                                   XA0054DK         
+         LM    R6,R8,SR6(R5)                                   XA0054DK         
+         XC    VLCSW,VLCSW                                     XA0054DK         
+         LA    R1,VLCSW                                        XA0054DK         
+         L     R15,=A(DMKVCSC1)                                XA0054DK         
+         BALR  R14,R15                                         XA0054DK         
+         CL    R11,RUNUSER    ANOTHER USER'S ADAPTER (A        XA0054DK         
+         BE    VLQ9           DMKVLNPX PUMP): WAKE IT          XA0054DK         
+         NI    VMRSTAT,255-VMEXWAIT                            XA0054DK         
+         CALL  DMKSCHDL                                        XA0054DK         
+VLQ9     LM    R0,R15,VLSAVQ                                   XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLPUMP: FILL THE READ SIDE BUFFERS FROM THE QUEUE           XA0054DK         
+VLPUMP   ST    R9,VLLNK1P                                      XA0054DK         
+         LA    R5,MREAD                                        XA0054DK         
+VLP1     TM    SST(R5),SACT   ACTIVE, NOT SUSPENDED            XA0054DK         
+         BZ    VLP9                                            XA0054DK         
+         ICM   R1,15,MQH                                       XA0054DK         
+         BZ    VLP9           NOTHING QUEUED: THE READ WAITS   XA0054DK         
+         L     R1,SCCW(R5)    THE CURRENT CCW (FETCHED)        XA0054DK         
+         LA    R0,VLCCW                                        XA0054DK         
+         LA    R4,8                                            XA0054DK         
+         BAL   R9,VLGET                                        XA0054DK         
+         SR    R4,R4                                           XA0054DK         
+         ICM   R4,3,VLCCW+2   THE BUFFER'S SIZE                XA0054DK         
+         ST    R4,VLBCNT                                       XA0054DK         
+         MVC   VLBADR,VLCCW+4                                  XA0054DK         
+         XC    VLBPOS,VLBPOS                                   XA0054DK         
+VLP3     ICM   R1,15,MQH      THE NEXT FRAME                   XA0054DK         
+         BZ    VLP5                                            XA0054DK         
+         LH    R2,QLEN(,R1)                                    XA0054DK         
+         LA    R2,4(,R2)      ITS HEADER                       XA0054DK         
+         A     R2,VLBPOS                                       XA0054DK         
+         LA    R0,2(,R2)      AND THE ENDING ZERO MUST FIT     XA0054DK         
+         C     R0,VLBCNT                                       XA0054DK         
+         BNH   VLP4                                            XA0054DK         
+         ICM   R0,15,VLBPOS   DOES NOT FIT IN AN EMPTY         XA0054DK         
+         BNZ   VLP5           BUFFER: DROPPED                  XA0054DK         
+         BAL   R9,VLDEQ                                        XA0054DK         
+         B     VLP3                                            XA0054DK         
+VLP4     STH   R2,VLHDR       HEADER: NEXT OFFSET, TYPE, SLOT  XA0054DK         
+         MVC   VLHDR+2(2),QTYPE(R1)                            XA0054DK         
+         L     R1,VLBADR                                       XA0054DK         
+         A     R1,VLBPOS                                       XA0054DK         
+         LA    R0,VLHDR                                        XA0054DK         
+         LA    R4,4                                            XA0054DK         
+         BAL   R9,VLPUT                                        XA0054DK         
+         ICM   R2,15,MQH                                       XA0054DK         
+         L     R1,VLBADR                                       XA0054DK         
+         A     R1,VLBPOS                                       XA0054DK         
+         LA    R1,4(,R1)                                       XA0054DK         
+         LA    R0,QDATA(,R2)                                   XA0054DK         
+         LH    R4,QLEN(,R2)                                    XA0054DK         
+         BAL   R9,VLPUT                                        XA0054DK         
+         ICM   R1,15,MQH                                       XA0054DK         
+         LH    R2,QLEN(,R1)                                    XA0054DK         
+         LA    R2,4(,R2)                                       XA0054DK         
+         A     R2,VLBPOS                                       XA0054DK         
+         ST    R2,VLBPOS                                       XA0054DK         
+         BAL   R9,VLDEQ                                        XA0054DK         
+         B     VLP3                                            XA0054DK         
+VLP5     XC    VLHDR,VLHDR    THE ENDING ZERO OFFSET           XA0054DK         
+         L     R1,VLBADR                                       XA0054DK         
+         A     R1,VLBPOS                                       XA0054DK         
+         LA    R0,VLHDR                                        XA0054DK         
+         LA    R4,2                                            XA0054DK         
+         BAL   R9,VLPUT                                        XA0054DK         
+         TM    VLCCW+1,X'40'  NEXT CCW                         XA0054DK         
+         BZ    VLP8                                            XA0054DK         
+         L     R1,SCCW(R5)                                     XA0054DK         
+         LA    R1,8(,R1)                                       XA0054DK         
+         ST    R1,SCCW(R5)                                     XA0054DK         
+         BAL   R9,VLFETCH     (SUSPEND, PCI)                   XA0054DK         
+         BNZ   VLP9                                            XA0054DK         
+         B     VLP1                                            XA0054DK         
+VLP8     MVI   SDST(R5),X'0C'                                  XA0054DK         
+         BAL   R9,VLFINAL                                      XA0054DK         
+VLP9     L     R9,VLLNK1P                                      XA0054DK         
+         BR    R9                                              XA0054DK         
+*  VLDEQ: TAKE THE FIRST FRAME OFF THE QUEUE AND FREE IT       XA0054DK         
+VLDEQ    ST    R9,VLLNK3                                       XA0054DK         
+         ICM   R1,15,MQH                                       XA0054DK         
+         BZR   R9                                              XA0054DK         
+         MVC   MQH,QNEXT(R1)                                   XA0054DK         
+         LH    R0,MQN                                          XA0054DK         
+         BCTR  R0,0                                            XA0054DK         
+         STH   R0,MQN                                          XA0054DK         
+         LH    R0,QLEN(,R1)                                    XA0054DK         
+         AH    R0,=H'15'                                       XA0054DK         
+         SRL   R0,3                                            XA0054DK         
+         CALL  DMKFRET                                         XA0054DK         
+         L     R9,VLLNK3                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLWBUF: THE FRAMES IN A WRITE BUFFER (VLCCW): CONTROL       XA0054DK         
+*  COMMANDS ARE ANSWERED ON OUR READ SIDE, ETHERNET FRAMES     XA0054DK         
+*  SWITCHED TO THE OTHER MEMBERS                               XA0054DK         
+VLWBUF   ST    R9,VLLNK2                                       XA0054DK         
+         SR    R4,R4                                           XA0054DK         
+         ICM   R4,3,VLCCW+2                                    XA0054DK         
+         ST    R4,VLBCNT                                       XA0054DK         
+         MVC   VLBADR,VLCCW+4                                  XA0054DK         
+         XC    VLBPOS,VLBPOS                                   XA0054DK         
+VLB1     L     R1,VLBPOS                                       XA0054DK         
+         LA    R1,4(,R1)                                       XA0054DK         
+         C     R1,VLBCNT                                       XA0054DK         
+         BH    VLB9                                            XA0054DK         
+         L     R1,VLBADR      THE HEADER                       XA0054DK         
+         A     R1,VLBPOS                                       XA0054DK         
+         LA    R0,VLHDR                                        XA0054DK         
+         LA    R4,4                                            XA0054DK         
+         BAL   R9,VLGET                                        XA0054DK         
+         SR    R2,R2                                           XA0054DK         
+         ICM   R2,3,VLHDR     NEXT OFFSET                      XA0054DK         
+         BZ    VLB9           0: THE END                       XA0054DK         
+         C     R2,VLBCNT                                       XA0054DK         
+         BH    VLB9                                            XA0054DK         
+         L     R4,VLBPOS                                       XA0054DK         
+         LA    R4,4(,R4)                                       XA0054DK         
+         SR    R2,R4          R2 = THE FRAME'S LENGTH          XA0054DK         
+         BNP   VLB9                                            XA0054DK         
+         CH    R2,=H'1600'                                     XA0054DK         
+         BH    VLB8           TOO LONG: IGNORED                XA0054DK         
+         ST    R2,VLFLEN                                       XA0054DK         
+         L     R1,VLBADR                                       XA0054DK         
+         A     R1,VLBPOS                                       XA0054DK         
+         LA    R1,4(,R1)                                       XA0054DK         
+         LA    R0,VLFRM                                        XA0054DK         
+         LR    R4,R2                                           XA0054DK         
+         BAL   R9,VLGET                                        XA0054DK         
+         CLI   VLHDR+2,0      CONTROL                          XA0054DK         
+         BNE   VLB5                                            XA0054DK         
+         BAL   R9,VLCMD                                        XA0054DK         
+         B     VLB8                                            XA0054DK         
+VLB5     CLI   VLHDR+2,1      ETHERNET                         XA0054DK         
+         BNE   VLB8                                            XA0054DK         
+         BAL   R9,VLSWITCH                                     XA0054DK         
+VLB8     SR    R2,R2                                           XA0054DK         
+         ICM   R2,3,VLHDR                                      XA0054DK         
+         ST    R2,VLBPOS                                       XA0054DK         
+         B     VLB1                                            XA0054DK         
+VLB9     L     R9,VLLNK2                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLCMD: A CONTROL COMMAND IN VLFRM (FROM ITS CMD CODE ON:    XA0054DK         
+*  CODE, INITIATOR, SEQUENCE, RETURN CODE, PARAMETERS)         XA0054DK         
+VLCMD    ST    R9,VLLNK3                                       XA0054DK         
+         XC    VLFRM+4(2),VLFRM+4  RETURN CODE 0               XA0054DK         
+         CLI   VLFRM,X'04'    LANSTAT: OUR MAC ADDRESS         XA0054DK         
+         BNE   VLC2                                            XA0054DK         
+         MVC   VLFRM+18(6),MMAC                                XA0054DK         
+         B     VLC8                                            XA0054DK         
+VLC2     CLI   VLFRM,X'01'    STARTLAN                         XA0054DK         
+         BNE   VLC3                                            XA0054DK         
+         OI    MFLG,MLAN                                       XA0054DK         
+         B     VLC8                                            XA0054DK         
+VLC3     CLI   VLFRM,X'02'    STOPLAN                          XA0054DK         
+         BNE   VLC4                                            XA0054DK         
+         NI    MFLG,255-MLAN                                   XA0054DK         
+         B     VLC8                                            XA0054DK         
+VLC4     CLI   VLFRM,X'B2'    QIPASSIST: NONE                  XA0054DK         
+         BNE   VLC8                                            XA0054DK         
+         XC    VLFRM+10(4),VLFRM+10                            XA0054DK         
+VLC8     MVI   VLTYPE,0       THE REPLY, ON OUR READ SIDE      XA0054DK         
+         MVC   VLSLOT,VLHDR+3                                  XA0054DK         
+         LR    R2,R10                                          XA0054DK         
+         BAL   R9,VLENQ                                        XA0054DK         
+         L     R9,VLLNK3                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLSWITCH: THE ETHERNET FRAME IN VLFRM TO THE OTHERS         XA0054DK         
+*  WHOSE LAN IS STARTED, WHEN IT IS FOR ITS MAC ADDRESS OR A   XA0054DK         
+*  GROUP ADDRESS (BROADCAST, MULTICAST)                        XA0054DK         
+VLSWITCH ST    R9,VLLNK3                                       XA0054DK         
+         MVI   VLTYPE,1                                        XA0054DK         
+         MVI   VLSLOT,0                                        XA0054DK         
+         L     R2,=A(VLMEMS)                                   XA0054DK         
+         LA    R0,VLNMEM                                       XA0054DK         
+VLS1     ICM   R1,15,MVM-VLMEM(R2)                             XA0054DK         
+         BZ    VLS8                                            XA0054DK         
+         CR    R2,R10         NOT BACK TO THE SENDER           XA0054DK         
+         BE    VLS8                                            XA0054DK         
+         TM    MFLG-VLMEM(R2),MLAN                             XA0054DK         
+         BZ    VLS8                                            XA0054DK         
+         TM    VLFRM,X'01'    GROUP ADDRESS                    XA0054DK         
+         BO    VLS2                                            XA0054DK         
+         CLC   VLFRM(6),MMAC-VLMEM(R2)                         XA0054DK         
+         BNE   VLS8                                            XA0054DK         
+VLS2     ST    R0,VLSAVS                                       XA0054DK         
+         ST    R2,VLSAVS+4                                     XA0054DK         
+         BAL   R9,VLENQ                                        XA0054DK         
+         L     R2,VLSAVS+4                                     XA0054DK         
+         OI    MFLG-VLMEM(R2),MKICK  ITS READ TO BE PUMPED     XA0054DK         
+         L     R0,VLSAVS                                       XA0054DK         
+VLS8     LA    R2,VLMEMLN(,R2)                                 XA0054DK         
+         BCT   R0,VLS1                                         XA0054DK         
+         L     R9,VLLNK3                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLENQ: VLFRM (VLFLEN, VLTYPE, VLSLOT) TO THE QUEUE OF       XA0054DK         
+*  THE MEMBER AT R2; DROPPED WHEN 64 ARE WAITING               XA0054DK         
+VLENQ    ST    R9,VLLNK4                                       XA0054DK         
+         LH    R0,MQN-VLMEM(,R2)                               XA0054DK         
+         CH    R0,=H'64'                                       XA0054DK         
+         BNL   VLE9                                            XA0054DK         
+         ST    R2,VLSAVE                                       XA0054DK         
+         L     R0,VLFLEN                                       XA0054DK         
+         AH    R0,=H'15'                                       XA0054DK         
+         SRL   R0,3                                            XA0054DK         
+         CALL  DMKFREE                                         XA0054DK         
+         L     R2,VLSAVE                                       XA0054DK         
+         XC    QNEXT(4,R1),QNEXT(R1)                           XA0054DK         
+         L     R4,VLFLEN                                       XA0054DK         
+         STH   R4,QLEN(,R1)                                    XA0054DK         
+         MVC   QTYPE(1,R1),VLTYPE                              XA0054DK         
+         MVC   QSLOT(1,R1),VLSLOT                              XA0054DK         
+         ST    R1,VLSAVE2                                      XA0054DK         
+         LA    R14,QDATA(,R1)                                  XA0054DK         
+         LR    R15,R4                                          XA0054DK         
+         LA    R0,VLFRM                                        XA0054DK         
+         LR    R1,R4                                           XA0054DK         
+         MVCL  R14,R0                                          XA0054DK         
+         L     R1,VLSAVE2                                      XA0054DK         
+         ICM   R4,15,MQT-VLMEM(R2)                             XA0054DK         
+         BZ    VLE2                                            XA0054DK         
+         ST    R1,QNEXT(,R4)                                   XA0054DK         
+         B     VLE3                                            XA0054DK         
+VLE2     ST    R1,MQH-VLMEM(,R2)                               XA0054DK         
+VLE3     ST    R1,MQT-VLMEM(,R2)                               XA0054DK         
+         LH    R0,MQN-VLMEM(,R2)                               XA0054DK         
+         AH    R0,=H'1'                                        XA0054DK         
+         STH   R0,MQN-VLMEM(,R2)                               XA0054DK         
+VLE9     L     R9,VLLNK4                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLKICK: EVERY OTHER MEMBER WITH NEW FRAMES GETS ITS READ    XA0054DK         
+*  PUMPED IN ITS OWN CONTEXT: A CPEXBLOK TO DMKVLNPX           XA0054DK         
+VLKICK   ST    R9,VLLNK3                                       XA0054DK         
+         L     R2,=A(VLMEMS)                                   XA0054DK         
+         LA    R0,VLNMEM                                       XA0054DK         
+VLK1     TM    MFLG-VLMEM(R2),MKICK                            XA0054DK         
+         BZ    VLK8                                            XA0054DK         
+         NI    MFLG-VLMEM(R2),255-MKICK                        XA0054DK         
+         TM    MFLG-VLMEM(R2),MSTK  ONE ALREADY STACKED        XA0054DK         
+         BO    VLK8                                            XA0054DK         
+         OI    MFLG-VLMEM(R2),MSTK                             XA0054DK         
+         STM   R0,R2,VLSAVK                                    XA0054DK         
+         LA    R0,VLCPXSZ                                      XA0054DK         
+         CALL  DMKFREE                                         XA0054DK         
+         LM    R0,R2,VLSAVK                                    XA0054DK         
+         XC    0(VLCPXSZ*8,R1),0(R1)                           XA0054DK         
+         L     R4,=A(DMKVLNPX)                                 XA0054DK         
+         ST    R4,VLCPXAD(,R1)                                 XA0054DK         
+         MVC   VLCPXRG+44(4,R1),MVM-VLMEM(R2)  R11             XA0054DK         
+         ST    R2,VLCPXRG+40(,R1)  R10: THE MEMBER             XA0054DK         
+         L     R4,=A(DMKVLN)                                   XA0054DK         
+         ST    R4,VLCPXRG+48(,R1)  R12                         XA0054DK         
+         STM   R0,R2,VLSAVK                                    XA0054DK         
+         CALL  DMKSTKCP                                        XA0054DK         
+         LM    R0,R2,VLSAVK                                    XA0054DK         
+VLK8     LA    R2,VLMEMLN(,R2)                                 XA0054DK         
+         BCT   R0,VLK1                                         XA0054DK         
+         L     R9,VLLNK3                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  DMKVLNPX: THE PUMP OF ANOTHER USER'S READ SIDE (CPEXBLOK).  XA0054DK         
+*  R10 = THE MEMBER, R11 = ITS VMBLOK, R12 = A(DMKVLN).  IT    XA0054DK         
+*  TAKES DMKVCS'S LOCK (ITS WORK AREAS AND OURS ARE STATIC);   XA0054DK         
+*  A BUSY LOCK STACKS IT AGAIN.                                XA0054DK         
+DMKVLNPX L     R12,=A(DMKVLN)                                  XA0054DK         
+         NI    MFLG,255-MSTK                                   XA0054DK         
+         C     R11,MVM        STILL THE MEMBER'S USER?         XA0054DK         
+         BNE   VLPXDSP                                         XA0054DK         
+         L     R1,=A(VCSLOCK)                                  XA0054DK         
+         ICM   R2,15,0(R1)                                     XA0054DK         
+         BZ    VLPX2                                           XA0054DK         
+         CR    R2,R11                                          XA0054DK         
+         BE    VLPX2                                           XA0054DK         
+         OI    MFLG,MKICK     BUSY: AGAIN LATER                XA0054DK         
+         BAL   R9,VLKICK                                       XA0054DK         
+         B     VLPXDSP                                         XA0054DK         
+VLPX2    ST    R11,0(,R1)                                      XA0054DK         
+         BAL   R9,VLPUMP                                       XA0054DK         
+         L     R1,=A(VCSLOCK)                                  XA0054DK         
+         XC    0(4,R1),0(R1)                                   XA0054DK         
+VLPXDSP  GOTO  DMKDSPCH                                        XA0054DK         
+*                                                              XA0054DK         
+*  VLFIND: R10 = THIS USER'S MEMBER FOR DEVICE R13 (EVEN =     XA0054DK         
+*  READ, ODD = WRITE), A NEW ONE IF NEEDED; R5 = THE SIDE.     XA0054DK         
+*  THE SIDE KEEPS R6-R8 FOR VLQINT.                            XA0054DK         
+VLFIND   ST    R9,VLLNK4                                       XA0054DK         
+         LR    R0,R13                                          XA0054DK         
+         N     R0,=X'0000FFFE'                                 XA0054DK         
+         L     R10,=A(VLMEMS)                                  XA0054DK         
+         LA    R1,VLNMEM                                       XA0054DK         
+VLFI1    C     R11,MVM                                         XA0054DK         
+         BNE   VLFI2                                           XA0054DK         
+         CH    R0,MDEV                                         XA0054DK         
+         BE    VLFI5                                           XA0054DK         
+VLFI2    LA    R10,VLMEMLN(,R10)                               XA0054DK         
+         BCT   R1,VLFI1                                        XA0054DK         
+         L     R10,=A(VLMEMS) A FREE ONE (OR ONE OF A          XA0054DK         
+         LA    R1,VLNMEM      USER WHO HAS LOGGED OFF)         XA0054DK         
+VLFI3    ICM   R2,15,MVM                                       XA0054DK         
+         BZ    VLFI4                                           XA0054DK         
+         LA    R10,VLMEMLN(,R10)                               XA0054DK         
+         BCT   R1,VLFI3                                        XA0054DK         
+         L     R10,=A(VLMEMS) FULL: THE FIRST IS TAKEN         XA0054DK         
+VLFI4    XC    VLMEM(VLMEMLN),VLMEM                            XA0054DK         
+         ST    R11,MVM                                         XA0054DK         
+         STH   R0,MDEV                                         XA0054DK         
+         MVI   MMAC,X'02'     02-UU-UU-UU-DD-DD                XA0054DK         
+         STCM  R11,7,MMAC+1                                    XA0054DK         
+         STH   R0,MMAC+4                                       XA0054DK         
+         MVI   MWRITE+SIDE,1                                   XA0054DK         
+VLFI5    BAL   R9,VLSIDE                                       XA0054DK         
+         STM   R6,R8,SR6(R5)                                   XA0054DK         
+         L     R9,VLLNK4                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*  VLSIDE: R5 = THE SIDE OF R10 FOR DEVICE R13                 XA0054DK         
+VLSIDE   LA    R5,MREAD                                        XA0054DK         
+         LR    R1,R13                                          XA0054DK         
+         N     R1,=F'1'                                        XA0054DK         
+         BZR   R9                                              XA0054DK         
+         LA    R5,MWRITE                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLOPAD: R1 = THE INSTRUCTION'S OPERAND ADDRESS (AS OPADDR)  XA0054DK         
+VLOPAD   L     R1,VMINST                                       XA0054DK         
+         N     R1,=F'4095'                                     XA0054DK         
+         SR    R2,R2                                           XA0054DK         
+         IC    R2,VMINST+2                                     XA0054DK         
+         SRL   R2,4                                            XA0054DK         
+         SLL   R2,2                                            XA0054DK         
+         LTR   R2,R2                                           XA0054DK         
+         BZ    VLOP1                                           XA0054DK         
+         A     R1,VMGPRS(R2)                                   XA0054DK         
+VLOP1    TM    VMFSTAT,VMAM31                                  XA0054DK         
+         BO    VLOP3                                           XA0054DK         
+         TM    VMPSW+4,X'80'                                   XA0054DK         
+         BO    VLOP3                                           XA0054DK         
+         N     R1,=X'00FFFFFF'                                 XA0054DK         
+VLOP3    N     R1,=X'7FFFFFFF'                                 XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLGET / VLPUT: R4 BYTES BETWEEN GUEST REAL R1 AND CP R0,    XA0054DK         
+*  A PAGE AT A TIME (TRANS BRINGS THE PAGE IN). R2-R15 KEPT.   XA0054DK         
+VLGET    MVI   VLDIR,1                                         XA0054DK         
+         B     VLMOV                                           XA0054DK         
+VLPUT    MVI   VLDIR,0                                         XA0054DK         
+VLMOV    STM   R2,R15,VLSAVM                                   XA0054DK         
+         ST    R1,VLGA                                         XA0054DK         
+         ST    R0,VLCA                                         XA0054DK         
+         ST    R4,VLLEFT                                       XA0054DK         
+VLM1     L     R4,VLLEFT                                       XA0054DK         
+         LTR   R4,R4                                           XA0054DK         
+         BNP   VLM9                                            XA0054DK         
+         L     R1,VLGA                                         XA0054DK         
+         TRANS 2,1,OPT=(BRING,DEFER,AMODE31),ADEX=VLM9         XA0054DK         
+         L     R1,VLGA        THE BYTES LEFT IN THE PAGE       XA0054DK         
+         N     R1,=F'4095'                                     XA0054DK         
+         L     R0,=F'4096'                                     XA0054DK         
+         SR    R0,R1                                           XA0054DK         
+         L     R4,VLLEFT                                       XA0054DK         
+         CR    R0,R4                                           XA0054DK         
+         BNH   *+6                                             XA0054DK         
+         LR    R0,R4                                           XA0054DK         
+         ST    R0,VLCHUNK                                      XA0054DK         
+         CLI   VLDIR,1                                         XA0054DK         
+         BNE   VLM2                                            XA0054DK         
+         L     R14,VLCA       GUEST TO CP                      XA0054DK         
+         L     R15,VLCHUNK                                     XA0054DK         
+         LR    R0,R2                                           XA0054DK         
+         L     R1,VLCHUNK                                      XA0054DK         
+         B     VLM3                                            XA0054DK         
+VLM2     LR    R14,R2         CP TO GUEST                      XA0054DK         
+         L     R15,VLCHUNK                                     XA0054DK         
+         L     R0,VLCA                                         XA0054DK         
+         L     R1,VLCHUNK                                      XA0054DK         
+VLM3     MVCL  R14,R0                                          XA0054DK         
+         L     R0,VLCHUNK                                      XA0054DK         
+         L     R1,VLGA                                         XA0054DK         
+         AR    R1,R0                                           XA0054DK         
+         ST    R1,VLGA                                         XA0054DK         
+         L     R1,VLCA                                         XA0054DK         
+         AR    R1,R0                                           XA0054DK         
+         ST    R1,VLCA                                         XA0054DK         
+         L     R1,VLLEFT                                       XA0054DK         
+         SR    R1,R0                                           XA0054DK         
+         ST    R1,VLLEFT                                       XA0054DK         
+         B     VLM1                                            XA0054DK         
+VLM9     LM    R2,R15,VLSAVM                                   XA0054DK         
+         BR    R9                                              XA0054DK         
+         LTORG                                                 XA0054DK         
+*                                                              XA0054DK         
+*  WORK AREAS (UNDER DMKVCS'S LOCK)                            XA0054DK         
+VLLNK1   DS    F                                               XA0054DK         
+VLLNK1P  DS    F                                               XA0054DK         
+VLLNK2   DS    F                                               XA0054DK         
+VLLNK3   DS    F                                               XA0054DK         
+VLLNK4   DS    F                                               XA0054DK         
+VLLNKM   DS    F                                               XA0054DK         
+VLSAVM   DS    14F                                             XA0054DK         
+VLGA     DS    F                                               XA0054DK         
+VLCA     DS    F                                               XA0054DK         
+VLLEFT   DS    F                                               XA0054DK         
+VLSAVW   DS    F                                               XA0054DK         
+VLSAVE2  DS    F                                               XA0054DK         
+VLSAVQ   DS    16F                                             XA0054DK         
+VLSAVK   DS    3F                                              XA0054DK         
+VLSAVS   DS    2F                                              XA0054DK         
+VLSAVE   DS    F                                               XA0054DK         
+VLCHUNK  DS    F                                               XA0054DK         
+VLTICS   DS    F                                               XA0054DK         
+VLIRBA   DS    F                                               XA0054DK         
+VLBCNT   DS    F                                               XA0054DK         
+VLBADR   DS    F                                               XA0054DK         
+VLBPOS   DS    F                                               XA0054DK         
+VLFLEN   DS    F                                               XA0054DK         
+VLORB    DS    3F                                              XA0054DK         
+VLCSW    DS    D                                               XA0054DK         
+VLCCW    DS    D                                               XA0054DK         
+VLHDR    DS    F                                               XA0054DK         
+VLDIR    DS    X                                               XA0054DK         
+VLTYPE   DS    X                                               XA0054DK         
+VLSLOT   DS    X                                               XA0054DK         
+         DS    0D                                              XA0054DK         
+VLIRB    DS    XL64                                            XA0054DK         
+VLFRM    DS    XL1608                                          XA0054DK         
+VLNMEM   EQU   16                                              XA0054DK         
+VLMEMS   DC    176D'0'        16 MEMBERS OF 88 BYTES           XA0054DK         
+*                                                              XA0054DK         
+*  A MEMBER: ONE GUEST'S ADAPTER (A READ AND A WRITE SIDE)     XA0054DK         
+VLMEM    DSECT                                                 XA0054DK         
+MVM      DS    F              ITS VMBLOK (0: FREE)             XA0054DK         
+MDEV     DS    H              READ DEVICE (EVEN)               XA0054DK         
+MFLG     DS    X                                               XA0054DK         
+MLAN     EQU   X'80'          LAN STARTED (STARTLAN)           XA0054DK         
+MKICK    EQU   X'40'          FRAMES QUEUED, PUMP IT           XA0054DK         
+MSTK     EQU   X'20'          A PUMP CPEXBLOK IS STACKED       XA0054DK         
+         DS    X                                               XA0054DK         
+MMAC     DS    XL6                                             XA0054DK         
+MQN      DS    H              FRAMES QUEUED                    XA0054DK         
+MQH      DS    F                                               XA0054DK         
+MQT      DS    F                                               XA0054DK         
+SBASE    EQU   *                                               XA0054DK         
+MREAD    DS    XL32           THE READ SIDE                    XA0054DK         
+MWRITE   DS    XL32           THE WRITE SIDE                   XA0054DK         
+VLMEMLN  EQU   ((*-VLMEM+7)/8)*8                               XA0054DK         
+*  A SIDE (DISPLACEMENTS FROM MREAD/MWRITE)                    XA0054DK         
+SCCW     EQU   0              THE CURRENT CCW                  XA0054DK         
+SCPA     EQU   4              CPA FOR THE SCSW                 XA0054DK         
+SR6      EQU   8              R6-R8: ITS DEVICE'S BLOCKS       XA0054DK         
+SST      EQU   20             STATE                            XA0054DK         
+SACT     EQU   X'80'          ACTIVE                           XA0054DK         
+SSUSP    EQU   X'40'          SUSPENDED                        XA0054DK         
+SSFL     EQU   X'20'          THE ORB ALLOWS SUSPEND           XA0054DK         
+SEV      EQU   21             EVENTS FOR TSCH                  XA0054DK         
+EVPCI    EQU   X'80'                                           XA0054DK         
+EVSUSP   EQU   X'40'                                           XA0054DK         
+EVFIN    EQU   X'20'          THE PROGRAM ENDED (SDST)         XA0054DK         
+EVHALT   EQU   X'10'                                           XA0054DK         
+EVCLR    EQU   X'08'                                           XA0054DK         
+SDEV     EQU   22                                              XA0054DK         
+SDPEND   EQU   X'80'          AN INTERRUPTION IS QUEUED        XA0054DK         
+SDST     EQU   23             UNIT STATUS AT THE END           XA0054DK         
+SKEY     EQU   24             THE ORB'S KEY                    XA0054DK         
+SIDE     EQU   25             0 READ, 1 WRITE                  XA0054DK         
+SCST     EQU   26             CHANNEL STATUS AT THE END        XA0054DK         
+*  A CPEXBLOK (CPEXBLOK COPY IS NOT IN DMKVSI)                 XA0054DK         
+VLCPXAD  EQU   12             CPEXADD                          XA0054DK         
+VLCPXRG  EQU   16             CPEXREGS                         XA0054DK         
+VLCPXSZ  EQU   10             CPEXSIZE (DOUBLEWORDS)           XA0054DK         
+*  A QUEUED FRAME (DMKFREE)                                    XA0054DK         
+QNEXT    EQU   0                                               XA0054DK         
+QLEN     EQU   4                                               XA0054DK         
+QTYPE    EQU   6                                               XA0054DK         
+QSLOT    EQU   7                                               XA0054DK         
+QDATA    EQU   8                                               XA0054DK         
          END   DMKVSI                                          XA0054DK         
