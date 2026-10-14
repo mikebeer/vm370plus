@@ -1,0 +1,17 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          pgsql16
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:     $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: PostgreSQL 16 (VM/370plus)
+### END INIT INFO
+D=/var/lib/pgsql16; B=/usr/local/pgsql/bin
+case "$1" in
+start)   echo -n "Starting PostgreSQL 16: "; su postgres -c "$B/pg_ctl -D $D -l $D/log -w -t 600 start" >/dev/null && echo pgsql16. ;;
+stop)    echo -n "Stopping PostgreSQL 16: "; su postgres -c "$B/pg_ctl -D $D -m fast -w -t 300 stop" >/dev/null; echo pgsql16. ;;
+restart) $0 stop; $0 start ;;
+status)  su postgres -c "$B/pg_ctl -D $D status" ;;
+*) echo "usage: $0 start|stop|restart|status"; exit 1 ;;
+esac

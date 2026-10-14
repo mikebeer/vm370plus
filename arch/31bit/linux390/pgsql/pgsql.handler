@@ -1,0 +1,16 @@
+#!/bin/sh
+# pgsql -- vmspoold: PostgreSQL from CMS (PGSQL EXEC, VM/370plus 9.4)
+#   PGSQL statement ...      run one SQL statement
+#   PGSQL (FILE fn SQL       run the statements of a file (the input lines)
+# Every CMS user has a role and a database of the same name (lower case),
+# made on first use; psql runs as that role over the local socket.
+PATH=/usr/local/pgsql/bin:$PATH
+u=$(echo "$VMSPOOL_FROM" | tr A-Z a-z)
+case "$u" in ''|*[!a-z0-9_$#@]*) echo "pgsql: bad user: $VMSPOOL_FROM"; exit 4;; esac
+psql -X -q -At -U postgres -d postgres -c "select 1 from pg_roles where rolname='$u'" | grep -q 1 ||
+  { createuser -U postgres "$u" && createdb -U postgres -O "$u" "$u" && echo "pgsql: database $u made"; } || exit 8
+if [ $# -gt 0 ]; then
+  psql -X -v ON_ERROR_STOP=1 -P pager=off -U "$u" -d "$u" -c "$*"
+else
+  psql -X -v ON_ERROR_STOP=1 -P pager=off -U "$u" -d "$u" -f -
+fi
