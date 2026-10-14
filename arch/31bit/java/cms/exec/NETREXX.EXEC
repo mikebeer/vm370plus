@@ -1,8 +1,8 @@
 /* NETREXX EXEC -- NetRexx 3.05 on CMS, on JamVM (9.35)               */
 /*   NETREXX fn [options]   process fn NRX with NetRexxC              */
 /*   Default -exec: the program is interpreted and run at once.        */
-/*   Other NetRexxC options, e.g. -nocompile -keepasjava (translate     */
-/*   to fn JAVA only; there is no Java compiler on CMS yet).            */
+/*   NETREXX fn COMPILE: compile to fn CLASS (ecj), then JAVA fn.      */
+/*   Other NetRexxC options are passed on, e.g. -keepasjava.           */
 PARSE ARG FN OPTS
 IF FN = '' THEN DO
   SAY 'NETREXX: give the program: NETREXX fn [options]  (fn NRX)'
@@ -17,7 +17,12 @@ IF RC <> 0 THEN DO
 END
 OPTS = TRANSLATE(OPTS, 'abcdefghijklmnopqrstuvwxyz',,
                        'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-IF OPTS = '' THEN OPTS = '-exec'
+ECJ = ''
+IF WORDPOS('compile', OPTS) > 0 THEN DO
+  OPTS = DELWORD(OPTS, WORDPOS('compile', OPTS), 1)
+  ECJ = '-Dnrx.compiler=ecj'
+END
+ELSE IF OPTS = '' THEN OPTS = '-exec'
 C = 'org.netrexx.process.NetRexxC'
-'EXEC JAVA -Xmx64m -cp /netrexx.jar' C OPTS FN
+'EXEC JAVA -Xmx64m' ECJ '-cp /netrexx.jar:/ecj.jar' C OPTS FN
 EXIT RC

@@ -1,0 +1,6 @@
+#!/bin/sh
+# nrc -- NetRexx 3.05 (VM/370plus 9.34).  nrc prog : translate and compile
+#        prog.nrx to prog.class (ecj);  nrc -exec prog : interpret it
+exec /usr/local/jamvm/bin/jamvm -Xmx64m -Dnrx.compiler=ecj \
+  -cp "/usr/local/jamvm/lib/netrexx/NetRexxC.jar:/usr/local/jamvm/lib/ecj/ecj.jar:${CLASSPATH:-.}" \
+  org.netrexx.process.NetRexxC "$@"

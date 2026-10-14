@@ -1,0 +1,5 @@
+#!/bin/sh
+# java -- JamVM 2.0 with GNU Classpath 0.99 (VM/370plus 9.34): Java 5/6 level.
+# NetRexx's runtime is on the class path unless -cp/-classpath is given.
+for a in "$@"; do case $a in -cp|-classpath|-jar) exec /usr/local/jamvm/bin/jamvm "$@";; esac; done
+exec /usr/local/jamvm/bin/jamvm -cp "${CLASSPATH:-.}:/usr/local/jamvm/lib/netrexx/NetRexxC.jar" "$@"

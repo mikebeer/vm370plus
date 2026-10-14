@@ -1,0 +1,4 @@
+#!/bin/sh
+# nr prog [args] -- run a NetRexx program interpreted (nrc -exec -nologo)
+p=$1; shift
+exec /usr/local/bin/nrc -exec -nologo -noconsole "$p" "$@"

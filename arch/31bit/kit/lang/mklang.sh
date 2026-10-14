@@ -76,8 +76,9 @@ JV=${JV:-/home/claude/src/java}; JX=$R/java/cms
 add JAMVM XIMAGE $JV/cms/out/jamvm.ximage BIN
 add JAMVM ZIP $JV/pc-inst/share/jamvm/classes.zip RAW
 add GLIBJ ZIP $JV/pc-inst/share/classpath/glibj.zip RAW
-add NETREXX JAR $JV/nr/NetRexxC-3.05.jar RAW
-add JAVA EXEC $JX/exec/JAVA.EXEC F; add NETREXX EXEC $JX/exec/NETREXX.EXEC F
+add NETREXX JAR $JV/nr/NetRexxC-3.05.jar RAW; add ECJ JAR $JV/ecj/ecj.jar RAW
+add JAVA EXEC $JX/exec/JAVA.EXEC F; add JAVAC EXEC $JX/exec/JAVAC.EXEC F
+add NETREXX EXEC $JX/exec/NETREXX.EXEC F
 add HELLO NRX $JX/hello.nrx V; add HELLO JAVA $JX/hello.java V
 add HELLO CLASS $JV/cms/test/hello.class RAW; add 'HELLO$1' CLASS "$JV/cms/test/hello\$1.class" RAW
 # the disk's own files

@@ -1,0 +1,7 @@
+#!/bin/sh
+# javac -- the Eclipse compiler ecj 3.5.2 on JamVM (VM/370plus 9.34).
+# Java 5 source and class files unless -source/-target/-1.x say otherwise.
+lvl=-1.5
+for a in "$@"; do case $a in -source|-target|-1.*|-[5-7]|-compliance) lvl=;; esac; done
+exec /usr/local/jamvm/bin/jamvm -Xmx64m -cp /usr/local/jamvm/lib/ecj/ecj.jar \
+  org.eclipse.jdt.internal.compiler.batch.Main $lvl -nowarn "$@"

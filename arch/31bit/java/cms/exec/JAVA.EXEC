@@ -33,6 +33,11 @@ DO WHILE ARGS <> ''
   OUT = OUT W
 END
 IF \HEAP THEN OUT = '-Xmx48m' OUT
+/* NetRexx programs need its runtime: . and NETREXX JAR by default   */
+IF POS(' -cp ', ' 'OUT' ') = 0 THEN DO
+  'STATE NETREXX JAR *'
+  IF RC = 0 THEN OUT = '-cp .:/netrexx.jar' OUT
+END
 QUEUE 'JAMVM' STRIP(OUT)       /* CMS would cut each token to 8    */
 'XL =STACK'
 EXIT RC

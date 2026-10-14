@@ -1,0 +1,33 @@
+/* JAVAC EXEC -- compile Java on CMS: Eclipse compiler ecj 3.5.2 (9.35) */
+/*   JAVAC fn [ecj options]   fn JAVA -> fn CLASS (and fn$n CLASS) on A */
+/*   Java 5 source by default; classes in the default package only     */
+/*   (a package would need directories).  Then: JAVA fn                */
+PARSE ARG FN OPTS
+IF FN = '' THEN DO
+  SAY 'JAVAC: give the source: JAVAC fn [options]  (fn JAVA)'
+  EXIT 24
+END
+'STATE' FN 'JAVA *'
+IF RC <> 0 THEN DO; SAY 'JAVAC:' FN 'JAVA not found'; EXIT 28; END
+'STATE ECJ JAR *'
+IF RC <> 0 THEN DO; SAY 'JAVAC: ECJ JAR not found -- enter LANG first'
+  EXIT 28; END
+/* ecj wants the file named as its public class, in that class's    */
+/* case (CMS file names have none): find  public ... class NAME      */
+'EXECIO * DISKR' FN 'JAVA * (FINIS STEM SRC.'
+SRCNAME = FN
+DO I = 1 TO SRC.0
+  L = TRANSLATE(SRC.I, '  ', '{<')
+  IF WORDPOS('public', L) = 0 THEN ITERATE
+  DO K = 1 TO WORDS(L) - 1
+    IF WORDPOS(WORD(L, K), 'class interface enum') > 0 THEN DO
+      SRCNAME = WORD(L, K + 1); LEAVE I
+    END
+  END
+END
+OPTS = TRANSLATE(OPTS, 'abcdefghijklmnopqrstuvwxyz',,
+                       'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+M = 'org.eclipse.jdt.internal.compiler.batch.Main'
+'EXEC JAVA -Xmx64m -cp /ecj.jar:/netrexx.jar' M '-1.5 -nowarn -d .',
+  OPTS '/'SRCNAME'.java'
+EXIT RC

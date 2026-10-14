@@ -88,10 +88,10 @@ context makes clear which they are.
 listed here, newest first.
 :ul.
 :li.:hp2.14 October 2026, midday.:ehp2. Java and NetRexx on CMS&colon.
-:xph.JAVA:exph. and :xph.NETREXX:exph. (Chapter 8). CP&colon. a CMS user
-can page more than 128 MB without stopping CP (I-290); XL programs no
-longer print "Invalid character" messages when they look at a file
-(I-289).
+:xph.JAVA:exph., :xph.JAVAC:exph. (the Eclipse compiler) and
+:xph.NETREXX:exph. (Chapter 8). CP&colon. a CMS user can page more than
+128 MB without stopping CP (I-290); XL programs no longer print "Invalid
+character" messages when they look at a file (I-289).
 :li.:hp2.14 October 2026, forenoon (kit build 15).:ehp2. A Linux guest
 whose terminal drops is disconnected and keeps running, as under z/VM
 (I-288); before, CP stopped it and logged it off after 15 minutes. CMS
@@ -1823,13 +1823,18 @@ unless :xph.-Xmx:exph. says otherwise; the virtual machine needs
 JamVM, the class library (:xph.GLIBJ ZIP:exph., 10 MB) and the heap all
 live above 16 MB. There are no sockets and no AWT on CMS; threads are
 run by JamVM's own scheduler inside the one CMS task and switch when one
-waits. Class files are compiled on the PC or in the Debian guest
-(:xph.javac -source 8 -target 8:exph.) and sent as binary files.
+waits. :xph.JAVAC fn:exph. compiles :xph.fn JAVA:exph. into :xph.fn
+CLASS:exph. on the A disk with the Eclipse compiler ecj 3.5.2 (Java 5
+source; classes in the default package, since CMS disks have no
+directories); class files made elsewhere (:xph.javac -source 8 -target
+8:exph.) can be sent as binary files.
 :p.:xph.NETREXX fn [options]:exph. processes :xph.fn NRX:exph. with the
 NetRexx 3.05 processor (RexxLA), by default with :xph.-exec:exph.&colon.
-the program is interpreted and runs at once. Other NetRexxC options are
-passed on, for example :xph.-nocompile -keepasjava:exph. to translate to
-Java source only; there is no Java compiler on CMS yet.
+the program is interpreted and runs at once. :xph.NETREXX fn
+COMPILE:exph. translates and compiles it (with ecj) into :xph.fn
+CLASS:exph., which :xph.JAVA fn:exph. then runs, about ten times faster
+than interpreted. Other NetRexxC options are passed on, for example
+:xph.-keepasjava:exph. to keep the Java source.
 :fig.
 :xmp.
 java hello
@@ -1844,6 +1849,14 @@ Hello from NetRexx on VM/370plus
 sum 6 pi approx 3.14159292
 Processing of 'HELLO.nrx' complete
 Ready; T=25.30/33.77
+javac hello
+Ready; T=27.54/33.61
+netrexx hello compile
+Compilation of 'HELLO.nrx' successful
+Ready; T=45.08/54.54
+java hello
+Hello from NetRexx on VM/370plus
+Ready; T=3.69/7.13
 :exmp.
 :figcap.Java and NetRexx on CMS (samples on the language disk)
 :efig.

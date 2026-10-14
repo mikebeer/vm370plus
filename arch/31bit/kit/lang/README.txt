@@ -31,7 +31,9 @@ VM/370plus language disk (MAINT 19F, volume VMLANG)
                   spool bridge; PGSQL (FILE fn [ft [fm]] runs a file
   JAVA class      Java 5 programs (JamVM 2.0 + GNU Classpath 0.99): fn CLASS
                   on any disk, -cp /fn.jar for a jar; JAVA HELLO runs a sample
-  NETREXX fn      NetRexx 3.05: runs fn NRX at once (-exec); NETREXX HELLO
+  JAVAC fn        compile fn JAVA to fn CLASS (Eclipse compiler ecj 3.5.2)
+  NETREXX fn      NetRexx 3.05: runs fn NRX at once; NETREXX fn COMPILE
+                  makes fn CLASS (run it with JAVA fn); try NETREXX HELLO
   NCTEST          a NICOF socket test against an echo server on the PC
                   (NICOF's proxies: nicof/nicof.sh start on the PC)
 
