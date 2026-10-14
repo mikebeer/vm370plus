@@ -128,9 +128,9 @@ the Debian guest, and fixes two CP problems with large virtual
 machines (I-289, I-290).
 :p.The work in progress is the CP guest LAN (milestone 9.12b): a
 virtual LAN adapter that CP simulates for each guest, so that Linux
-guests can talk to each other without real devices. One guest already
-runs on it; the first exchange between two guests found a CP failure
-(I-292) that is being worked on.
+guests can talk to each other without real devices. On 14 October two
+Linux guests pinged each other over it for the first time, after a CP
+failure found on the way (I-292) was fixed.
 :h1.The Control Program
 :h2.The conversion (M0-M3)
 :p.CP is assembled from the CE source with update decks (the XA00nnDK
@@ -347,9 +347,10 @@ translation, I-291; that is why the LAN is simulated.)
 kernel #11 brings up eth0 through CP's LCS: STARTUP, STARTLAN and
 LANSTAT are answered, the MAC address is 02 followed by the VMBLOK
 and device, and frames are sent.
-:li.Step C, two guests ping each other: in progress. The second guest
+:li.Step C, two guests ping each other. The second guest
 (CMSUSER, a ramdisk Linux booted from the reader) joins the LAN; the
-first frame between the two guests stops CP (I-292).
+first frame between them stopped CP (I-292). After the fix the two
+guests ping each other, also with 1400-byte packets (run lb6): done.
 :li.Step D, cleanup at DETACH and LOGOFF, halt and clear, recovery:
 planned.
 :eol.
@@ -426,10 +427,6 @@ that block the next steps:
 :c.Description
 :ethd.
 :row.
-:c.I-292
-:c.Guest LAN: CP fails when two members exchange frames; after the
-automatic re-IPL CP loops on the busy 0009 console. Not in a kit.
-:row.
 :c.I-291
 :c.A dedicated LCS device cannot run under CP (suspend and resume in
 translated channel programs). Superseded by the guest LAN.
@@ -461,7 +458,7 @@ block limits of VM/370.
 :h1.Plan
 :p.The order of the next work:
 :ol.
-:li.Finish the guest LAN: fix I-292, ping between two guests, cleanup
+:li.Finish the guest LAN: cleanup
 at DETACH and LOGOFF (9.12b); then the BORDER firewall (9.12c) and
 DHCP/DNS (9.12d). A kit follows, with the Guide updated.
 :li.cREXX natively on CMS: RXBVM82 (8.2).
