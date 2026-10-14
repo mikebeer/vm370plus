@@ -1752,7 +1752,9 @@ VLS1     ICM   R1,15,MVM-VLMEM(R2)                             XA0054DK
          BO    VLS2                                            XA0054DK         
          CLC   VLFRM(6),MMAC-VLMEM(R2)                         XA0054DK         
          BNE   VLS8                                            XA0054DK         
-VLS2     ST    R0,VLSAVS                                       XA0054DK         
+VLS2     BAL   R9,VLVALID     STILL LOGGED ON, STILL DEFINED?  XA0054DK         
+         BNZ   VLS8                                            XA0054DK         
+         ST    R0,VLSAVS                                       XA0054DK         
          ST    R2,VLSAVS+4                                     XA0054DK         
          BAL   R9,VLENQ                                        XA0054DK         
          L     R2,VLSAVS+4                                     XA0054DK         
@@ -1813,6 +1815,9 @@ VLK1     TM    MFLG,MKICK                                      XA0054DK
          NI    MFLG,255-MKICK                                  XA0054DK         
          ICM   R11,15,MVM                                      XA0054DK         
          BZ    VLK8                                            XA0054DK         
+         LR    R2,R10                                          XA0054DK         
+         BAL   R9,VLVALID                                      XA0054DK         
+         BNZ   VLK8                                            XA0054DK         
          LA    R5,MREAD                                        XA0054DK         
          TM    SST(R5),SACT   RUNNING, NOT SUSPENDED           XA0054DK         
          BZ    VLK8                                            XA0054DK         
@@ -1826,6 +1831,53 @@ VLK8     LA    R10,VLMEMLN(,R10)                               XA0054DK
          BCT   R0,VLK1                                         XA0054DK         
          LM    R5,R11,VLSAVK                                   XA0054DK         
          L     R9,VLLNK3                                       XA0054DK         
+         BR    R9                                              XA0054DK         
+*                                                              XA0054DK         
+*  VLVALID: IS THE MEMBER AT R2 STILL A MEMBER (ITS USER       XA0054DK         
+*  LOGGED ON, ITS READ DEVICE AN LCS)?  CC 0 YES.  IF NOT,     XA0054DK         
+*  ITS QUEUE IS FREED AND THE SLOT CLEARED (LOGOFF, DETACH:    XA0054DK         
+*  9.12B STEP D).  ALL REGISTERS KEPT.                         XA0054DK         
+VLVALID  STM   R0,R15,VLSAVV                                   XA0054DK         
+         L     R3,MVM-VLMEM(,R2)                               XA0054DK         
+         LTR   R3,R3                                           XA0054DK         
+         BZ    VLVNO                                           XA0054DK         
+         L     R4,ASYSVM      THE VMBLOK CHAIN (CYCLIC; THE    XA0054DK         
+         L     R4,VMPNT-VMBLOK(,R4)  SYSTEM VMBLOK IS NOT IN   XA0054DK         
+         LR    R5,R4          IT): ROUND ONCE FROM ITS FIRST   XA0054DK         
+         LA    R6,4095        (AND NEVER FOR EVER)             XA0054DK         
+VLV1     CR    R4,R3                                           XA0054DK         
+         BE    VLV3                                            XA0054DK         
+         L     R4,VMPNT-VMBLOK(,R4)                            XA0054DK         
+         CR    R4,R5                                           XA0054DK         
+         BE    VLVBAD         LOGGED OFF                       XA0054DK         
+         BCT   R6,VLV1                                         XA0054DK         
+         B     VLVBAD                                          XA0054DK         
+VLV3     LR    R11,R3                                          XA0054DK         
+         LH    R1,MDEV-VLMEM(,R2)                              XA0054DK         
+         CALL  DMKSCNVU                                        XA0054DK         
+         BNZ   VLVBAD         DETACHED                         XA0054DK         
+         CLI   VDEVTYPC-VDEVBLOK(R8),CLASSPEC                  XA0054DK         
+         BNE   VLVBAD                                          XA0054DK         
+         CLI   VDEVTYPE-VDEVBLOK(R8),TYPLCS                    XA0054DK         
+         BNE   VLVBAD                                          XA0054DK         
+         LM    R0,R15,VLSAVV                                   XA0054DK         
+         CR    R0,R0          CC 0                             XA0054DK         
+         BR    R9                                              XA0054DK         
+VLVBAD   L     R2,VLSAVV+8                                     XA0054DK         
+VLVB1    ICM   R1,15,MQH-VLMEM(R2)  FREE ITS FRAMES            XA0054DK         
+         BZ    VLVB2                                           XA0054DK         
+         MVC   MQH-VLMEM(4,R2),QNEXT(R1)                       XA0054DK         
+         LH    R0,QLEN(,R1)                                    XA0054DK         
+         AH    R0,=H'15'                                       XA0054DK         
+         SRL   R0,3                                            XA0054DK         
+         CALL  DMKFRET                                         XA0054DK         
+         L     R2,VLSAVV+8                                     XA0054DK         
+         B     VLVB1                                           XA0054DK         
+VLVB2    XC    0(VLMEMLN,R2),0(R2)                             XA0054DK         
+         MVC   VLTRW,=C'  GO'  TRACE: A MEMBER GONE            XA0054DK         
+         BAL   R9,VLTR                                         XA0054DK         
+VLVNO    LM    R0,R15,VLSAVV                                   XA0054DK         
+         CLC   =X'01',=X'00'  CC 2                             XA0054DK         
          BR    R9                                              XA0054DK         
 *                                                              XA0054DK         
 *  VLFIND: R10 = THIS USER'S MEMBER FOR DEVICE R13 (EVEN =     XA0054DK         
@@ -1973,6 +2025,7 @@ VLTRW    DS    F                                               XA0054DK
 VLTRNXT  DC    F'0'                                            XA0054DK         
 VLSAVQ   DS    16F                                             XA0054DK         
 VLSAVK   DS    8F                                              XA0054DK         
+VLSAVV   DS    16F                                             XA0054DK         
 VLSAVS   DS    2F                                              XA0054DK         
 VLSAVE   DS    F                                               XA0054DK         
 VLCHUNK  DS    F                                               XA0054DK         

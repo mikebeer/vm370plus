@@ -1,0 +1,147 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp disc",
+  "expect": "DISCONNECT",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms noipl",
+  "expect": "LOGON AT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp purge rdr all",
+  "settle": 3
+ },
+ {
+  "term": "cp vary online 01f",
+  "settle": 2
+ },
+ {
+  "term": "cp enable 01f",
+  "settle": 2
+ },
+ {
+  "send": "devinit 000C $SCRATCH/k11m.rdr ebcdic eof",
+  "settle": 2
+ },
+ {
+  "term": "cp start 00c",
+  "settle": 60
+ },
+ {
+  "send": "devinit 000C $SCRATCH/ramm.rdr ebcdic eof",
+  "settle": 10
+ },
+ {
+  "send": "devinit 000C $SCRATCH/k11c.rdr ebcdic eof",
+  "settle": 60
+ },
+ {
+  "send": "devinit 000C $SCRATCH/ramc.rdr ebcdic eof",
+  "settle": 10
+ },
+ {
+  "term": "cp q rdr all",
+  "settle": 3
+ },
+ {
+  "term": "cp def stor 128m",
+  "expect": "STORAGE",
+  "timeout": 10,
+  "cont": true
+ },
+ {
+  "term": "cp define lcs 640",
+  "settle": 3
+ },
+ {
+  "term": "cp define lcs 641",
+  "settle": 3
+ },
+ {
+  "term": "cp set esa on",
+  "settle": 2
+ },
+ {
+  "term": "cp ipl 00c",
+  "expect": "vm370plus:~#|Kernel panic|DISABLED WAIT",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "echo 0.0.0640,0.0.0641 > /sys/bus/ccwgroup/drivers/lcs/group",
+  "settle": 3
+ },
+ {
+  "term": "echo 1 > /sys/bus/ccwgroup/devices/0.0.0640/online",
+  "settle": 8
+ },
+ {
+  "term": "ifconfig eth0 10.3.0.2 netmask 255.255.255.0 up",
+  "settle": 3
+ },
+ {
+  "term": "ifconfig eth0",
+  "settle": 3
+ },
+ {
+  "term": "ping -i 2 -c 600 10.3.0.3 > /tmp/p.log 2>&1 &",
+  "settle": 3
+ },
+ {
+  "send": "/cp q n",
+  "expect": "LB7-DONE",
+  "timeout": 10800,
+  "cont": true
+ },
+ {
+  "term": "tail -5 /tmp/p.log; ifconfig eth0",
+  "settle": 5
+ },
+ {
+  "term": "poweroff",
+  "expect": "DISABLED WAIT",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "#cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/logon operator operator",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]
