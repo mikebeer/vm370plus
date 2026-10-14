@@ -81,7 +81,7 @@
 .    if !\\n[bk-front] .tl '\\*[bk-docnum]''\\n%'
 .  \}
 .  ev
-.  bp
+'  bp
 ..
 .ev bk-hf
 .ie t \{\
@@ -454,7 +454,7 @@
 .de BK-FIGCAP
 .  br
 .  if t .sp 0.15c
-.  ie t .nop \f[HB]\s9Figure \\n+[bk-fig].\f[HR] \\$*\s0\f[]
+.  ie t .nop \f[HB]\s9Figure \\n+[bk-fig].\f[] \f[HR]\\$*\f[]\s0
 .  el .nop Figure \\n+[bk-fig]. \\$*
 .  br
 .  if t .sp 0.35c

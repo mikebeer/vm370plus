@@ -644,7 +644,8 @@ class Vmplus(Bookie):
             self.out.append('.TH')
         for i, r in enumerate(rows):
             cells = list(r) + [''] * (nc - len(r))
-            self.out.append('\t'.join('T{\n%s\nT}' % c for c in cells))
+            # the rules are grey (gcolor), the text black
+            self.out.append('\t'.join('T{\n\\m[black]%s\\m[]\nT}' % c for c in cells))
             if i == nh - 1:
                 self.out.append('.TH')
         self.out.append('.TE')

@@ -53,6 +53,7 @@ for e in LXCALL PHONE MQTT TELL TROFF BOOKIE LATEX PSPRINT; do add $e EXEC $V/$e
 add PGSQL EXEC $R/linux390/pgsql/cms/PGSQL.EXEC F
 add RXPIP EXEC $R/linux390/rxpip/cms/RXPIP.EXEC F
 add GUIDE SCRIPT $R/manual/GUIDE.SCRIPT F; add SAMPLE SCRIPT $L/bookie/SAMPLE.SCRIPT F
+add STATUS SCRIPT $R/manual/bookmaster/STATUS.SCRIPT F; add BOOKIE SCRIPT $R/manual/bookmaster/BOOKIE.SCRIPT F
 add HELLO TEX $L/latex/HELLO.TEX F; add HELLO TROFF $V/HELLO.TROFF F
 add DEMO REXX /home/claude/mikebeer/rexxpository/examples/demo.rexx F
 # CP/M 2.2 (9.33): RUNCPM (LANGGEN makes the MODULE), CPM EXEC, and the

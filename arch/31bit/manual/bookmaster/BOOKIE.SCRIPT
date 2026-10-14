@@ -1,0 +1,821 @@
+.* BOOKIE SCRIPT -- BOOKIE: BookMaster Markup on VM/370plus (VMP-0004)
+.* User's guide and reference, and how bookie is built.  Format with
+.*   BOOKIE BOOKIE (PS        on CMS, or
+.*   bookie.py --groff ps -o bookie.ps BOOKIE.SCRIPT
+:userdoc.
+:prolog.
+:prodname.VM/370plus
+:subtitle.Virtual Machine Facility/370, ESA/390 Edition
+:title.BOOKIE: BookMaster Markup on VM/370plus
+:stitle.VM/370plus BOOKIE User's Guide and Reference
+:version.Release 1 &bullet. Kit Build 16, 14 October 2026
+:based.based on VM/370 Community Edition V1 R1.2
+:docnum.VMP-0004-0
+:filenum.S370-34
+:eprolog.
+:frontm.
+:tipage.
+:edition title='First Edition (October 2026)'.
+:p.This edition applies to bookie as shipped with VM/370plus kit build
+16 (milestones 9.30 and 9.31) and to all subsequent builds until
+otherwise indicated in new editions.
+:p.BookMaster is a licensed program of International Business Machines
+Corporation. bookie is not BookMaster and contains no part of it: it is
+an independent implementation of the BookMaster markup language,
+written for the VM/370plus project from the published description of
+that language. VM/370plus is a hobbyist project; this book is not a
+publication of IBM.
+:p.groff is GNU troff, Ghostscript is from Artifex; both are free
+software and run in the Debian guest of VM/370plus.
+:eedition.
+:toc.
+:h1.Preface
+:p.This book tells you how to write documents in BookMaster markup and
+format them with BOOKIE on VM/370plus, and how bookie itself works. It
+is written for CMS users who know a text editor and the CMS file
+system. If you have written BookMaster or Waterloo SCRIPT/GML documents
+before, chapters 3 to 7 will be familiar and chapter 9 lists what is
+different.
+:p.The book is itself a BookMaster document. Its source is BOOKIE
+SCRIPT, and it was formatted by bookie.
+:dl tsize=14.
+:dthd.Chapter
+:ddhd.Contents
+:dt.1
+:dd.What BOOKIE is and what it produces.
+:dt.2
+:dd.A first document, the BOOKIE command, and printing.
+:dt.3 to 7
+:dd.The markup: document structure, paragraphs, lists, examples,
+figures, tables, references, symbols and control words.
+:dt.8
+:dd.How bookie works: the path from CMS to Debian and back, the
+translator, the vmplus style and the formatting passes.
+:dt.9
+:dd.Differences from IBM BookMaster.
+:dt.A, B
+:dd.Tag and symbol summaries.
+:edl.
+:body.
+:h1.Introduction
+:p.BookMaster was IBM's markup language and formatter for manuals. A
+BookMaster document is plain text with :hp1.tags:ehp1.: a colon, a
+name, optional attributes and a period. &colon.h1. starts a chapter,
+&colon.p. a paragraph, &colon.ul. a list. The author marks what each
+piece of text is; the formatter decides how it looks.
+:p.BookMaster is licensed and does not exist for VM/370.
+:hp2.bookie:ehp2. is the VM/370plus implementation of its markup.
+You write a BookMaster
+source file on CMS and get back:
+:ul.
+:li.a plain text document (fn DOCUMENT), for the terminal or a line
+printer;
+:li.PostScript (fn PS), for a PostScript printer, for PSPRINT, or for a
+PDF.
+:eul.
+:p.The default style, :hp2.vmplus:ehp2., gives the look of the
+VM/370plus manuals: A4 pages, a title page and edition notice in the
+IBM manner, a table of contents with page numbers, chapters headed
+:q.Chapter n.:eq. under a heavy rule, a running head and foot,
+examples in a grey box, ruled tables and numbered figures. The book
+you are reading shows that style. A second style, :hp2.ms:ehp2., gives
+the plain look of the troff ms macros.
+:p.bookie does its formatting in the Debian guest, with groff. CMS
+users do not see that: BOOKIE EXEC sends the document through the
+spool bridge and receives the result in their reader.
+:h1.Getting Started
+:h2.What you need
+:ul.
+:li.The Debian guest running (in MAINT: CP IPL LINUX), with the
+vmspoold daemon, which starts with it.
+:li.BOOKIE EXEC, on MAINT's 19D disk (and on the language disk).
+:li.For PostScript output, a CMS disk with room for it: a 15-page book
+is about 3,000 lines of 80 columns.
+:eul.
+:h2.A first document
+:p.Create HELLO SCRIPT with XEDIT:
+:xmp.
+:userdoc.
+:prolog.
+:title.My First Book
+:docnum.TEST-0001-0
+:eprolog.
+:frontm.
+:tipage.
+:toc.
+:body.
+:h1.Hello
+:p.This is a paragraph with a :hp2.bold:ehp2. word.
+:ul.
+:li.one item,
+:li.and another.
+:eul.
+&colon.euserdoc.
+:exmp.
+:figcap.A first BookMaster document
+:p.Then format it:
+:xmp.
+bookie hello
+BOOKIE: HELLO DOCUMENT A, 198 lines
+Ready;
+bookie hello (ps
+BOOKIE: HELLO PS A, nnn lines
+Ready;
+:exmp.
+:figcap.Formatting as text and as PostScript
+:p.The text comes back as HELLO DOCUMENT A. With the PS option the
+PostScript comes back as HELLO PS A, and a copy stays in the Debian
+guest in /var/spool/vmspool/out/:hp1.userid:ehp1./hello.ps.
+:h2.The BOOKIE command
+:xmp.
+BOOKIE fn [ft [fm]] [(PS]
+:exmp.
+:dl tsize=8.
+:dt.fn
+:dd.The file name of the source.
+:dt.ft
+:dd.Its file type; the default is SCRIPT.
+:dt.fm
+:dd.Its file mode; the default is *, the first disk that has it.
+:dt.PS
+:dd.Make PostScript (fn PS A) instead of text (fn DOCUMENT A).
+:edl.
+:p.Messages from the formatter (for example groff warnings) are shown
+on the terminal. The return code is 0 when the document was made, 28
+when the source was not found, and the service's return code when the
+formatting failed.
+:h2.Printing and PDF
+:p.PSPRINT prints a PostScript file:
+:xmp.
+PSPRINT fn [ft [fm]] [(BRIDGE [format]]
+:exmp.
+:ul.
+:li.Without BRIDGE the file goes to the virtual printer 00E without
+page headers. Hercules writes CP's printer to a file on the PC, and
+tools/psprint.py takes the PostScript out of it and prints it or, with
+--pdf, makes a PDF.
+:li.With BRIDGE the file goes to the Debian guest, where Ghostscript
+turns it into the printer's format (ps, pdf, ljet4, pxlmono or
+pxlcolor) and sends it to the printer named in
+/etc/vmspool.d/print.conf.
+:eul.
+:h2.Formatting on Linux
+:p.In the Debian guest, or on any machine with Python 3 and groff,
+bookie.py runs directly:
+:xmp.
+bookie.py x.script                       the troff, on stdout
+bookie.py --groff text x.script          formatted text
+bookie.py --groff ps -o f.ps x.script PostScript
+bookie.py --style ms ...                 the plain ms style
+bookie.py -I dir ...                     where .im files are found
+ps2pdf f.ps f.pdf                        a PDF
+:exmp.
+:figcap.bookie.py options
+:h1.Document Structure
+:h2.The parts of a book
+:p.A complete document has this shape:
+:xmp.
+:userdoc.               the document starts
+:prolog.                fields for the title page
+  ...
+:eprolog.
+:frontm.                front matter
+:tipage.                the title page
+:edition title='...'.   the edition notice ...
+:eedition.
+:toc.                   the table of contents
+:h1.Preface             front-matter headings
+:body.                  the chapters
+:h1.First Chapter
+  ...
+:appendix.              appendixes
+:h1.Tag Summary
+:backm.                 back matter
+&colon.euserdoc.              the document ends
+:exmp.
+:figcap.The parts of a document
+:p.Only &colon.body. and the text are needed. A memo can be a few
+headings and paragraphs; bookie then gives pages without a title page
+and contents.
+:h2.The prolog
+:p.The tags in the prolog collect the fields of the title page. Each
+takes the rest of its line:
+:fig.
+:table cols='9 22'.
+:thd.
+:row.
+:c.Tag
+:c.On the title page (vmplus style)
+:ethd.
+:row.
+:c.&colon.prodname.
+:c.The product name, large, at the top
+:row.
+:c.&colon.subtitle.
+:c.The line under the product name
+:row.
+:c.&colon.title.
+:c.The title of the book
+:row.
+:c.&colon.stitle.
+:c.The short title: the running head of every page
+:row.
+:c.&colon.version.
+:c.The release or version line (or &colon.date.)
+:row.
+:c.&colon.based.
+:c.A second, smaller line (or &colon.author.)
+:row.
+:c.&colon.docnum.
+:c.The publication number: on the title page and in every running
+foot
+:row.
+:c.&colon.filenum.
+:c.The file number, under the publication number
+:etable.
+:figcap.Prolog tags
+:efig.
+:p.&colon.tipage. prints the title page from these fields. Put it in
+the front matter, after &colon.eprolog. and &colon.frontm..
+:h2.Edition notice, preface and contents
+:p.&colon.edition title='...'. starts the edition notice on a page of
+its own, under the title you give; &colon.eedition. ends it. Its
+paragraphs are ordinary &colon.p. paragraphs.
+:p.Headings in the front matter (before &colon.body.) are front-matter
+headings: a new page, no chapter number, not in the contents.
+&colon.preface. and &colon.abstract. start such a section with that
+name.
+:p.&colon.toc. places the table of contents. It lists chapters and
+their first-level sections (&colon.h1. and &colon.h2.) with dotted
+leaders and page numbers.
+:h2.Headings
+:p.&colon.h0. to &colon.h6. are headings. The heading text is the
+rest of the line. In the body:
+:dl tsize=10.
+:dt.&colon.h1.
+:dd.A chapter: a new page, :q.Chapter n.:eq. and the title, a heavy
+rule. &colon.h0. is treated as &colon.h1..
+:dt.&colon.h2.
+:dd.A section, in 13-point Helvetica bold; in the contents.
+:dt.&colon.h3.
+:dd.A subsection, in 11-point Helvetica bold. &colon.h4. to &colon.h6.
+look the same.
+:edl.
+:p.A heading may carry an identifier, &colon.h2 id=setup., for
+references (chapter 7). A heading is never left alone at the foot of a
+page.
+:p.After &colon.appendix. the chapters are appendixes.
+:h1.Paragraphs and Highlighting
+:h2.Paragraphs
+:dl tsize=12.
+:dt.&colon.p.
+:dd.A paragraph. Text is filled and justified; line ends in the source
+do not matter.
+:dt.&colon.lp. &colon.pc.
+:dd.A list paragraph and a paragraph continuation; formatted like
+&colon.p..
+:dt.&colon.note.
+:dd.A paragraph that begins with a bold :q.Note&colon.:eq..
+:dt.&colon.attention.
+:dd.A paragraph that begins with a bold :q.Attention&colon.:eq..
+:edl.
+:note.This is what &colon.note. gives.
+:h2.Highlighting
+:p.Highlighting phrases are written inside a line and must be ended:
+:fig.
+:table cols='9 9 13'.
+:thd.
+:row.
+:c.Start
+:c.End
+:c.Result
+:ethd.
+:row.
+:c.&colon.hp0.
+:c.&colon.ehp0.
+:c.Roman (normal)
+:row.
+:c.&colon.hp1.
+:c.&colon.ehp1.
+:c.:hp1.Italic:ehp1.
+:row.
+:c.&colon.hp2.
+:c.&colon.ehp2.
+:c.:hp2.Bold:ehp2.
+:row.
+:c.&colon.hp3.
+:c.&colon.ehp3.
+:c.:hp3.Bold italic:ehp3.
+:row.
+:c.&colon.hp4. to &colon.hp9.
+:c.&colon.ehp4. to &colon.ehp9.
+:c.As 1 to 3 again
+:row.
+:c.&colon.q.
+:c.&colon.eq.
+:c.:q.Quoted:eq.
+:row.
+:c.&colon.cit.
+:c.&colon.ecit.
+:c.:cit.A citation:ecit. (italic)
+:row.
+:c.&colon.xph.
+:c.&colon.exph.
+:c.:xph.Example phrase:exph. (Courier)
+:etable.
+:figcap.Highlighting
+:efig.
+:p.&colon.fn. ... &colon.efn. is a footnote. In the vmplus style it is
+printed in parentheses where it stands; in the ms style it goes to the
+foot of the page.
+:h1.Lists
+:h2.Ordered, unordered and simple lists
+:p.&colon.ol. makes a numbered list, &colon.ul. a list with bullets,
+&colon.sl. a list without marks. Each item starts with &colon.li.; the
+list ends with &colon.eol., &colon.eul. or &colon.esl.. Lists nest: a
+list inside an item is indented, and a nested unordered list uses
+dashes.
+:xmp.
+:ol.
+:li.Log on to MAINT.
+:li.Start Linux:
+:ul.
+:li.from its disk: CP IPL LINUX, or
+:li.from the reader: LINUX.
+:eul.
+:li.Format the document.
+:eol.
+:exmp.
+:figcap.A nested list
+:p.gives:
+:ol.
+:li.Log on to MAINT.
+:li.Start Linux:
+:ul.
+:li.from its disk: CP IPL LINUX, or
+:li.from the reader: LINUX.
+:eul.
+:li.Format the document.
+:eol.
+:h2.Definition lists
+:p.&colon.dl. starts a definition list. tsize= sets the width of the
+term column, in characters (default 12). Each entry is a term,
+&colon.dt., and its description, &colon.dd.. &colon.dthd. and
+&colon.ddhd. give a heading row. &colon.edl. ends the list. A term
+longer than the column gets its description on the next line.
+:xmp.
+:dl tsize=8.
+:dthd.Term
+:ddhd.Meaning
+:dt.CP
+:dd.The Control Program.
+:dt.CMS
+:dd.The Conversational Monitor System.
+:edl.
+:exmp.
+:figcap.A definition list
+:p.A glossary list, &colon.gl. with &colon.gt. and &colon.gd. and
+&colon.egl., is formatted the same way.
+:h1.Examples, Figures and Tables
+:h2.Examples
+:p.&colon.xmp. ... &colon.exmp. is an example: a screen, a program, a
+command and its answer. Lines are printed as they are, in Courier, in
+a light-grey framed box, without filling. Tags inside an example are
+not interpreted, so you can show markup; symbols (chapter 7) are.
+&colon.lines. ... &colon.elines. keeps line ends too, in the body
+font, without the box: for addresses and verse.
+:attention.Control words are still recognized inside an example. A
+line that starts with a period and an asterisk is a comment and is
+dropped, as in BookMaster.
+:h2.Figures
+:p.&colon.fig. ... &colon.efig. is a figure: usually an example or a
+table, and a caption. &colon.figcap. is the caption: the rest of the
+line, printed as :q.Figure n.:eq. and the text. Figures are numbered
+through the book.
+:h2.Tables
+:p.A table is a set of rows of cells:
+:xmp.
+:table cols='6 20'.
+:thd.
+:row.
+:c.Command
+:c.What it does
+:ethd.
+:row.
+:c.BOOKIE
+:c.Formats a BookMaster document.
+:row.
+:c.PSPRINT
+:c.Prints PostScript.
+:etable.
+:exmp.
+:figcap.A table
+:p.cols= gives the relative widths of the columns; the table is as
+wide as the page. A cell is everything after &colon.c. up to the next
+&colon.c., &colon.row. or &colon.etable., over as many lines as you
+like, with highlighting. The rows between &colon.thd. and &colon.ethd.
+are the heading, in Helvetica bold; a table that runs over a page
+break repeats its heading on the next page. Every cell is ruled.
+:h1.References, Symbols and Control Words
+:h2.References
+:p.&colon.hdref refid=xxx. is replaced by the text of the heading that
+has id=xxx; &colon.figref. works the same way. The heading must come
+before the reference in the source (see chapter 9).
+:h2.Symbols
+:p.A symbol is an ampersand, a name and a period. It stands for a
+character that is hard to type or that would otherwise be markup.
+&amp.colon. gives a colon, so &amp.colon.p. shows the tag &colon.p.
+without starting a paragraph; &amp.amp. gives an ampersand. Appendix B
+lists them all.
+:p.&colon.nameit symbol=vm text='VM/370plus'. defines your own:
+afterwards &amp.vm. gives the text. A symbol that is not known is
+printed as written.
+:h2.Control words
+:p.Lines that start with a period and two letters are SCRIPT control
+words. bookie knows these:
+:dl tsize=10.
+:dt.&period.*
+:dd.A comment: the line is ignored.
+:dt.&period.sp [n]
+:dd.Space: n blank lines (default 1).
+:dt.&period.br
+:dd.Break: start a new line.
+:dt.&period.pa
+:dd.Page: start a new page.
+:dt.&period.ce [n]
+:dd.Center the next n lines (default 1).
+:dt.&period.im name
+:dd.Imbed: read the file name (on CMS: name with the same file type)
+in place of this line.
+:edl.
+:p.Other control words are ignored.
+:h1.How bookie Works
+:p.bookie is three pieces of code, about 1,300 lines together: the
+CMS front end, the translator and the style. groff does the
+typesetting.
+:fig.
+:xmp.
+CMS                                 Debian guest
+---                                 ------------
+BOOKIE EXEC
+  .im files imbedded
+  BOOKIE CARDS A
+  LXCALL BOOKIE TEXT|PS fn
+       -- punch: "bookie FROM user" -->  vmspoold
+                                         /etc/vmspool.d/bookie
+                                         bookie.py --groff text|ps
+                                           BookMaster -> troff
+                                           groff -mvmplus -t
+                                           (again, until the
+                                            page numbers stand)
+       <-- punch: VMSPOOL REPLY ------   text, or messages,
+                                         ::PS and PostScript
+  LXCALL RESULT A
+fn DOCUMENT A  or  fn PS A
+:exmp.
+:figcap.The path of a document
+:efig.
+:h2.The CMS side: BOOKIE EXEC
+:p.BOOKIE EXEC (REXX) reads the source with EXECIO. A line that starts
+with &period.im is replaced by the named file (same file type, any
+disk), one level deep. The result is written to BOOKIE CARDS A.
+:p.It then calls LXCALL, the general client of the spool bridge, with
+the service bookie and the argument TEXT, or PS and the file name.
+LXCALL's own options are passed in LXCALL OPTIONS A (FILE BOOKIE CARDS
+A NOTYPE) rather than on the command line, because of an old
+limitation with long argument lists (I-277).
+:p.LXCALL punches the request to the Debian guest, waits for the reply
+in the reader and keeps it as LXCALL RESULT A. BOOKIE EXEC copies the
+answer into fn DOCUMENT A, or, for PostScript, shows the messages up
+to the line ::PS and writes what follows to fn PS A.
+:h2.The bridge: vmspoold
+:p.vmspoold is a C daemon in the Debian guest. It reads the guest's
+virtual reader through the vmur driver. A punch file whose first card
+is :q.service FROM userid [arguments]:eq. is a request: vmspoold runs
+/etc/vmspool.d/service with the arguments, feeds the other cards to
+its standard input, and punches the output back to the user as
+VMSPOOL REPLY, with VMSPOOL RC n as the first card. A handler that
+runs longer than 120 seconds is stopped.
+:p.The bookie handler is a short shell script. For TEXT it runs
+bookie.py --groff text. For PS it checks the name, writes the
+PostScript to /var/spool/vmspool/out/user/name.ps, reports its size
+and page count, and then sends ::PS and the PostScript.
+:h2.The translator: bookie.py
+:p.bookie.py is a Python 3 program. It reads the source line by line
+(Latin-1; a CMS file arrives as EBCDIC and is converted by the
+bridge):
+:ol.
+:li.Control words are handled first; &period.im reads the imbedded
+file, up to 8 levels.
+:li.In an example, the line is copied as it is, with symbols replaced.
+:li.Otherwise the line is scanned for tags. A tag is a colon, a name,
+attributes (name=value, quoted or not) and a period. Names that bookie
+does not know are left in the text.
+:li.:hp2.Block tags:ehp2. (headings, paragraphs, lists, examples,
+tables) end the text so far and become troff requests.
+:hp2.Inline tags:ehp2. (highlighting, quotes, references) become
+troff escapes inside the text.
+:li.Text is passed on with troff's special characters escaped; a text
+line that would start with a period is protected.
+:eol.
+:p.The translator keeps a little state: the prolog fields being
+collected, the stack of open lists, the current table (rows and cells
+until &colon.etable.), the heading ids for references, the names of
+&colon.nameit. symbols.
+:p.Two classes produce the output. Bookie, the original, emits the ms
+macros (.NH, .PP, .IP, .DS, .TS) of groff's ms package. Vmplus, a
+subclass, emits only the BK- macros of vmplus.tmac: .BK-TITLE,
+.BK-EDITION, .BK-CONTENTS, .BK-H, .BK-P, .BK-LIST, .BK-LI, .BK-DT,
+.BK-XMP, .BK-FIGCAP, .BK-TS and so on. Tables become tbl input in
+both: allbox, one format line per row, every cell in a T{ T} text
+block, and in vmplus a .TS H heading that repeats on each page.
+:h2.The style: vmplus.tmac
+:p.vmplus.tmac is a groff macro package of about 500 lines. It defines
+the page (A4, 2 cm margins, 17 cm lines, Times 10.5 on 13 points),
+the running head and foot (traps at the top and at 27.4 cm), the
+title page and edition notice, the contents page, chapter and section
+headings, paragraphs, notes, the four kinds of list, the example box,
+captions and the table hooks. The same macros work under nroff, so the
+text output has the same structure with character spacing.
+:p.Headings report themselves to bookie: each one writes a line
+:q.BKTOC level page text:eq. to standard error with groff's .tm
+request.
+:h2.Page numbers in the contents
+:p.The contents come before the chapters, but their page numbers are
+known only after the chapters are formatted. bookie.py --groff
+therefore formats the document, collects the BKTOC lines, and formats
+it again with those entries in the contents. It repeats this until the
+list stops changing, at most four times; usually two passes are
+enough.
+:h2.Where the files are
+:fig.
+:table cols='12 20'.
+:thd.
+:row.
+:c.File
+:c.What it is
+:ethd.
+:row.
+:c.languages/bookie/bookie.py
+:c.The translator and the formatting driver
+:row.
+:c.languages/bookie/vmplus.tmac
+:c.The vmplus style
+:row.
+:c.languages/bookie/SAMPLE.SCRIPT
+:c.A sample document (on the language disk as SAMPLE SCRIPT)
+:row.
+:c.linux390/vmspool/cms/BOOKIE.EXEC
+:c.The CMS command
+:row.
+:c.linux390/vmspool/handlers/bookie
+:c.The spool bridge service
+:row.
+:c./usr/local/lib/bookie
+:c.bookie.py and vmplus.tmac in the Debian guest
+:row.
+:c.manual/mkbookie.js
+:c.Makes GUIDE SCRIPT, the VM/370plus Guide in BookMaster markup,
+from the same content as the Word edition
+:row.
+:c.manual/bookmaster
+:c.This book and the Status book, as SCRIPT sources
+:etable.
+:figcap.bookie's files (paths in the project repository)
+:efig.
+:h1.Differences from BookMaster
+:p.bookie covers the markup that manuals, memos and README-style books
+use. These parts of BookMaster are different or missing:
+:ul.
+:li.:hp2.Not done:ehp2.: the index (&colon.i1. and its relatives),
+lists of figures and tables, revision codes, profiles and document
+options, &colon.artwork., and two-column layouts. Their tags are
+either ignored or, if bookie does not know them, left in the text.
+:li.:hp2.References:ehp2.: &colon.hdref. and &colon.figref. resolve
+only to headings earlier in the source, and give the heading text,
+not a page number. A forward reference prints its refid.
+:li.:hp2.Highlighting:ehp2.: levels 4 to 9 repeat 1 to 3.
+:li.:hp2.Footnotes:ehp2.: in parentheses in the vmplus style.
+:li.:hp2.Headings:ehp2.: &colon.h4. to &colon.h6. look like
+&colon.h3.; the contents list levels 1 and 2.
+:li.:hp2.Imbeds on CMS:ehp2.: BOOKIE EXEC imbeds one level, with the
+same file type. bookie.py on Linux goes 8 levels deep.
+:li.:hp2.Control words:ehp2.: only the six in chapter 7.
+:li.:hp2.Style ms:ehp2.: the contents come at the end, and there is no
+running head.
+:eul.
+:p.Two limits come from CMS and the bridge, not from bookie: source
+lines should stay within 72 columns (CMS files of 80), and the
+formatting must finish within the bridge's 120 seconds. A book of 50
+pages is well within that.
+:appendix.
+:h1.Tag Summary
+:fig.
+:table cols='12 6 18'.
+:thd.
+:row.
+:c.Tag
+:c.End tag
+:c.Meaning
+:ethd.
+:row.
+:c.&colon.userdoc.
+:c.&colon.euserdoc.
+:c.The document
+:row.
+:c.&colon.prolog.
+:c.&colon.eprolog.
+:c.Title-page fields: &colon.prodname. &colon.subtitle. &colon.title.
+&colon.stitle. &colon.version. &colon.based. &colon.date.
+&colon.author. &colon.docnum. &colon.filenum.
+:row.
+:c.&colon.frontm.
+:c.
+:c.Front matter
+:row.
+:c.&colon.tipage.
+:c.
+:c.The title page
+:row.
+:c.&colon.edition title='t'.
+:c.&colon.eedition.
+:c.The edition notice
+:row.
+:c.&colon.toc.
+:c.
+:c.The table of contents
+:row.
+:c.&colon.preface. &colon.abstract.
+:c.&colon.epreface. &colon.eabstract.
+:c.A front-matter section
+:row.
+:c.&colon.body.
+:c.
+:c.The chapters begin
+:row.
+:c.&colon.appendix.
+:c.
+:c.The appendixes begin
+:row.
+:c.&colon.backm.
+:c.
+:c.Back matter
+:row.
+:c.&colon.h0. to &colon.h6. [id=]
+:c.
+:c.Headings
+:row.
+:c.&colon.p. &colon.lp. &colon.pc.
+:c.
+:c.Paragraphs
+:row.
+:c.&colon.note. &colon.attention.
+:c.
+:c.Note and attention paragraphs
+:row.
+:c.&colon.hp0. to &colon.hp9.
+:c.&colon.ehp0. to &colon.ehp9.
+:c.Highlighted phrases
+:row.
+:c.&colon.q. &colon.cit. &colon.xph.
+:c.&colon.eq. &colon.ecit. &colon.exph.
+:c.Quotation, citation, example phrase
+:row.
+:c.&colon.fn.
+:c.&colon.efn.
+:c.Footnote
+:row.
+:c.&colon.ol. &colon.ul. &colon.sl.
+:c.&colon.eol. &colon.eul. &colon.esl.
+:c.Lists; &colon.li. is an item
+:row.
+:c.&colon.dl. [tsize=]
+:c.&colon.edl.
+:c.Definition list: &colon.dthd. &colon.ddhd. &colon.dt.
+&colon.dd.
+:row.
+:c.&colon.gl.
+:c.&colon.egl.
+:c.Glossary list: &colon.gt. &colon.gd.
+:row.
+:c.&colon.xmp.
+:c.&colon.exmp.
+:c.Example
+:row.
+:c.&colon.lines.
+:c.&colon.elines.
+:c.Lines kept as written
+:row.
+:c.&colon.fig.
+:c.&colon.efig.
+:c.Figure; &colon.figcap. is its caption
+:row.
+:c.&colon.table cols='...'.
+:c.&colon.etable.
+:c.Table: &colon.thd. &colon.ethd. &colon.row. &colon.c.
+:row.
+:c.&colon.hdref refid=. &colon.figref refid=.
+:c.
+:c.References
+:row.
+:c.&colon.nameit symbol= text=.
+:c.
+:c.Defines a symbol
+:etable.
+:figcap.BookMaster tags known to bookie
+:efig.
+:h1.Symbol Summary
+:fig.
+:table cols='8 4 8 4 8 4'.
+:thd.
+:row.
+:c.Symbol
+:c.Gives
+:c.Symbol
+:c.Gives
+:c.Symbol
+:c.Gives
+:ethd.
+:row.
+:c.&amp.colon.
+:c.&colon.
+:c.&amp.semi.
+:c.&semi.
+:c.&amp.period.
+:c.&period.
+:row.
+:c.&amp.amp.
+:c.&amp.
+:c.&amp.lt. &amp.gt.
+:c.&lt. &gt.
+:c.&amp.quot. &amp.apos.
+:c.&quot. &apos.
+:row.
+:c.&amp.bullet.
+:c.&bullet.
+:c.&amp.dash.
+:c.&dash.
+:c.&amp.mdash.
+:c.&mdash.
+:row.
+:c.&amp.copy.
+:c.&copy.
+:c.&amp.tm.
+:c.&tm.
+:c.&amp.reg.
+:c.&reg.
+:row.
+:c.&amp.slash.
+:c.&slash.
+:c.&amp.bslash.
+:c.&bslash.
+:c.&amp.vbar.
+:c.&vbar.
+:row.
+:c.&amp.lbrace. &amp.rbrace.
+:c.&lbrace. &rbrace.
+:c.&amp.lbrk. &amp.rbrk.
+:c.&lbrk. &rbrk.
+:c.&amp.caret. &amp.tilde.
+:c.&caret. &tilde.
+:row.
+:c.&amp.odq. &amp.cdq.
+:c.&odq. &cdq.
+:c.&amp.osq. &amp.csq.
+:c.&osq. &csq.
+:c.&amp.degree.
+:c.&degree.
+:row.
+:c.&amp.plus. &amp.minus.
+:c.&plus. &minus.
+:c.&amp.times. &amp.divide.
+:c.&times. &divide.
+:c.&amp.eq. &amp.ne.
+:c.&eq. &ne.
+:row.
+:c.&amp.le. &amp.ge.
+:c.&le. &ge.
+:c.&amp.mu.
+:c.&mu.
+:c.&amp.sterling. &amp.yen.
+:c.&sterling. &yen.
+:row.
+:c.&amp.cent. &amp.dollar.
+:c.&cent. &dollar.
+:c.&amp.pound. &amp.percent.
+:c.&pound. &percent.
+:c.&amp.atsign. &amp.us.
+:c.&atsign. &us.
+:row.
+:c.&amp.gml.
+:c.&gml.
+:c.&amp.rbl.
+:c.(blank)
+:c.&amp.endash. &amp.emdash.
+:c.&endash. &emdash.
+:etable.
+:figcap.Symbols
+:efig.
+:p.&amp.rbl. is a required blank: a space at which a line is never
+broken.
+:euserdoc.

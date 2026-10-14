@@ -1,0 +1,477 @@
+.* STATUS SCRIPT -- VM/370plus: Status of the System (VMP-0003)
+.* BookMaster markup; format with  BOOKIE STATUS (PS  on CMS, or
+.*   bookie.py --groff ps -o status.ps STATUS.SCRIPT
+:userdoc.
+:prolog.
+:prodname.VM/370plus
+:subtitle.Virtual Machine Facility/370, ESA/390 Edition
+:title.Status of the System
+:stitle.VM/370plus Status of the System
+:version.Release 1 &bullet. Kit Build 16, 14 October 2026
+:based.based on VM/370 Community Edition V1 R1.2
+:docnum.VMP-0003-0
+:filenum.S370-34
+:eprolog.
+:frontm.
+:tipage.
+:edition title='First Edition (October 2026)'.
+:p.This edition describes VM/370plus as it stands on 14 October 2026:
+kit build 16 and the work in progress after it. It replaces no other
+publication. The VM/370plus Guide (VMP-0001) remains the manual for
+installing and using the system; this book says what is finished, what
+is being worked on, what is known to be wrong and what comes next.
+:p.VM/370plus is a hobbyist project. It is not a product of, and this
+book is not a publication of, International Business Machines
+Corporation. IBM, System/370, ESA/390, z/Architecture and VM/370 are
+names of IBM products and architectures, used here only to identify
+the systems this software runs on and descends from.
+:p.The milestone plan (docs/VM370PLUS-Milestones.xlsx), the issue
+register (docs/13-ISSUES.md) and the test runs in the project
+repository are the sources of every statement in this book.
+:eedition.
+:toc.
+:h1.About This Book
+:p.This book is a snapshot. It is written for people who follow the
+project, test its kits or want to decide what to try next. It assumes
+you know VM/370: CP, CMS, the user directory and the Hercules
+emulator. It does not repeat the installation and usage material of
+the VM/370plus Guide.
+:p.The chapters follow the areas of the milestone plan:
+:ul.
+:li.:hp2.Summary&colon.:ehp2. the whole system on one page.
+:li.:hp2.The Control Program&colon.:ehp2. the ESA/390 conversion of CP,
+real storage, and the virtual machines CP offers.
+:li.:hp2.CMS&colon.:ehp2. the EC-mode CMS, storage above 16 MB and the
+large-minidisk file system.
+:li.:hp2.Linux Guests&colon.:ehp2. Linux/390 and Debian under CP.
+:li.:hp2.Languages and Tools&colon.:ehp2. compilers, interpreters and
+utilities on CMS and in the Debian guest.
+:li.:hp2.Networking and Services&colon.:ehp2. the spool bridge, sockets,
+messaging, and the guest LAN now being built.
+:li.:hp2.Documents and Printing&colon.:ehp2. troff, BookMaster, LaTeX,
+Ghostscript and printers.
+:li.:hp2.The Kit&colon.:ehp2. what build 16 contains.
+:li.:hp2.Known Problems&colon.:ehp2. the open issues that matter.
+:li.:hp2.Plan&colon.:ehp2. what comes next.
+:eul.
+:p.Status words are used in one sense only. :hp2.Done:ehp2. means the
+function was tested on a running system and, unless stated, shipped in
+a kit. :hp2.In progress:ehp2. means work has started and partial
+results exist. :hp2.Planned:ehp2. means agreed but not started.
+:body.
+:h1.Summary
+:p.VM/370plus is the VM/370 Community Edition V1 R1.2 with its Control
+Program converted from System/370 to ESA/390. CP runs in 31-bit
+addressing mode under Hercules with ARCHMODE ESA/390. It still runs
+every S/370 virtual machine that CE runs, and it adds two kinds of
+virtual machine that VM/370 never had: 31-bit CMS machines larger than
+16 MB, and ESA/390 virtual machines that run Linux/390.
+:p.On 14 October 2026 the position is:
+:fig.
+:table cols='6 20 7'.
+:thd.
+:row.
+:c.Milestone
+:c.Content
+:c.Status
+:ethd.
+:row.
+:c.M0-M3
+:c.Assembler, CP IPL in ESA/390, DAT on, CP in AMODE 31, S/370
+guests, DASD IPL of CP, named systems
+:c.Done
+:row.
+:c.M4
+:c.Isolation and 4 KB storage keys; real storage up to 2 GB; guest
+pages in frames above 16 MB; two Debians at once
+:c.Done
+:row.
+:c.M5
+:c.CMS built from source, EC-mode CMS (IPL 290), storage above the
+line, 31-bit C toolchain
+:c.Done
+:row.
+:c.M6
+:c.31-bit CMS file system: EDF disks with 4 KB blocks, full-volume
+minidisks, files above 65,535 records
+:c.Done
+:row.
+:c.M7
+:c.ESA/390 virtual machines: virtual channel subsystem, guest DAT,
+Linux 4.0 31-bit, Debian 7.11, IPL LINUX
+:c.Done
+:row.
+:c.M8
+:c.cREXX: cross-built for CMS (done); built natively on CMS (RXBVM82
+open)
+:c.In progress
+:row.
+:c.M9
+:c.Applications and services: 30 items done, the network pack (9.12)
+in progress, 9 items planned
+:c.In progress
+:row.
+:c.M10
+:c.z/Architecture (64-bit)
+:c.Planned
+:row.
+:c.M11-M13
+:c.Multiprocessing, more languages, DOS/VS and MVS guests
+:c.Planned
+:etable.
+:figcap.Milestones at a glance
+:efig.
+:p.The current kit is :hp2.build 16:ehp2. of 14 October 2026, in 18
+parts. It goes over a fresh VM/370 CE V1 R1.2 and was verified on a
+fresh installation (run kt30). It adds Java and NetRexx on CMS and in
+the Debian guest, and fixes two CP problems with large virtual
+machines (I-289, I-290).
+:p.The work in progress is the CP guest LAN (milestone 9.12b): a
+virtual LAN adapter that CP simulates for each guest, so that Linux
+guests can talk to each other without real devices. One guest already
+runs on it; the first exchange between two guests found a CP failure
+(I-292) that is being worked on.
+:h1.The Control Program
+:h2.The conversion (M0-M3)
+:p.CP is assembled from the CE source with update decks (the XA00nnDK
+series) by CE's own assembler, extended for the ESA/390 instructions.
+The build runs on the PC under Hercules, stages the object decks, and
+writes a nucleus to VM50-1. Every module that touched an S/370 facility
+was converted:
+:ul.
+:li.I/O through the channel subsystem: STSCH, MSCH, SSCH, TSCH, HSCH
+and CSCH replace SIO, TIO and HIO. CP's real I/O supervisor (DMKIOS)
+was rewritten around subchannels.
+:li.Dynamic address translation with ESA/390 segment and page tables.
+CP runs with DAT on, in AMODE 31.
+:li.ESA/390 PSWs, control registers and interruption codes; the
+storage key instructions ISKE, SSKE and IVSK.
+:li.IPL of CP from DASD (DMKSAV, DMKCKP, DMKCPI), checkpoint and warm
+start.
+:eul.
+:p.S/370 virtual machines run as before: CMS, the CE service machines
+and S/370 guests see the machine VM/370 always showed them.
+:h2.Real storage (M4)
+:p.CP probes real storage in AMODE 31 at IPL and builds its frame table
+from the real size. Real frames up to 128 MB hold guest pages; storage
+above them, up to 2 GB, is CP's paging store, reached with MVCL. CP's
+own nucleus and free storage stay below 16 MB. The paging I/O, the
+channel program translation and the diagnose interfaces use IDAW lists
+for frames above 16 MB.
+:p.Build 16 fixed the last known limit here (I-290): page slot numbers
+are halfwords that CP loads as signed, so the paging store now ends at
+32,767 slots and frames end at 128 MB. A user that pages more than 128
+MB no longer stops CP with PGS001 or PTR018.
+:h2.Virtual machines
+:p.CP offers three kinds of virtual machine:
+:dl tsize=14.
+:dt.S/370
+:dd.The VM/370 virtual machine: BC or EC mode, 24-bit, up to 16 MB.
+:dt.EC mode, 31-bit
+:dd.A System/370 EC-mode machine with 31-bit addressing and storage up
+to 256 MB (DEFINE STORAGE; the directory sets each user's maximum).
+The EC-mode CMS runs here.
+:dt.ESA/390
+:dd.A machine with the ESA/390 architecture: channel subsystem
+instructions, ESA/390 DAT, SIGP, the timers and DIAGNOSE codes Linux
+uses. SET ESA ON takes effect at the next device IPL. Linux/390 runs
+here.
+:edl.
+:p.For ESA/390 machines CP simulates the channel subsystem (DMKVCS),
+including channel programs of any length, suspend and resume, and
+format-1 CCWs above 16 MB. It shadows the guest's segment and page
+tables (DMKVAX). Several ESA/390 users can run at the same time; their
+work fields are kept per user.
+:h2.Recent CP changes
+:ul.
+:li.I-288 (build 15): a Debian guest keeps running when its terminal
+goes away; it is disconnected, as under z/VM.
+:li.I-289 (build 16): programs loaded above 16 MB by the XL loader get
+their storage and file names right.
+:li.I-290 (build 16): frames and paging store sized so that slot
+numbers never go negative.
+:li.Guest LAN (not yet in a kit): CP simulates a 3088 model 60 LCS
+device for ESA/390 users (CP DEFINE LCS); see Chapter 6.
+:eul.
+:h1.CMS
+:h2.Two CMS systems
+:p.The kit has two CMS systems, both built from source by the project
+pipeline:
+:dl tsize=14.
+:dt.IPL CMS
+:dd.CE's CMS, unchanged in function: S/370 BC mode, 24-bit, the
+classic 800-byte minidisk format.
+:dt.IPL 290
+:dd.The EC-mode CMS. Programs may run in AMODE 31 and get storage
+above 16 MB (HIGHSTOR, CMSSTOR). It reads and writes both the classic
+and the EDF disk formats.
+:edl.
+:h2.Large minidisks (M6)
+:p.Under IPL 290, FORMAT with BLKSIZE 4096 writes an EDF disk: a label,
+a directory and an allocation map in 4 KB blocks. A full 3380 (885
+cylinders, 518 MB) is one minidisk. A file may have any number of
+records; 1,400,000 records in one 112 MB file were written and checked.
+ACCESS, LISTFILE, STATE, TYPE, COPYFILE, ERASE, RENAME, DISK DUMP and
+LOAD, MOVEFILE and COMPARE work on both formats.
+:h2.Tools added to CMS
+:ul.
+:li.TDISK: a temporary disk defined, formatted and accessed in one
+command.
+:li.SET/QUERY MACHINE, FULIST, GLOBALV, the CP and CMS command tables.
+:li.TELL, LXCALL, PHONE, MQTT, RXPIP, TROFF, BOOKIE, LATEX and PSPRINT
+on MAINT 19D, so they work under the usual IPL CMS.
+:li.The language disk VMLANG (MAINT 19F, LANG EXEC) with every CMS
+language of the project.
+:eul.
+:h1.Linux Guests
+:p.Linux 4.0, built for 31-bit ESA/390 with GCC 13, runs in an ESA/390
+virtual machine. Debian 7.11 (wheezy, s390) is installed on a 3390-9
+disk (LNX190, 6.8 GB, 5.8 GB free).
+:ul.
+:li.MAINT starts Debian with CP IPL LINUX from its disk (vmzipl writes
+the IPL records), or with the LINUX EXEC from the reader. Other users
+get their own copy of the disk.
+:li.Each user's IP address follows his CTC pair: 0600/0601 is
+10.1.1.2, 0602/0603 is 10.1.2.2. SSH works over the CTC link.
+:li.Linux and CMS users run side by side; two Debians run at once
+(guest pages in frames above 16 MB).
+:li.Debian has PostgreSQL 16, mosquitto, Asterisk 1.8, groff, TeX
+Live, Ghostscript, Java and NetRexx, and the vmspool daemon that
+serves CMS through the spool bridge.
+:li.Give Linux enough storage: 64 MB for ordinary work, 192 MB for
+Java. MAINT may define up to 256 MB.
+:eul.
+:note.Two Debians at once work but are slow. The guest LAN work (9.12b)
+uses a small ramdisk Linux as the second guest for its tests.
+:h1.Languages and Tools
+:p.Programs on CMS are built in three ways: natively with CE's
+compilers, cross-built on the PC with GCC 13 (-m31) against newlib and
+the project's CMS runtime (cmsrt), or natively with the GCC 13 compiler
+that itself runs on CMS. Large programs are loaded above 16 MB by the
+XL loader.
+:fig.
+:table cols='8 15 10'.
+:thd.
+:row.
+:c.Language
+:c.What runs
+:c.Where
+:ethd.
+:row.
+:c.REXX
+:c.cREXX (RXC, RXAS, RXBVM); ooRexx 5 planned (9.9)
+:c.CMS; Debian
+:row.
+:c.C, C++
+:c.GCC 13.3 cc1 and cc1plus, binutils 2.42, on CMS
+:c.CMS; Debian (gcc 4.6.3)
+:row.
+:c.Java
+:c.JamVM 2.0, GNU Classpath 0.99, Eclipse ecj 3.5.2 (Java 5 source
+level)
+:c.CMS; Debian
+:row.
+:c.NetRexx
+:c.NetRexx 3.05
+:c.CMS; Debian
+:row.
+:c.COBOL
+:c.GnuCOBOL 3.1.2; mikebeer/cobol (COBOL-85)
+:c.CMS; Debian
+:row.
+:c.PL/I
+:c.mikebeer/pli (Enterprise PL/I subset to C89)
+:c.CMS; Debian
+:row.
+:c.Pascal
+:c.New Stanford Pascal 2026.10
+:c.CMS
+:row.
+:c.Python
+:c.mikebeer/python (C89, with NumPy, pandas and SciPy built in)
+:c.CMS
+:row.
+:c.APL
+:c.APL interpreter in C
+:c.CMS; Debian
+:row.
+:c.xBase
+:c.mikebeer/xbase (cREXX and C89 versions)
+:c.CMS; Debian
+:row.
+:c.SQL
+:c.SQLite 3.46.1 and the SQLSERV service machine; PostgreSQL 16
+:c.CMS; Debian
+:row.
+:c.CP/M
+:c.CP/M 2.2 on the RunCPM Z80 emulator
+:c.CMS; Debian
+:etable.
+:figcap.Languages
+:efig.
+:p.Utilities: Info-ZIP zip 3.0 and unzip 6.0, gzip, TERSE/UNTERSE
+(PACK and SPACK), MQ and MQTT clients, the CHATBOT service machine.
+:p.Java on CMS needs IPL 290 and 128 MB of storage. Its threads are
+green threads inside the one CMS task, and sockets are not available
+to Java programs on CMS.
+:h1.Networking and Services
+:h2.What works
+:ul.
+:li.:hp2.CTC links:ehp2. between each Linux guest and the PC
+(Hercules CTCI), with per-user addresses (9.12a).
+:li.:hp2.The spool bridge:ehp2. (9.25): CMS users call Linux services
+through reader and punch. The vmspoold daemon in Debian runs the
+services; LXCALL is the general client on CMS.
+:li.:hp2.Sockets for CMS:ehp2. (9.5, 9.13d): NICOF, with the CMSFTPD
+FTP server, NHFS file transfer and HTTPD, under IPL CMS and IPL 290.
+:li.:hp2.Messaging:ehp2. (9.7, 9.14, 9.32): MQ queues on RabbitMQ, MQTT
+on mosquitto, TELL between CMS users, Linux users and users on the
+internet.
+:eul.
+:h2.The guest LAN (9.12b, in progress)
+:p.The target is one CP-simulated LAN segment for all guests, like the
+z/VM guest LAN. Each Linux guest defines two virtual devices with CP
+DEFINE LCS (a read and a write subchannel of a 3088 model 60) and
+Linux's lcs driver drives them as eth0. CP (module DMKVLN) reads the
+guest's own channel programs, so the suspend, resume and PCI flags
+that Linux uses work without translation; it answers the LCS control
+commands and switches Ethernet frames between the members by MAC
+address.
+:p.Steps:
+:ol.
+:li.Step A, CP DEFINE LCS and SENSE ID as a 3088 model 60: done on 14
+October; Linux binds its lcs driver to the pair. (A dedicated Hercules
+LCS was tried first and cannot run under CP's channel program
+translation, I-291; that is why the LAN is simulated.)
+:li.Step B, one guest on the LAN: done on 14 October. Debian with
+kernel #11 brings up eth0 through CP's LCS: STARTUP, STARTLAN and
+LANSTAT are answered, the MAC address is 02 followed by the VMBLOK
+and device, and frames are sent.
+:li.Step C, two guests ping each other: in progress. The second guest
+(CMSUSER, a ramdisk Linux booted from the reader) joins the LAN; the
+first frame between the two guests stops CP (I-292).
+:li.Step D, cleanup at DETACH and LOGOFF, halt and clear, recovery:
+planned.
+:eol.
+:p.After the LAN come the BORDER firewall service machine (9.12c), the
+only link to the outside with NAT and port forwards, and DHCP and DNS
+for the inside segment (9.12d).
+:h1.Documents and Printing
+:p.CMS users format documents in the Debian guest through the spool
+bridge:
+:dl tsize=12.
+:dt.TROFF
+:dd.groff with the ms, me, mm and mom macros: text or PostScript.
+:dt.BOOKIE
+:dd.BookMaster markup, formatted by bookie, the project's own
+BookMaster-compatible formatter, in the style of the VM/370plus Guide.
+This book is formatted by it.
+:dt.LATEX
+:dd.TeX Live 2023: latex, pdflatex, dvips.
+:dt.PSPRINT
+:dd.PostScript to a printer: by the spool (printer 00E to a file on the
+PC) or through Ghostscript in Debian.
+:edl.
+:p.Ghostscript 10.02 in Debian converts PostScript to PDF and to
+printer formats. The VM/370plus Guide is produced both as a Word file
+on the PC and as GUIDE SCRIPT for BOOKIE on the system itself.
+:h1.The Kit
+:p.Kit build 16 (14 October 2026) is an overlay for a fresh VM/370 CE
+V1 R1.2. Unzip CE, unzip all 18 parts over it, join the Debian disk
+(JOINDEB) and the language disk (JOINLANG), and start CE as usual. The
+system warm-starts by itself.
+:fig.
+:table cols='6 25'.
+:thd.
+:row.
+:c.Parts
+:c.Content
+:ethd.
+:row.
+:c.1
+:c.vm370ce.conf (ARCHMODE ESA/390), system shadows, tools, README
+:row.
+:c.2
+:c.VM50-4 with its paging allocation record fixed
+:row.
+:c.3
+:c.The CMSUSER volume's shadow
+:row.
+:c.4
+:c.Linux files, the Guide, the VM50-2 shadow (MAINT 19D)
+:row.
+:c.5
+:c.The VM50-3 shadow
+:row.
+:c.6-15
+:c.The Debian disk in pieces (join with JOINDEB)
+:row.
+:c.16-18
+:c.The language disk in pieces (join with JOINLANG)
+:etable.
+:figcap.Parts of kit build 16
+:efig.
+:p.What each build added is listed in README-VM370PLUS.TXT in part 1.
+Builds 14 to 16 added PostgreSQL 16, MQ for CMS, the Debian terminal
+fix, Java and NetRexx, and the CP storage fixes.
+:h1.Known Problems
+:p.The issue register has every problem found since the conversion
+began. These are the open ones that a user of build 16 can meet, or
+that block the next steps:
+:fig.
+:table cols='5 28'.
+:thd.
+:row.
+:c.Issue
+:c.Description
+:ethd.
+:row.
+:c.I-292
+:c.Guest LAN: CP fails when two members exchange frames; after the
+automatic re-IPL CP loops on the busy 0009 console. Not in a kit.
+:row.
+:c.I-291
+:c.A dedicated LCS device cannot run under CP (suspend and resume in
+translated channel programs). Superseded by the guest LAN.
+:row.
+:c.I-287
+:c.Two Linux guests coupled by virtual CTCAs: CP stops dispatching.
+Linux-to-Linux virtual CTCAs do not connect yet.
+:row.
+:c.I-284
+:c.Once, CP's IPL ended in Hercules machine checks (host signal);
+not reproduced.
+:row.
+:c.I-279
+:c.Once, a CP PRG005 system failure while a 2 MB user ran out of
+storage and Debian was busy; not reproduced.
+:row.
+:c.I-253
+:c.CP SPOOL PUNCH TO SYSTEM answers INVALID OPTION (cosmetic).
+:row.
+:c.I-251
+:c.CPWATCH does not run (worked around; milestone 4c).
+:etable.
+:figcap.Open issues
+:efig.
+:p.Two restrictions are by design: the console line of a Linux user
+must be re-enabled from OPERATOR after a dropped connection (VARY
+ONLINE and ENABLE), and CMS under IPL CMS keeps the 16 MB and 800-byte
+block limits of VM/370.
+:h1.Plan
+:p.The order of the next work:
+:ol.
+:li.Finish the guest LAN: fix I-292, ping between two guests, cleanup
+at DETACH and LOGOFF (9.12b); then the BORDER firewall (9.12c) and
+DHCP/DNS (9.12d). A kit follows, with the Guide updated.
+:li.cREXX natively on CMS: RXBVM82 (8.2).
+:li.CPWATCH (4c), ooRexx 5 in Debian (9.9), the public VM/370 tools
+(9.13), mail (9.18), a tiny LLM on CMS (9.17) and an AI gateway
+service machine (9.10).
+:li.z/Architecture: CP in 64-bit mode, with a migration guide (M10).
+:li.Multiprocessing, more languages, VoIP, IoT, containers (M11).
+:li.DOS/VS Release 34 and MVS 3.8j (TK5) as guests (M12, M13).
+:eol.
+:p.The milestone sheet in the repository is kept current after every
+unit of work; this book is a picture of one day.
+:euserdoc.

@@ -56,3 +56,14 @@ document through the spool bridge (9.25, the service `bookie`).
 - `BOOKIE SAMPLE` gives 198 lines of text.
 - `BOOKIE SAMPLE (PS` gives 2 pages of PostScript.
 - `PSPRINT SAMPLE` then `tools/psprint.py --pdf` gives a PDF on the PC.
+
+## Manuals in BookMaster (14 October)
+
+`manual/bookmaster/STATUS.SCRIPT` (VMP-0003, *Status of the System*) and
+`manual/bookmaster/BOOKIE.SCRIPT` (VMP-0004, *BOOKIE User's Guide and
+Reference*, including how bookie works) are formatted by bookie; both go
+on the language disk (next kit). Fixed while making them: the paragraph
+after a figure caption stayed in Helvetica bold (`BK-FIGCAP` restored
+the wrong font), a word could be printed below the running foot (the
+foot's `bp` broke the pending line: now `'bp`), and table text was grey
+like the rules (cells are now `\m[black]`).
