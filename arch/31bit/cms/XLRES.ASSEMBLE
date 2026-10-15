@@ -1,0 +1,449 @@
+*        XLRES -- VM/370plus (9.39): large M5f programs (XIMAGEs) kept
+*        resident, as commands, in high storage
+*
+*        XLRES LOAD name  reads name XIMAGE once into storage above
+*                         16 MB and makes 'name' a nucleus extension
+*        XLRES            lists what is loaded
+*
+*        Each call of 'name' copies the pristine image to fresh storage
+*        (HIGHSTOR), relocates it and runs it in AMODE 31, as XL does,
+*        with its own low block (plists, FSCB, buffers, start stack).
+*        So a call may nest: a REXX program run by REGINA can run an
+*        EXEC that REGINA runs again.  Nothing is loaded into the user
+*        area, so the program that called it is not overwritten.
+*        Loaded by the system profile: NUCXTEXT XLRES (SYSTEM PERM.
+*        Return codes: the program's; -3 not loaded; 104 no storage;
+*        28 no XIMAGE; 32 not an XIMAGE; 24 syntax; 20 table full.
+XLRES    CSECT
+         USING XLRES,R12
+         STM   R14,R12,12(R13)
+         LA    R12,0(,R15)        NO FLAG BYTE (AMODE 31 USE)
+         CLC   8(8,R2),=CL8'XLRES'  R2: OUR SCBLOCK, +8 THE NAME
+         BE    COMMAND
+***********************************************************************
+*        A LOADED PROGRAM IS CALLED: R1 -> PLIST, R2 -> ITS SCBLOCK
+***********************************************************************
+         LR    R10,R1             THE PLIST
+         LA    R7,8(,R2)          THE NAME WE WERE CALLED BY
+         LA    R9,TABLE
+         LA    R8,NTAB
+FIND     CLC   0(8,R9),0(R7)
+         BE    FOUND
+         LA    R9,TELEN(,R9)
+         BCT   R8,FIND
+         L     R15,=F'-3'         NOT LOADED
+         B     RETURN
+FOUND    L     R0,=A(IBLKD)       THE LOW BLOCK OF THIS CALL
+         DMSFREE DWORDS=(0),TYPE=USER
+         LTR   R15,R15
+         BNZ   NOSTOR
+         LA    R11,0(,R1)         CLEAN: USED IN AMODE 31
+         USING INST,R11
+         XC    INST(IHDRL),INST
+         ST    R13,ISAVE+4
+         LA    R13,ISAVE
+         ST    R9,ISLOT
+*        THE IMAGE: IMAGE + BSS FROM HIGHSTOR
+         L     R0,TISIZE(,R9)
+         A     R0,TBSIZE(,R9)
+         MVC   IHSP(16),=CL16'HIGHSTOROBTAIN'
+         ST    R0,IHSP+16
+         XC    IHSP+20(4),IHSP+20
+         LA    R1,IHSP
+         SVC   202
+         DC    AL4(1)
+         LTR   R15,R15
+         BNZ   NOHIGH
+         MVC   IIMG,IHSP+20
+         MVC   IILEN,IHSP+16
+*        COPY, CLEAR THE BSS, RELOCATE: IN AMODE 31
+         L     R1,=A(H31)
+         O     R1,=X'80000000'
+         BSM   0,R1
+H31      L     R4,IIMG
+         L     R3,TISIZE(,R9)
+         L     R6,TPRIS(,R9)
+         BAL   R8,MOVE
+         L     R4,IIMG
+         A     R4,TISIZE(,R9)
+         L     R3,TBSIZE(,R9)
+         SR    R6,R6
+         BAL   R8,MOVE
+         L     R7,TPRIS(,R9)
+         A     R7,TISIZE(,R9)     THE RELOCATIONS
+         L     R8,TNREL(,R9)
+         L     R6,IIMG
+         LTR   R8,R8
+         BZ    RELDONE
+REL      L     R1,0(,R7)
+         AR    R1,R6
+         L     R0,0(,R1)
+         AR    R0,R6
+         ST    R0,0(,R1)
+         LA    R7,4(,R7)
+         BCT   R8,REL
+RELDONE  L     R1,=A(H24)
+         BSM   0,R1
+H24      DS    0H
+*        THE SERVICES THE PROGRAM GETS (CMSRT'S STRUCT XLSVC)
+         L     R0,=A(C202)
+         ST    R0,ISVC
+         LA    R0,ITRAMP
+         ST    R0,ISVC+4
+         LA    R0,ILOW
+         ST    R0,ISVC+8
+         MVC   ITRAMP(12),TRAMPC  ITS EXIT: R3 = THIS BLOCK, TO EXITRTN
+         ST    R11,ITRAMP+12
+         L     R0,=A(EXITRTN)
+         ST    R0,ITRAMP+16
+*        ARGV FROM THE TOKENS
+         LA    R2,IARGV
+         LA    R3,IARGS
+         LR    R4,R10
+         SR    R5,R5
+ARG1     CLI   0(R4),X'FF'
+         BE    ARGEND
+         C     R5,=A(NARGS)
+         BNL   ARGEND
+         ST    R3,0(,R2)
+         MVC   0(8,R3),0(R4)
+         MVI   8(R3),0
+         LA    R6,7(,R3)
+ARG2     CLI   0(R6),C' '
+         BNE   ARG3
+         MVI   0(R6),0
+         BCTR  R6,0
+         CR    R6,R3
+         BNL   ARG2
+ARG3     TR    0(8,R3),E2A        THE PROGRAM WANTS ASCII
+ARG3B    LA    R2,4(,R2)
+         LA    R3,9(,R3)
+         LA    R4,8(,R4)
+         LA    R5,1(,R5)
+         B     ARG1
+ARGEND   XC    0(4,R2),0(R2)
+         ST    R5,ISVC+12
+         LA    R0,IARGV
+         ST    R0,ISVC+16
+*        RUN IT: CMS_XL_MAIN(&SVC) IN AMODE 31 ON THE START STACK
+         STM   R0,R15,IREGS
+         LA    R2,ISVC
+         L     R15,=A(ISTACK+STACKL-96-INST)
+         AR    R15,R11
+         XC    0(4,R15),0(R15)
+         L     R1,IIMG
+         A     R1,TENTRY(,R9)
+         O     R1,=X'80000000'
+         DC    X'0CE1'            BASSM R14,R1 (NOT IN ASSEMBLER XF)
+*        IT RETURNED (IT SHOULD EXIT): AMODE 31, R11 KEPT (C ABI)
+         ST    R2,IRC
+         LM    R0,R15,IREGS
+         B     DONE31
+*        ITS EXIT: AMODE 31, R2 = RC, R3 = OUR BLOCK (TRAMPOLINE)
+EXITRTN  ST    R2,IRC-INST(,R3)
+         LM    R0,R15,IREGS-INST(R3)
+DONE31   L     R1,=A(DONE24)
+         BSM   0,R1
+DONE24   MVC   IHSP+8(8),=CL8'RELEASE'
+         MVC   IHSP+16(4),IILEN
+         MVC   IHSP+20(4),IIMG
+         LA    R1,IHSP
+         SVC   202
+         DC    AL4(1)
+         L     R2,IRC
+         B     FREEBLK
+NOHIGH   LA    R2,104
+FREEBLK  L     R13,ISAVE+4
+         L     R0,=A(IBLKD)
+         LR    R1,R11
+         DMSFRET DWORDS=(0),LOC=(1)
+         LR    R15,R2
+         B     RETURN
+NOSTOR   LA    R15,104
+RETURN   L     R14,12(,R13)
+         LM    R0,R12,20(R13)
+         BR    R14
+         DROP  R11
+*
+*        MOVE: R3 BYTES TO R4 FROM R6 (R6 = 0: ZEROS), IN 8 MB PIECES
+*        (MVCL LENGTHS ARE 24 BITS).  RETURN BY R8.  AMODE 31.
+MOVE     LTR   R3,R3
+         BZR   R8
+         L     R5,=A(X'800000')
+         CR    R5,R3
+         BNH   MOVE1
+         LR    R5,R3
+MOVE1    LR    R7,R5
+         LTR   R6,R6
+         BNZ   MOVE2
+         SR    R7,R7
+MOVE2    LR    R0,R5
+         MVCL  R4,R6
+         SR    R3,R0
+         B     MOVE
+*
+*        THE EXIT TRAMPOLINE, COPIED INTO EACH LOW BLOCK:
+*          BASR 1,0 / L 3,10(,1) / L 1,14(,1) / BR 1 / A(BLOCK),A(EXIT)
+TRAMPC   DC    X'0D10',X'5830100A',X'5810100E',X'07F1'
+         EJECT
+***********************************************************************
+*        THE COMMAND: XLRES LOAD NAME / XLRES
+***********************************************************************
+COMMAND  LR    R10,R1
+         CLI   8(R10),X'FF'
+         BE    LIST
+         CLC   8(8,R10),=CL8'LOAD'
+         BNE   BADSYN
+         CLI   16(R10),X'FF'
+         BE    BADSYN
+*        A FREE SLOT (OR THIS NAME AGAIN: ALREADY THERE)
+         LA    R9,TABLE
+         LA    R8,NTAB
+SLOT1    CLC   0(8,R9),16(R10)
+         BE    ALREADY
+         LA    R9,TELEN(,R9)
+         BCT   R8,SLOT1
+         LA    R9,TABLE
+         LA    R8,NTAB
+SLOT2    CLI   0(R9),0
+         BE    SLOTOK
+         LA    R9,TELEN(,R9)
+         BCT   R8,SLOT2
+         LA    R15,20             TABLE FULL
+         B     RETURN
+ALREADY  SR    R15,R15
+         B     RETURN
+SLOTOK   LA    R0,LWD             A WORK BLOCK
+         DMSFREE DWORDS=(0),TYPE=USER
+         LTR   R15,R15
+         BNZ   NOSTOR
+         LR    R11,R1
+         USING LW,R11
+         ST    R13,LWSAVE+4
+         LA    R13,LWSAVE
+         XC    LWPRIS(12),LWPRIS   PRISTINE, TOTAL, POSITION
+         MVC   LWREC,=F'1'
+*        THE FIRST RECORD: THE HEADER
+         XC    LWFSCB,LWFSCB
+         MVC   LWFSCB(8),=CL8'RDBUF'
+         MVC   LWFSCB+8(8),16(R10)
+         MVC   LWFSCB+16(8),=CL8'XIMAGE'
+         MVC   LWFSCB+24(2),=CL2'* '
+         MVC   LWFSCB+26(2),=H'1'
+         LA    R0,LWBUF
+         ST    R0,LWFSCB+28
+         MVC   LWFSCB+32(4),=F'80'
+         MVI   LWFSCB+36,C'F'
+         MVC   LWFSCB+38(2),=H'1'
+         LA    R1,LWFSCB
+         SVC   202
+         DC    AL4(1)
+         LTR   R15,R15
+         BNZ   NOFILE
+         CLC   LWBUF(4),=X'58494D47'    'XIMG' (ASCII)
+         BNE   NOTXIMG
+         MVC   LWHDR(16),LWBUF+8  ENTRY, IMAGE, BSS, RELOCATIONS
+         L     R7,LWBUF+12        IMAGE BYTES
+         L     R0,LWBUF+20        RELOCATIONS
+         SLL   R0,2
+         AR    R7,R0              WHAT FOLLOWS THE HEADER
+         ST    R7,LWTOTAL
+         MVC   LWHSP(16),=CL16'HIGHSTOROBTAIN'
+         ST    R7,LWHSP+16
+         XC    LWHSP+20(4),LWHSP+20
+         LA    R1,LWHSP
+         SVC   202
+         DC    AL4(1)
+         LTR   R15,R15
+         BNZ   LNOHIGH
+         L     R6,LWHSP+20        THE PRISTINE COPY
+         ST    R6,LWPRIS
+         LA    R5,LWBUF+24        56 BYTES OF THE FIRST RECORD
+         LA    R4,56
+*        COPY R4 BYTES FROM R5 TO THE COPY AT R6 (AMODE 31)
+LCOPY    L     R3,LWTOTAL
+         S     R3,LWPOS           STILL TO COME
+         CR    R4,R3
+         BNH   LCOPY1
+         LR    R4,R3
+LCOPY1   LTR   R4,R4
+         BZ    LDONE
+         L     R1,=A(L31)
+         O     R1,=X'80000000'
+         BSM   0,R1
+L31      L     R6,LWPRIS
+         A     R6,LWPOS
+         BCTR  R4,0
+         EX    R4,LMVC
+         LA    R4,1(,R4)
+         L     R1,=A(L24)
+         BSM   0,R1
+L24      A     R4,LWPOS
+         ST    R4,LWPOS
+         C     R4,LWTOTAL
+         BNL   LDONE
+         L     R1,LWREC           THE NEXT RECORD, BY NUMBER (UP TO
+         LA    R1,1(,R1)           65535; THEN 0, CMS'S 'NEXT')
+         ST    R1,LWREC
+         C     R1,=F'65535'
+         BNH   *+6
+         SR    R1,R1
+         STH   R1,LWFSCB+26
+         LA    R1,LWFSCB
+         SVC   202
+         DC    AL4(1)
+         LTR   R15,R15
+         BNZ   LSHORT
+         LA    R5,LWBUF
+         LA    R4,80
+         B     LCOPY
+LMVC     MVC   0(0,R6),0(R5)
+*        THE TABLE ENTRY (NUCLEUS STORAGE: KEY 0), THEN THE EXTENSION
+LDONE    IPK
+         SPKA  0                  THE TABLE IS NUCLEUS STORAGE
+         MVC   0(8,R9),16(R10)
+         MVC   TPRIS(4,R9),LWPRIS
+         MVC   TENTRY(4,R9),LWHDR
+         MVC   TISIZE(4,R9),LWHDR+4
+         MVC   TBSIZE(4,R9),LWHDR+8
+         MVC   TNREL(4,R9),LWHDR+12
+         SPKA  0(R2)
+         L     R5,=A(XLRES)
+         IPK
+         LR    R3,R2              THE NUCEXT PLIST IS HERE: KEY 0
+         SPKA  0
+         NUCEXT SET,NAME=(R9),ENTRY=(R5),KEY=USER,SYSTEM=YES,PERM=YES
+         SPKA  0(R3)
+         LR    R2,R15
+         B     LFREE
+LSHORT   LA    R2,32              FILE SHORTER THAN ITS HEADER SAYS
+         B     LREL
+LREL     MVC   LWHSP+8(8),=CL8'RELEASE'
+         LA    R1,LWHSP
+         SVC   202
+         DC    AL4(1)
+         B     LFREE
+NOFILE   LA    R2,28
+         B     LFREE
+NOTXIMG  LA    R2,32
+         B     LFREE
+LNOHIGH  LA    R2,104
+LFREE    L     R13,LWSAVE+4
+         LA    R0,LWD
+         LR    R1,R11
+         DMSFRET DWORDS=(0),LOC=(1)
+         LR    R15,R2
+         B     RETURN
+         DROP  R11
+*        XLRES ALONE: WHAT IS LOADED
+LIST     IPK
+         LR    R3,R2              LISTMSG, WRTERM PLIST: KEY 0
+         SPKA  0
+         LA    R9,TABLE
+         LA    R8,NTAB
+LIST1    CLI   0(R9),0
+         BE    LIST2
+         MVC   LISTMSG(8),0(R9)
+         WRTERM LISTMSG,8
+LIST2    LA    R9,TELEN(,R9)
+         BCT   R8,LIST1
+         SPKA  0(R3)
+         SR    R15,R15
+         B     RETURN
+BADSYN   LA    R15,24
+         B     RETURN
+         LTORG
+         DROP  R12
+***********************************************************************
+*        INT CMS202(PLIST): SVC 202 IN AMODE 24 FOR THE PROGRAM (C ABI,
+*        CALLED IN AMODE 31; R2 = PLIST, RESULT IN R2)
+***********************************************************************
+C202     STM   R6,R15,24(R15)
+         LR    R10,R15
+         DC    X'0DC0'            BASR R12,0
+         USING *,R12
+         S     R15,C2160
+         L     R13,C2SA
+         LR    R1,R2
+         L     R11,C2A24
+         BSM   0,R11
+C2IN24   CNOP  2,4
+         SVC   202
+         DC    AL4(C2RET)
+C2RET    L     R11,C2A31
+         BSM   0,R11
+C2IN31   LR    R2,R15
+         LM    R6,R15,24(R10)
+         BR    R14
+C2160    DC    F'160'
+C2SA     DC    A(C202SA)
+C2A24    DC    A(C2IN24)
+C2A31    DC    A(C2IN31+X'80000000')
+         DROP  R12
+*        EBCDIC TO ASCII (CMSRTS RT_E2A, CP 1047): ARGV FOR THE PROGRAM
+E2A      DS    0CL256
+         DC    X'000102039C09867F978D8E0B0C0D0E0F'
+         DC    X'101112139D8508871819928F1C1D1E1F'
+         DC    X'80818283840A171B88898A8B8C050607'
+         DC    X'909116939495960498999A9B14159E1A'
+         DC    X'20A0E2E4E0E1E3E5E7F1A22E3C282B7C'
+         DC    X'26E9EAEBE8EDEEEFECDF21242A293B5E'
+         DC    X'2D2FC2C4C0C1C3C5C7D1A62C255F3E3F'
+         DC    X'F8C9CACBC8CDCECFCC603A2340273D22'
+         DC    X'D8616263646566676869ABBBF0FDFEB1'
+         DC    X'B06A6B6C6D6E6F707172AABAE6B8C6A4'
+         DC    X'B57E737475767778797AA1BFD05BDEAE'
+         DC    X'ACA3A5B7A9A7B6BCBDBEDDA8AF5DB4D7'
+         DC    X'7B414243444546474849ADF4F6F2F3F5'
+         DC    X'7D4A4B4C4D4E4F505152B9FBFCF9FAFF'
+         DC    X'5CF7535455565758595AB2D4D6D2D3D5'
+         DC    X'30313233343536373839B3DBDCD9DA9F'
+LISTMSG  DC    CL8' '
+C202SA   DC    18F'0'
+*
+*        THE TABLE OF LOADED PROGRAMS
+NTAB     EQU   16
+TABLE    DC    (NTAB*8)F'0'
+TELEN    EQU   32
+TPRIS    EQU   8                  THE PRISTINE IMAGE + RELOCATIONS
+TISIZE   EQU   12                 IMAGE BYTES
+TBSIZE   EQU   16                 BSS BYTES
+TENTRY   EQU   20                 ENTRY (CMS_XL_MAIN) OFFSET
+TNREL    EQU   24                 RELOCATIONS
+*
+*        ONE CALL'S LOW BLOCK
+NARGS    EQU   60
+LOWL     EQU   34816              CMSRT LOWDATA (33192), ROUNDED
+STACKL   EQU   16384
+INST     DSECT
+ISAVE    DS    18F
+IREGS    DS    16F
+IRC      DS    F
+ISLOT    DS    F
+IIMG     DS    F
+IILEN    DS    F
+IHSP     DS    6F                 HIGHSTOR PLIST
+IHDRL    EQU   *-INST
+ISVC     DS    5F                 CMS202, EXIT, LOW, ARGC, ARGV
+ITRAMP   DS    5F
+IARGV    DS    (NARGS+1)F
+IARGS    DS    (NARGS)CL9
+         DS    0D
+ILOW     DS    (LOWL)X
+ISTACK   DS    (STACKL)X
+IBLKD    EQU   (*-INST+7)/8
+*
+*        THE LOAD COMMAND'S WORK BLOCK
+LW       DSECT
+LWSAVE   DS    18F
+LWFSCB   DS    12F
+LWHSP    DS    6F
+LWPRIS   DS    F
+LWTOTAL  DS    F
+LWPOS    DS    F
+LWREC    DS    F                  RECORD NUMBER
+LWHDR    DS    4F                 THE HEADER: ENTRY, IMAGE, BSS, RELOCS
+LWBUF    DS    CL80
+LWD      EQU   (*-LW+7)/8
+         REGEQU
+         END   XLRES

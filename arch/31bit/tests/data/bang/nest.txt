@@ -1,0 +1,6 @@
+ID MAINT NAME NEST EXEC
+/*!REGINA nested call test */
+say 'outer: start'
+'EXEC BANG inner call'
+say 'outer: back, rc' rc
+exit 5

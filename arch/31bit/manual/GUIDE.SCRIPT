@@ -1593,10 +1593,17 @@ Ready(00007);
 :p.:xph.SETREXX REGINA:exph. makes Regina the interpreter for every EXEC
 that starts with a plain :xph./*:exph. until the next IPL of CMS;
 :xph.SETREXX BREXX:exph. goes back, and :xph.SETREXX:exph. alone shows
-the setting. Until Regina stays resident (milestone 9.39), a program run
-by Regina should not call another EXEC that Regina runs&colon. the
-second one is loaded over the first. BREXX EXECs can call Regina EXECs
-freely.
+the setting. Regina EXECs may call each other&colon. after
+:xph.LANG:exph., Regina is resident above 16 MB (:xph.XLRES:exph.,
+below), and each call runs in its own copy.
+:p.:xph.XLRES:exph. keeps a large program resident as a command.
+:xph.XLRES LOAD name:exph. reads :xph.name XIMAGE:exph. once into
+storage above 16 MB and makes :xph.name:exph. a nucleus extension; every
+call copies the image to fresh storage above 16 MB and runs it there, so
+calls can nest and nothing is loaded over the program that called it.
+:xph.XLRES:exph. alone lists what is loaded. The system profile loads
+:xph.XLRES:exph. under IPL 290, and :xph.LANG:exph. loads Regina with
+it.
 :p.Do not call commands that are themselves modules in the user area (an
 assembler module of your own, say) from a Regina program&colon. CMS
 loads them over Regina. Nucleus and transient commands (STATE, LISTFILE,

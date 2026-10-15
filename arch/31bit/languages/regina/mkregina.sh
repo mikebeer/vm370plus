@@ -23,3 +23,8 @@ rm -f *.o rexx
 $M/cmscc -DNDEBUG -O2 -I. -c cmscompat.c -o cmscompat.o   # (no rule in Regina's Makefile)
 make rexx CFLAGS="-DNDEBUG -O2 -DNO_EXTERNAL_QUEUES" >/dev/null
 ${E2C:-/home/claude/m5f/elf_to_cms} rexx $O/regina.text
+# 9.39: the same as an XIMAGE (high storage), for XL and the resident XLRES
+rm -f *.o rexx
+CMSCC_XL=1 $M/cmscc -DNDEBUG -O2 -I. -c cmscompat.c -o cmscompat.o
+CMSCC_XL=1 make rexx CFLAGS="-DNDEBUG -O2 -DNO_EXTERNAL_QUEUES" >/dev/null
+python3 $M/mkximage.py rexx $O/regina.ximage
