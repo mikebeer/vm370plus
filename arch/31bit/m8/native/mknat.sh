@@ -55,6 +55,10 @@ base = ('-quiet -m31 -mesa -march=z900 -msoft-float -mlong-double-64 '
 # not CC EXEC's -D__CMS__ (cREXX's platform.h would take its GCCLIB route,
 # cms.h) nor its -U__linux__ ...: M8.1's predefines, which cREXX's CMS ELF
 # port was made with
+# the VM's handlers out of line on CMS (route 1 did the same): with them
+# inlined into run() (M8.1's panel 20) cc1 needs more heap than a 256M
+# machine has
+fl += ['-UCREXX_VM_HANDLER_PANEL', '-DCREXX_VM_HANDLER_PANEL=1']
 allf = base + fl
 # units and their 8-character CMS names
 mains = MAINS.split(); vm = VMF.split(); asm = AS.split(); cp = CP.split()

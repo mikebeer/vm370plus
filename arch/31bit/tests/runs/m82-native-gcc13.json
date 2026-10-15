@@ -72,6 +72,18 @@
   "cont": true
  },
  {
+  "term": "load xl (clear nomap",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "genmod xl",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
   "term": "crx82",
   "expect": "CRX82: done|RC \\d+ for|CRX82: CRXROOT|Ready\\(",
   "timeout": 28800,

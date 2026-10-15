@@ -79,31 +79,40 @@ int main(int argc, char **argv)
     fseek(f, 0, SEEK_END);
     n = ftell(f);
     fseek(f, 0, SEEK_SET);
-    file = malloc(n);
-    if (!file || fread(file, 1, n, f) != (size_t)n) {
-        fprintf(stderr, "XL: cannot read %s XIMAGE (%ld bytes)\n", argv[1], n);
-        return 104;
-    }
-    fclose(f);
-    if (n < 24 || memcmp(file, "XIMG", 4) || be32(file + 4) != 1) {
+    /* M8.2: the header first, then the image straight into its place and
+       the relocations into a small buffer -- not the whole file and a copy
+       (that held the image twice and left cc1 23 MB less heap) */
+    unsigned char hdr[24];
+    if (n < 24 || fread(hdr, 1, 24, f) != 24 || memcmp(hdr, "XIMG", 4) || be32(hdr + 4) != 1) {
         fprintf(stderr, "XL: %s XIMAGE is not an XIMAGE\n", argv[1]);
         return 32;
     }
-    entry = be32(file + 8); isize = be32(file + 12);
-    bsize = be32(file + 16); nrel = be32(file + 20);
+    entry = be32(hdr + 8); isize = be32(hdr + 12);
+    bsize = be32(hdr + 16); nrel = be32(hdr + 20);
     if (24 + isize + 4 * nrel > (u32)n) {
         fprintf(stderr, "XL: %s XIMAGE is truncated\n", argv[1]);
         return 32;
     }
+    /* cmsrt reads a whole file into storage at fopen: close it before
+       the image is allocated, so the image takes the low end of the heap
+       and the file's buffer (opened again above it) is trimmed away */
+    fclose(f);
     img = malloc(isize + bsize + 8);
-    if (!img) {
+    file = malloc(4 * nrel + 4);
+    if (!img || !file) {
         fprintf(stderr, "XL: no storage for %u bytes\n", isize + bsize);
         return 104;
     }
-    memcpy(img, file + 24, isize);
+    f = fopen(name, "rb");
+    if (!f || fseek(f, 24, SEEK_SET) ||
+        fread(img, 1, isize, f) != isize || fread(file, 1, 4 * nrel, f) != 4 * nrel) {
+        fprintf(stderr, "XL: cannot read %s XIMAGE (%ld bytes)\n", argv[1], n);
+        return 104;
+    }
+    fclose(f);
     memset(img + isize, 0, bsize);
     for (i = 0; i < nrel; i++) {
-        u32 off = be32(file + 24 + isize + 4 * i);
+        u32 off = be32(file + 4 * i);
         unsigned char *p = img + off;
         u32 v = be32(p) + (u32)img;
         p[0] = v >> 24; p[1] = v >> 16; p[2] = v >> 8; p[3] = v;
