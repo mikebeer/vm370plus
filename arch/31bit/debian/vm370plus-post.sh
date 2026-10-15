@@ -110,4 +110,7 @@ LAN
 chmod 755 /usr/local/sbin/vm370plus-lan
 [ -e /etc/vm370plus-lan.conf ] || printf '# USERID ADDRESS on the CP guest LAN (10.3.0.0/24)\nMAINT 10.3.0.2\nCMSUSER 10.3.0.3\n' > /etc/vm370plus-lan.conf
 grep -q vm370plus-lan /etc/rc.local || sed -i 's|^exit 0|/usr/local/sbin/vm370plus-lan\nexit 0|' /etc/rc.local
+# I-293: halt -i (Debian's halt script takes every interface down) hangs
+# with eth0 on the CP guest LAN; ifconfig eth0 down alone works.
+grep -q "^NETDOWN" /etc/default/halt || printf '# VM/370plus: halt -i hangs with eth0 on the CP guest LAN (I-293)\nNETDOWN=no\n' >> /etc/default/halt
 echo "VM/370plus post-install done"

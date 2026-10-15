@@ -33,7 +33,7 @@ test -n "$SHADOW3" && cp "$SHADOW3" $K/disks/shadows/vm50-3_1.shadow
 cp $R/arch/31bit/kit/README-VM370PLUS.txt $K/
 cp $R/arch/31bit/cms/{GCC31.EXEC,HELLO31.C,HIGHSTOR.ASSEMBLE,HSTEST.ASSEMBLE,WAKEUP.ASSEMBLE,GLOBALV.ASSEMBLE,FULIST.EXEC,FL.EXEC} $R/arch/31bit/crexx/{CRXMAKE.EXEC,cms.h} $K/vm370plus/
 mkdir -p $K/vm370plus/m5f; cp $R/arch/31bit/m5f/{README.md,cmsrt.c,cp1047.h,entry31.s,crt.sh,image.ld,hello31.c,libctest.c,elf_to_cms-pcrel.patch} $K/vm370plus/m5f/
-mkdir -p $K/vm370plus/linux; cp -r $R/arch/31bit/linux390/decks/{linux48.rdr,lxparm.rdr,lxparmram.rdr} $R/arch/31bit/linux390/{README.md,config-4.0-31bit,busybox-1.36.1.config,psw_idle-align.patch,dma16m-idal.patch,entry-mcck-loop.patch,initramfs} $K/vm370plus/linux/
+mkdir -p $K/vm370plus/linux; cp -r $R/arch/31bit/linux390/decks/{linux48.rdr,linux11.rdr,lxparm.rdr,lxparmram.rdr} $R/arch/31bit/linux390/{README.md,config-4.0-31bit,busybox-1.36.1.config,psw_idle-align.patch,dma16m-idal.patch,entry-mcck-loop.patch,initramfs} $K/vm370plus/linux/
 cp $R/arch/31bit/debian/vm370plus-post.sh $K/vm370plus/linux/
 cp $R/arch/31bit/debian/vm370plus-net $K/vm370plus/linux/
 cp -r $R/arch/31bit/linux390/cms $K/vm370plus/linux/   # LINUX EXEC and LXPARM files (also on MAINT 19D)

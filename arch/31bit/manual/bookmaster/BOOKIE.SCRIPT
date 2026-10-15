@@ -495,7 +495,8 @@ is :q.service FROM userid [arguments]:eq. is a request: vmspoold runs
 /etc/vmspool.d/service with the arguments, feeds the other cards to
 its standard input, and punches the output back to the user as
 VMSPOOL REPLY, with VMSPOOL RC n as the first card. A handler that
-runs longer than 120 seconds is stopped.
+runs longer than the daemon's limit is stopped: 900 seconds as the
+Debian guest starts it (vmspoold -t 900).
 :p.The bookie handler is a short shell script. For TEXT it runs
 bookie.py --groff text. For PS it checks the name, writes the
 PostScript to /var/spool/vmspool/out/user/name.ps, reports its size
@@ -606,8 +607,9 @@ running head.
 :eul.
 :p.Two limits come from CMS and the bridge, not from bookie: source
 lines should stay within 72 columns (CMS files of 80), and the
-formatting must finish within the bridge's 120 seconds. A book of 50
-pages is well within that.
+formatting must finish within the bridge's limit of 900 seconds. A
+15-page book takes under two minutes in the Debian guest; the 52-page
+VM/370plus Guide takes several.
 :appendix.
 :h1.Tag Summary
 :fig.

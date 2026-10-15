@@ -45,6 +45,7 @@ On Debian:
 - The s390-tools `vmur` program expects z/VM's response formats, so do not
   use it.
 
+`decks/linux11.rdr` (kernel #11, 14 Oct) adds the LCS driver for the CP guest LAN (9.12b; `config-4.0-31bit` is its configuration).
 `decks/linux49.rdr` is a reader deck of the GCC 13-fixed kernel: use it to
 boot when the disk's IPL records point to a kernel that does not boot,
 then run vmzipl again.

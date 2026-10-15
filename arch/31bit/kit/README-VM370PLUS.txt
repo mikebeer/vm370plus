@@ -1,7 +1,24 @@
-VM/370plus  --  overlay kit, 14 October 2026 (build 16)
+VM/370plus  --  overlay kit, 14 October 2026 (build 17)
 ========================================================
 
-NEW IN BUILD 16
+NEW IN BUILD 17
+  - THE GUEST LAN (Guide, Chapter 5): Linux guests talk to each other
+    over a LAN that CP simulates, like the z/VM guest LAN.  Before
+    starting Linux:
+        cp define lcs 640
+        cp define lcs 641
+        cp ipl linux
+    Debian brings eth0 up by itself (vm370plus-lan): MAINT 10.3.0.2,
+    CMSUSER 10.3.0.3, others in /etc/vm370plus-lan.conf.  Every
+    adapter is on the one segment 10.3.0.0/24; there is no way out of
+    it yet (the BORDER firewall comes next).  The Debian disk has the
+    new kernel (#11, with the LCS driver); vm370plus/linux/linux11.rdr
+    is the same kernel as a reader deck.
+  - BOOKIE: the paragraph after a figure is no longer bold, no word is
+    printed below the page foot, table text is black.
+
+
+IN BUILD 16
   - Java and NetRexx on CMS (language disk, after LANG; IPL 290 and
     DEFINE STORAGE 128M or more):  JAVA class  runs fn CLASS (JamVM 2.0,
     GNU Classpath 0.99),  JAVAC fn  compiles fn JAVA (Eclipse compiler
