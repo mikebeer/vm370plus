@@ -11,7 +11,7 @@ set -e
 H=$(cd "$(dirname "$0")" && pwd); M=$(cd "$H/../../m5f" && pwd)
 S=$(cd "$1" && pwd); O=$(mkdir -p "$2" && cd "$2" && pwd)
 cd $S
-git checkout -- os_other.c 2>/dev/null || true
+git checkout -- os_other.c misc.c 2>/dev/null || true
 patch -p1 < $H/regina-cms.patch
 cp $H/cmscompat.c .
 CC=$M/cmscc ./configure --host=s390-linux-gnu --build=x86_64-linux-gnu \

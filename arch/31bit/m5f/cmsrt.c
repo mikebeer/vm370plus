@@ -807,6 +807,8 @@ int system(const char *cmd)
     if (!nt) return 0;
     memset(pl + 8 * nt, 0xFF, 8);
     tflush();
+    /* (X'01' in R1's high byte, "called as a command", made CMS's CP
+       routine end in a specification exception: plain SVC 202 it is) */
     return cms202(pl);
 }
 int _execve(const char *n, char *const a[], char *const e[]) { (void)n; (void)a; (void)e; errno = ENOSYS; return -1; }

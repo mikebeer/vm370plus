@@ -92,6 +92,8 @@ for m in RXBVM82 RXAS82 RXC82; do add $m TEXT $M82/${m,,}.text BIN; done
 add CRX82 EXEC $M82/crx82.exec F; add CRXROOT TAR $M82/crxroot.tar BIN; add ELF2CM8 XIMAGE $M82/elf2cm8.ximage BIN
 add LIBRARY RXBIN /home/claude/crexx-host/bin/library.rxbin RAW; add RXCEXITS RXBIN /home/claude/crexx-host/bin/rxcexits.rxbin RAW
 add C82HELLO CREXX $M82/c82hello.crexx F; add C82LIB CREXX $M82/c82lib.crexx F
+# 9.37: Regina REXX 3.9.5 (languages/regina/mkregina.sh); RT REX is its test
+add REGINA TEXT ${REGINA:-/home/claude/src/new/regina}/regina.text BIN; add RT REX $L/regina/REGTEST.REXX F
 # the disk's own files
 add LANG EXEC $K/LANG.EXEC F; add LANGGEN EXEC $K/LANGGEN.EXEC F; add LANG README $K/README.txt V
 sed -i 's/ F$/ F 80/' $LST

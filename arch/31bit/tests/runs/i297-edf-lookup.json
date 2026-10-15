@@ -96,16 +96,22 @@
   "cont": true
  },
  {
-  "send": "stop",
-  "settle": 2
+  "term": "cp spool e class d",
+  "expect": "Ready",
+  "timeout": 60,
+  "cont": true
  },
  {
-  "send": "savecore /home/claude/scratch/i297/core1.bin",
-  "settle": 15
+  "term": "cp dump 0-fffff",
+  "expect": "Ready",
+  "timeout": 600,
+  "cont": true
  },
  {
-  "send": "start",
-  "settle": 2
+  "term": "cp close e",
+  "expect": "Ready",
+  "timeout": 60,
+  "cont": true
  },
  {
   "term": "copyfile c82lib crexx l = = a",
@@ -132,26 +138,44 @@
   "cont": true
  },
  {
-  "send": "stop",
-  "settle": 2
+  "term": "cp spool e class d",
+  "expect": "Ready",
+  "timeout": 60,
+  "cont": true
  },
  {
-  "send": "savecore /home/claude/scratch/i297/core2.bin",
-  "settle": 15
+  "term": "cp dump 0-fffff",
+  "expect": "Ready",
+  "timeout": 600,
+  "cont": true
  },
  {
-  "send": "start",
-  "settle": 2
- },
- {
-  "term": "cp logoff",
-  "settle": 5
+  "term": "cp close e",
+  "expect": "Ready",
+  "timeout": 60,
+  "cont": true
  },
  {
   "send": "/logon operator operator",
   "expect": "LOGON AT|RECONNECT",
   "timeout": 60,
   "cont": true
+ },
+ {
+  "send": "/start 00e class d",
+  "settle": 5
+ },
+ {
+  "term": "cp q prt all",
+  "settle": 5
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/q prt all",
+  "settle": 300
  },
  {
   "send": "/shutdown",

@@ -864,6 +864,11 @@ on CMS) and THE 3.3, The Hessling Editor (:xph.the:exph., an XEDIT-like
 editor; use it over SSH, since the 3215 console cannot show a full
 screen). cREXX and the languages of Chapter 7 are in
 :xph./usr/local/bin:exph..
+:p.Open Object Rexx 5.3 (ooRexx) is in :xph./opt/oorexx:exph.&colon.
+:xph.oorexx prog.rex:exph. runs a program, :xph.oorexxc:exph. compiles
+one. It brings its own C library in :xph./opt/oorexx/lib:exph. (Debian
+7's is too old for it) and is independent of the rest of the system.
+:xph.rexx:exph. stays Regina.
 :p.Java and NetRexx&colon. :xph.java:exph. (JamVM 2.0 with GNU Classpath
 0.99, Java 5/6 level), :xph.javac:exph. (the Eclipse compiler ecj 3.5.2,
 Java 5 source by default), :xph.nrc prog:exph. (NetRexx 3.05&colon.
@@ -1539,6 +1544,29 @@ REXX. :xph.CRX82 EXEC:exph. rebuilds the three on CMS. Link LANG
 read/write as A (:xph.LINK MAINT 19F 29F MR:exph., :xph.ACCESS 29F
 A:exph.) in a 256M machine started with :xph.IPL 290:exph., then
 :xph.CRX82:exph.; it takes about two hours.
+:h2.Regina REXX on CMS
+:p.Regina 3.9.5, the REXX interpreter of the Debian guest, also runs on
+CMS (:xph.REGINA:exph. on the LANG disk). It runs a REXX program from a
+CMS file, named :xph.fn.ft:exph.; commands go to CMS (:xph.ADDRESS
+COMMAND:exph., or a plain string), and a command starting with
+:xph.CP:exph. goes to CP. Files are CMS files&colon. :xph.LINEOUT("DATA
+LIST A", ...):exph..
+:fig.
+:xmp.
+lang
+regina rt.rex
+Hello from REXX-Regina_3.9.5 5.00 25 Jun 2022
+CMS COMMAND ./RT.REX
+...
+Ready;
+:exmp.
+:figcap.Regina on CMS
+:efig.
+:p.Do not call commands that are themselves modules in the user area (an
+assembler module of your own, say) from a Regina program&colon. CMS
+loads them over Regina. Nucleus and transient commands (STATE, LISTFILE,
+QUERY, COPYFILE, ...), EXECs that call only those, and CP commands are
+fine. Tokens in commands are cut to eight characters, as CMS does.
 :h2.Languages written in cREXX
 :p.Several languages are implemented as cREXX programs. They are
 compiled once on the PC and run unchanged on CMS (through

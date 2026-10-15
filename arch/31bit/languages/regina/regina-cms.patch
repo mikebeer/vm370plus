@@ -1,3 +1,18 @@
+diff --git a/misc.c b/misc.c
+index cafbd1e..5ab598c 100644
+--- a/misc.c
++++ b/misc.c
+@@ -452,7 +452,9 @@ void getsecs( time_t *secs, time_t *usecs )
+ 
+ const char *system_type( void )
+ {
+-#if defined(VMS)
++#if defined(__CMS__)
++   return "CMS" ;      /* VM/370plus: PARSE SOURCE says CMS, as IBM REXX does */
++#elif defined(VMS)
+    return "VMS" ;
+ #elif defined(OS2)
+    return "OS/2" ;
 diff --git a/os_other.c b/os_other.c
 index 0e8c8f7..7efa4f1 100644
 --- a/os_other.c
