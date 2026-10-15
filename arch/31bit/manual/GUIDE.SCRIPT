@@ -500,7 +500,7 @@ package is sufficient.
 :li.For Linux networking on Windows&colon. the CTCI-WIN package for SDL
 Hercules (TunTap64.dll, with Npcap). On Linux or WSL2&colon. the tun
 driver, and Hercules running as root or with hercifc installed setuid.
-:li.The VM/370plus kit&colon. twelve zip files, each under 30 MB.
+:li.The VM/370plus kit&colon. nineteen zip files, each under 30 MB.
 :eul.
 :fig.
 :table cols='1000 8638'.
@@ -523,22 +523,30 @@ record corrected
 :row.
 :c.4
 :c.:xph.vm370plus/linux/:exph.&colon. the Linux kernel and parameter
-decks, the CMS files for MAINT 19D, kernel configuration and patches
+decks, the CMS files for MAINT 19D, kernel configuration and patches;
+the shadow file of VM50-2
 :row.
 :c.5
 :c.the shadow file of VM50-3 (spool and paging)
 :row.
-:c.6-12
-:c.the Debian disk, :xph.disks/lnx190.cckd:exph. (a 3390-9), in seven
+:c.6
+:c.the shadow file of VM50U1 (BORDER, user disks)
+:row.
+:c.7-16
+:c.the Debian disk, :xph.disks/lnx190.cckd:exph. (a 3390-9), in ten
 pieces, with :xph.JOINDEB.CMD:exph. and :xph.joindeb.sh:exph. to join
 them
+:row.
+:c.17-19
+:c.the language disk, :xph.disks/lang.cckd:exph. (a 3380), in three
+pieces, with :xph.JOINLANG.CMD:exph. and :xph.joinlang.sh:exph.
 :etable.
 :figcap.The installation kit
 :efig.
 :h2.Installation steps
 :ol.
 :li.Unzip :xph.VM370CE_V1_R1_2.zip:exph. into a new directory.
-:li.Unzip kit parts 1 to 15 over it, replacing files when asked.
+:li.Unzip kit parts 1 to 19 over it, replacing files when asked.
 :li.Join the Debian disk. In the Community Edition directory, at a
 Windows command prompt&colon.
 :eol.
@@ -553,7 +561,7 @@ Debian disk joined: disks\lnx190.cckd
 result. The file :xph.disks/lnx190.sha256:exph. holds the checksum of
 the joined file. Keep a copy of :xph.lnx190.cckd:exph.&colon. it is your
 Linux system disk and Hercules writes to it.
-:p.Join the language disk the same way (kit parts 14 and 15)&colon.
+:p.Join the language disk the same way (kit parts 17 to 19)&colon.
 :xph.JOINLANG.CMD:exph. on Windows or :xph.sh joinlang.sh:exph. on Linux
 and WSL2 gives :xph.disks/lang.cckd:exph., the 3380 at address 182 that
 holds MAINT 19F (see Chapter 8).
@@ -2520,11 +2528,11 @@ devices listed in Chapter 5 under "What a Linux user needs".
 :c.VM50-4 with the paging area record corrected
 :row.
 :c.:xph.disks/lnx190.cckd:exph.
-:c.the Debian disk, a 3390-9 (after joining parts 6-13)
+:c.the Debian disk, a 3390-9 (after joining parts 7-16)
 :row.
 :c.:xph.disks/lang.cckd:exph.
 :c.the language disk VMLANG, a 3380 at address 182 (after joining parts
-14-15)
+17-19)
 :row.
 :c.:xph.README-VM370PLUS.txt:exph.
 :c.the short form of this manual

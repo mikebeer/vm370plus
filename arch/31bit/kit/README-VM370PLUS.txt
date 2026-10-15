@@ -1,7 +1,27 @@
-VM/370plus  --  overlay kit, 15 October 2026 (build 19)
+VM/370plus  --  overlay kit, 15 October 2026 (build 20)
 ========================================================
 
-NEW IN BUILD 19
+NEW IN BUILD 20
+  - cREXX built ON CMS (M8.2): RXC82, RXAS82 and RXBVM82 on the
+    language disk are the current cREXX compiler, assembler and VM,
+    compiled on CMS by the GCC 13 that runs there.  Use them as the
+    M8.1 tools (Guide, Chapter 7):  RXC82 -L A fn,  RXAS82 -L A fn,
+    RXBVM82 -L A fn.  CRX82 EXEC rebuilds them on CMS (DEFINE
+    STORAGE 256M, IPL 290; a few hours).
+  - Regina REXX 3.9.5 on CMS:  REGINA fn.ft  runs a REXX program from
+    a CMS file (language disk; IPL 290).  Commands go to CMS, CP
+    commands to CP, files are CMS files.  Try:  REGINA RT.REX
+  - ooRexx 5.3 in the Debian guest:  oorexx prog.rex  (and oorexxc);
+    rexx  stays Regina 3.6.
+  - CP DUMP works again (it stopped CP, I-298), above 16 MB too.
+  - A newly FORMATted EDF disk no longer damages the file directory of
+    another accessed EDF disk ("File not found" on the language disk
+    after writing to the new one, DMSFRE161T on RELEASE; I-297).
+  - GCC 13 on CMS (CC1, XL) uses storage better: larger programs
+    compile in 256M.
+
+
+IN BUILD 19
   - DHCP and DNS on the guest LAN (BORDER): a Linux guest without an
     address of its own gets one (10.3.0.100-199) with BORDER as router
     and name server; BORDER passes name lookups on to the PC
@@ -237,14 +257,15 @@ WHAT YOU NEED
 
 INSTALL
   1. Unzip VM370CE_V1_R1_2.zip into a new directory.
-  2. Unzip ALL kit parts (1-18) OVER it, replacing files:
+  2. Unzip ALL kit parts (1-19) OVER it, replacing files:
      part 1: config, system shadows, tools, README; part 2:
      disks/vm50-4.cckd; part 3: the CMSUSER volume's shadow; part 4:
-     Linux files (vm370plus/linux/, the Guide), the VM50-2 shadow
-     (MAINT's 19D) and the VM50U1 shadow (BORDER's disk); part 5: the VM50-3 shadow; parts 6-15: the Debian
+     Linux files (vm370plus/linux/, the Guide) and the VM50-2 shadow
+     (MAINT's 19D); part 5: the VM50-3 shadow; part 6: the VM50U1
+     shadow (BORDER's disk); parts 7-16: the Debian
      disk in pieces -- then join it: JOINDEB.CMD (Windows) or
      sh joindeb.sh (Linux/WSL), see INSTALL THE DEBIAN DISK; parts
-     16-18: the language disk -- join it: JOINLANG.CMD or sh joinlang.sh.
+     17-19: the language disk -- join it: JOINLANG.CMD or sh joinlang.sh.
      so the files below replace or add:
         vm370ce.conf                 ARCHMODE ESA/390, CPUMODEL 3090,
                                      ECPSVM NO (CE's own S/370 settings
@@ -351,10 +372,10 @@ LINUX/390 ON VM/370plus  (milestone M7, 9 October 2026)
       lxparmram.rdr   the same + vmroot=ram: stay in the BusyBox system
                       even if Debian is on the disk (repairs)
   and disks/lnx190.cckd -- the Debian disk, a 3390-9 (build 6; it was a
-  3390-1 before), parts 6-15 of the kit, see INSTALL THE DEBIAN DISK.
+  3390-1 before), parts 7-16 of the kit, see INSTALL THE DEBIAN DISK.
   INSTALL THE DEBIAN DISK
     The disk is about 255 MB compressed, shipped in ten pieces (parts
-    6-15).  After unzipping them into the CE directory, run there
+    7-16).  After unzipping them into the CE directory, run there
         JOINDEB.CMD            (Windows cmd.exe)
         sh joindeb.sh          (Linux/WSL; also checks lnx190.sha256)
     which joins disks/lnx190.cckd.001-009 into disks/lnx190.cckd.

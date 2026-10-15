@@ -733,3 +733,17 @@ fresh CE + all parts (kt33): BORDER by AUTOLOG, CMSUSER's in-storage Linux
 got 10.3.0.100 by DHCP, `nslookup test.example` answered through BORDER by a
 test resolver on the PC, ping to the PC through the NAT, SHUTDOWN clean.
 9.12a-d (the network pack) are done.
+
+## Kit b20 (15 October 2026, 17:10)
+
+M8.2 (the current cREXX built natively on CMS: RXC82, RXAS82, RXBVM82 and
+CRX82 EXEC / CRXROOT TAR to rebuild them), Regina 3.9.5 on CMS (REGINA
+MODULE on the language disk, 9.37), ooRexx 5.3 in the Debian guest (9.9),
+the cmsrt/XL/cc1 storage fixes, I-297 (DMSEFS FORMAT freed another EDF
+disk's FST hyperblock) and I-298 (CP DUMP). 19 parts: VM50U1's shadow moved
+to its own part 6 (part 4 had reached 33 MB), Debian 7-16, LANG 17-19.
+Verified on a fresh CE + all parts (kt34): CMSUSER LANG, REGINA RT.REX,
+RXC82/RXAS82/RXBVM82 on C82HELLO ("Hello from natively built cREXX on
+VM/370plus"), FORMAT of a T3350 as EDF then COPYFILE to it and STATE on L
+(rc 0), CP DUMP 0-FFFF and 1000000-100FFFF, SHUTDOWN clean. The Debian disk
+is the dev disk on which ooRexx was installed and tested (rx1).

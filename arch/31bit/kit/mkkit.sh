@@ -46,10 +46,12 @@ mkdir -p $K/vm370plus/nicof/nhfs; cp $R/arch/31bit/nicof/{README.md,nicof.jar,ni
 mkdir -p $D; cd $W
 zip -qr $D/VM370PLUS-kit-$STAMP-part1.zip VM370CE.V1.R1.2 -x "VM370CE.V1.R1.2/disks/vm50-4.cckd" "VM370CE.V1.R1.2/disks/shadows/vm50u0_1.shadow" "VM370CE.V1.R1.2/vm370plus/linux/*" "VM370CE.V1.R1.2/disks/shadows/vm50-2_1.shadow" "VM370CE.V1.R1.2/disks/shadows/vm50-3_1.shadow" "VM370CE.V1.R1.2/disks/shadows/vm50u1_1.shadow"
 zip -q  $D/VM370PLUS-kit-$STAMP-part5.zip VM370CE.V1.R1.2/disks/shadows/vm50-3_1.shadow
-zip -qr $D/VM370PLUS-kit-$STAMP-part4.zip VM370CE.V1.R1.2/vm370plus/linux VM370CE.V1.R1.2/disks/shadows/vm50-2_1.shadow VM370CE.V1.R1.2/disks/shadows/vm50u1_1.shadow
+zip -qr $D/VM370PLUS-kit-$STAMP-part4.zip VM370CE.V1.R1.2/vm370plus/linux VM370CE.V1.R1.2/disks/shadows/vm50-2_1.shadow
+# b20: part 4 had reached 33 MB; the VM50U1 shadow (BORDER, user disks) is part 6
+zip -q  $D/VM370PLUS-kit-$STAMP-part6.zip VM370CE.V1.R1.2/disks/shadows/vm50u1_1.shadow
 zip -q  $D/VM370PLUS-kit-$STAMP-part2.zip VM370CE.V1.R1.2/disks/vm50-4.cckd
 zip -q  $D/VM370PLUS-kit-$STAMP-part3.zip VM370CE.V1.R1.2/disks/shadows/vm50u0_1.shadow
-# parts 6 and on: the Debian disk (LNX190, a 3390-9 since b6), compacted,
+# parts 7 and on (b20; 6 before): the Debian disk (LNX190, a 3390-9 since b6), compacted,
 # in pieces under 28 MB, with JOINDEB.CMD / joindeb.sh to join them
 if [ -n "$DEBDISK" ]; then
   mkdir -p $W/deb/VM370CE.V1.R1.2/disks
@@ -64,7 +66,7 @@ if [ -n "$DEBDISK" ]; then
      sed 's/$/\r/' > $W/deb/VM370CE.V1.R1.2/JOINDEB.CMD
   printf '#!/bin/sh\n# joindeb.sh -- join the Debian disk pieces (VM/370plus kit)\ncd "$(dirname "$0")"\ncat disks/lnx190.cckd.0?? > disks/lnx190.cckd && rm disks/lnx190.cckd.0?? && (cd disks; sha256sum -c lnx190.sha256)\n' > $W/deb/VM370CE.V1.R1.2/joindeb.sh
   chmod +x $W/deb/VM370CE.V1.R1.2/joindeb.sh
-  n=6; first=1
+  n=$(ls $D/VM370PLUS-kit-$STAMP-part*.zip | wc -l); n=$((n+1)); first=1
   for f in $P; do
     extra=""; [ $first = 1 ] && extra="VM370CE.V1.R1.2/disks/lnx190.sha256 VM370CE.V1.R1.2/JOINDEB.CMD VM370CE.V1.R1.2/joindeb.sh"
     (cd $W/deb; zip -q $D/VM370PLUS-kit-$STAMP-part$n.zip VM370CE.V1.R1.2/disks/$f $extra)

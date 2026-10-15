@@ -131,23 +131,25 @@ B(['A fresh, unmodified extraction of `VM370CE_V1_R1_2.zip`. Do not install VM/3
    'Hercules 4.x (SDL Hyperion; tested with 4.7 and 4.9.1) or Hercules 3.13. Programs cross-compiled for 31-bit mode need Hercules 4.x, which has the z900-level instructions in ESA/390 mode.',
    'A 3270 terminal emulator; the wc3270 in the Community Edition package is sufficient.',
    'For Linux networking on Windows: the CTCI-WIN package for SDL Hercules (TunTap64.dll, with Npcap). On Linux or WSL2: the tun driver, and Hercules running as root or with hercifc installed setuid.',
-   'The VM/370plus kit: twelve zip files, each under 30 MB.']);
+   'The VM/370plus kit: nineteen zip files, each under 30 MB.']);
 TABLE(['Part', 'Contents'], [
   ['1', '`vm370ce.conf` (ESA/390), the shadow files of the system volumes (CP nucleus, CMS, directory), README, tools'],
   ['2', '`disks/vm50-4.cckd`: VM50-4 with its paging area record corrected'],
   ['3', 'the shadow file of the CMSUSER volume'],
-  ['4', '`vm370plus/linux/`: the Linux kernel and parameter decks, the CMS files for MAINT 19D, kernel configuration and patches'],
+  ['4', '`vm370plus/linux/`: the Linux kernel and parameter decks, the CMS files for MAINT 19D, kernel configuration and patches; the shadow file of VM50-2'],
   ['5', 'the shadow file of VM50-3 (spool and paging)'],
-  ['6–12', 'the Debian disk, `disks/lnx190.cckd` (a 3390-9), in seven pieces, with `JOINDEB.CMD` and `joindeb.sh` to join them'],
+  ['6', 'the shadow file of VM50U1 (BORDER, user disks)'],
+  ['7–16', 'the Debian disk, `disks/lnx190.cckd` (a 3390-9), in ten pieces, with `JOINDEB.CMD` and `joindeb.sh` to join them'],
+  ['17–19', 'the language disk, `disks/lang.cckd` (a 3380), in three pieces, with `JOINLANG.CMD` and `joinlang.sh`'],
 ], [1000, 8638], 'The installation kit');
 H2('Installation steps');
 N(['Unzip `VM370CE_V1_R1_2.zip` into a new directory.',
-   'Unzip kit parts 1 to 15 over it, replacing files when asked.',
+   'Unzip kit parts 1 to 19 over it, replacing files when asked.',
    'Join the Debian disk. In the Community Edition directory, at a Windows command prompt:',
 ]);
 SCREEN(['JOINDEB.CMD', 'Debian disk joined: disks\\lnx190.cckd'], 'Joining the Debian disk (Windows)');
 P('On Linux or WSL2 use `sh joindeb.sh`, which also checks the result. The file `disks/lnx190.sha256` holds the checksum of the joined file. Keep a copy of `lnx190.cckd`: it is your Linux system disk and Hercules writes to it.');
-P('Join the language disk the same way (kit parts 14 and 15): `JOINLANG.CMD` on Windows or `sh joinlang.sh` on Linux and WSL2 gives `disks/lang.cckd`, the 3380 at address 182 that holds MAINT 19F (see Chapter 8).');
+P('Join the language disk the same way (kit parts 17 to 19): `JOINLANG.CMD` on Windows or `sh joinlang.sh` on Linux and WSL2 gives `disks/lang.cckd`, the 3380 at address 182 that holds MAINT 19F (see Chapter 8).');
 SCREEN(['JOINLANG.CMD', 'Language disk joined: disks\\lang.cckd'], 'Joining the language disk (Windows)');
 N(['If you want the Linux network, remove the `#` in front of the line `#0600.2 CTCI 10.1.1.2 10.1.1.1` in `vm370ce.conf`.',
    'Start the system as you start the Community Edition: `vm370ce.cmd` on Windows, `vm370ce.sh` elsewhere.'], true);
@@ -616,8 +618,8 @@ TABLE(['Path', 'Contents'], [
   ['`vm370ce.conf`', 'ESA/390 configuration, MAINSIZE 256, the CTC and 3390 lines for Linux'],
   ['`disks/shadows/*_1.shadow`', 'the VM/370plus system: CP nucleus, CMS, directory, user disks'],
   ['`disks/vm50-4.cckd`', 'VM50-4 with the paging area record corrected'],
-  ['`disks/lnx190.cckd`', 'the Debian disk, a 3390-9 (after joining parts 6–13)'],
-  ['`disks/lang.cckd`', 'the language disk VMLANG, a 3380 at address 182 (after joining parts 14–15)'],
+  ['`disks/lnx190.cckd`', 'the Debian disk, a 3390-9 (after joining parts 7–16)'],
+  ['`disks/lang.cckd`', 'the language disk VMLANG, a 3380 at address 182 (after joining parts 17–19)'],
   ['`README-VM370PLUS.txt`', 'the short form of this manual'],
   ['`vm370plus/linux/`', 'linux48.rdr, lxparm.rdr, lxparmram.rdr, kernel configuration, patches, initramfs sources, the Debian post-install script'],
   ['`vm370plus/m5f/`', 'the CMS runtime for cross-compiled 31-bit C programs'],
