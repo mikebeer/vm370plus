@@ -683,3 +683,25 @@ poweroff, SHUTDOWN clean.
 JamVM on CMS: arch/31bit/java/cms (green threads, generated JNI stubs,
 Classpath natives, dlsym table, cmsrt additions). ecj 3.5.2 built from
 eclipse-jdt tag R3_5_2 (compiler, batch, compiler.tool) against glibj.
+
+## Kit b17 (15 October 2026, 00:05)
+
+The CP guest LAN (9.12b): `CP DEFINE LCS vaddr` gives an ESA/390 user a
+CP-simulated 3088-60 LCS (module DMKVLN in DMKVSI, `updates/vlncode.py`);
+Linux's lcs driver makes the pair eth0, all adapters are on one segment
+10.3.0.0/24. Steps A-D tested on the dev pack (lb3-lb11): two Linux guests
+ping each other, 1400-byte frames, logoff/re-logon/offline-online/DETACH
+under traffic; Debian with `vm370plus-lan` (rc.local; address from
+`/etc/vm370plus-lan.conf` by `vmcp q userid`); TCP 200 KB intact at about
+37 KB/s. I-292 (FRE013 from a cross-user CPEXBLOK pump) fixed with a PCI
+kick; I-293 (Debian `halt -i` hangs with eth0 up) worked around with
+NETDOWN=no. The Debian disk has kernel #11 (LCS) and the bookie fixes;
+`vm370plus/linux/linux11.rdr` is kernel #11 as a reader deck. 18 parts.
+Verified on a fresh CE + all parts (kt31): MAINT Debian comes up with eth0
+10.3.0.2 by itself, CMSUSER's in-storage Linux joins as 10.3.0.3, ping both
+ways, poweroff ends in the disabled wait, SHUTDOWN clean. (The test adds a
+001F 3215 line to the conf for the second terminal; enabling 00A for it
+needs VARY ONLINE after the client connects.)
+
+Also on 14/15 Oct: BookMaster manuals VMP-0003 (Status) and VMP-0004
+(BOOKIE) in `manual/bookmaster`, and three vmplus.tmac/bookie fixes.
