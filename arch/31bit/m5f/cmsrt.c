@@ -367,8 +367,49 @@ static int grow(struct cfile *f, u32 more)
     return 0;
 }
 
+static const unsigned char *cms_fst(const struct cfile *f);
+
+/* M8.2: the first record of a file, without reading the rest (the XL
+   loader takes the image sizes from it before it allocates anything) */
+int cms_read_head(const char *name, void *buf, unsigned n)
+{
+    struct cfile g;
+    memset(&g, 0, sizeof g);
+    if (parse_name(name, &g)) return -1;
+    if (!g.fm_given) g.fm[0] = 0x5C;
+    set_fscb("RDBUF", &g);
+    fscb.buf = (u32)rec; fscb.bsize = RECMAX;
+    fscb.recfm[0] = 0xE5; fscb.recfm[1] = 0x40;
+    fscb.norec = 1;
+    int rc = cms202(&fscb);
+    u32 got = rc ? 0 : fscb.nread;
+    set_fscb("FINIS", &g);
+    cms202(&fscb);
+    if (rc) return -1;
+    if (got > n) got = n;
+    memcpy(buf, rec, got);
+    return (int)got;
+}
+
 static int read_whole(struct cfile *f)
 {
+    /* M8.2: size the buffer from the FST once, instead of doubling it
+       (a 21 MB tar took a 32 MB buffer and left 16 MB of holes behind:
+       cc1 ran out of heap).  Items x LRECL, or for a count capped at
+       65535 (an EDF file) the data blocks x 4096. */
+    if (!f->cap) {
+        const unsigned char *e = cms_fst(f);
+        if (e) {
+            u32 items = (u32)e[26] << 8 | e[27];
+            u32 lrecl = (u32)e[32] << 24 | (u32)e[33] << 16 | (u32)e[34] << 8 | e[35];
+            u32 blocks = (u32)e[36] << 8 | e[37];
+            u32 est = items < 65535 ? items * (lrecl + 1) : blocks * 4096u;
+            if (est && est < (256u << 20)) {
+                char *d = malloc(est + 1);    /* exactly: grow() doubles */
+                if (d) { f->data = d; f->cap = est + 1; }
+            }
+        }
+    }
     for (;;) {
         int rc;
         set_fscb("RDBUF", f);
@@ -391,6 +432,11 @@ static int read_whole(struct cfile *f)
     /* close it: CMS keeps a read position per open file */
     set_fscb("FINIS", f);
     cms202(&fscb);
+    /* an estimate that was too large gives its tail back */
+    if (f->cap > f->len + 65536) {
+        char *d = realloc(f->data, f->len + 1);
+        if (d) { f->data = d; f->cap = f->len + 1; }
+    }
     return 0;
 }
 
@@ -635,7 +681,8 @@ int _lseek(int fd, int off, int whence)
    (DMSSTT).  Packed MMDD at +16, HHMM at +18, the year as EBCDIC digits at
    +38.  0 if the file is not on disk. */
 static int bcd2(unsigned char b) { return (b >> 4) * 10 + (b & 15); }
-static time_t cms_mtime(const struct cfile *f)
+/* the file's 40-byte FST (STATE's copy, STATEFST), or 0 */
+static const unsigned char *cms_fst(const struct cfile *f)
 {
     /* the plist must be below 16 MB (SVC 202 runs in AMODE 24): the low
        block, not a static, which an XL program has above 16 MB (9.35: every
@@ -649,7 +696,13 @@ static time_t cms_mtime(const struct cfile *f)
     pl[26] = pl[27] = 0x40;
     plw[7] = 0;
     if (cms202(pl) || !plw[7]) return 0;
-    const unsigned char *e = (const unsigned char *)(plw[7] & 0x00FFFFFF);
+    return (const unsigned char *)(plw[7] & 0x00FFFFFF);
+}
+
+static time_t cms_mtime(const struct cfile *f)
+{
+    const unsigned char *e = cms_fst(f);
+    if (!e) return 0;
     int mon = bcd2(e[16]), day = bcd2(e[17]), hh = bcd2(e[18]), mi = bcd2(e[19]);
     int yy = (e[38] & 15) * 10 + (e[39] & 15);
     if (mon < 1 || mon > 12 || day < 1 || day > 31) return 0;

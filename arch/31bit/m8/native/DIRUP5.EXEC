@@ -1,0 +1,22 @@
+/* DIRUP5 EXEC -- M8.2: CMSUSER may define up to 768M (cc1 needs more  */
+/* heap than a 256M machine leaves it for the largest cREXX units)     */
+'EXECIO * DISKR USER DIRECT A (FINIS STEM D.'
+if rc <> 0 then exit rc
+n = 0
+do i = 1 to d.0
+  if word(d.i, 1) = 'USER' & word(d.i, 2) = 'CMSUSER' then do
+    parse var d.i w1 w2 w3 w4 w5 rest
+    if w5 = '768M' then do; say 'DIRUP5: already 768M'; exit 0; end
+    d.i = left(left('USER CMSUSER CMSUSER' w4 '768M' rest, 72) || substr(d.i, 73), 80)
+    n = n + 1
+  end
+end
+if n <> 1 then do; say 'DIRUP5: CMSUSER entry not found'; exit 28; end
+'COPYFILE USER DIRECT A USERM82 DIRECT A (REPLACE'
+'ERASE USER DIRECT A'
+do i = 1 to d.0; queue d.i; end
+'EXECIO' d.0 'DISKW USER DIRECT A 0 F 80 (FINIS'
+if rc <> 0 then exit rc
+'DIRECT USER DIRECT A'
+say 'DIRUP5: RC' rc
+exit rc

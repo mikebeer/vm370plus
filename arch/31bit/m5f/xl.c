@@ -39,6 +39,7 @@ struct xlsvc {
 
 int cms202(void *plist);
 void cms_heap_trim(void);
+int cms_read_head(const char *name, void *buf, unsigned n);
 static struct lowdata low;
 static jmp_buf back;
 static int xl_rc;
@@ -73,38 +74,33 @@ int main(int argc, char **argv)
         fprintf(stderr, "XL: give the program: XL fn [args]  (fn XIMAGE)\n");
         return 24;
     }
-    snprintf(name, sizeof name, "%s.ximage(b", argv[1]);
-    f = fopen(name, "rb");
-    if (!f) { fprintf(stderr, "XL: %s XIMAGE not found\n", argv[1]); return 28; }
-    fseek(f, 0, SEEK_END);
-    n = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    /* M8.2: the header first, then the image straight into its place and
-       the relocations into a small buffer -- not the whole file and a copy
-       (that held the image twice and left cc1 23 MB less heap) */
-    unsigned char hdr[24];
-    if (n < 24 || fread(hdr, 1, 24, f) != 24 || memcmp(hdr, "XIMG", 4) || be32(hdr + 4) != 1) {
+    /* M8.2: the sizes from the first record, then the image allocated
+       first (the low end of the heap), then the file read above it: its
+       buffer is freed at the top and trimmed away, so the program gets
+       all the rest of HIGHSTOR (the old order kept a 23 MB hole) */
+    unsigned char hdr[80];
+    snprintf(name, sizeof name, "%s.ximage", argv[1]);
+    if (cms_read_head(name, hdr, sizeof hdr) < 24) {
+        fprintf(stderr, "XL: %s XIMAGE not found\n", argv[1]); return 28;
+    }
+    if (memcmp(hdr, "XIMG", 4) || be32(hdr + 4) != 1) {
         fprintf(stderr, "XL: %s XIMAGE is not an XIMAGE\n", argv[1]);
         return 32;
     }
     entry = be32(hdr + 8); isize = be32(hdr + 12);
     bsize = be32(hdr + 16); nrel = be32(hdr + 20);
-    if (24 + isize + 4 * nrel > (u32)n) {
-        fprintf(stderr, "XL: %s XIMAGE is truncated\n", argv[1]);
-        return 32;
-    }
-    /* cmsrt reads a whole file into storage at fopen: close it before
-       the image is allocated, so the image takes the low end of the heap
-       and the file's buffer (opened again above it) is trimmed away */
-    fclose(f);
     img = malloc(isize + bsize + 8);
     file = malloc(4 * nrel + 4);
     if (!img || !file) {
         fprintf(stderr, "XL: no storage for %u bytes\n", isize + bsize);
         return 104;
     }
+    snprintf(name, sizeof name, "%s.ximage(b", argv[1]);
     f = fopen(name, "rb");
-    if (!f || fseek(f, 24, SEEK_SET) ||
+    if (!f) { fprintf(stderr, "XL: %s XIMAGE not found\n", argv[1]); return 28; }
+    fseek(f, 0, SEEK_END);
+    n = ftell(f);
+    if (24 + isize + 4 * nrel > (u32)n || fseek(f, 24, SEEK_SET) ||
         fread(img, 1, isize, f) != isize || fread(file, 1, 4 * nrel, f) != 4 * nrel) {
         fprintf(stderr, "XL: cannot read %s XIMAGE (%ld bytes)\n", argv[1], n);
         return 104;
