@@ -23,12 +23,23 @@ X=s390x-linux-gnu
 E2C=${E2C:-/home/claude/m5f/elf_to_cms8}
 mkdir -p "$O"; W=$O/root; rm -rf "$W" "$O/pc"; mkdir -p "$W/crexx" "$O/pc"
 tar xf "$SYSTAR" -C "$W"
-python3 - "$O" "$W" "$C" "$H" "$G" "$H8/inc/cms" "$CFLAGS_EXTRA" \
+# The compiler's scanners as upstream builds them for CMS (S370/cmslocalbuild.sh):
+# re2c with S370/encoding.re (letters a-z A-Z) instead of -8 and the Unicode
+# tables.  The -8 rexbscan.c is 3.2 MB of C in one function, more than cc1
+# can compile in a 256M machine (I-185 caps virtual storage there); these are
+# 20 times smaller.  Identifiers are then ASCII letters only, as in IBM REXX.
+N=$O/gen; rm -rf $N; mkdir -p $N/compiler
+RE2C=${RE2C:-/home/claude/crexx-host/re2c/re2c}
+for f in rxcpbscn:rexbscan rxcpcscn:rexcscan rxcposcn:rxcposcn; do
+  $RE2C -I $C/S370 -o $N/compiler/${f##*:}.c $C/compiler/${f%%:*}.re
+done
+CP=$(for f in $CP; do b=$(basename $f); [ -f $N/compiler/$b ] && echo $N/compiler/$b || echo $f; done)
+python3 - "$O" "$W" "$C" "$H" "$G" "$H8/inc/cms" "$CFLAGS_EXTRA" "$N" \
   "$C/interpreter/rxvmmain.c $C/assembler/rxasmain.c $C/compiler/rxc_main.c $C/interpreter/rxvml.c" \
   "$VMF" "$AS" "$CP" <<'EOF'
 import os, sys, subprocess, shutil, tarfile, re
-O, W, C, H, G, CMSI, CFX, MAINS, VMF, AS, CP = sys.argv[1:]
-roots = [(C, '/crexx/s'), (H, '/crexx/h'), (G, '/crexx/g'), (CMSI, '/crexx/cms')]
+O, W, C, H, G, CMSI, CFX, NG, MAINS, VMF, AS, CP = sys.argv[1:]
+roots = [(C, '/crexx/s'), (H, '/crexx/h'), (G, '/crexx/g'), (CMSI, '/crexx/cms'), (NG, '/crexx/n')]
 def cms(p):                       # PC path -> path inside CRXROOT TAR
     p = os.path.realpath(p)
     for r, t in roots:
@@ -64,7 +75,7 @@ allf = base + fl
 # directories at all -- so the sysroot tar (21 MB) is never read into the
 # heap -- and a tighter garbage collector.  rexbscan.c (re2c's 3.2 MB
 # scanner, one function) needs every megabyte.
-TWOPASS = {'REXBSCAN'}
+TWOPASS = set()      # (rexbscan.c needed it until the S370 scanners)
 def nopre(ws):
     out, skip = [], False
     for w in ws:

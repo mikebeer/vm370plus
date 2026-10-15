@@ -323,6 +323,12 @@ static int parse_name(const char *name, struct cfile *f)
        FILE OUTDD (A when written) */
     if (np == 1) { memcpy(part[1], part[0], 9); memcpy(part[0], "FILE\0\0\0\0", 9); np = 2; }
     if (np < 2) return -1;
+    /* a third part is a file mode -- a letter and at most a digit; else
+       it is not a CMS file (cc1 probes for "x.h.gch": CMS answered each
+       probe with "Invalid mode 'GC'") */
+    if (np >= 3 && (!(part[2][0] >= 'A' && part[2][0] <= 'Z') ||
+                    (part[2][1] && !(part[2][1] >= '0' && part[2][1] <= '9')) || part[2][2]))
+        return -1;
     put8(f->fn, part[0]); put8(f->ft, part[1]);
     if (np >= 3) {
         f->fm[0] = rt_a2e[(unsigned char)part[2][0]];
