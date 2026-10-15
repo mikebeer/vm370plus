@@ -29,3 +29,9 @@ RXC needs `LIBRARY RXBIN` and `RXCEXITS RXBIN` (built on the PC:
 
 Next (M8.2): build it natively on VM/370plus (GCC380 / GCCLIB31), as M5g did
 for the 2022 tree.
+
+**M8.2 (15 October 2026): the same cREXX built natively on CMS** with the
+GCC 13 that runs there (9.21): `native/mknat.sh` (CRXROOT TAR, CRX82 EXEC),
+run `tests/runs/m82-native-gcc13.json` (`tools/esa390mb.sh 256`). RXC82,
+RXAS82 and RXBVM82 compile, assemble and run programs with library calls.
+docs/41-M8.2-NATIVE-CREXX.md, "Route 2".

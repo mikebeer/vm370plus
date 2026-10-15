@@ -180,28 +180,38 @@ lib = [names[u] for u in vm + asm if u not in mains]
 seen = []
 for n in lib:
     if n not in seen: seen.append(n)
-E.append("IF WHAT = 'ALL' | WHAT = 'C' THEN DO")
-E.append("  CALL ERASE 'CRXLIB A A'")
-for c in chunks([n.lower() + '.o' for n in seen], 50):
-    E.append("  " + q(c))
-E.append("  QUEUE ''")
-E.append("  'AR rcs crxlib.a =STACK'")
-E.append("  IF RC <> 0 THEN EXIT RC")
-E.append("END")
+
 def link(mod, objs, lib):
     E.append("IF WHAT = 'ALL' | WHAT = '%s' THEN CALL LINK '%s', '%s', '%s'" % (
         {'RXBVM82': 'VM', 'RXAS82': 'AS', 'RXC82': 'C'}[mod], mod,
         ' '.join(n.lower() + '.o' for n in objs), lib))
     l = E.pop(); i = l.index(", '", l.index("CALL LINK") + 12)   # split: objs
     head, rest = l[:i + 1], l[i + 2:]
-    E.append(head)
+    E.append(head + " ,")   # a separator, then the continuation comma
     o = rest[1:rest.index("'", 1)]; tail = rest[rest.index("'", 1) + 1:]
     parts = chunks(o.split(), 60)
     for k, c in enumerate(parts):
         E.append("  '" + c + (" ' ||," if k < len(parts) - 1 else "'" + tail))
 link('RXBVM82', [names[mains[0]]] + [names[u] for u in vm], '')
 link('RXAS82', [names[mains[1]]] + [names[u] for u in asm] + [names[u] for u in vm], '')
-link('RXC82', [names[mains[2]]] + [names[u] for u in cp] + [names[mains[3]]], 'crxlib.a')
+# RXC: the VM and assembler units as an archive would give them -- the
+# members the PC's link of the same objects takes from crxlib.a (CMS ar
+# cannot write an archive yet: "could not create temporary file")
+X = 's390x-linux-gnu'; L = W + '/usr/lib'; P = O + '/pc'
+subprocess.run('rm -f %s/crxlib.a && cd %s/o && %s-ar rcs ../crxlib.a %s' % (P, P, X,
+               ' '.join(n + '.o' for n in seen)), shell=True, check=True)
+cobj = [names[mains[2]]] + [names[u] for u in cp] + [names[mains[3]]]
+subprocess.run([X + '-ld', '-m', 'elf_s390', '-static', '--emit-relocs', '--gc-sections',
+                '-T', L + '/image.ld', '-o', P + '/rxcmap.elf', '-Map', P + '/rxcmap.map',
+                L + '/entry31.o'] + [P + '/o/' + n + '.o' for n in cobj] +
+               [L + '/cmsrt.o', '--start-group', P + '/crxlib.a', L + '/libc.a', L + '/libm.a',
+                L + '/libsoftf.a', L + '/libgcc.a', '--end-group'], check=True,
+               stderr=subprocess.DEVNULL)
+mp = open(P + '/rxcmap.map').read()
+mp = mp[mp.index('Archive member included'):mp.index('Discarded input sections')]
+members = [n for n in seen if 'crxlib.a(%s.o)' % n in mp]
+print('mknat: RXC takes %d of %d archive members' % (len(members), len(seen)))
+link('RXC82', cobj + members, '')
 E.append("SAY 'CRX82: done' TIME('E') 's'")
 E.append("EXIT 0")
 E.append("")

@@ -75,7 +75,7 @@ TABLE(['Milestone', 'Content', 'Status'], [
   ['M7.11', 'a 3390-9 Debian disk (about 7 GB) as the standard Linux disk', 'complete'],
   ['\u2014', 'service machines: CHATBOT (the MCchat persona bot) with CHAT EXEC', 'complete'],
   ['M8', 'cREXX: the 2022 release built natively (M5); the current release cross-built (M8.1)', 'complete'],
-  ['M8.2', 'the current cREXX built natively with GCC380', 'compiler, assembler and VM work; the library does not build yet'],
+  ['M8.2', 'the current cREXX built natively on CMS with GCC 13', 'complete (15 October): RXC82, RXAS82, RXBVM82'],
   ['\u2014', 'languages in cREXX for CMS and Linux; Turbo CREXX', 'complete on both'],
   ['\u2014', 'GNU C 4.6, Python 2.7 and 3.2, Regina REXX and THE under Debian', 'complete'],
   ['M9', 'before 64-bit: SET/QUERY MACHINE, FULIST, GLOBALV, TDISK; CP leftovers; GCC 13 C/C++, GnuCOBOL, COBOL with OO, PL/I, Python, SQLite + SQLSERV, Pascal, APL, xBase, ZIP, TERSE on CMS; the language disk (kit build 8)', 'complete'],
@@ -410,7 +410,9 @@ SCREEN(['ipl 290', 'rxc31 basic', 'rxas31 basic', 'rxbvm31 basic', 'libctest a b
 H2('The current cREXX release');
 P('The current release (1.0.0-beta.3) needs a C99 compiler; GCC380 is GCC 3.2.3. It runs on VM/370plus cross-compiled with GCC 13 (`RXC8`, `RXAS8`, `RXBVM8`, milestone M8.1). `RXC8` needs `LIBRARY RXBIN` and `RXCEXITS RXBIN` on the disk named by `-l`; source files are `fn CREXX`:');
 SCREEN(['rxc8 -l a -i a hello', 'rxas8 -l a hello', 'rxbvm8 -l a hello', 'Hello from current cREXX on VM/370plus', 'sum 1..10 = 55', 'Ready;'], 'The current cREXX on CMS');
-P('Milestone M8.2 builds the same release natively with GCC380 and GCCLIB31 (`RXC82`, `RXAS82`, `RXBVM82`). The three work for programs that call no library functions; the library itself does not build natively yet (Chapter 9). Until it does, use the M8.1 tools. Native cREXX on CMS runs in EBCDIC (IBM-1047) throughout, as IBM REXX does.');
+P('Milestone M8.2 builds the same release natively, on CMS, with the GCC 13 compiler that runs there (`RXC82`, `RXAS82`, `RXBVM82` on the LANG disk). They are used exactly like the M8.1 tools, library functions included:');
+SCREEN(['copyfile c82lib crexx l = = a', 'copyfile library rxbin l = = a', 'rxc82 -l a -i a c82lib', 'rxas82 -l a c82lib', 'rxbvm82 -l a c82lib library', 'length: 10 reverse: cba', 'Ready;'], 'The natively built cREXX');
+P('One difference: their scanners are generated as upstream generates them for CMS, so identifiers are ASCII letters only, as in IBM REXX. `CRX82 EXEC` rebuilds the three on CMS. Link LANG read/write as A (`LINK MAINT 19F 29F MR`, `ACCESS 29F A`) in a 256M machine started with `IPL 290`, then `CRX82`; it takes about two hours.');
 H2('Languages written in cREXX');
 P('Several languages are implemented as cREXX programs. They are compiled once on the PC and run unchanged on CMS (through `RXBVM8`) and on Linux (through `rxvm`). Floating point comes from `rxfloat`, a cREXX version of the cREXX float plugin, so no native plugin is needed.');
 TABLE(['Language', 'CMS', 'Linux', 'Notes'], [
@@ -527,7 +529,6 @@ TABLE(['Area', 'Restriction'], [
   ['CPWATCH', 'Loops under this CP; not autologged.'],
   ['QUERY VIRTUAL STORAGE', 'Shows five digits.'],
   ['Multiprocessing', 'One CPU only.'],
-  ['cREXX, native', 'The natively built current cREXX (M8.2) cannot build its library yet; use RXC8, RXAS8 and RXBVM8 (M8.1).'],
   ['CMS file names', 'Programs cross-compiled for CMS cut a file name longer than eight characters to eight (Smalltalk’s `collections.st` is `COLLECTI ST`).'],
   ['C and C++ on CMS', 'No C++ exceptions (a `throw` ends the program), no threads, only the "C" locale. A compile needs `CP DEFINE STORAGE 256M`; cc1plus takes one to two minutes of CPU.'],
   ['Language disk', 'An old copy of an EXEC or MODULE of the same name on one of your own disks comes first in the search order (PLIC, COBOL, APL ...); erase it.'],

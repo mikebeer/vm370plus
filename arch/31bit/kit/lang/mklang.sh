@@ -84,6 +84,14 @@ add HELLO NRX $JX/hello.nrx V; add HELLO JAVA $JX/hello.java V
 add HELLO CLASS $JV/cms/test/hello.class RAW; add 'HELLO$1' CLASS "$JV/cms/test/hello\$1.class" RAW
 # BORDER (9.12c): kernel #12 (LCS + netfilter, iptables in its initramfs)
 add LINUX12 KERNEL ${K12:-/home/claude/src/linux12.image} BIN; add BORDER EXEC $R/linux390/border/BORDER.EXEC F
+# M8.2: current cREXX built natively on CMS with GCC 13 (RXC82, RXAS82,
+# RXBVM82: TEXT decks the dev system's CRX82 run made), and what rebuilds them
+# there (CRX82 EXEC, CRXROOT TAR, ELF2CM8: m8/native/mknat.sh)
+M82=${M82:-/home/claude/src/new/m82}
+for m in RXBVM82 RXAS82 RXC82; do add $m TEXT $M82/${m,,}.text BIN; done
+add CRX82 EXEC $M82/crx82.exec F; add CRXROOT TAR $M82/crxroot.tar BIN; add ELF2CM8 XIMAGE $M82/elf2cm8.ximage BIN
+add LIBRARY RXBIN /home/claude/crexx-host/bin/library.rxbin RAW; add RXCEXITS RXBIN /home/claude/crexx-host/bin/rxcexits.rxbin RAW
+add C82HELLO CREXX $M82/c82hello.crexx F; add C82LIB CREXX $M82/c82lib.crexx F
 # the disk's own files
 add LANG EXEC $K/LANG.EXEC F; add LANGGEN EXEC $K/LANGGEN.EXEC F; add LANG README $K/README.txt V
 sed -i 's/ F$/ F 80/' $LST

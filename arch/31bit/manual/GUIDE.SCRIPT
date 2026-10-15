@@ -307,8 +307,8 @@ release cross-built (M8.1)
 :c.complete
 :row.
 :c.M8.2
-:c.the current cREXX built natively with GCC380
-:c.compiler, assembler and VM work; the library does not build yet
+:c.the current cREXX built natively on CMS with GCC 13
+:c.complete (15 October)&colon. RXC82, RXAS82, RXBVM82
 :row.
 :c.&mdash.
 :c.languages in cREXX for CMS and Linux; Turbo CREXX
@@ -1517,12 +1517,28 @@ Ready;
 :exmp.
 :figcap.The current cREXX on CMS
 :efig.
-:p.Milestone M8.2 builds the same release natively with GCC380 and
-GCCLIB31 (:xph.RXC82:exph., :xph.RXAS82:exph., :xph.RXBVM82:exph.). The
-three work for programs that call no library functions; the library
-itself does not build natively yet (Chapter 9). Until it does, use the
-M8.1 tools. Native cREXX on CMS runs in EBCDIC (IBM-1047) throughout, as
-IBM REXX does.
+:p.Milestone M8.2 builds the same release natively, on CMS, with the GCC
+13 compiler that runs there (:xph.RXC82:exph., :xph.RXAS82:exph.,
+:xph.RXBVM82:exph. on the LANG disk). They are used exactly like the
+M8.1 tools, library functions included&colon.
+:fig.
+:xmp.
+copyfile c82lib crexx l = = a
+copyfile library rxbin l = = a
+rxc82 -l a -i a c82lib
+rxas82 -l a c82lib
+rxbvm82 -l a c82lib library
+length: 10 reverse: cba
+Ready;
+:exmp.
+:figcap.The natively built cREXX
+:efig.
+:p.One difference&colon. their scanners are generated as upstream
+generates them for CMS, so identifiers are ASCII letters only, as in IBM
+REXX. :xph.CRX82 EXEC:exph. rebuilds the three on CMS. Link LANG
+read/write as A (:xph.LINK MAINT 19F 29F MR:exph., :xph.ACCESS 29F
+A:exph.) in a 256M machine started with :xph.IPL 290:exph., then
+:xph.CRX82:exph.; it takes about two hours.
 :h2.Languages written in cREXX
 :p.Several languages are implemented as cREXX programs. They are
 compiled once on the PC and run unchanged on CMS (through
@@ -2131,10 +2147,6 @@ yet checked on EDF disks.
 :row.
 :c.Multiprocessing
 :c.One CPU only.
-:row.
-:c.cREXX, native
-:c.The natively built current cREXX (M8.2) cannot build its library yet;
-use RXC8, RXAS8 and RXBVM8 (M8.1).
 :row.
 :c.CMS file names
 :c.Programs cross-compiled for CMS cut a file name longer than eight

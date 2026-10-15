@@ -50,7 +50,7 @@ and the work after 64-bit is **M11**.
 | M7 | 7.10 | ESA/390 guests | IPL LINUX from its disk (vmzipl) | Done | 10 Oct |  |
 | M7 | 7.11 | ESA/390 guests | 3390-9 Debian disk (7 GB) as standard | Done | 10 Oct |  |
 | M8 | 8.1 | cREXX | Current cREXX cross-built for CMS (RXC8, RXAS8, RXBVM8) | Done | 8 Oct |  |
-| M8 | 8.2 | cREXX | Current cREXX built natively on CMS | In progress | 9 Oct– | RXC/RXAS work; RXBVM82 open |
+| M8 | 8.2 | cREXX | Current cREXX built natively on CMS | Done | 9 Oct– | 15 Oct, route 2 (GCC 13 on CMS, 9.21): all 113 units compiled by cc1 on CMS (CRX82 EXEC, m8/native/mknat.sh), linked by ld there: RXC82, RXAS82, RXBVM82 MODULE. Run n83g: C82HELLO compiled/assembled/run (sum 1..10 = 55), C82LIB with library functions (length/reverse via LIBRARY RXBIN). Fixes on the way: cmsrt file buffers sized from the FST, heap = largest HIGHSTOR piece, XL loads the image before the file buffer, VFS literal ../ paths, cc1 GC params, handler panel 1, scanners from upstream's S370 encoding (rexbscan 3.2 MB -> 169 KB). Open: CMS ar cannot write an archive (temp file), RXC link takes the members the PC map names |
 | M9 | 9.1 | Since kit b6 | SET/QUERY MACHINE, FULIST, GLOBALV, command tables, I-257, I-258 | Done | 10–11 Oct |  |
 | M9 | 9.2 | CP leftovers | I-235 (models), I-201 (DMKDMP dump), warm start (I-267, I-268), LPSW fast path above 16 MB, per-user IP (9.12a) | Done | 11 Oct | I-201, I-265, I-267, I-268, I-269 fixed; LPSW/SVC fast paths; I-235 models kept resident by design (M10 revisits sharer invalidation) |
 | M9 | 9.3 | C++ | C++ on CMS (subset, cross route) | Done |  | Superseded by 9.21: full GCC 13 C++ natively on CMS, not a subset |
