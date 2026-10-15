@@ -81,17 +81,30 @@ for f in it:
         d = next(it); pcflags += [f, W + d if d.startswith('/usr/') else d]
     else: pcflags.append(f)
 files = set()
+raw = set()     # include paths with .. or . as cc1 asks for them: cmsrt's
+                # VFS matches names literally, so they are tar members too
 os.makedirs(O + '/pc/o', exist_ok=True)
 for u in units:
     o = O + '/pc/o/' + names[u] + '.o'
     subprocess.run(['s390x-linux-gnu-gcc'] + pcflags + fix + ['-MD', '-MF', o + '.d', '-c', u, '-o', o], check=True)
     d = open(o + '.d').read().replace('\\\n', ' ').split(':', 1)[1].split()
     files.update(os.path.realpath(x) for x in d)
+    raw.update(x for x in d if '/../' in x or '/./' in x)
 # 2. CRXROOT TAR
 for f in sorted(files):
     if f.startswith(W + '/'): continue
     t = W + cms(f); os.makedirs(os.path.dirname(t), exist_ok=True); shutil.copy(f, t)
 subprocess.run(['tar', '--format=ustar', '-cf', O + '/crxroot.tar', '-C', W, 'usr', 'crexx'], check=True)
+def rawcms(x):
+    for r, t in roots:
+        for rr in (r, os.path.realpath(r)):
+            if x.startswith(rr + '/'): return t + x[len(rr):]
+    raise SystemExit('mknat: raw path outside the tree: ' + x)
+import tarfile
+with tarfile.open(O + '/crxroot.tar', 'a', format=tarfile.USTAR_FORMAT) as tf:
+    for x in sorted(raw):
+        tf.add(os.path.realpath(x), arcname=rawcms(x).lstrip('/'))
+print('mknat: %d literal ../ paths' % len(raw))
 open(O + '/units.txt', 'w').write(''.join('%-8s %s\n' % (names[u], cms(u)) for u in units))
 # 3. CRX82 EXEC
 def q(s):            # one QUEUE line of a long command (' \' continues)
