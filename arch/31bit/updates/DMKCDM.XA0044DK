@@ -1,0 +1,46 @@
+./ R 00451000          $ 00451100 100                                           
+         MVC   FLDLEN(4),F8   SET MAX FIELD LENGTH, 8 DIGITS   XA0044DK         
+./ R 00669000          $ 00669100 100                                           
+         TRANS 2,1,OPT=(BRING,DEFER,AMODE31) USER PAGE (31)    XA0044DK         
+./ R 00694000          $ 00694100 100                                           
+         CALL  DMKPTRAN,PARM=DEFER+AMODE31 LET PTRAN HANDLE    XA0044DK         
+./ R 00774000          $ 00774100 100                                           
+         TRANS 2,1,OPT=(DEFER,AMODE31) LET PTR CHECK SEGMENT   XA0044DK         
+./ R 00779000          $ 00779100 100                                           
+INVDKEY  L     R1,FFS         MINUS IF NON-ADDRESSABLE         XA0044DK         
+./ R 00782000 00799000 $ 00782100 100                                           
+         L     R2,0(,R3)      THE STE                          XA0044DK         
+         LR    R3,R2          ...                              XA0044DK         
+         N     R3,=A(SEGPTOM) PAGE TABLE ORIGIN                XA0044DK         
+         N     R2,=A(SEGPTLF) PTL, UNITS OF 16 ENTRIES         XA0044DK         
+         LA    R2,1(,R2)      ...                              XA0044DK         
+         SLL   R2,4           PAGES IN THIS SEGMENT            XA0044DK         
+         SR    R14,R14        ZERO WORK REGISTER               XA0044DK         
+         SLDL  R14,8          PAGE NUMBER, BITS 12-19          XA0044DK         
+         CR    R14,R2         WITHIN THE PAGE TABLE ?          XA0044DK         
+         BNL   INVDKEY        NO - THATS MORE THAN WE HAVE     XA0044DK         
+         SLL   R14,3          TIMES PAGSWPE                    XA0044DK         
+         LA    R2,PAGTSWP-(PAGPFRA-PAGSTMP)+8(,R3) SWPFLAG 0   XA0044DK         
+         SRL   R14,1          SET UP FOR 2ND HALF PAGE         XA0044DK         
+         SLDL  R14,1          ADD 1 IF 2ND HALF OF PAGE        XA0044DK         
+         SR    R1,R1          ZERO REGISTER                    XA0044DK         
+         IC    R1,SWPKEY1-SWPFLAG(R14,R2) VIRTUAL KEY          XA0044DK         
+         SRL   R14,1          PAGE NUMBER TIMES 4              XA0044DK         
+         LA    R3,0(R14,R3)   LOAD PAGE TABLE ENTRY ADDRESS    XA0044DK         
+         SR    R2,R2          CLEAR FOR ISKE (OR LACK OF IT)   XA0044DK         
+         TM    2(R3),PAGINV   IS THE PAGE IN STORAGE ?         XA0044DK         
+         BO    GOTPART        BRANCH IF NO                     XA0044DK         
+         L     R14,0(,R3)     THE PTE                          XA0044DK         
+         N     R14,=A(PAGPFRM) REAL PAGE ADDRESS               XA0044DK         
+         ISKE  R2,R14         GET THE REAL STORAGE KEY         XA0044DK         
+./ R 00834000          $ 00834100 100                                           
+         A     R1,=F'2047'    ADD 2047 (NOT LA) I-208          XA0044DK         
+./ R 01140000          $ 01140100 100                                           
+         ISKE  R1,R2          GET THE REAL STUFF, 4 KB FRAME   XA0044DK         
+./ R 01166000          $ 01166100 100                                           
+         TRANS 2,1,OPT=(BRING,DEFER,AMODE31) STILL IN ? (31)   XA0044DK         
+./ R 01178000          $ 01178100 100                                           
+         L     R1,=V(DMKPGTXT) TOP OF REAL STORAGE (I-298)     XA0044DK         
+./ R 01422000          $ 01422100 100                                           
+         COPY  VMBLOK                                          XA0044DK         
+         COPY  CORE                                            XA0044DK         

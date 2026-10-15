@@ -74,6 +74,8 @@
          ISKE  R1,R2          GET THE REAL STUFF, 4 KB FRAME   XA0044DK         
 ./ R 01454000          $ 01454100 100                                           
          TRANS 2,1,OPT=(BRING,DEFER,AMODE31) ADDRESS OK?       XA0044DK         
+./ R 01466000          $ 01466100 100                                           
+         L     R1,=V(DMKPGTXT) TOP OF REAL STORAGE (I-298)     XA0044DK         
 ./ R 01471100          $ 01471101 001                                           
          ALR   R1,R14         2ND PAGE ADDRESS: ADD, NOT LA    XA0044DK         
          AL    R1,F1          (31-BIT, I-208)                  XA0044DK         

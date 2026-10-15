@@ -9219,6 +9219,82 @@ SHRMODS = {
 
 CONSMODS = {
 
+    # I-298 (15 Oct).  CP DUMP took CP down with PRG001, as DISPLAY K did
+    # before I-209: DMKCDM's GETKEY (the DUMP twin of DMKCDB's) was still
+    # S/370 below the STE -- 2-byte PTE, 16-entry swap table at PTO+40,
+    # ISK, an operation exception on ESA/390 -- and DUMP's key column used
+    # ISK on real storage too.  The same conversion as DMKCDB's (I-209), the
+    # segment's page count checked as DMKCDB's @VA09057 does; DUMP's TRANS
+    # and PTRAN calls take a clean 31-bit address (I-208), and its hexloc
+    # may be eight digits.  (DUMP's printed addresses stay six digits.)
+    'DMKCDM': [
+        ('00451000', [
+            "         MVC   FLDLEN(4),F8   SET MAX FIELD LENGTH, 8 DIGITS",
+        ]),
+        ('00669000', [
+            "         TRANS 2,1,OPT=(BRING,DEFER,AMODE31) USER PAGE (31)",
+        ]),
+        ('00694000', [
+            "         CALL  DMKPTRAN,PARM=DEFER+AMODE31 LET PTRAN HANDLE",
+        ]),
+        ('00774000', [
+            "         TRANS 2,1,OPT=(DEFER,AMODE31) LET PTR CHECK SEGMENT",
+        ]),
+        ('00779000', [
+            "INVDKEY  L     R1,FFS         MINUS IF NON-ADDRESSABLE",
+        ]),
+        ('00782000', '00799000', [
+            "         L     R2,0(,R3)      THE STE",
+            "         LR    R3,R2          ...",
+            "         N     R3,=A(SEGPTOM) PAGE TABLE ORIGIN",
+            "         N     R2,=A(SEGPTLF) PTL, UNITS OF 16 ENTRIES",
+            "         LA    R2,1(,R2)      ...",
+            "         SLL   R2,4           PAGES IN THIS SEGMENT",
+            "         SR    R14,R14        ZERO WORK REGISTER",
+            "         SLDL  R14,8          PAGE NUMBER, BITS 12-19",
+            "         CR    R14,R2         WITHIN THE PAGE TABLE ?",
+            "         BNL   INVDKEY        NO - THATS MORE THAN WE HAVE",
+            "         SLL   R14,3          TIMES PAGSWPE",
+            "         LA    R2,PAGTSWP-(PAGPFRA-PAGSTMP)+8(,R3) SWPFLAG 0",
+            "         SRL   R14,1          SET UP FOR 2ND HALF PAGE",
+            "         SLDL  R14,1          ADD 1 IF 2ND HALF OF PAGE",
+            "         SR    R1,R1          ZERO REGISTER",
+            "         IC    R1,SWPKEY1-SWPFLAG(R14,R2) VIRTUAL KEY",
+            "         SRL   R14,1          PAGE NUMBER TIMES 4",
+            "         LA    R3,0(R14,R3)   LOAD PAGE TABLE ENTRY ADDRESS",
+            "         SR    R2,R2          CLEAR FOR ISKE (OR LACK OF IT)",
+            "         TM    2(R3),PAGINV   IS THE PAGE IN STORAGE ?",
+            "         BO    GOTPART        BRANCH IF NO",
+            "         L     R14,0(,R3)     THE PTE",
+            "         N     R14,=A(PAGPFRM) REAL PAGE ADDRESS",
+            "         ISKE  R2,R14         GET THE REAL STORAGE KEY",
+        ]),
+        ('00834000', [
+            "         A     R1,=F'2047'    ADD 2047 (NOT LA) I-208",
+        ]),
+        ('01140000', [
+            "         ISKE  R1,R2          GET THE REAL STUFF, 4 KB FRAME",
+        ]),
+        # the suppressed-lines re-TRANS: a 24-bit TRANS leaves R2 with a
+        # dirty high byte, SETR14's top-of-storage difference goes negative
+        # and DISHMVCB / the '*' store run off real storage (PRG005).
+        ('01166000', [
+            "         TRANS 2,1,OPT=(BRING,DEFER,AMODE31) STILL IN ? (31)",
+        ]),
+        # SETR14 clips the EX length at the top of real storage, and a guest
+        # page may sit in a frame above DMKSYSRM: the difference went
+        # negative and the '*' store ran to 7A1C84C6 (PRG005).  DMKPGTXT is
+        # the real top (I-287).
+        ('01178000', [
+            "         L     R1,=V(DMKPGTXT) TOP OF REAL STORAGE (I-298)",
+        ]),
+        # the page-table and swap-table fields live in CORE COPY (as DMKCDB)
+        ('01422000', [
+            "         COPY  VMBLOK",
+            "         COPY  CORE",
+        ]),
+    ],
+
     # I-207.  The console could not look above 16 MB in a 32M machine: DISPLAY
     # and STORE take a hexloc of at most six digits (DMKCDB FLDLEN = F6, DMKCDS
     # CL R0,F6 twice), and DISPLAY printed every address through STCM
@@ -9355,6 +9431,10 @@ CONSMODS = {
             "         TRANS 2,1,OPT=(BRING,DEFER,AMODE31) ADDRESS OK?",
         ]),
         # 'LA R1,1(R14,R1)' summed the second page's address in 24 bits
+        # SETR14: the real top is DMKPGTXT, not DMKSYSRM (I-298, as DMKCDM)
+        ('01466000', [
+            "         L     R1,=V(DMKPGTXT) TOP OF REAL STORAGE (I-298)",
+        ]),
         ('01471100', [
             "         ALR   R1,R14         2ND PAGE ADDRESS: ADD, NOT LA",
             "         AL    R1,F1          (31-BIT, I-208)",

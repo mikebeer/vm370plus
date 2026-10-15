@@ -333,15 +333,16 @@ retracted and corrected).
 | **I-295** | **Under `IPL 290` (EC-mode CMS) AUTOLOG's first command goes to CP** (bi2, 15 Oct). `CP AUTOLOG BORDER BORDER EXEC BORDER` with the directory's `IPL 290`: the virtual machine is in a CP read after the IPL (the same thing as the line-console "Enter after logon" seen in the test harness), so the first-VREAD data is taken as a CP command; `CP MSG OPERATOR ...` as first command works, `EXEC BORDER` is lost and CMS waits. Under `IPL CMS` the first command reaches CMS (CMSBATCH, WAKEUP). BORDER uses `IPL CMS` and a PROFILE EXEC. **Probably not a bug (later the same day):** the second attempt had BORDER EXEC on 19E with file mode 1, which users that see 19E as Y/S do not see (the mode-2 rule found later in bi2), so `EXEC BORDER` found no EXEC; the first attempt had it on 19D, which the system profile accesses only after the first command. Not retested with a mode-2 EXEC on 19E under IPL 290; BORDER keeps IPL CMS and its PROFILE EXEC. | likely not a bug |
 | **I-296** | **`IPL CMS` straight after Linux in the same machine ends in DMSITP143T** (dh1, 15 Oct): BORDER (64M, LCS 640/641 defined, CTC 626/636 dedicated) after its Linux: `#cp ipl cms` gives `DMSITP143T ADDRESSING EXCEPTION OCCURRED AT F8BBD2 IN SYSTEM ROUTINE WAITRD, RE-IPL CMS` and a disabled wait; `SYSTEM CLEAR` first, then `IPL CMS`, works. (M7.8's CMSUSER went back to CMS after Linux without this; the difference may be the 64M or the devices.) | open |
 | **I-297** | **Writing to one EDF disk breaks file lookups on another EDF disk** (M8.2 probes n82f/n82e, 15 Oct): CMSUSER, IPL 290, LANG (19F, EDF, R/O as L) and an EDF-formatted T3350 as A. Before any write, `STATE` finds every file on L; after the first `COPYFILE ... L = = A` (a new file on A), `STATE` of files on L fails (`RXCEXITS RXBIN`, `LIBRARY RXBIN`, `LANG README`: "File not found"); `RELEASE L` / `ACCESS 19F L` cures it until the next write to A, and the second release then ended in `DMSFRE161T INVALID DMSFRET CALL ... ERROR NUMBER 7`. Lookups on 800-byte disks stay right. Suspects: DMSEFS state that is per module rather than per disk, or the hyperblocks/ADT of the R/O, sorted (ADTFSORT) disk changed by the write path (FINDZERO, FINW, COMMIT). Workaround for M8.2: one EDF disk only (LANG linked R/W as A). | open |
+| **I-298** | **CP DUMP took CP down** (15 Oct): `CP DUMP 0-ffff` from CMSUSER (32M) ended in PRG001, later PRG005. DMKCDM, DUMP's twin of DMKCDB, had none of DISPLAY's ESA/390 fixes: GETKEY walked a S/370 2-byte page table with ISK (I-209's code, copied), its TRANS/PTRAN calls masked to 24 bits (I-208), and SETR14 clipped the EX length at DMKSYSRM -- a guest page in the frame at 07DAD000 made the length negative and the line-end `MVI 0(R1),C'*'` (01155000) stored to 7A1C84C6 (Hercules `pgmtrace +5`). XA0044DK: GETKEY as DMKCDB's, every TRANS `AMODE31`, `ISKE`, the hexloc eight digits, SETR14 against DMKPGTXT (the real top, as I-287); DMKCDB's SETR14 had the same DMKSYSRM bound and takes the same line. Verified (i298f, MAINSIZE 256): `CP DUMP 0-ffff` and `CP DUMP 1000000-100ffff` COMMAND COMPLETE, `D K` unchanged. | fixed |
 
 ## Counts
 
 | Status | Count |
 |---|---|
-| fixed | 111 |
+| fixed | 110 |
 | documented | 19 |
 | closed | 23 |
-| open | 22 |
+| open | 26 |
 | **z390 only** | 2 |
 | fix known | 10 |
 | worked around | 1 |
@@ -349,6 +350,7 @@ retracted and corrected).
 | **FIXED** -- verified 05:06 4 Oct (w30, after I-197): `r 3DF16` = `88200014`/`89100014`, `IPL 190` passes the point and reaches the guest (wall 26). | 1 |
 | **FIXED** -- verified 05:40 (w32): SIO and the TIO polling loop simulated, the CMS nucleus loads and starts executing at `F80A36` (SSK simulated too). Next failure is PRG006 in CP (wall 27, I-200). | 1 |
 | **FIXED** -- verified 06:33 (w37): `IPL 190` runs to `Ready; T=0.01/0.01`, `QUERY DISK` lists 191/190/19E correctly. CMS runs. Wall 28 (I-202) is DMSITP141T in the profile EXEC. | 1 |
+| **FIXED** 13 Oct 13:28 (run i277). **Cause: CE's saved segment GCCLIB is stale.** It was saved from an older GCCLIB whose CMSRUNTM allocates 32 bytes for argv (8 pointers, I-282), while GCCLIB TEXT on 19E allocates 520. A machine of 16 MB or more never loads the segment and uses the TEXT, which is why only small machines failed. The segment pages on VM50-1 (cyl 9, pages 2-30) showed `00000020` at F20C84 where the TEXT has `00000208`. **Fix:** MAINT `DEF STOR 16M`, `IPL 190`, first command `ACCESS (NOPROF` (no profile, so BREXX is not loaded into the high free storage at F24000 that LOAD would overwrite: DMSFRE164T), `ACCESS 093 F`, `GCCLIBGN F20000` (LOAD CLEAR, SETKEY 13, SAVESYS). The new pages match the TEXT relocated to F20000 on the PC byte for byte (apart from our M5b CMSSYS patch), keys D4 as before. CMSUSER at 8M with the segment loaded: an EXEC with 11 and 12 arguments runs. To report upstream: re-run GCCLIBGN after NEWBREXX. | 1 |
 | **M4c in** — CPWATCH's own loop open (I-251) | 1 |
 | **closed -- retracted** | 1 |
 | **closed 4 Oct, 14:31** — frame-level sharing (XA0045DK, docs/33): `IPL CMS` by name reaches `Ready;`, AUTOLOG1's init `IPL CMS` completes, two sharers (MAINT + CMSUSER) run, FORCE/LOGOFF/shutdown clean (w41). | 1 |
@@ -368,9 +370,10 @@ retracted and corrected).
 | **fixed (the hang)** 11 Oct — the dump waited for ever in DMKDMP's enabled wait: XAIO's ORB carried interruption parameter 0, so `CH R15,IOINTPRM+2` never matched the dump device, and an ESA/390 interrupt stores no CSW. XAIO.MACRO now puts the device address in the ORB (as DMKCPI's MSCH does, I-47); DMKDMP DSKIOINT does a TSCH (XATIO) for the CSW (XA0055DK). A restart dump now runs to DMKCKP, which stops with `DMKCKP911W WARM START area full` (the test pack's warm-start area); reading the dump back is not yet verified. | 1 |
 | **fixed for the device-IPL and DEF STOR paths** (XA0054DK, 9 Oct, M7.8): a full release in DMKDEH/DMKCFG frees the VMABLOKs and clears VMSHRSYS/VMSHR; a device IPL by a user in a named system is forced CLEAR. Model tables (FRAME-SHARING), decided 11 Oct (9.2): **kept resident by design** -- one locked model per shared 64 KB group, about 60 frames for CMS + GCCLIB, below 1% of the low frames; freeing them when the last user leaves would need every holder's copied PTEs found and dropped first, the same machinery as the open invalidation of other sharers' copies after DMKVMASH, which is deferred to the CP work of M10 | 1 |
 | **fixed on our pack** 5 Oct 21:50 | 1 |
-| **fixed** | 1 |
+| **fixed** | 8 |
 | **fixed** (DMSSMN XA0051DK; w265) | 1 |
 | **fixed** (DMSSVT XA0051DK; w209/w210) | 1 |
+| **fixed** (XA0054DK, DMKPRV 00809000: STNSM/STOSM simulated in BC mode too; in BC mode the system mask is also the PSW's byte 0). Run bc, 13 Oct 15:05: CMSUSER with `SET ECMODE OFF`, 8M, GCCLIB segment, a REXX EXEC with 11 arguments runs. NICOF users also got `OPTION ECMODE`. | 1 |
 | **fixed** (i234) | 1 |
 | **fixed** (i235) | 1 |
 | **fixed** (i236) — verified w108/w110: every LINK present at logon, AUTOLOG1's PROFILE runs | 1 |
@@ -385,6 +388,9 @@ retracted and corrected).
 | **fixed** (i248) — verified w160: `cmswrite 290` completes, `IPL 290` boots the rebuilt nucleus | 1 |
 | **fixed** (i249) — w169: `IPL 290` under ECMODE boots, `TRACE SVC` shows EC reflection | 1 |
 | **fixed** (i250; w202: 40 MB keyed and used above 16 MB in AMODE 31) | 1 |
+| **fixed** (mk31.py edit: `(ARGBUFFERLEN/2 + 2) * sizeof(char *)`); GCCLIB31 TXTLIB rebuilt on CMSUSER 195 by GCLB31 (run g31, 13 Oct 13:15, `tests/runs/gcclib31-args.json`): `M5G2 a b c d e f g h i j k l` prints all 13 argv entries. To report upstream. | 1 |
+| **fixed** (tc65): templates of 8-11 characters become Tnnn.TMP | 1 |
+| **fixed** (tc70): cmsrt reads the FST with STATE: DMSSTT leaves the address of its STATEFST copy in the plist at +28 (not in R1 -- tc69 showed R1 is restored by SVC 202); date MMDD/HHMM packed at +16/+18, year EBCDIC at +38 | 1 |
 | **fixed** (w190, w192); report upstream (Adrian) | 1 |
 | **fixed** (w192: IPL 190 BC + REXX, IPL 290 EC + REXX, same user) | 1 |
 | **fixed** 11 Oct (9.12a) — the address follows the CTC pair: attached as 62x/63x (x its offset in the 06xx block) or at its real address, pair 06xx gives 10.1.n.2 with n = xx/2 + 1, which is what the PC end of that pair (Hercules CTCI) is set to. `/usr/local/sbin/vm370plus-net` on the Debian disks (run from rc.local; also in vm370plus-post.sh) and the same rule in the initramfs for the next kernel build | 1 |
@@ -404,6 +410,7 @@ retracted and corrected).
 | **fixed** — w215: COPYFILE of 60 files to D | 1 |
 | **fixed** — w238 (GCC370), w240 (GCC380) | 1 |
 | **open** | 1 |
+| **open** -- drive.py: reconnect the terminal on a broken pipe | 1 |
 | **open** -- needs a reproduction: a CMS disabled wait (e.g. a forced program check in a nucleus extension), then `CP D` of the PSA and of a virtual range above 16 MB | 1 |
 | **open** -- reproduce with MAINSIZE 16, DEF STOR 256M, a paging job, then LOGOFF; with MAINSIZE 256 it did not occur (tc20, tc21). **15 Oct 07:20 (n82p), reproduced without a LOGOFF:** the dev config had gone back to MAINSIZE 16; CMSUSER (256M, IPL 290) ran cc1 (23 MB XIMAGE + 21 MB SYSROOT TAR in storage) for the M8.2 build, and after 7 minutes CP sat in its enabled wait answering nothing -- the real-storage exhaustion I-287 (4) measured (no frames, nothing paging out). Storage image of the first 16 MB in `scratch/i272/core.bin`; recovered with `restart` (PSA002), SHUTDOWN clean. The kit runs MAINSIZE 256 (mkkit.sh) and the dev config is 256 again. Remaining fix: CP must page out (or refuse to dispatch) when every frame is taken, rather than stop | 1 |
 | **open** — cosmetic | 1 |
@@ -412,7 +419,12 @@ retracted and corrected).
 | fix built, unverified | 2 |
 | fix determined | 2 |
 | fixed by `I-104` | 1 |
+| likely not a bug | 1 |
 | measured | 1 |
+| mitigated | 1 |
+| open (5 causes fixed) | 1 |
+| open (worked around) | 1 |
+| open -- mitigation: start `nicof.sh` only after `AUTOLOG1 DONE`; the hung Hercules waits for the owner's OK to be ended | 1 |
 | open, characterised | 2 |
 
 **Six of the twenty-three closed entries are retracted claims of my own** —
