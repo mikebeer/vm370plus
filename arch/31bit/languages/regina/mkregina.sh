@@ -14,12 +14,13 @@ cd $S
 git checkout -- os_other.c misc.c stack.c 2>/dev/null || true
 patch -p1 < $H/regina-cms.patch
 python3 $H/stack-cms.py stack.c
-cp $H/cmscompat.c .
+cp $H/cmscompat.c $H/cmsexeccomm.c .
 CC=$M/cmscc ./configure --host=s390-linux-gnu --build=x86_64-linux-gnu \
   --disable-gci --disable-posix-threads >/dev/null
 sed -i 's/os_unx\.\$(OBJ)/os_other.$(OBJ)/; s/-DREGINA_BITS=64/-DREGINA_BITS=32/' Makefile
 sed -i '/^os_other\.\$(OBJ) :/,+1s/os_unx\.c/os_other.c/' Makefile
-sed -i 's/^\(OFILES = funcs.$(OBJ)\)/\1 cmscompat.$(OBJ)/' Makefile
+sed -i 's/^\(OFILES = funcs.$(OBJ)\)/\1 cmscompat.$(OBJ) cmsexeccomm.$(OBJ)/' Makefile
+printf 'cmsexeccomm.$(OBJ) : cmsexeccomm.c rexx.h\n\t$(CC) $(COPT) $(CC2O) -c cmsexeccomm.c\n' >> Makefile
 rm -f *.o rexx
 $M/cmscc -DNDEBUG -O2 -I. -c cmscompat.c -o cmscompat.o   # (no rule in Regina's Makefile)
 make rexx CFLAGS="-DNDEBUG -O2 -DNO_EXTERNAL_QUEUES" >/dev/null
@@ -27,5 +28,5 @@ ${E2C:-/home/claude/m5f/elf_to_cms} rexx $O/regina.text
 # 9.39: the same as an XIMAGE (high storage), for XL and the resident XLRES
 rm -f *.o rexx
 CMSCC_XL=1 $M/cmscc -DNDEBUG -O2 -I. -c cmscompat.c -o cmscompat.o
-CMSCC_XL=1 make rexx CFLAGS="-DNDEBUG -O2 -DNO_EXTERNAL_QUEUES" >/dev/null
+CMSCC_XL=1 CMSCC_XL=1 make rexx CFLAGS="-DNDEBUG -O2 -DNO_EXTERNAL_QUEUES" >/dev/null
 python3 $M/mkximage.py rexx $O/regina.ximage

@@ -1,0 +1,17 @@
+ID MAINT NAME EIO EXEC
+/*!REGINA EXECIO and GLOBALV through EXECCOMM */
+'EXECIO * DISKR PLAIN EXEC A (FINIS STEM LN.'
+say 'execio rc' rc 'ln.0='ln.0
+do i = 1 to 4; say i':' ln.i; end
+'EXECIO 1 DISKR PLAIN EXEC A 2 (FINIS VAR FIRST'
+say 'var rc' rc 'first='first
+'GLOBALV SET MYVAR hello'
+myvar = 'unset'
+'GLOBALV GET MYVAR'
+say 'globalv rc' rc 'myvar='myvar
+abc = 'from regina'
+'GLOBALV PUT ABC'
+'GLOBALV STACK ABC'
+parse pull back
+say 'globalv stacked:' back
+exit 0

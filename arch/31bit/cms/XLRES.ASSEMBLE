@@ -355,8 +355,9 @@ BADSYN   LA    R15,24
          LTORG
          DROP  R12
 ***********************************************************************
-*        INT CMS202(PLIST): SVC 202 IN AMODE 24 FOR THE PROGRAM (C ABI,
-*        CALLED IN AMODE 31; R2 = PLIST, RESULT IN R2)
+*        INT CMS202(PLIST, EPLIST): SVC 202 IN AMODE 24 FOR THE
+*        PROGRAM (C ABI, CALLED IN AMODE 31; R2 = PLIST, R3 = EPLIST,
+*        RESULT IN R2)
 ***********************************************************************
 C202     STM   R6,R15,24(R15)
          LR    R10,R15
@@ -364,7 +365,8 @@ C202     STM   R6,R15,24(R15)
          USING *,R12
          S     R15,C2160
          L     R13,C2SA
-         LR    R1,R2
+         LR    R1,R2              THE PLIST (HIGH BYTE: CALL TYPE)
+         LR    R0,R3              AN EXTENDED PLIST, IF ANY
          L     R11,C2A24
          BSM   0,R11
 C2IN24   CNOP  2,4

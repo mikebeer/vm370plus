@@ -28,6 +28,8 @@ struct lowdata {
     struct { unsigned char b[48]; } fscb;
     unsigned char dirpl[8 * 7];
     unsigned char rec[RECMAX + 8];
+    unsigned char cbstub[48];       /* 9.39: a SUBCOM entry (cms_subcom) */
+    unsigned int cbd[4];            /* its descriptor */
 } __attribute__((aligned(8)));
 struct xlsvc {
     int (*cms202)(void *plist);

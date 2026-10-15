@@ -85,7 +85,9 @@ cms_onstack:
  .text
  .balign 8
  .globl cms202
+ .globl cms202x
 cms202:
+cms202x:                   # 9.39: R0 = 2nd argument (an extended plist)
  stm %r6,%r15,24(%r15)
  lr %r10,%r15
  basr %r12,0
@@ -94,6 +96,7 @@ cms202:
  l %r13,.Lcsa-.Lc(%r12)    # a CMS save area below 16 MB (the C stack
                            # may be above: cms_onstack)
  lr %r1,%r2
+ lr %r0,%r3
  l %r11,.Lc24-.Lc(%r12)
  bsm 0,%r11                # AMODE 24
 .Lc_in24:

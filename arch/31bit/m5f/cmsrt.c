@@ -42,6 +42,7 @@ void mainframe_set_text_conversion(int enabled) { rt_conv = enabled != 0; }
 extern int errno;
 
 int cms202(void *plist);
+int cms202x(void *plist, void *eplist);   /* R0 = eplist (9.39) */
 void cms_exit(int rc) __attribute__((noreturn));
 int cms_onstack(void *top, int (*fn)(int, char **), int argc, char **argv);
 int main(int, char **);
@@ -59,6 +60,9 @@ static void cms_init_array(void)
 }
 /* the main stack, for a thread package (JamVM's green threads, 9.35) */
 void *cms_main_stack_base, *cms_main_stack_top;
+/* a program's own start-up, before main (a constructor would need
+   .init_array, which elf_to_cms does not take) */
+void cms_program_init(void) __attribute__((weak));
 static int cms_run_main(int argc, char **argv)
 {
     /* 9.39: an EXEC whose first line is '/*!name' (or any plain '/*' EXEC
@@ -75,6 +79,7 @@ static int cms_run_main(int argc, char **argv)
         argv[argc] = 0;
     }
     cms_init_array();
+    if (cms_program_init) cms_program_init();
     char *s = malloc(cms_stack_mb << 20);
     if (!s) return main(argc, argv);
     cms_main_stack_base = s;
@@ -109,6 +114,8 @@ struct lowdata {
     struct fscb fscb;
     unsigned char dirpl[8 * 7];
     unsigned char rec[RECMAX + 8];
+    unsigned char cbstub[48];       /* 9.39: a SUBCOM entry (cms_subcom) */
+    unsigned int cbd[4];            /* its descriptor */
 } __attribute__((aligned(8)));
 #ifdef CMS_XL
 struct xlsvc {                      /* from the XL loader (xl.c) */
@@ -121,6 +128,8 @@ struct xlsvc {                      /* from the XL loader (xl.c) */
 static struct xlsvc *xl;
 static struct lowdata *L;
 int cms202(void *plist) { return xl->cms202(plist); }
+/* 9.39: with an extended plist in R0 (the high byte of plist = call type) */
+int cms202x(void *plist, void *eplist) { return ((int (*)(void *, void *))xl->cms202)(plist, eplist); }
 #else
 static struct lowdata lowstatic;
 static struct lowdata *L = &lowstatic;
@@ -821,8 +830,26 @@ int system(const char *cmd)
     memset(pl + 8 * nt, 0xFF, 8);
     tflush();
     /* (X'01' in R1's high byte, "called as a command", made CMS's CP
-       routine end in a specification exception: plain SVC 202 it is) */
-    return cms202(pl);
+       routine end in a specification exception: plain SVC 202 for CP) */
+    if (nt && !memcmp(pl, "\xC3\xD7\x40\x40\x40\x40\x40\x40", 8))
+        return cms202(pl);
+    /* 9.39: everything else with the extended plist too (R0), the whole
+       command as typed: EXECIO parses its options from it */
+    unsigned char *ep = pl + 8 * nt + 8;          /* 4 words */
+    unsigned char *str = ep + 16;
+    int len = strlen(cmd);
+    if (str + len > rec + RECMAX) len = rec + RECMAX - str;
+    for (int i = 0; i < len; i++) str[i] = rt_a2e[(unsigned char)cmd[i]];
+    const unsigned char *q = str, *e = str + len;
+    while (q < e && *q == 0x40) q++;
+    u32 w[4];
+    w[0] = (u32)q;
+    while (q < e && *q != 0x40) q++;              /* past the command name */
+    w[1] = (u32)q;
+    w[2] = (u32)e;
+    w[3] = 0;
+    memcpy(ep, w, 16);
+    return cms202x((void *)((u32)pl | 0x01000000u), ep);
 }
 /* 9.39: the CMS console stack (what PUSH/QUEUE/PULL of a CMS EXEC use).
    cms_attn: stack a line (ATTN, DMSCAT), LIFO or FIFO, at most 255
@@ -1033,8 +1060,57 @@ int gettimeofday(struct timeval *tv, void *tz)
     return 0;
 }
 
+/* 9.39: a SUBCOM environment (EXECCOMM, for EXECIO and GLOBALV) served by
+   a C function of this program: a small AMODE 24 entry in the low block
+   (CMS calls it with R1 = plist, R0 = extended plist, R2 = the SCBLOCK whose
+   user word is our descriptor) calls fn(plist, eplist) in AMODE 31 on a
+   stack of its own; dropped again at exit (SUBCOM CLR), which uncovers
+   whatever the name meant before (BREXX's EXECCOMM, an outer program). */
+void cms_e2a(char *p, int n) { for (int i = 0; i < n; i++) p[i] = rt_e2a[(unsigned char)p[i]]; }
+void cms_a2e(char *p, int n) { for (int i = 0; i < n; i++) p[i] = rt_a2e[(unsigned char)p[i]]; }
+static int (*cb_fn)(unsigned char *, unsigned char *);
+static char cb_name[9];
+int cms_subcom(const char *name, int (*fn)(unsigned char *plist, unsigned char *eplist))
+{
+    static const unsigned char stub[48] = {
+        0x90,0xEC,0xD0,0x0C, 0x58,0x60,0x20,0x04, 0x18,0x30, 0x18,0x21,
+        0x50,0xD0,0x60,0x00, 0x58,0xF0,0x60,0x04, 0x58,0x10,0x60,0x08,
+        0x0C,0xE1, 0x58,0x10,0x60,0x0C, 0x0B,0x01, 0x58,0xD0,0x60,0x00,
+        0x18,0xF2, 0x58,0xE0,0xD0,0x0C, 0x98,0x0C,0xD0,0x14, 0x07,0xFE };
+    char *stack = malloc(128 << 10);
+    if (!stack || strlen(name) > 8) return -1;
+    memcpy(L->cbstub, stub, sizeof stub);
+    L->cbd[0] = 0;
+    L->cbd[1] = (u32)(stack + (128 << 10) - 96);
+    L->cbd[2] = (u32)fn | 0x80000000u;
+    L->cbd[3] = (u32)(L->cbstub + 0x20);
+    unsigned char *pl = rec;
+    /* DMSSNX: CL8'SUBCOM', CL8 name, 4X'00' (mask, key, ...), A(entry),
+       the user word, 8X'FF' */
+    memset(pl, 0, 36);
+    put8(pl, "SUBCOM"); put8(pl + 8, name);
+    pl[17] = 0xE4;                                /* user key */
+    u32 a = (u32)L->cbstub, w = (u32)L->cbd;
+    memcpy(pl + 20, &a, 4); memcpy(pl + 24, &w, 4);
+    memset(pl + 28, 0xFF, 8);
+    int rc = cms202(pl);
+    if (!rc) { cb_fn = fn; strcpy(cb_name, name); }
+    return rc;
+}
+static void cms_subcom_drop(void)
+{
+    if (!cb_fn) return;
+    unsigned char *pl = rec;
+    memset(pl, 0, 24);                          /* 4X'00', AL4(0) */
+    put8(pl, "SUBCOM"); put8(pl + 8, cb_name);
+    memset(pl + 24, 0xFF, 8);
+    cms202(pl);
+    cb_fn = 0;
+}
+
 void _exit(int rc)
 {
+    cms_subcom_drop();
     for (int fd = 3; fd < NFILES; fd++) if (files[fd].used) _close(fd);
     if (tlen) tflush();
     heap_fini();

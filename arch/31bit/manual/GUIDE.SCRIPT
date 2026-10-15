@@ -1596,6 +1596,12 @@ that starts with a plain :xph./*:exph. until the next IPL of CMS;
 the setting. Regina EXECs may call each other&colon. after
 :xph.LANG:exph., Regina is resident above 16 MB (:xph.XLRES:exph.,
 below), and each call runs in its own copy.
+:p.Regina works with CMS as BREXX does&colon. :xph.PUSH:exph.,
+:xph.QUEUE:exph. and :xph.QUEUED():exph. use the CMS console stack, so
+lines stacked by a Regina program reach the commands and EXECs it calls
+(and the other way round), and :xph.EXECIO ... (STEM name.:exph. or
+:xph.(VAR name:exph., :xph.GLOBALV GET:exph. and :xph.GLOBALV PUT:exph.
+read and set the Regina program's variables.
 :p.:xph.XLRES:exph. keeps a large program resident as a command.
 :xph.XLRES LOAD name:exph. reads :xph.name XIMAGE:exph. once into
 storage above 16 MB and makes :xph.name:exph. a nucleus extension; every
