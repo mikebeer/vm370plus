@@ -1,0 +1,26 @@
+diff --git a/os_other.c b/os_other.c
+index 0e8c8f7..7efa4f1 100644
+--- a/os_other.c
++++ b/os_other.c
+@@ -63,7 +63,7 @@
+ # include <sys/fcntl.h>
+ #endif
+ 
+-#if defined(MAC) || (defined(__WATCOMC__) && !defined(__QNX__)) || defined(_MSC_VER) || defined(__SASC) || defined(__MINGW32__) || defined(__BORLANDC__) || defined(__EPOC32__) || defined(__WINS__) || defined(__LCC__) || defined(SKYOS)
++#if defined(MAC) || (defined(__WATCOMC__) && !defined(__QNX__)) || defined(_MSC_VER) || defined(__SASC) || defined(__MINGW32__) || defined(__BORLANDC__) || defined(__EPOC32__) || defined(__WINS__) || defined(__LCC__) || defined(SKYOS) || defined(__CMS__)
+   /*
+    * MAC OSX hopefully uses the posix branch.
+    */
+@@ -656,6 +656,12 @@ int Oth_uname(struct regina_utsname *name)
+    strcpy( name->release,  "UNKNOWN" );
+    strcpy( name->nodename, "standalone" );
+    strcpy( name->machine,  "m68k" );
++#elif defined(__CMS__)
++   strcpy( name->sysname,  "CMS" );
++   strcpy( name->version,  "VM/370plus" );
++   strcpy( name->release,  "6" );
++   strcpy( name->nodename, "VM370PLUS" );
++   strcpy( name->machine,  "s390" );
+ #elif defined(MAC)
+    strcpy( name->sysname,  "MAC" );
+    strcpy( name->version,  "UNKNOWN" );

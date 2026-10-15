@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/times.h>
@@ -775,8 +776,33 @@ int _unlink(const char *name)
     return 0;
 }
 
-/* No processes on CMS: system() would LOAD a MODULE over the running one. */
-int system(const char *cmd) { return cmd ? -1 : 0; }
+/* system(): the command through SVC 202 with a tokenised plist (8-byte
+   upper-case tokens, "(" and ")" on their own, X'FF' at the end), as CMS
+   itself calls commands.  9.37 (Regina's ADDRESS CMS).  CAUTION: a command
+   that is a MODULE is loaded over the running program -- on CMS only
+   nucleus and transient-area commands, CP commands and EXECs that call
+   nothing else are safe from a program that is itself a MODULE.  Returns
+   the command's return code (-3: not found), or -1. */
+int system(const char *cmd)
+{
+    if (!cmd) return 1;                       /* a command processor exists */
+    unsigned char *pl = rec;                  /* below 16 MB */
+    int nt = 0, max = RECMAX / 8 - 1;
+    const char *p = cmd;
+    while (*p && nt < max) {
+        while (*p == ' ') p++;
+        if (!*p) break;
+        unsigned char *t = pl + 8 * nt++;
+        memset(t, 0x40, 8);
+        if (*p == '(' || *p == ')') { t[0] = rt_a2e[(unsigned char)*p]; p++; continue; }
+        for (int k = 0; *p && *p != ' ' && *p != '(' && *p != ')'; p++)
+            if (k < 8) t[k++] = rt_a2e[(unsigned char)toupper((unsigned char)*p)];
+    }
+    if (!nt) return 0;
+    memset(pl + 8 * nt, 0xFF, 8);
+    tflush();
+    return cms202(pl);
+}
 int _execve(const char *n, char *const a[], char *const e[]) { (void)n; (void)a; (void)e; errno = ENOSYS; return -1; }
 int _fork(void) { errno = ENOSYS; return -1; }
 int _wait(int *st) { (void)st; errno = ECHILD; return -1; }
