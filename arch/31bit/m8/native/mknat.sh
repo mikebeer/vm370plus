@@ -47,6 +47,9 @@ base = ('-quiet -m31 -mesa -march=z900 -msoft-float -mlong-double-64 '
         '-fno-pic -fno-asynchronous-unwind-tables -fno-unwind-tables '
         '-fno-stack-protector -ffunction-sections -fdata-sections -nostdinc '
         '-I /usr/include/m5f -isystem /usr/lib/gcc/include '
+        # cc1's garbage collector earlier: rxvmintp.c (the VM's run() with
+        # its handlers inlined) ran the heap above 16 MB out in a 256M machine
+        '--param=ggc-min-expand=20 --param=ggc-min-heapsize=32768 '
         '-D_Thread_local= -D__thread= -D__SINGLE_THREAD__ '
         '-isystem /usr/include/newlib').split()
 # not CC EXEC's -D__CMS__ (cREXX's platform.h would take its GCCLIB route,
