@@ -105,6 +105,8 @@ if [ -z "$ip" ]; then
 fi
 [ -n "$ip" ] || { echo "vm370plus-lan: eth0 up, no address for ${u:-this user} (see /etc/vm370plus-lan.conf)"; ifconfig eth0 up; exit 0; }
 ifconfig eth0 $ip netmask 255.255.255.0 up
+# no CTC of its own: out through BORDER (9.12c)
+route -n | grep -q "^0\.0\.0\.0" || route add default gw 10.3.0.1
 echo "vm370plus-lan: eth0 $ip on the guest LAN (LCS $r)"
 LAN
 chmod 755 /usr/local/sbin/vm370plus-lan

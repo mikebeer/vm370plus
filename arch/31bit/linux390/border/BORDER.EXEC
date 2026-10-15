@@ -1,0 +1,75 @@
+/* BORDER EXEC -- VM/370plus 9.12c: start BORDER, the guest LAN's    */
+/* only way out (user BORDER; its PROFILE EXEC runs this at logon).  */
+/*                                                                   */
+/* BORDER is an in-storage Linux, kernel #12 (LINUX12 KERNEL1 and    */
+/* KERNEL2 on BORDER's 191), with two network adapters: eth0 on the  */
+/* CP guest LAN as 10.3.0.1 (CP DEFINE LCS 640/641, done here) and   */
+/* ctc0 to the PC (the CTC pair 0606/0607, DEDICATEd as 626/636:     */
+/* 10.1.4.2, the PC end 10.1.4.1).  It routes the LAN out through    */
+/* ctc0 behind its own address (NAT) and lets nothing in but ssh to  */
+/* itself and the ports exposed in BORDER CONFIG (MAINT 19E):        */
+/*     EXPOSE TCP 2222 TO 10.3.0.3 22                                */
+/* Start it with  CP AUTOLOG BORDER BORDER  (OPERATOR or AUTOLOG1).  */
+/* Log on with  ACCESS (NOPROF  as the first command to stay in CMS. */
+'CP SET MSG ON'
+'CP MSG OPERATOR BORDER: starting (BORDER EXEC)'
+'STATE LINUX12 KERNEL2 A'
+if rc <> 0 then do
+  'CP MSG OPERATOR BORDER: LINUX12 KERNEL1/KERNEL2 A missing'
+  exit 28; end
+/* the forwards from BORDER CONFIG, as vmfwd= parameters             */
+fwd = ''
+cfm = ''
+'STATE BORDER CONFIG A'
+if rc = 0 then cfm = 'A'
+else do
+  'STATE BORDER CONFIG Y'
+  if rc = 0 then cfm = 'Y'
+end
+if cfm <> '' then do
+  'EXECIO * DISKR BORDER CONFIG' cfm '(FINIS STEM C.'
+  do i = 1 to c.0
+    parse upper var c.i w1 pr po w4 ad dp .
+    if w1 <> 'EXPOSE' then iterate
+    if w4 <> 'TO' | ad = '' then do
+      say 'BORDER: ignored:' strip(c.i); iterate; end
+    if dp = '' then dp = po
+    if pr = 'UDP' then pr = 'udp'; else pr = 'tcp'
+    fwd = fwd pr':'po':'ad':'dp
+  end
+end
+/* the parameter cards: no card longer than 80, one vmfwd= per card  */
+p.1 = 'no_removal_warning conmode=3215 condev=0x0009 vmroot=ram'
+p.2 = 'vmrole=border'
+n = 2; cur = ''
+do i = 1 to words(fwd)
+  f = word(fwd, i)
+  if cur <> '' & length('vmfwd=' || cur || ',' || f) > 79 then do
+    n = n + 1; p.n = 'vmfwd='cur; cur = ''; end
+  if cur = '' then cur = f; else cur = cur','f
+end
+if cur <> '' then do; n = n + 1; p.n = 'vmfwd='cur; end
+'SET CMSTYPE HT'
+'ERASE BORDER PARM A'
+'SET CMSTYPE RT'
+do i = 1 to n; queue left(p.i, 80); end
+'EXECIO' n 'DISKW BORDER PARM A 0 F 80 (FINIS'
+if rc <> 0 then exit rc
+'CP PURGE RDR ALL'
+'CP SPOOL PUNCH TO * CONT'
+'PUNCH LINUX12 KERNEL1 A (NOHEADER'
+if rc <> 0 then exit rc
+'PUNCH LINUX12 KERNEL2 A (NOHEADER'
+if rc <> 0 then exit rc
+'CP SPOOL PUNCH NOCONT'
+'CP CLOSE PUNCH'
+'PUNCH BORDER PARM A (NOHEADER'
+if rc <> 0 then exit rc
+'CP CLOSE PUNCH'
+do i = 3 to n; say 'BORDER:' p.i; end
+'CP DEFINE LCS 640'
+'CP DEFINE LCS 641'
+'CP MSG OPERATOR BORDER: IPL of its Linux (kernel #12)'
+'CP SET ESA ON'
+'CP IPL 00C'
+exit rc

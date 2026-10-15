@@ -1,0 +1,46 @@
+/* DIRUP2 EXEC -- 9.12c: the directory entry of BORDER, the guest    */
+/* LAN's link to the PC (an in-storage Linux; no minidisk of its own) */
+'EXECIO * DISKR USER DIRECT A (FINIS STEM D.'
+if rc <> 0 then exit rc
+/* an entry from an earlier DIRUP2: its CTC pair becomes 0606/0607 */
+fix = 0; have = 0
+do i = 1 to d.0
+  if word(d.i, 1) = 'DEDICATE' & word(d.i, 2) = '628' then do
+    d.i = left(' DEDICATE 626 606', 80); fix = fix + 1; end
+  if word(d.i, 1) = 'DEDICATE' & word(d.i, 2) = '638' then do
+    d.i = left(' DEDICATE 636 607', 80); fix = fix + 1; end
+  if word(d.i, 1) = 'USER' & word(d.i, 2) = 'BORDER' then have = 1
+end
+if have = 1 & fix = 0 then do
+  say 'DIRUP2: BORDER is already in the directory'; exit 0; end
+e.1  = '*'
+e.2  = '* BORDER (9.12c): the guest LAN''s only link to the PC.  An'
+e.3  = '* in-storage Linux (BORDER EXEC on 19E, kernel on 19F) with eth0'
+e.4  = '* on the LAN (10.3.0.1) and the CTC pair 0606/0607 (10.1.4.2).'
+e.5  = '* Start: CP AUTOLOG BORDER BORDER EXEC BORDER'
+e.6  = '*'
+e.7  = 'USER BORDER BORDER 64M 64M G'
+e.8  = ' OPTION ECMODE'
+e.9  = ' IPL 290'
+e.10 = ' CONSOLE 009 3215'
+e.11 = ' SPOOL 00C 2540 READER *'
+e.12 = ' SPOOL 00D 2540 PUNCH A'
+e.13 = ' SPOOL 00E 1403 A'
+e.14 = ' LINK MAINT 190 190 RR'
+e.15 = ' LINK MAINT 19D 19D RR'
+e.16 = ' LINK MAINT 19E 19E RR'
+e.17 = ' LINK MAINT 290 290 RR'
+e.18 = ' DEDICATE 626 606'
+e.19 = ' DEDICATE 636 607'
+'COPYFILE USER DIRECT A USERBB12 DIRECT A (REPLACE'
+'ERASE USER DIRECT A'
+do i = 1 to d.0; queue d.i; end
+if have = 0 then
+  do i = 1 to 19; queue left(e.i, 80); end
+else n = d.0
+if have = 0 then n = d.0 + 19
+'EXECIO' n 'DISKW USER DIRECT A 0 F 80 (FINIS'
+if rc <> 0 then exit rc
+'DIRECT USER DIRECT A'
+say 'DIRUP2: RC' rc
+exit rc

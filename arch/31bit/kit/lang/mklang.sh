@@ -82,6 +82,8 @@ add JAVA EXEC $JX/exec/JAVA.EXEC F; add JAVAC EXEC $JX/exec/JAVAC.EXEC F
 add NETREXX EXEC $JX/exec/NETREXX.EXEC F
 add HELLO NRX $JX/hello.nrx V; add HELLO JAVA $JX/hello.java V
 add HELLO CLASS $JV/cms/test/hello.class RAW; add 'HELLO$1' CLASS "$JV/cms/test/hello\$1.class" RAW
+# BORDER (9.12c): kernel #12 (LCS + netfilter, iptables in its initramfs)
+add LINUX12 KERNEL ${K12:-/home/claude/src/linux12.image} BIN; add BORDER EXEC $R/linux390/border/BORDER.EXEC F
 # the disk's own files
 add LANG EXEC $K/LANG.EXEC F; add LANGGEN EXEC $K/LANGGEN.EXEC F; add LANG README $K/README.txt V
 sed -i 's/ F$/ F 80/' $LST

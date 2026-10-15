@@ -31,3 +31,34 @@ slink /usr/bin/dropbearkey /usr/bin/dropbearmulti 0777 0 0
 slink /usr/bin/dbclient /usr/bin/dropbearmulti 0777 0 0
 slink /usr/bin/scp /usr/bin/dropbearmulti 0777 0 0
 file /sbin/mkdasdpart /home/claude/vm370/arch/31bit/linux390/initramfs/mkdasdpart 0755 0 0
+dir /lib 0755 0 0
+dir /lib/s390-linux-gnu 0755 0 0
+dir /lib/xtables 0755 0 0
+file /sbin/xtables-multi /home/claude/src/ipt/sbin/xtables-multi 0755 0 0
+slink /sbin/iptables xtables-multi 0777 0 0
+slink /sbin/iptables-save xtables-multi 0777 0 0
+slink /sbin/iptables-restore xtables-multi 0777 0 0
+file /lib/libip4tc.so.0.1.0 /home/claude/src/ipt/lib/libip4tc.so.0.1.0 0755 0 0
+slink /lib/libip4tc.so.0 libip4tc.so.0.1.0 0777 0 0
+file /lib/libip6tc.so.0.1.0 /home/claude/src/ipt/lib/libip6tc.so.0.1.0 0755 0 0
+slink /lib/libip6tc.so.0 libip6tc.so.0.1.0 0777 0 0
+file /lib/libxtables.so.7.0.0 /home/claude/src/ipt/lib/libxtables.so.7.0.0 0755 0 0
+slink /lib/libxtables.so.7 libxtables.so.7.0.0 0777 0 0
+file /lib/s390-linux-gnu/ld-2.13.so /home/claude/src/ipt/lib/s390-linux-gnu/ld-2.13.so 0755 0 0
+slink /lib/ld.so.1 s390-linux-gnu/ld-2.13.so 0777 0 0
+file /lib/s390-linux-gnu/libc-2.13.so /home/claude/src/ipt/lib/s390-linux-gnu/libc-2.13.so 0755 0 0
+slink /lib/s390-linux-gnu/libc.so.6 libc-2.13.so 0777 0 0
+file /lib/s390-linux-gnu/libm-2.13.so /home/claude/src/ipt/lib/s390-linux-gnu/libm-2.13.so 0755 0 0
+slink /lib/s390-linux-gnu/libm.so.6 libm-2.13.so 0777 0 0
+file /lib/s390-linux-gnu/libdl-2.13.so /home/claude/src/ipt/lib/s390-linux-gnu/libdl-2.13.so 0755 0 0
+slink /lib/s390-linux-gnu/libdl.so.2 libdl-2.13.so 0777 0 0
+file /lib/xtables/libipt_DNAT.so /home/claude/src/ipt/lib/xtables/libipt_DNAT.so 0755 0 0
+file /lib/xtables/libipt_MASQUERADE.so /home/claude/src/ipt/lib/xtables/libipt_MASQUERADE.so 0755 0 0
+file /lib/xtables/libipt_REJECT.so /home/claude/src/ipt/lib/xtables/libipt_REJECT.so 0755 0 0
+file /lib/xtables/libipt_icmp.so /home/claude/src/ipt/lib/xtables/libipt_icmp.so 0755 0 0
+file /lib/xtables/libxt_conntrack.so /home/claude/src/ipt/lib/xtables/libxt_conntrack.so 0755 0 0
+file /lib/xtables/libxt_multiport.so /home/claude/src/ipt/lib/xtables/libxt_multiport.so 0755 0 0
+file /lib/xtables/libxt_standard.so /home/claude/src/ipt/lib/xtables/libxt_standard.so 0755 0 0
+file /lib/xtables/libxt_state.so /home/claude/src/ipt/lib/xtables/libxt_state.so 0755 0 0
+file /lib/xtables/libxt_tcp.so /home/claude/src/ipt/lib/xtables/libxt_tcp.so 0755 0 0
+file /lib/xtables/libxt_udp.so /home/claude/src/ipt/lib/xtables/libxt_udp.so 0755 0 0

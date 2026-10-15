@@ -1,0 +1,3 @@
+/* PROFILE EXEC of BORDER (9.12c): start its Linux at logon.        */
+/* To stay in CMS, give ACCESS (NOPROF as the first command.        */
+'EXEC BORDER'

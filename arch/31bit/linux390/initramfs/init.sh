@@ -67,6 +67,62 @@ if [ $# -ge 2 ]; then
 else
   echo "network: none (attach a CTC pair, e.g. CP ATTACH 600 * 620, 601 * 621)"
 fi
+# Guest LAN (9.12b): a CP-simulated LCS pair (CP DEFINE LCS 640 and 641)
+# becomes eth0 on the one segment 10.3.0.0/24.  Its address: vmlan= from
+# the IPL parameters, else 10.3.0.(n+1) for the CTC pair n above, else
+# 10.3.0.1 for BORDER (vmrole=border).  Without a CTC the default route
+# is BORDER, 10.3.0.1 (9.12c).
+ROLE=; LANIP=; FWD=
+for a in $(cat /proc/cmdline); do case $a in
+  vmrole=*) ROLE=${a#vmrole=};; vmlan=*) LANIP=${a#vmlan=};; vmfwd=*) FWD="$FWD,${a#vmfwd=}";; esac; done
+LAN=
+for d in /sys/bus/ccw/devices/*; do
+  [ "$(cat $d/cutype 2>/dev/null)" = 3088/60 ] || continue
+  b=${d##*/}; [ $(( 0x${b##*.} % 2 )) = 0 ] && { LAN=$b; break; }
+done
+if [ -n "$LAN" ]; then
+  w=$(printf '0.0.%04x' $(( 0x${LAN##*.} + 1 )))
+  echo $LAN,$w > /sys/bus/ccwgroup/drivers/lcs/group
+  echo 1 > /sys/bus/ccwgroup/devices/$LAN/online 2>/dev/null
+  sleep 2
+  [ "$ROLE" = border ] && LANIP=${LANIP:-10.3.0.1}
+  [ -z "$LANIP" ] && [ -n "$n" ] && LANIP=10.3.0.$((n + 1))
+  if [ -n "$LANIP" ]; then
+    ifconfig eth0 $LANIP netmask 255.255.255.0 up
+    echo "network: eth0 $LANIP on the guest LAN"
+    [ $# -ge 2 ] || { route add default gw 10.3.0.1 2>/dev/null; dropbear -R -p 22; }
+  else
+    ifconfig eth0 up; echo "network: eth0 on the guest LAN, no address (vmlan=)"
+  fi
+fi
+# BORDER (9.12c): the LAN's only way out.  It routes the LAN to the CTC
+# (the PC), hides it behind its own CTC address (NAT), lets nothing in
+# but the forwards in vmfwd=proto:port:address:port[,...] (vmfwd= may
+# come more than once: one per parameter card), and ssh to
+# itself.  iptables is Debian 7's (1.4.14) with its libraries.
+if [ "$ROLE" = border ] && [ -n "$LAN" ] && [ $# -ge 2 ]; then
+  export LD_LIBRARY_PATH=/lib/s390-linux-gnu:/lib
+  echo 1 > /proc/sys/net/ipv4/ip_forward
+  ipt() { /sbin/iptables "$@" || echo "border: iptables $* failed"; }
+  ipt -P FORWARD DROP
+  ipt -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  ipt -A FORWARD -i eth0 -o ctc0 -j ACCEPT
+  ipt -A FORWARD -i ctc0 -o eth0 -m conntrack --ctstate DNAT -j ACCEPT
+  ipt -A INPUT -i ctc0 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  ipt -A INPUT -i ctc0 -p tcp --dport 22 -j ACCEPT
+  ipt -A INPUT -i ctc0 -p icmp -j ACCEPT
+  ipt -A INPUT -i ctc0 -j DROP
+  ipt -t nat -A POSTROUTING -o ctc0 -j MASQUERADE
+  for f in $(echo "$FWD" | tr ',' ' '); do
+    IFS=: read pr po ad dp <<EOT
+$f
+EOT
+    ipt -t nat -A PREROUTING -i ctc0 -p $pr --dport $po -j DNAT --to-destination $ad:${dp:-$po}
+    echo "border: $VMIP $pr $po -> $ad:${dp:-$po}"
+  done
+  hostname border
+  echo "border: NAT for 10.3.0.0/24 out through ctc0 $VMIP; ip_forward on"
+fi
 # A Linux system installed on the disk (Debian, see debian-install): boot
 # it, unless the IPL parameters say vmroot=ram.  The CTC group and the
 # disk stay as set up here; the system on the disk configures the rest.

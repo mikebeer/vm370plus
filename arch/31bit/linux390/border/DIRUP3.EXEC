@@ -1,0 +1,50 @@
+/* DIRUP3 EXEC -- 9.12c: BORDER's directory entry, second form:     */
+/* IPL CMS (the classic CMS runs its PROFILE EXEC at logon, and      */
+/* AUTOLOG needs no first command) and a 191 of 20 cylinders on      */
+/* VM50U1 (71-90) for the kernel, the EXEC and the profile.          */
+'EXECIO * DISKR USER DIRECT A (FINIS STEM D.'
+if rc <> 0 then exit rc
+k = 0; m = 0
+do i = 1 to d.0
+  if word(d.i, 1) = 'USER' & word(d.i, 2) = 'BORDER' then k = i
+  if word(d.i, 1) = 'MDISK' & k > 0 then m = i
+end
+if k = 0 then do; say 'DIRUP3: run DIRUP2 first'; exit 8; end
+if m > 0 then do; say 'DIRUP3: BORDER has its 191 already'; exit 0; end
+/* the entry is the last one: drop it with its comment block         */
+s = k
+do while s > 1
+  j = s - 1
+  if left(d.j, 1) <> '*' then leave
+  s = j
+end
+e.1  = '*'
+e.2  = '* BORDER (9.12c): the guest LAN''s only link to the PC.  An'
+e.3  = '* in-storage Linux (kernel #12 and BORDER EXEC on its 191) with'
+e.4  = '* eth0 on the LAN (10.3.0.1) and the CTC pair 0606/0607'
+e.5  = '* (10.1.4.2).  Start: CP AUTOLOG BORDER BORDER.'
+e.6  = '*'
+e.7  = 'USER BORDER BORDER 64M 64M G'
+e.8  = ' OPTION ECMODE'
+e.9  = ' IPL CMS'
+e.10 = ' CONSOLE 009 3215'
+e.11 = ' SPOOL 00C 2540 READER *'
+e.12 = ' SPOOL 00D 2540 PUNCH A'
+e.13 = ' SPOOL 00E 1403 A'
+e.14 = ' LINK MAINT 190 190 RR'
+e.15 = ' LINK MAINT 19D 19D RR'
+e.16 = ' LINK MAINT 19E 19E RR'
+e.17 = ' LINK MAINT 290 290 RR'
+e.18 = ' DEDICATE 626 606'
+e.19 = ' DEDICATE 636 607'
+e.20 = ' MDISK 191 3350 071 020 VM50U1 MR ALL WRITE MULT'
+'COPYFILE USER DIRECT A USERBB13 DIRECT A (REPLACE'
+'ERASE USER DIRECT A'
+do i = 1 to s - 1; queue d.i; end
+do i = 1 to 20; queue left(e.i, 80); end
+n = s - 1 + 20
+'EXECIO' n 'DISKW USER DIRECT A 0 F 80 (FINIS'
+if rc <> 0 then exit rc
+'DIRECT USER DIRECT A'
+say 'DIRUP3: RC' rc
+exit rc

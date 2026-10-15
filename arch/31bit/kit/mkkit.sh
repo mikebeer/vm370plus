@@ -20,7 +20,8 @@ s=s.replace('MAINSIZE        16','MAINSIZE        256')
 import re
 s=re.sub(r'(?m)^018[01] +3380 +disks/edf.*\n','',s)
 s=s.replace('#0500 CTCE 30882 127.0.0.1 30880','0500 CTCE 30882 127.0.0.1 30880')
-s=s.replace('0600.2  CTCI    10.1.1.2 10.1.1.1','# Remove the # on the next line for Linux networking (README):\n#0600.2  CTCI    10.1.1.2 10.1.1.1\n# More Linux users (9.12a): pair 06xx, attached as 62x/63x, is 10.1.n.2, n = xx/2+1\n#0602.2  CTCI    10.1.2.2 10.1.2.1\n#0604.2  CTCI    10.1.3.2 10.1.3.1\n#0606.2  CTCI    10.1.4.2 10.1.4.1')
+s=s.replace('0606.2  CTCI    10.1.4.2 10.1.4.1\n','',1)   # the dev pack's BORDER line
+s=s.replace('0600.2  CTCI    10.1.1.2 10.1.1.1','# Remove the # on the next line for Linux networking (README):\n#0600.2  CTCI    10.1.1.2 10.1.1.1\n# More Linux users (9.12a): pair 06xx, attached as 62x/63x, is 10.1.n.2, n = xx/2+1\n#0602.2  CTCI    10.1.2.2 10.1.2.1\n#0604.2  CTCI    10.1.3.2 10.1.3.1\n# BORDER (9.12c), the guest LAN\'s link to the PC, has pair 0606 (README):\n#0606.2  CTCI    10.1.4.2 10.1.4.1')
 s=s.replace('PANTITLE        "VM370CE 1.1.2"','PANTITLE        "VM/370plus (VM370CE 1.1.2 ESA/390)"')
 open(sys.argv[2],'w').write(s)
 PY
@@ -33,7 +34,7 @@ test -n "$SHADOW3" && cp "$SHADOW3" $K/disks/shadows/vm50-3_1.shadow
 cp $R/arch/31bit/kit/README-VM370PLUS.txt $K/
 cp $R/arch/31bit/cms/{GCC31.EXEC,HELLO31.C,HIGHSTOR.ASSEMBLE,HSTEST.ASSEMBLE,WAKEUP.ASSEMBLE,GLOBALV.ASSEMBLE,FULIST.EXEC,FL.EXEC} $R/arch/31bit/crexx/{CRXMAKE.EXEC,cms.h} $K/vm370plus/
 mkdir -p $K/vm370plus/m5f; cp $R/arch/31bit/m5f/{README.md,cmsrt.c,cp1047.h,entry31.s,crt.sh,image.ld,hello31.c,libctest.c,elf_to_cms-pcrel.patch} $K/vm370plus/m5f/
-mkdir -p $K/vm370plus/linux; cp -r $R/arch/31bit/linux390/decks/{linux48.rdr,linux11.rdr,lxparm.rdr,lxparmram.rdr} $R/arch/31bit/linux390/{README.md,config-4.0-31bit,busybox-1.36.1.config,psw_idle-align.patch,dma16m-idal.patch,entry-mcck-loop.patch,initramfs} $K/vm370plus/linux/
+mkdir -p $K/vm370plus/linux; cp -r $R/arch/31bit/linux390/decks/{linux48.rdr,linux12.rdr,lxparm.rdr,lxparmram.rdr} $R/arch/31bit/linux390/{README.md,config-4.0-31bit,busybox-1.36.1.config,psw_idle-align.patch,dma16m-idal.patch,entry-mcck-loop.patch,initramfs} $K/vm370plus/linux/
 cp $R/arch/31bit/debian/vm370plus-post.sh $K/vm370plus/linux/
 cp $R/arch/31bit/debian/vm370plus-net $K/vm370plus/linux/
 cp -r $R/arch/31bit/linux390/cms $K/vm370plus/linux/   # LINUX EXEC and LXPARM files (also on MAINT 19D)

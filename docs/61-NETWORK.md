@@ -104,7 +104,52 @@ sets it online and gives eth0 the address for `vmcp q userid` in
 ways, a TCP connect to Debian's sshd, and 200,000 bytes by nc from CMSUSER
 to Debian in 5.4 s with the same MD5 (about 37 KB/s).
 
-## 9.12c — BORDER, and the network configuration
+## 9.12c — BORDER (done 15 Oct, runs bor1, bi1, bi2)
+
+BORDER is the guest LAN's only way out. It is a service machine (user BORDER)
+running the in-storage Linux with kernel #12 (kernel #11 + netfilter; Debian
+7's iptables 1.4.14 and its libraries in the initramfs):
+
+- **ctc0** to the PC on the CTC pair **0606/0607**, DEDICATEd as 626/636:
+  10.1.4.2, the PC end 10.1.4.1 (`0606.2 CTCI 10.1.4.2 10.1.4.1`). (0608 is not
+  in CP's real I/O configuration.)
+- **eth0** on the guest LAN: CP DEFINE LCS 640/641, 10.3.0.1.
+- `ip_forward`, MASQUERADE out of ctc0; FORWARD drops all but
+  established/related, LAN to outside, and DNATed connections; INPUT from ctc0
+  allows established, ssh (22) and ICMP, drops the rest.
+- Port forwards from **BORDER CONFIG** on MAINT 19E (mode 2: other users see
+  19E as Y/S, which shows only mode-2 files): `EXPOSE TCP 2223 TO 10.3.0.3 22`.
+  BORDER EXEC turns them into `vmfwd=tcp:2223:10.3.0.3:22,...` kernel
+  parameters (one `vmfwd=` per parameter card; the kernel reads the whole parm
+  file, up to 896 bytes).
+- The initramfs `/init` (all users): an LCS pair becomes eth0 with `vmlan=` or
+  10.3.0.(n+1) for CTC pair n; a guest without a CTC gets the default route
+  10.3.0.1 and dropbear. Debian's `vm370plus-lan` adds the same default route
+  when it has none.
+
+**The BORDER user**: `IPL CMS`, 64M, a 20-cylinder 191 on VM50U1 (71-90) with
+LINUX12 KERNEL1/KERNEL2 (one kernel; a classic CMS file has at most 65,533
+records), BORDER EXEC and a PROFILE EXEC (`EXEC BORDER`). Start it with
+`CP AUTOLOG BORDER BORDER` (the operator sees `BORDER: starting` and `IPL of
+its Linux`); to stay in CMS, logon with `ACCESS (NOPROF` as the first command.
+The directory entry was added by DIRUP2/DIRUP3 EXEC
+(`linux390/border/`). Why classic CMS: under `IPL 290` the machine first stops
+in a CP read after the IPL, so AUTOLOG's first command goes to CP, not CMS
+(I-295); the classic CMS runs the profile, and needs no first command.
+
+Tested (bi2): AUTOLOG BORDER brings it up; CMSUSER's in-storage Linux on the
+LAN (10.3.0.3, default route 10.3.0.1) pings the PC 10.1.4.1 through the NAT
+(ttl 63); `ssh -p 2223 root@10.1.4.2` from the PC lands on CMSUSER's guest;
+ports not exposed (80, 2224) time out; ssh to BORDER itself works.
+
+On the PC: 10.1.4.1 is the PC's end of BORDER's CTC; for the internet, the PC
+routes and NATs 10.1.4.2 as it does for the other CTC addresses; to expose a
+service to the PC's own LAN, forward a PC port to 10.1.4.2:port (netfwd.py).
+
+Later: the configuration-file ideas below (OUTSIDE DHCP / a bridged LCS on a
+tap) are not done; BORDER's outside is the CTC.
+
+### Original 9.12c design notes (13 Oct)
 
 BORDER is the only machine with a link to the PC's network. It does three things:
 
