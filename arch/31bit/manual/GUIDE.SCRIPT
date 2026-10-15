@@ -1014,11 +1014,54 @@ or DETACHes the adapter simply leaves the LAN.
 :p.Limits of this first version&colon. at most 16 adapters on the
 system; at most 64 frames waiting for a guest that does not read (more
 are dropped, as on a real LAN); no IPv6 and no multicast groups (the lcs
-driver says so at start-up); frames up to 1,600 bytes (MTU 1500). The
-LAN has no way out yet&colon. the BORDER service machine, which will
-connect it to the PC and the internet, and DHCP and DNS for it, are the
-next steps of the network work. Expect round trips of tens to hundreds
-of milliseconds&colon. every frame is a channel program CP simulates.
+driver says so at start-up); frames up to 1,600 bytes (MTU 1500). Its
+way out is the BORDER service machine (next section); DHCP and DNS for
+the LAN are the next step of the network work. Expect round trips of
+tens to hundreds of milliseconds&colon. every frame is a channel program
+CP simulates.
+:h2.BORDER&colon. the way out of the LAN
+:p.BORDER is a service machine that connects the guest LAN to the PC. It
+runs a small Linux in storage with two network adapters&colon. its own
+LAN adapter, 10.3.0.1, and the CTC pair 0606/0607 to the PC, 10.1.4.2
+(the PC end is 10.1.4.1). Guests on the LAN send everything that is not
+for the LAN to BORDER, which passes it on under its own address (NAT).
+Nothing from outside reaches the LAN unless BORDER CONFIG exposes it.
+:p.To use it, remove the # in front of :xph.0606.2 CTCI 10.1.4.2
+10.1.4.1:exph. in :xph.vm370ce.conf:exph. and restart Hercules. Then,
+from the operator (or in AUTOLOG1's profile)&colon.
+:fig.
+:xmp.
+autolog border border
+AUTO LOGON   ***   BORDER   USERS = 006  BY  OPERATOR
+ MSG FROM BORDER  :  BORDER: STARTING (BORDER EXEC)
+ MSG FROM BORDER  :  BORDER: IPL OF ITS LINUX (KERNEL #12)
+:exmp.
+:figcap.Starting BORDER
+:efig.
+:p.BORDER CONFIG on MAINT's 19E (file mode 2) says which ports of BORDER
+lead to which guest. One line per port; the second port defaults to the
+first. After a change, :xph.FORCE BORDER:exph. and :xph.AUTOLOG BORDER
+BORDER:exph. again.
+:fig.
+:xmp.
+* BORDER CONFIG
+EXPOSE TCP 2222 TO 10.3.0.2 22
+EXPOSE TCP 2223 TO 10.3.0.3 22
+:exmp.
+:figcap.BORDER CONFIG
+:efig.
+:p.With this file, :xph.ssh -p 2223 root@10.1.4.2:exph. on the PC
+reaches the Linux of CMSUSER (10.3.0.3). SSH to BORDER itself (port 22)
+is open; every other port is closed. Guests without a CTC of their own
+get BORDER as their default route automatically (the in-storage system
+and Debian's :xph.vm370plus-lan:exph.). For the internet, the PC must
+route and NAT BORDER's address as it does for the other CTC addresses;
+to offer a service on the PC's own network, forward a PC port to
+10.1.4.2 (:xph.vm370plus/tools/netfwd.py:exph.).
+:p.BORDER's own disk (191, 20 cylinders on VM50U1) holds its kernel
+(LINUX12 KERNEL1 and KERNEL2), BORDER EXEC and a PROFILE EXEC that
+starts it. To look at it in CMS, log on as BORDER with :xph.ACCESS
+(NOPROF:exph. as the first command.
 :h1.Service Machines
 :p.A service machine is a virtual machine that works for other
 users&colon. it runs disconnected, takes requests and sends answers.

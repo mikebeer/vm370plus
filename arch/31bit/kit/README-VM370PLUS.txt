@@ -1,7 +1,20 @@
-VM/370plus  --  overlay kit, 14 October 2026 (build 17)
+VM/370plus  --  overlay kit, 15 October 2026 (build 18)
 ========================================================
 
-NEW IN BUILD 17
+NEW IN BUILD 18
+  - BORDER (Guide, Chapter 5): the guest LAN's way out to the PC.  A
+    service machine running a small Linux with NAT and a firewall:
+    its LAN address is 10.3.0.1, its CTC to the PC 10.1.4.2 (pair
+    0606/0607; remove the # in front of  0606.2 CTCI  in vm370ce.conf).
+    Start it from OPERATOR:   autolog border border
+    BORDER CONFIG on MAINT 19E says which ports of 10.1.4.2 lead to
+    which guest:   EXPOSE TCP 2223 TO 10.3.0.3 22   (then from the PC:
+    ssh -p 2223 root@10.1.4.2).  Everything else is closed.  Guests
+    without a CTC use BORDER as their default route.
+  - Kernel #12 (vm370plus/linux/linux12.rdr): #11 plus netfilter.
+
+
+IN BUILD 17
   - THE GUEST LAN (Guide, Chapter 5): Linux guests talk to each other
     over a LAN that CP simulates, like the z/VM guest LAN.  Before
     starting Linux:
