@@ -1,0 +1,10 @@
+[
+ {"send": "ipl 6A1", "expect": "DMKCPI966I|Start \\(\\(Warm", "timeout": 180, "cont": true},
+ {"send": "/", "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT", "timeout": 60, "cont": true},
+ {"send": "/cp autolog border border", "settle": 5},
+ {"send": "/cp q n", "expect": "KT32-DONE", "timeout": 7200, "cont": true},
+ {"send": "/cp force border", "settle": 10},
+ {"send": "/cp force cmsuser", "settle": 5},
+ {"send": "/shutdown", "expect": "HHCCP011I|SHUTDOWN COMPLETE", "timeout": 90, "cont": true},
+ {"send": "exit"}
+]

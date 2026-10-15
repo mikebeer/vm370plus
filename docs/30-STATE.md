@@ -705,3 +705,19 @@ needs VARY ONLINE after the client connects.)
 
 Also on 14/15 Oct: BookMaster manuals VMP-0003 (Status) and VMP-0004
 (BOOKIE) in `manual/bookmaster`, and three vmplus.tmac/bookie fixes.
+
+## Kit b18 (15 October 2026, 04:15)
+
+BORDER (9.12c): the guest LAN's way out. Service machine BORDER (IPL CMS,
+64M, 191 on VM50U1 71-90 with LINUX12 KERNEL1/2, BORDER EXEC, PROFILE EXEC;
+CTC pair 0606/0607 DEDICATEd as 626/636) runs kernel #12's in-storage Linux
+(netfilter + Debian's iptables 1.4.14 in the initramfs): eth0 10.3.0.1,
+ctc0 10.1.4.2; NAT out, FORWARD/INPUT firewall, port forwards from BORDER
+CONFIG on MAINT 19E (mode 2). Start: AUTOLOG BORDER BORDER. LAN guests
+without a CTC route via 10.3.0.1 (initramfs and vm370plus-lan). Parts: the
+VM50U1 shadow moved to part 4 (part 1 stays under 30 MB). Verified on a
+fresh CE + all parts with the 0606 line enabled (kt32): BORDER comes up by
+AUTOLOG with both forwards, CMSUSER's in-storage Linux (10.3.0.3) pings the
+PC through the NAT, `ssh -p 2223` to 10.1.4.2 reaches it, SHUTDOWN clean.
+I-294 (READCARD under IPL 290) and I-295 (AUTOLOG first command under IPL
+290 goes to CP) found and open.

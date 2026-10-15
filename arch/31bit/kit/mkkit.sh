@@ -44,9 +44,9 @@ cp $R/arch/31bit/linux390/debian/vmzipl $K/vm370plus/linux/
 mkdir -p $K/vm370plus/tools; cp $R/arch/31bit/tools/psprint.py $R/arch/31bit/tools/netfwd.py $R/arch/31bit/tools/nettell.py $K/vm370plus/tools/
 mkdir -p $K/vm370plus/nicof/nhfs; cp $R/arch/31bit/nicof/{README.md,nicof.jar,nicof.sh,nicofpxy.properties,tcpip.properties,nicof_logging.properties} $K/vm370plus/nicof/; cp $R/arch/31bit/nicof/nhfs/readme.txt $K/vm370plus/nicof/nhfs/
 mkdir -p $D; cd $W
-zip -qr $D/VM370PLUS-kit-$STAMP-part1.zip VM370CE.V1.R1.2 -x "VM370CE.V1.R1.2/disks/vm50-4.cckd" "VM370CE.V1.R1.2/disks/shadows/vm50u0_1.shadow" "VM370CE.V1.R1.2/vm370plus/linux/*" "VM370CE.V1.R1.2/disks/shadows/vm50-2_1.shadow" "VM370CE.V1.R1.2/disks/shadows/vm50-3_1.shadow"
+zip -qr $D/VM370PLUS-kit-$STAMP-part1.zip VM370CE.V1.R1.2 -x "VM370CE.V1.R1.2/disks/vm50-4.cckd" "VM370CE.V1.R1.2/disks/shadows/vm50u0_1.shadow" "VM370CE.V1.R1.2/vm370plus/linux/*" "VM370CE.V1.R1.2/disks/shadows/vm50-2_1.shadow" "VM370CE.V1.R1.2/disks/shadows/vm50-3_1.shadow" "VM370CE.V1.R1.2/disks/shadows/vm50u1_1.shadow"
 zip -q  $D/VM370PLUS-kit-$STAMP-part5.zip VM370CE.V1.R1.2/disks/shadows/vm50-3_1.shadow
-zip -qr $D/VM370PLUS-kit-$STAMP-part4.zip VM370CE.V1.R1.2/vm370plus/linux VM370CE.V1.R1.2/disks/shadows/vm50-2_1.shadow
+zip -qr $D/VM370PLUS-kit-$STAMP-part4.zip VM370CE.V1.R1.2/vm370plus/linux VM370CE.V1.R1.2/disks/shadows/vm50-2_1.shadow VM370CE.V1.R1.2/disks/shadows/vm50u1_1.shadow
 zip -q  $D/VM370PLUS-kit-$STAMP-part2.zip VM370CE.V1.R1.2/disks/vm50-4.cckd
 zip -q  $D/VM370PLUS-kit-$STAMP-part3.zip VM370CE.V1.R1.2/disks/shadows/vm50u0_1.shadow
 # parts 6 and on: the Debian disk (LNX190, a 3390-9 since b6), compacted,

@@ -233,8 +233,8 @@ INSTALL
   2. Unzip ALL kit parts (1-18) OVER it, replacing files:
      part 1: config, system shadows, tools, README; part 2:
      disks/vm50-4.cckd; part 3: the CMSUSER volume's shadow; part 4:
-     Linux files (vm370plus/linux/, the Guide) and the VM50-2 shadow
-     (MAINT's 19D); part 5: the VM50-3 shadow; parts 6-15: the Debian
+     Linux files (vm370plus/linux/, the Guide), the VM50-2 shadow
+     (MAINT's 19D) and the VM50U1 shadow (BORDER's disk); part 5: the VM50-3 shadow; parts 6-15: the Debian
      disk in pieces -- then join it: JOINDEB.CMD (Windows) or
      sh joindeb.sh (Linux/WSL), see INSTALL THE DEBIAN DISK; parts
      16-18: the language disk -- join it: JOINLANG.CMD or sh joinlang.sh.
