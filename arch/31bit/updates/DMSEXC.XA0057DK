@@ -2,11 +2,18 @@
          BNE   NOTREXX        NO, CONTINUE WITH EXEC           XA0057DK         
          CLI   2(R3),C'!'     /*!NAME: ANOTHER INTERPRETER     XA0057DK         
          BE    BANG                                            XA0057DK         
+         L     R15,=A(NUCREXXD-NUCON) SETREXX                  XA0057DK         
+         CLI   0(R15),0       OTHER THAN BREXX?                XA0057DK         
+         BNE   BANGDEF                                         XA0057DK         
 ./ R 00228000          $ 00228010 010                                           
          B     OUT                                             XA0057DK         
 *        /*!NAME -- RUN THE EXEC BY THE COMMAND NAME (9.39)    XA0057DK         
-BANG     DS    0H                                              XA0057DK         
          USING WORK,R8        (DROPPED AT NOTREXX)             XA0057DK         
+BANGDEF  LA    R7,BANGPL      SETREXX'S INTERPRETER            XA0057DK         
+         L     R15,=A(NUCREXXD-NUCON)                          XA0057DK         
+         MVC   0(8,R7),0(R15)                                  XA0057DK         
+         B     BANG20                                          XA0057DK         
+BANG     DS    0H                                              XA0057DK         
          LA    R7,BANGPL      THE PLIST                        XA0057DK         
          MVC   0(8,R7),=CL8' '                                 XA0057DK         
          LA    R3,3(,R3)      PAST /*!                         XA0057DK         
@@ -60,3 +67,6 @@ BANG40   MVC   0(8,R2),=8X'FF'                                 XA0057DK
 FSCBEXEC DS    ((FSCBDSIZ+7)/8)D                               XA0057DK         
 BANGPL   DS    40D            /*!NAME PLIST (9.39)             XA0057DK         
 BANGPLE  EQU   *                                               XA0057DK         
+./ R 00234100          $ 00234200 100                                           
+NUCBREXX EQU   NUCRSV4            BREXX ADDRESS IN MEMORY      XA0057DK         
+NUCREXXD EQU   OSMODLDW+4         SETREXX'S NAME (9.39)        XA0057DK         

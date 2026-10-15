@@ -1,0 +1,52 @@
+*        SETREXX -- VM/370plus (9.39): the interpreter for EXECs whose
+*        first line starts with a plain '/*'
+*
+*        SETREXX name     EXECs starting '/*' run as
+*                         'name =EXEC fn EXEC args' (SVC 202),
+*                         as '/*!name' EXECs do
+*        SETREXX BREXX    back to BREXX (the CMS default)
+*        SETREXX          type the current setting
+*
+*        The name lives in NUCON (the two words after OSMODLDW,
+*        reserved @VA05055), so it lasts until the next IPL of CMS.
+*        DMSEXC (deck XA0057DK) reads it.  RC 0, or 24 (syntax).
+SETREXX  CSECT
+         STM   R14,R12,12(R13)
+         LR    R12,R15
+         USING SETREXX,R12
+         USING NUCON,R0
+         CLI   8(R1),X'FF'        NO OPERAND: QUERY
+         BE    QUERY
+         CLI   16(R1),X'FF'       ONE OPERAND ONLY
+         BNE   BAD
+         MVC   NAME,8(R1)
+         OC    NAME,=CL8' '       UPPER CASE
+         CLC   NAME,=CL8'BREXX'
+         BNE   SET
+         XC    NAME,NAME          BREXX IS THE DEFAULT: ZEROS
+SET      L     R3,=A(NUCREXXD-NUCON)    (BEYOND NUCON'S FIRST 4K)
+         IPK                      R2: OUR KEY
+         SPKA  0                  NUCON IS NUCLEUS STORAGE
+         MVC   0(8,R3),NAME
+         SPKA  0(R2)              BACK TO OUR KEY
+         SR    R15,R15
+         B     EXIT
+QUERY    L     R3,=A(NUCREXXD-NUCON)
+         MVC   MSG+19(8),0(R3)
+         CLI   0(R3),0
+         BNE   QTYPE
+         MVC   MSG+19(8),=CL8'BREXX'
+QTYPE    WRTERM MSG,L'MSG
+         SR    R15,R15
+         B     EXIT
+BAD      LA    R15,24
+EXIT     L     R14,12(,R13)
+         LM    R0,R12,20(R13)
+         BR    R14
+NAME     DC    CL8' '
+MSG      DC    C'REXX INTERPRETER = XXXXXXXX'
+         LTORG
+         NUCON
+NUCREXXD EQU   OSMODLDW+4         2F RESERVED @VA05055 (9.39)
+         REGEQU
+         END   SETREXX

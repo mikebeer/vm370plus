@@ -1590,6 +1590,13 @@ Ready(00007);
 :exmp.
 :figcap.An EXEC run by Regina
 :efig.
+:p.:xph.SETREXX REGINA:exph. makes Regina the interpreter for every EXEC
+that starts with a plain :xph./*:exph. until the next IPL of CMS;
+:xph.SETREXX BREXX:exph. goes back, and :xph.SETREXX:exph. alone shows
+the setting. Until Regina stays resident (milestone 9.39), a program run
+by Regina should not call another EXEC that Regina runs&colon. the
+second one is loaded over the first. BREXX EXECs can call Regina EXECs
+freely.
 :p.Do not call commands that are themselves modules in the user area (an
 assembler module of your own, say) from a Regina program&colon. CMS
 loads them over Regina. Nucleus and transient commands (STATE, LISTFILE,

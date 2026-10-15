@@ -8765,12 +8765,19 @@ BANGMODS = {
     'DMSEXC': [
         ('00098410', ["         BNE   NOTREXX        NO, CONTINUE WITH EXEC",
                       "         CLI   2(R3),C'!'     /*!NAME: ANOTHER INTERPRETER",
-                      "         BE    BANG"]),
+                      "         BE    BANG",
+                      "         L     R15,=A(NUCREXXD-NUCON) SETREXX",
+                      "         CLI   0(R15),0       OTHER THAN BREXX?",
+                      "         BNE   BANGDEF"]),
         ('00228000', [
             "         B     OUT",
             "*        /*!NAME -- RUN THE EXEC BY THE COMMAND NAME (9.39)",
-            "BANG     DS    0H",
             "         USING WORK,R8        (DROPPED AT NOTREXX)",
+            "BANGDEF  LA    R7,BANGPL      SETREXX'S INTERPRETER",
+            "         L     R15,=A(NUCREXXD-NUCON)",
+            "         MVC   0(8,R7),0(R15)",
+            "         B     BANG20",
+            "BANG     DS    0H",
             "         LA    R7,BANGPL      THE PLIST",
             "         MVC   0(8,R7),=CL8' '",
             "         LA    R3,3(,R3)      PAST /*!",
@@ -8825,6 +8832,10 @@ BANGMODS = {
             "FSCBEXEC DS    ((FSCBDSIZ+7)/8)D",
             "BANGPL   DS    40D            /*!NAME PLIST (9.39)",
             "BANGPLE  EQU   *",
+        ]),
+        ('00234100', [
+            "NUCBREXX EQU   NUCRSV4            BREXX ADDRESS IN MEMORY",
+            "NUCREXXD EQU   OSMODLDW+4         SETREXX'S NAME (9.39)",
         ]),
     ],
 }
