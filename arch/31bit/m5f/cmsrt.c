@@ -195,19 +195,20 @@ static int highstor(const char *fn, u32 bytes, u32 addr)
     return cms202(&hsp);
 }
 
-u32 cms_heap_mb __attribute__((weak)) = 0;        /* 0: the largest that HIGHSTOR gives, up to 232 MB */
+u32 cms_heap_mb __attribute__((weak)) = 0;        /* 0: the largest piece HIGHSTOR gives */
 
 static void heap_init(void)
 {
-    static const u32 tries[] = { 232, 224, 192, 160, 128, 96, 64, 48, 32, 16, 0 };
     if (cms_heap_mb) {
         if (!highstor("OBTAIN", cms_heap_mb << 20, 0)) {
             heap_base = (char *)hsp.addr; heap_end = heap_base + (cms_heap_mb << 20);
         }
     } else {
-        for (int i = 0; tries[i]; i++)
-            if (!highstor("OBTAIN", tries[i] << 20, 0)) {
-                heap_base = (char *)hsp.addr; heap_end = heap_base + (tries[i] << 20);
+        /* M8.2: the largest piece HIGHSTOR has, in 4 MB steps (the old
+           list 232, 224, 192, 160, ... left cc1 160 MB of 187 free) */
+        for (u32 mb = 2000; mb >= 4; mb -= 4)
+            if (!highstor("OBTAIN", mb << 20, 0)) {
+                heap_base = (char *)hsp.addr; heap_end = heap_base + (mb << 20);
                 break;
             }
     }
