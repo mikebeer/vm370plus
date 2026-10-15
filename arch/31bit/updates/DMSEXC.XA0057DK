@@ -1,0 +1,62 @@
+./ R 00098410          $ 00098411 001                                           
+         BNE   NOTREXX        NO, CONTINUE WITH EXEC           XA0057DK         
+         CLI   2(R3),C'!'     /*!NAME: ANOTHER INTERPRETER     XA0057DK         
+         BE    BANG                                            XA0057DK         
+./ R 00228000          $ 00228010 010                                           
+         B     OUT                                             XA0057DK         
+*        /*!NAME -- RUN THE EXEC BY THE COMMAND NAME (9.39)    XA0057DK         
+BANG     DS    0H                                              XA0057DK         
+         USING WORK,R8        (DROPPED AT NOTREXX)             XA0057DK         
+         LA    R7,BANGPL      THE PLIST                        XA0057DK         
+         MVC   0(8,R7),=CL8' '                                 XA0057DK         
+         LA    R3,3(,R3)      PAST /*!                         XA0057DK         
+BANG05   CR    R3,R5          SKIP BLANKS                      XA0057DK         
+         BNL   BANG20                                          XA0057DK         
+         CLI   0(R3),C' '                                      XA0057DK         
+         BNE   BANG10                                          XA0057DK         
+         LA    R3,1(,R3)                                       XA0057DK         
+         B     BANG05                                          XA0057DK         
+BANG10   LR    R2,R7          THE NAME, AT MOST 8              XA0057DK         
+         LA    R14,8                                           XA0057DK         
+BANG12   CR    R3,R5                                           XA0057DK         
+         BNL   BANG20                                          XA0057DK         
+         CLI   0(R3),C' '                                      XA0057DK         
+         BE    BANG20                                          XA0057DK         
+         CLI   0(R3),C'*'                                      XA0057DK         
+         BE    BANG20                                          XA0057DK         
+         MVC   0(1,R2),0(R3)                                   XA0057DK         
+         LA    R2,1(,R2)                                       XA0057DK         
+         LA    R3,1(,R3)                                       XA0057DK         
+         BCT   R14,BANG12                                      XA0057DK         
+BANG20   CLI   0(R7),C' '     NO NAME: BREXX AFTER ALL         XA0057DK         
+         BE    CHKREXX                                         XA0057DK         
+         OC    0(8,R7),=CL8' ' UPPER CASE                      XA0057DK         
+         MVC   8(8,R7),=CL8'=EXEC'                             XA0057DK         
+         MVC   16(8,R7),8(R11) THE EXEC'S NAME                 XA0057DK         
+         MVC   24(8,R7),=CL8'EXEC'                             XA0057DK         
+         LA    R2,32(,R7)                                      XA0057DK         
+         LA    R1,16(,R11)    ITS ARGUMENTS                    XA0057DK         
+         LA    R14,BANGPLE-8  ROOM FOR THE FENCE               XA0057DK         
+BANG30   CLI   0(R1),X'FF'                                     XA0057DK         
+         BE    BANG40                                          XA0057DK         
+         CR    R2,R14                                          XA0057DK         
+         BNL   BANG40                                          XA0057DK         
+         MVC   0(8,R2),0(R1)                                   XA0057DK         
+         LA    R1,8(,R1)                                       XA0057DK         
+         LA    R2,8(,R2)                                       XA0057DK         
+         B     BANG30                                          XA0057DK         
+BANG40   MVC   0(8,R2),=8X'FF'                                 XA0057DK         
+         LR    R1,R7                                           XA0057DK         
+         SR    R0,R0                                           XA0057DK         
+         SVC   202                                             XA0057DK         
+         DC    AL4(1)         ERRORS: RC IN R15, GO ON         XA0057DK         
+         LR    R3,R15         ITS RETURN CODE IS THE EXEC'S    XA0057DK         
+         LA    R0,WORKSIZE                                     XA0057DK         
+         DMSFRET DWORDS=(0),LOC=WORK,TYPCALL=BALR              XA0057DK         
+         LR    R15,R3                                          XA0057DK         
+         BR    R9                                              XA0057DK         
+         DROP  R8                                              XA0057DK         
+./ R 00230600          $ 00230610 010                                           
+FSCBEXEC DS    ((FSCBDSIZ+7)/8)D                               XA0057DK         
+BANGPL   DS    40D            /*!NAME PLIST (9.39)             XA0057DK         
+BANGPLE  EQU   *                                               XA0057DK         

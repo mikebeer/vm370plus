@@ -1,0 +1,5 @@
+ID MAINT NAME PLAIN EXEC
+/* plain REXX: BREXX */
+parse version v
+say 'brexx:' v
+exit 3

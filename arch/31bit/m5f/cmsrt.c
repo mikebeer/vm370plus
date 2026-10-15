@@ -1039,6 +1039,17 @@ int cms_main(unsigned char *plist)
         plist += 8;
     }
     argv_[argc] = 0;
+    /* 9.39: an EXEC whose first line is '/*!name' is run by CMS as
+       'name =EXEC fn EXEC args...' -- the program gets 'fn.EXEC' */
+    if (argc >= 4 && !strcmp(argv_[1], "=EXEC")) {
+        static char exname[20];
+        int i;
+        snprintf(exname, sizeof exname, "%s.%s", argv_[2], argv_[3]);
+        argv_[1] = exname;
+        for (i = 2; i + 2 <= argc; i++) argv_[i] = argv_[i + 2];
+        argc -= 2;
+        argv_[argc] = 0;
+    }
     /* CMS cuts every token to 8 characters: an EXEC passes longer
        arguments by stacking them (QUEUE) and giving the token =STACK,
        which is replaced by the words of that stacked line (case kept;

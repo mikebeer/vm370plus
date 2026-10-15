@@ -1,0 +1,9 @@
+ID MAINT NAME BANG EXEC
+/*!REGINA  run by Regina (9.39) */
+parse source s
+say 'source:' s
+parse arg a
+say 'args:' a
+parse version v
+say 'version:' v
+exit 7

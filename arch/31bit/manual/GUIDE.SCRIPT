@@ -1570,6 +1570,26 @@ Ready;
 :exmp.
 :figcap.Regina on CMS
 :efig.
+:p.An EXEC can name its interpreter on its first line.
+:xph./:hp1.!REGINA :ehp1./:exph. (still a REXX comment, so other REXX
+implementations can read the file) makes CMS run the EXEC with Regina
+instead of BREXX&colon. :xph.BANG ARG1:exph. runs :xph.REGINA =EXEC BANG
+EXEC ARG1:exph., and the return code of the program is the return code
+of the EXEC. A first line starting with a plain :xph./*:exph. still goes
+to BREXX, and any other first line to the EXEC processor.
+:fig.
+:xmp.
+type bang exec
+/*!REGINA  run by Regina */
+parse arg a; say 'args:' a
+exit 7
+Ready;
+bang hello world
+args: HELLO WORLD
+Ready(00007);
+:exmp.
+:figcap.An EXEC run by Regina
+:efig.
 :p.Do not call commands that are themselves modules in the user area (an
 assembler module of your own, say) from a Regina program&colon. CMS
 loads them over Regina. Nucleus and transient commands (STATE, LISTFILE,

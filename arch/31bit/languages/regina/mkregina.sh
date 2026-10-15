@@ -20,5 +20,6 @@ sed -i 's/os_unx\.\$(OBJ)/os_other.$(OBJ)/; s/-DREGINA_BITS=64/-DREGINA_BITS=32/
 sed -i '/^os_other\.\$(OBJ) :/,+1s/os_unx\.c/os_other.c/' Makefile
 sed -i 's/^\(OFILES = funcs.$(OBJ)\)/\1 cmscompat.$(OBJ)/' Makefile
 rm -f *.o rexx
+$M/cmscc -DNDEBUG -O2 -I. -c cmscompat.c -o cmscompat.o   # (no rule in Regina's Makefile)
 make rexx CFLAGS="-DNDEBUG -O2 -DNO_EXTERNAL_QUEUES" >/dev/null
 ${E2C:-/home/claude/m5f/elf_to_cms} rexx $O/regina.text

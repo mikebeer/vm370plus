@@ -113,6 +113,7 @@ XA52 = 'XA0052DK'
 XA53 = 'XA0053DK'   # M4b: real storage above 16 MB
 XA54 = 'XA0054DK'   # M7: ESA/390 virtual machines
 XA55 = 'XA0055DK'   # M4b.3: guest pages in frames above 16 MB
+XA57 = 'XA0057DK'   # 9.39: /*!name -- EXECs for other interpreters
 
 
 def psa():
@@ -8755,6 +8756,79 @@ ECMODS = {
                 ('02517000', ["TPEENA   DC    X'03'          I/O AND EXTERNAL (EC)"])],
 }
 
+# 9.39 (15 Oct): an EXEC whose first line starts '/*!name' (still a REXX
+# comment) is run by the command `name` instead of BREXX:
+#     name =EXEC fn EXEC arg1 arg2 ...         (SVC 202, tokenised plist)
+# M5f programs (cmsrt) turn '=EXEC fn ft' into the file 'fn.ft'.  A plain
+# '/*' goes to BREXX as before; X'05' calls (functions) always do.
+BANGMODS = {
+    'DMSEXC': [
+        ('00098410', ["         BNE   NOTREXX        NO, CONTINUE WITH EXEC",
+                      "         CLI   2(R3),C'!'     /*!NAME: ANOTHER INTERPRETER",
+                      "         BE    BANG"]),
+        ('00228000', [
+            "         B     OUT",
+            "*        /*!NAME -- RUN THE EXEC BY THE COMMAND NAME (9.39)",
+            "BANG     DS    0H",
+            "         USING WORK,R8        (DROPPED AT NOTREXX)",
+            "         LA    R7,BANGPL      THE PLIST",
+            "         MVC   0(8,R7),=CL8' '",
+            "         LA    R3,3(,R3)      PAST /*!",
+            "BANG05   CR    R3,R5          SKIP BLANKS",
+            "         BNL   BANG20",
+            "         CLI   0(R3),C' '",
+            "         BNE   BANG10",
+            "         LA    R3,1(,R3)",
+            "         B     BANG05",
+            "BANG10   LR    R2,R7          THE NAME, AT MOST 8",
+            "         LA    R14,8",
+            "BANG12   CR    R3,R5",
+            "         BNL   BANG20",
+            "         CLI   0(R3),C' '",
+            "         BE    BANG20",
+            "         CLI   0(R3),C'*'",
+            "         BE    BANG20",
+            "         MVC   0(1,R2),0(R3)",
+            "         LA    R2,1(,R2)",
+            "         LA    R3,1(,R3)",
+            "         BCT   R14,BANG12",
+            "BANG20   CLI   0(R7),C' '     NO NAME: BREXX AFTER ALL",
+            "         BE    CHKREXX",
+            "         OC    0(8,R7),=CL8' ' UPPER CASE",
+            "         MVC   8(8,R7),=CL8'=EXEC'",
+            "         MVC   16(8,R7),8(R11) THE EXEC'S NAME",
+            "         MVC   24(8,R7),=CL8'EXEC'",
+            "         LA    R2,32(,R7)",
+            "         LA    R1,16(,R11)    ITS ARGUMENTS",
+            "         LA    R14,BANGPLE-8  ROOM FOR THE FENCE",
+            "BANG30   CLI   0(R1),X'FF'",
+            "         BE    BANG40",
+            "         CR    R2,R14",
+            "         BNL   BANG40",
+            "         MVC   0(8,R2),0(R1)",
+            "         LA    R1,8(,R1)",
+            "         LA    R2,8(,R2)",
+            "         B     BANG30",
+            "BANG40   MVC   0(8,R2),=8X'FF'",
+            "         LR    R1,R7",
+            "         SR    R0,R0",
+            "         SVC   202",
+            "         DC    AL4(1)         ERRORS: RC IN R15, GO ON",
+            "         LR    R3,R15         ITS RETURN CODE IS THE EXEC'S",
+            "         LA    R0,WORKSIZE",
+            "         DMSFRET DWORDS=(0),LOC=WORK,TYPCALL=BALR",
+            "         LR    R15,R3",
+            "         BR    R9",
+            "         DROP  R8",
+        ]),
+        ('00230600', [
+            "FSCBEXEC DS    ((FSCBDSIZ+7)/8)D",
+            "BANGPL   DS    40D            /*!NAME PLIST (9.39)",
+            "BANGPLE  EQU   *",
+        ]),
+    ],
+}
+
 PSWMODS = {
     # I-225.  DMKFREE's FREE08 computed the END of the last larger free block
     # with LA R5,0(R8,R9); for the block that reaches 16 MB that is 01000000,
@@ -11899,6 +11973,14 @@ def main():
         print('%-8s %-9s %3d cards  %s' % (m, XA56, n,
               'OK' if not verify(path) else 'BAD'))
 
+    for m in sorted(BANGMODS):
+        dk = datdeck(m, BANGMODS[m], ident=XA57)
+        path = os.path.join(HERE, '%s.%s' % (m, XA57))
+        n = dk.write(path)
+        aux(os.path.join(HERE, '%s.AUXLCL' % m),
+            [(XA57, '9.39: /*!NAME -- EXECS FOR OTHER INTERPRETERS')])
+        print('%-8s %-9s %3d cards  %s' % (m, XA57, n,
+              'OK' if not verify(path) else 'BAD'))
     for m in sorted(ECMODS):
         dk = datdeck(m, ECMODS[m], ident=XA51)
         path = os.path.join(HERE, '%s.%s' % (m, XA51))
