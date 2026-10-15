@@ -824,6 +824,28 @@ int system(const char *cmd)
        routine end in a specification exception: plain SVC 202 it is) */
     return cms202(pl);
 }
+/* 9.39: the CMS console stack (what PUSH/QUEUE/PULL of a CMS EXEC use).
+   cms_attn: stack a line (ATTN, DMSCAT), LIFO or FIFO, at most 255
+   bytes; cms_queued: the lines stacked (NUCON NUMFINRD, X'55C') */
+int cms_attn(const char *line, int len, int lifo)
+{
+    unsigned char *pl = rec;                  /* below 16 MB */
+    if (len < 0) len = 0;
+    if (len > 255) len = 255;
+    put8(pl, "ATTN");
+    memcpy(pl + 8, lifo ? "\xD3\xC9\xC6\xD6" : "\xC6\xC9\xC6\xD6", 4);   /* LIFO / FIFO */
+    unsigned char *d = pl + 16;
+    for (int i = 0; i < len; i++) d[i] = rt_a2e[(unsigned char)line[i]];
+    pl[12] = (unsigned char)len;
+    u32 a = (u32)d;
+    pl[13] = a >> 16; pl[14] = a >> 8; pl[15] = a;
+    tflush();
+    return cms202(pl);
+}
+int cms_queued(void)
+{
+    return *(volatile unsigned short *)0x55C;
+}
 int _execve(const char *n, char *const a[], char *const e[]) { (void)n; (void)a; (void)e; errno = ENOSYS; return -1; }
 int _fork(void) { errno = ENOSYS; return -1; }
 int _wait(int *st) { (void)st; errno = ECHILD; return -1; }

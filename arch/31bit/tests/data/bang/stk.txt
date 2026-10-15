@@ -1,0 +1,11 @@
+ID MAINT NAME STK EXEC
+/*!REGINA stack test */
+queue 'line one'
+queue 'line two'
+push 'line zero'
+say 'regina: queued' queued()
+'EXEC SHOWQ'
+say 'regina: back, queued' queued()
+queue 'from regina'
+'EXEC SHOWQ'
+exit 0
