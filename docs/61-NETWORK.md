@@ -171,7 +171,32 @@ EXPOSE  TCP 2222 TO 10.1.2.2 22      * ... or by address
 `OUTSIDE DHCP` needs a bridged Hercules link (LCS on a tap device) so that BORDER
 sits on the LAN itself. `OUTSIDE STATIC` also works with the routed tun link.
 
-## 9.12d — DHCP and DNS inside
+## 9.12d — DHCP and DNS on the LAN (done 15 Oct, run dh1)
+
+BORDER (kernel #12's initramfs, `vmrole=border`) also runs:
+
+- **busybox udhcpd** on eth0: addresses 10.3.0.100-199, router and name
+  server 10.3.0.1, leases in /tmp (BORDER keeps no state).
+- **names**: 10.3.0.1:53 (UDP and TCP) is DNATed to the upstream name server,
+  `vmdns=` from `DNS a.b.c.d` in BORDER CONFIG, default the PC end of BORDER's
+  CTC (10.1.4.1). Answers return through the NAT.
+
+Guests: the in-storage system without `vmlan=` and without a CTC asks by
+`udhcpc` (`/etc/udhcpc.script` sets the address, the default route and
+`/etc/resolv.conf`); with a static address and no CTC it gets the default
+route and `nameserver 10.3.0.1`. Debian's `vm370plus-lan`: no address in
+`/etc/vm370plus-lan.conf` and no CTC pair → `dhclient -1 eth0`;
+`VMLAN_DHCP=1` forces DHCP (tests).
+
+Tested (dh1): a guest with no address got 10.3.0.100, route 10.3.0.1,
+nameserver 10.3.0.1; `nslookup test.example 10.3.0.1` was answered by a test
+resolver on the PC (10.1.4.1:53) through BORDER.
+
+Not done: names for the guests themselves (a guest's name for its address) --
+BORDER only forwards.
+
+### Original 9.12d notes
+
 
 A service machine runs DHCP and DNS for the internal segment: dnsmasq on Debian,
 or BORDER itself. It needs only the inside segment, not the outside.

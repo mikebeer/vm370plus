@@ -1058,6 +1058,14 @@ and Debian's :xph.vm370plus-lan:exph.). For the internet, the PC must
 route and NAT BORDER's address as it does for the other CTC addresses;
 to offer a service on the PC's own network, forward a PC port to
 10.1.4.2 (:xph.vm370plus/tools/netfwd.py:exph.).
+:p.BORDER also gives addresses to guests that have none of their own
+(DHCP, 10.3.0.100 to 10.3.0.199, with BORDER as router and name server)
+and passes name lookups to 10.3.0.1 on to a name server outside&colon.
+the PC's end of its CTC, 10.1.4.1, unless BORDER CONFIG names another
+with a line :xph.DNS address:exph. (for example :xph.DNS 8.8.8.8:exph.).
+A Linux started without :xph.vmlan=:exph. and without a CTC asks for its
+address by itself; Debian does when :xph./etc/vm370plus-lan.conf:exph.
+has no address for the user.
 :p.BORDER's own disk (191, 20 cylinders on VM50U1) holds its kernel
 (LINUX12 KERNEL1 and KERNEL2), BORDER EXEC and a PROFILE EXEC that
 starts it. To look at it in CMS, log on as BORDER with :xph.ACCESS

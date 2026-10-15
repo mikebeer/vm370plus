@@ -103,10 +103,20 @@ if [ -z "$ip" ]; then
     06[01]?) ip=10.3.0.$(( (0x$c - 0x600) / 2 + 2 ));;
   esac
 fi
-[ -n "$ip" ] || { echo "vm370plus-lan: eth0 up, no address for ${u:-this user} (see /etc/vm370plus-lan.conf)"; ifconfig eth0 up; exit 0; }
+[ -n "$VMLAN_DHCP" ] && ip=
+if [ -z "$ip" ]; then
+  # 9.12d: no address of its own -- ask BORDER's DHCP server
+  ifconfig eth0 up
+  if command -v dhclient >/dev/null && dhclient -1 -pf /run/dhclient.eth0.pid -lf /var/lib/dhcp/dhclient.eth0.leases eth0; then
+    echo "vm370plus-lan: eth0 $(ifconfig eth0 | sed -n 's/.*inet addr:\([0-9.]*\).*/\1/p') from DHCP (BORDER)"
+  else
+    echo "vm370plus-lan: eth0 up, no address for ${u:-this user} (see /etc/vm370plus-lan.conf; DHCP needs BORDER)"
+  fi
+  exit 0
+fi
 ifconfig eth0 $ip netmask 255.255.255.0 up
 # no CTC of its own: out through BORDER (9.12c)
-route -n | grep -q "^0\.0\.0\.0" || route add default gw 10.3.0.1
+route -n | grep -q "^0\.0\.0\.0" || { route add default gw 10.3.0.1; grep -q "^nameserver" /etc/resolv.conf || echo "nameserver 10.3.0.1" >> /etc/resolv.conf; }
 echo "vm370plus-lan: eth0 $ip on the guest LAN (LCS $r)"
 LAN
 chmod 755 /usr/local/sbin/vm370plus-lan

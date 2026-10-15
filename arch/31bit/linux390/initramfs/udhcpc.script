@@ -1,0 +1,14 @@
+#!/bin/sh
+# udhcpc's script (VM/370plus 9.12d): an address on the guest LAN from BORDER
+case "$1" in
+  deconfig) ifconfig $interface 0.0.0.0 up ;;
+  bound|renew)
+    ifconfig $interface $ip netmask ${subnet:-255.255.255.0} up
+    if [ -n "$router" ]; then
+      route del default 2>/dev/null
+      for r in $router; do route add default gw $r; break; done
+    fi
+    [ -n "$dns" ] && { : > /etc/resolv.conf; for d in $dns; do echo "nameserver $d" >> /etc/resolv.conf; done; }
+    echo "network: eth0 $ip from DHCP (router $router, dns $dns)" ;;
+esac
+exit 0

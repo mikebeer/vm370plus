@@ -72,9 +72,9 @@ fi
 # the IPL parameters, else 10.3.0.(n+1) for the CTC pair n above, else
 # 10.3.0.1 for BORDER (vmrole=border).  Without a CTC the default route
 # is BORDER, 10.3.0.1 (9.12c).
-ROLE=; LANIP=; FWD=
+ROLE=; LANIP=; FWD=; DNS=
 for a in $(cat /proc/cmdline); do case $a in
-  vmrole=*) ROLE=${a#vmrole=};; vmlan=*) LANIP=${a#vmlan=};; vmfwd=*) FWD="$FWD,${a#vmfwd=}";; esac; done
+  vmrole=*) ROLE=${a#vmrole=};; vmlan=*) LANIP=${a#vmlan=};; vmfwd=*) FWD="$FWD,${a#vmfwd=}";; vmdns=*) DNS=${a#vmdns=};; esac; done
 LAN=
 for d in /sys/bus/ccw/devices/*; do
   [ "$(cat $d/cutype 2>/dev/null)" = 3088/60 ] || continue
@@ -90,9 +90,14 @@ if [ -n "$LAN" ]; then
   if [ -n "$LANIP" ]; then
     ifconfig eth0 $LANIP netmask 255.255.255.0 up
     echo "network: eth0 $LANIP on the guest LAN"
-    [ $# -ge 2 ] || { route add default gw 10.3.0.1 2>/dev/null; dropbear -R -p 22; }
+    [ $# -ge 2 ] || { route add default gw 10.3.0.1 2>/dev/null
+      echo "nameserver 10.3.0.1" > /etc/resolv.conf; dropbear -R -p 22; }
   else
-    ifconfig eth0 up; echo "network: eth0 on the guest LAN, no address (vmlan=)"
+    # 9.12d: no address of its own -- ask BORDER's DHCP server
+    ifconfig eth0 up
+    udhcpc -i eth0 -n -q -t 5 -T 3 -s /etc/udhcpc.script 2>/dev/null ||
+      echo "network: eth0 on the guest LAN, no address (vmlan=, or BORDER's DHCP)"
+    [ $# -ge 2 ] || dropbear -R -p 22
   fi
 fi
 # BORDER (9.12c): the LAN's only way out.  It routes the LAN to the CTC
@@ -120,6 +125,18 @@ EOT
     ipt -t nat -A PREROUTING -i ctc0 -p $pr --dport $po -j DNAT --to-destination $ad:${dp:-$po}
     echo "border: $VMIP $pr $po -> $ad:${dp:-$po}"
   done
+  # 9.12d: DHCP for the LAN (10.3.0.100-199; the router and the name
+  # server are BORDER), and names: 10.3.0.1:53 is passed on to vmdns=
+  # (default the PC, 10.1.4.1)
+  DNS=${DNS:-$VMPEER}
+  printf 'start 10.3.0.100\nend 10.3.0.199\ninterface eth0\nlease_file /tmp/udhcpd.leases\nopt router 10.3.0.1\nopt dns 10.3.0.1\nopt subnet 255.255.255.0\nopt lease 86400\n' > /etc/udhcpd.conf
+  : > /tmp/udhcpd.leases
+  udhcpd /etc/udhcpd.conf && echo "border: DHCP on eth0, 10.3.0.100-199"
+  for p in udp tcp; do
+    ipt -t nat -A PREROUTING -i eth0 -d 10.3.0.1 -p $p --dport 53 -j DNAT --to-destination $DNS
+  done
+  echo "nameserver $DNS" > /etc/resolv.conf
+  echo "border: names (10.3.0.1:53) from $DNS"
   hostname border
   echo "border: NAT for 10.3.0.0/24 out through ctc0 $VMIP; ip_forward on"
 fi

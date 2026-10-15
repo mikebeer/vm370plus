@@ -1,7 +1,14 @@
-VM/370plus  --  overlay kit, 15 October 2026 (build 18)
+VM/370plus  --  overlay kit, 15 October 2026 (build 19)
 ========================================================
 
-NEW IN BUILD 18
+NEW IN BUILD 19
+  - DHCP and DNS on the guest LAN (BORDER): a Linux guest without an
+    address of its own gets one (10.3.0.100-199) with BORDER as router
+    and name server; BORDER passes name lookups on to the PC
+    (10.1.4.1) or to the server in BORDER CONFIG:   DNS 8.8.8.8
+
+
+IN BUILD 18
   - BORDER (Guide, Chapter 5): the guest LAN's way out to the PC.  A
     service machine running a small Linux with NAT and a firewall:
     its LAN address is 10.3.0.1, its CTC to the PC 10.1.4.2 (pair
