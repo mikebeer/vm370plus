@@ -721,3 +721,15 @@ AUTOLOG with both forwards, CMSUSER's in-storage Linux (10.3.0.3) pings the
 PC through the NAT, `ssh -p 2223` to 10.1.4.2 reaches it, SHUTDOWN clean.
 I-294 (READCARD under IPL 290) and I-295 (AUTOLOG first command under IPL
 290 goes to CP) found and open.
+
+## Kit b19 (15 October 2026, 05:30)
+
+9.12d: BORDER also runs busybox udhcpd on the LAN (10.3.0.100-199, router
+and DNS 10.3.0.1) and passes 10.3.0.1:53 on to `DNS a.b.c.d` from BORDER
+CONFIG (default the PC, 10.1.4.1). The in-storage Linux asks by udhcpc when
+it has no `vmlan=` and no CTC; Debian's vm370plus-lan uses dhclient when its
+user has no address in /etc/vm370plus-lan.conf and no CTC. Verified on a
+fresh CE + all parts (kt33): BORDER by AUTOLOG, CMSUSER's in-storage Linux
+got 10.3.0.100 by DHCP, `nslookup test.example` answered through BORDER by a
+test resolver on the PC, ping to the PC through the NAT, SHUTDOWN clean.
+9.12a-d (the network pack) are done.
