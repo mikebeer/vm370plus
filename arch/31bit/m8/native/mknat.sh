@@ -60,6 +60,21 @@ base = ('-quiet -m31 -mesa -march=z900 -msoft-float -mlong-double-64 '
 # machine has
 fl += ['-UCREXX_VM_HANDLER_PANEL', '-DCREXX_VM_HANDLER_PANEL=1']
 allf = base + fl
+# Two-pass units (M8.2): cc1 -E first, then cc1 on the .i with no include
+# directories at all -- so the sysroot tar (21 MB) is never read into the
+# heap -- and a tighter garbage collector.  rexbscan.c (re2c's 3.2 MB
+# scanner, one function) needs every megabyte.
+TWOPASS = {'REXBSCAN'}
+def nopre(ws):
+    out, skip = [], False
+    for w in ws:
+        if skip: skip = False; continue
+        if w in ('-I', '-isystem', '-include'): skip = True; continue
+        if w.startswith('-I') or w.startswith('--param=ggc'): continue
+        out.append(w)
+    return out
+pass2 = nopre(allf) + ['-fpreprocessed', '--param=ggc-min-expand=5',
+                       '--param=ggc-min-heapsize=8192']
 # units and their 8-character CMS names
 mains = MAINS.split(); vm = VMF.split(); asm = AS.split(); cp = CP.split()
 units = []
@@ -148,7 +163,7 @@ E.append("CALL TIME 'R'")
 for u in units:
     t = cms(u); E.append("P = '%s'" % t[:60])
     for k in range(60, len(t), 60): E.append("P = P || '%s'" % t[k:k + 60])
-    E.append("CALL UNIT '%s', P" % names[u])
+    E.append("CALL UNIT '%s', P, %d" % (names[u], names[u] in TWOPASS))
 E.append("SAY 'CRX82: all units compiled' TIME('E') 's'")
 lib = [names[u] for u in vm + asm if u not in mains]
 seen = []
@@ -180,15 +195,30 @@ E.append("SAY 'CRX82: done' TIME('E') 's'")
 E.append("EXIT 0")
 E.append("")
 E.append("UNIT: PROCEDURE   /* compile one unit: cc1 + as, unless its O exists */")
-E.append("  PARSE ARG FN, SRC")
+E.append("  PARSE ARG FN, SRC, TWO")
 E.append("  'SET CMSTYPE HT'; 'STATE' FN 'O A'; S = RC; 'SET CMSTYPE RT'")
 E.append("  IF S = 0 THEN RETURN")
 E.append("  SAY 'CRX82:' FN SRC TIME('E') 's'")
+E.append("  IF TWO THEN DO   /* preprocess, then compile without the tar */")
+for c in chunks(allf + ['-E'], 60):
+    E.append("    " + q(c))
+E.append("    QUEUE SRC '-o' FN'.i'")
+E.append("    'XL CC1 =STACK'")
+E.append("    IF RC <> 0 THEN DO; SAY 'CRX82: cc1 -E RC' RC 'for' SRC; EXIT RC; END")
+for c in chunks(pass2, 60):
+    E.append("    " + q(c))
+E.append("    QUEUE FN'.i -o' FN'.s'")
+E.append("    'XL CC1 =STACK'")
+E.append("    IF RC <> 0 THEN DO; SAY 'CRX82: cc1 RC' RC 'for' FN'.i'; EXIT RC; END")
+E.append("    CALL ERASE FN 'I A'")
+E.append("  END")
+E.append("  ELSE DO")
 for c in chunks(allf, 60):
-    E.append("  " + q(c))
-E.append("  QUEUE SRC '-o' FN'.s'")
-E.append("  'XL CC1 =STACK'")
-E.append("  IF RC <> 0 THEN DO; SAY 'CRX82: cc1 RC' RC 'for' SRC; EXIT RC; END")
+    E.append("    " + q(c))
+E.append("    QUEUE SRC '-o' FN'.s'")
+E.append("    'XL CC1 =STACK'")
+E.append("    IF RC <> 0 THEN DO; SAY 'CRX82: cc1 RC' RC 'for' SRC; EXIT RC; END")
+E.append("  END")
 E.append("  QUEUE '-m31 -mesa' FN'.s -o' FN'.o'")
 E.append("  'AS =STACK'")
 E.append("  IF RC <> 0 THEN DO; SAY 'CRX82: as RC' RC 'for' FN; EXIT RC; END")
