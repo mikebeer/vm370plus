@@ -11,7 +11,7 @@ sorted (ADTFSORT) binary search assumes."""
 import struct, sys
 E = bytes.maketrans(bytes(range(256)), bytes(range(256)))
 def asc(b):
-    return b.decode('cp1047', 'replace')
+    return b.decode('cp037', 'replace')
 core = open(sys.argv[1], 'rb').read()
 modes = set(sys.argv[2:])
 def w(a): return struct.unpack('>I', core[a:a + 4])[0]
