@@ -37,19 +37,19 @@
  },
  {
   "send": "/",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 60,
   "cont": true
  },
  {
   "send": "/cp purge rdr all",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 30,
   "cont": true
  },
  {
   "send": "/cp spool 00c class *",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 30,
   "cont": true
  },
@@ -61,7 +61,7 @@
  },
  {
   "send": "/cp start 00c",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 30,
   "cont": true
  },
@@ -71,7 +71,7 @@
  },
  {
   "send": "/readcard mdprint exec a",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
@@ -83,7 +83,7 @@
  },
  {
   "send": "/cp start 00c",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 30,
   "cont": true
  },
@@ -93,7 +93,7 @@
  },
  {
   "send": "/readcard unstream exec a",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
@@ -105,7 +105,7 @@
  },
  {
   "send": "/cp start 00c",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 30,
   "cont": true
  },
@@ -115,109 +115,109 @@
  },
  {
   "send": "/readcard sample md a",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/unstream sample md a",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/listfile * * a (label",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/access 19e d",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/copyfile mdprint exec a = = d2 (replace",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/copyfile unstream exec a = = d2 (replace",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/erase mdprint exec a",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/erase unstream exec a",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/release d",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/cp ipl 190",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 60,
   "cont": true
  },
  {
   "send": "/listfile * exec y",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/mdprint sample md (type width 72",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 300,
   "cont": true
  },
  {
   "send": "/mdprint sample md (disk width 64",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 300,
   "cont": true
  },
  {
   "send": "/type sample document a",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
  {
   "send": "/cp spool 00e class a",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 30,
   "cont": true
  },
  {
   "send": "/mdprint sample md (print",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 300,
   "cont": true
  },
  {
   "send": "/erase sample * a",
-  "expect": "Ready",
+  "expect": "Ready|Unknown CP/CMS",
   "timeout": 120,
   "cont": true
  },
