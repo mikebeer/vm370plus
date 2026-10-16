@@ -2088,6 +2088,19 @@ RECFM F with the longest line as LRECL (:xph.-l n:exph. sets it,
 :xph.-v:exph. makes V records); :xph.TERSE -b -l n:exph. packs binary
 data. The encoder runs the decoder's own model and compresses as well as
 IBM's SPACK.
+:h2.A tiny language model&colon. LLAMA
+:p.Andrej Karpathy's llama2.c runs language models of the Llama-2
+architecture from one C file. VM/370plus has it on CMS and in the Debian
+guest, made for their big-endian 31-bit storage&colon. :xph.LLAMA prompt
+(MODEL fn ft TEMP t STEPS n SEED s:exph. on CMS (IPL 290, the language
+disk; DEF STOR 128M for the stories15M model), :xph.llama prompt:exph.
+in Debian (MODEL, TEMP, STEPS, SEED in the environment). The model
+itself is not in the kit&colon. download :xph.stories15M.bin:exph. from
+huggingface.co/karpathy/tinyllamas and put it in
+:xph./usr/local/share/llama2c/:exph. (Debian) or, as STORIES BIN, on an
+EDF disk of the CMS user. It writes children's stories, slowly&colon.
+CMS has no hardware floating point in its C runtime. For real questions,
+see ASK (Chapter 6).
 :h2.File names in C programs
 :p.Programs built with the CMS runtime (all those of this chapter) use
 Unix file names and map them to CMS files&colon. :xph.fn.ft:exph. is
@@ -2713,6 +2726,8 @@ channel:exph.; :xph.MQTT PUB topic message:exph., :xph.MQTT SUB topic [n
 :h2.PCPRINT
 :p.:xph.PCPRINT fn [ft [fm]] [(PRINT options]:exph. (file type LISTING
 by default; PS through PSPRINT).
+:h2.LLAMA
+:p.:xph.LLAMA [prompt] [(MODEL fn ft | TEMP t | STEPS n | SEED s]:exph..
 :h2.MDPRINT, UNSTREAM
 :p.:xph.MDPRINT fn [ft [fm]] (TYPE|DISK|PRINT|PS WIDTH n:exph.;
 :xph.UNSTREAM fn ft [fm]:exph..

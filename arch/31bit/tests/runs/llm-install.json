@@ -1,0 +1,165 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/purge cmsuser rdr all",
+  "settle": 3
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/llm/rand32.deck ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 120
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 128m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "access 19f l",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "query disk l",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "langgen l",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "listfile llama* * l (label",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 128m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 290 290 rr",
+  "expect": "LINKED|DMK",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "lang",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "readcard rand32 bin a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "llama",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "llama VM (model rand32 bin temp 0 steps 24",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "erase rand32 bin a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

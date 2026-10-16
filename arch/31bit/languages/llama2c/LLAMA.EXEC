@@ -1,0 +1,39 @@
+/* LLAMA EXEC -- a tiny language model on CMS (VM/370plus 9.17)       */
+/*   LLAMA [prompt ...] [(options]                                     */
+/* options:  MODEL fn ft     the checkpoint (default STORIES BIN: the  */
+/*                           stories15M model of karpathy/tinyllamas)  */
+/*           TEMP t          temperature (default 0.8; 0 = greedy)     */
+/*           STEPS n         tokens to make (default 128)              */
+/*           SEED s          random seed (default: the time)           */
+/* LLAMA2C MODULE is Karpathy's llama2.c (run.c) for big-endian CMS;   */
+/* the tokenizer is LLAMATOK BIN.  Needs IPL 290 and storage for the  */
+/* model (stories15M: DEF STOR 128M).                                  */
+PARSE ARG LINE
+OPT = ''
+P = LASTPOS('(', LINE)
+IF P > 0 THEN DO; OPT = SUBSTR(LINE, P + 1); LINE = LEFT(LINE, P - 1); END
+PROMPT = STRIP(LINE)
+MFN = 'STORIES'; MFT = 'BIN'; TEMP = '0.8'; STEPS = 128; SEED = ''
+UOPT = TRANSLATE(OPT)
+DO WHILE UOPT <> ''
+  PARSE VAR UOPT W UOPT
+  SELECT
+    WHEN W = 'MODEL' THEN PARSE VAR UOPT MFN MFT UOPT
+    WHEN W = 'TEMP' THEN PARSE VAR UOPT TEMP UOPT
+    WHEN W = 'STEPS' THEN PARSE VAR UOPT STEPS UOPT
+    WHEN W = 'SEED' THEN PARSE VAR UOPT SEED UOPT
+    OTHERWISE DO; SAY 'LLAMA: unknown option' W; EXIT 24; END
+  END
+END
+'SET CMSTYPE HT'
+'STATE' MFN MFT '*'
+SRC = RC
+'SET CMSTYPE RT'
+IF SRC <> 0 THEN DO
+  SAY 'LLAMA:' MFN MFT 'not found (the model checkpoint)'; EXIT 28; END
+CMD = MFN'.'MFT '-z llamatok.bin -t' TEMP '-n' STEPS
+IF SEED <> '' THEN CMD = CMD '-s' SEED
+IF PROMPT <> '' THEN CMD = CMD '-i "'PROMPT'"'
+QUEUE CMD
+'LLAMA2C =STACK'
+EXIT RC

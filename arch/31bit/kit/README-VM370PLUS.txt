@@ -10,6 +10,10 @@ NEXT BUILD (in the development system)
   - vmprint (vm370plus/tools/vmprint.py): CP's printer 10E (class P, a
     socket printer, port 1403) on the PC; each print file becomes a .txt
     or .ps (--pdf, --lp queue).  On CMS: PCPRINT fn ft fm.
+  - LLAMA (9.17): Karpathy's llama2.c on CMS (language disk: LLAMA prompt
+    (MODEL fn ft TEMP t STEPS n) and in Debian (llama prompt).  The model
+    is not included: stories15M.bin from huggingface.co/karpathy/tinyllamas
+    (Debian: /usr/local/share/llama2c/; CMS: STORIES BIN on an EDF disk).
 
 
 NEW IN BUILD 23
