@@ -26,7 +26,17 @@ import sys
 
 FENCE = re.compile(r'^(\s{0,3})(```+|~~~+)\s*(\S*)')
 ATX = re.compile(r'^\s{0,3}(#{1,6})(?:\s+(.*?))?\s*#*\s*$')
-HR = re.compile(r'^\s{0,3}([-*_])(\s*\1){2,}\s*$')
+class _Rule(object):
+    """a thematic break: three or more of one of - * _, spaces between
+    (not a regex: Python 3.2's re rejects (\s*\1){2,}, 'nothing to repeat')"""
+    def match(self, line):
+        if len(line) - len(line.lstrip(' ')) > 3:
+            return False
+        t = ''.join(line.split())
+        return len(t) >= 3 and t[0] in '-*_' and t == t[0] * len(t)
+
+
+HR = _Rule()
 BULLET = re.compile(r'^(\s*)([-*+])\s+(.*)$')
 ORDERED = re.compile(r'^(\s*)(\d{1,9})[.)]\s+(.*)$')
 TABLESEP = re.compile(r'^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$')

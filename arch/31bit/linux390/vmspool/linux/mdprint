@@ -7,7 +7,7 @@ M=/usr/local/share/groff/tmac123
 f=$1; [ -r "$f" ] || { echo "usage: mdprint FILE [-w N | -ps [OUT] | -pdf [OUT]]" >&2; exit 4; }
 case "$2" in
 -ps|-pdf) t=${2#-}; o=${3:-${f%.*}.$t}
-          /usr/local/bin/md2ms "$f" | groff -M$M -ms -t -T$t > "$o" && echo "mdprint: $o" ;;
+          /usr/local/bin/md2ms "$f" | groff -M$M -mms -t -T$t > "$o" && echo "mdprint: $o" ;;
 -w)       /usr/local/bin/md2ms --text --width "${3:-80}" "$f" ;;
 '')       /usr/local/bin/md2ms --text --width "$(tput cols 2>/dev/null || echo 80)" "$f" ;;
 *)        echo "usage: mdprint FILE [-w N | -ps [OUT] | -pdf [OUT]]" >&2; exit 4 ;;
