@@ -14,3 +14,6 @@ update-rc.d vmspoold defaults >/dev/null
 install -m 755 linux/tell /usr/local/bin/tell
 install -m 4755 -o root linux/vmmsg /usr/local/sbin/vmmsg
 mkdir -p /var/spool/vmspool/msg
+# 9.42 Markdown: md2ms (Markdown to troff ms or plain text), mdprint
+install -m 755 linux/md2ms /usr/local/bin/md2ms
+install -m 755 linux/mdprint /usr/local/bin/mdprint

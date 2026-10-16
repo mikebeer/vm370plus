@@ -1,0 +1,433 @@
+/* MDPRINT EXEC -- print a Markdown document (VM/370plus 9.42)        */
+/*   MDPRINT fn [ft [fm]] [( options]       ft default MD             */
+/*     TYPE      on the terminal (the default)                        */
+/*     DISK      as fn DOCUMENT A                                     */
+/*     PRINT     on the virtual printer (CC: a new page per # head)   */
+/*     WIDTH n   line width (default 132 PRINT/DISK, 79 TYPE)         */
+/*     PS        PostScript as fn PS A, typeset by groff in the      */
+/*               Debian guest over the spool bridge (PSPRINT prints   */
+/*               it or makes a PDF)                                   */
+/* Headings, paragraphs, lists, block quotes, code, tables and rules  */
+/* are laid out here, on CMS; emphasis marks are dropped and a link   */
+/* is printed as  text (url).                                         */
+PARSE ARG LINE
+OPT = ''; P = POS('(', LINE)
+IF P > 0 THEN DO
+  OPT = TRANSLATE(SUBSTR(LINE, P + 1)); LINE = LEFT(LINE, P - 1)
+END
+PARSE UPPER VAR LINE FN FT FM .
+IF FN = '' THEN DO
+  SAY 'MDPRINT: usage: MDPRINT fn [ft [fm]] [( TYPE|DISK|PRINT|PS WIDTH n]'
+  EXIT 24
+END
+IF FT = '' THEN FT = 'MD'
+IF FM = '' THEN FM = '*'
+OPT = TRANSLATE(OPT, ' ', ')')
+DEST = 'TYPE'
+IF WORDPOS('DISK', OPT) > 0 THEN DEST = 'DISK'
+IF WORDPOS('PRINT', OPT) > 0 THEN DEST = 'PRINT'
+IF WORDPOS('PS', OPT) > 0 THEN DEST = 'PS'
+W = WORDPOS('WIDTH', OPT)
+IF W > 0 THEN WIDTH = WORD(OPT, W + 1)
+ELSE IF DEST = 'TYPE' THEN WIDTH = 79
+ELSE WIDTH = 132
+IF DATATYPE(WIDTH, 'W') = 0 THEN WIDTH = 79
+'STATE' FN FT FM
+IF RC <> 0 THEN DO; SAY 'MDPRINT:' FN FT FM 'not found'; EXIT 28; END
+'EXECIO * DISKR' FN FT FM '(FINIS STEM S.'
+IF RC <> 0 THEN EXIT RC
+IF DEST = 'PS' THEN SIGNAL TOPS
+
+O.0 = 0                               /* the output lines             */
+CC.0 = 0                              /* a page eject before line n   */
+I = 1
+PARA = ''
+DO WHILE I <= S.0
+  L = STRIP(S.I, 'T')
+  T = STRIP(L)
+  SELECT
+    WHEN LEFT(T, 4) = '<!--' THEN DO          /* HTML comment: out    */
+      CALL FLUSH
+      DO WHILE I <= S.0 & POS('-->', S.I) = 0; I = I + 1; END
+      I = I + 1
+    END
+    WHEN LEFT(T, 3) = '```' | LEFT(T, 3) = '~~~' THEN DO
+      CALL FLUSH; CALL GAP
+      F = LEFT(T, 3); I = I + 1
+      DO WHILE I <= S.0
+        IF LEFT(STRIP(S.I), 3) = F THEN LEAVE
+        CALL OUT LEFT('', 4) || STRIP(S.I, 'T')
+        I = I + 1
+      END
+      I = I + 1
+    END
+    WHEN T = '' THEN DO; CALL FLUSH; I = I + 1; END
+    WHEN LEFT(L, 4) = '    ' & PARA = '' THEN DO   /* indented code    */
+      CALL GAP
+      DO WHILE I <= S.0
+        IF LEFT(S.I, 4) <> '    ' & STRIP(S.I) <> '' THEN LEAVE
+        CALL OUT LEFT('', 4) || STRIP(SUBSTR(S.I, 5), 'T')
+        I = I + 1
+      END
+    END
+    WHEN ISHEAD(T) THEN DO
+      CALL FLUSH
+      N = VERIFY(T, '#') - 1
+      IF N < 0 THEN N = LENGTH(T)
+      H = STRIP(STRIP(SUBSTR(T, N + 1)), 'T', '#')
+      CALL HEAD MIN(N, 6), STRIP(H)
+      I = I + 1
+    END
+    WHEN PARA <> '' & T <> '' & VERIFY(T, '=') = 0 THEN DO
+      H = STRIP(PARA); PARA = ''; CALL HEAD 1, H; I = I + 1
+    END
+    WHEN PARA <> '' & T <> '' & VERIFY(T, '-') = 0 THEN DO
+      H = STRIP(PARA); PARA = ''; CALL HEAD 2, H; I = I + 1
+    END
+    WHEN ISRULE(T) THEN DO
+      CALL FLUSH; CALL GAP; CALL OUT COPIES('-', WIDTH); I = I + 1
+    END
+    WHEN LEFT(T, 1) = '>' THEN DO
+      CALL FLUSH; CALL GAP
+      Q = ''
+      DO WHILE I <= S.0
+        X = STRIP(S.I)
+        IF LEFT(X, 1) <> '>' THEN LEAVE
+        X = STRIP(SUBSTR(X, 2))
+        IF X = '' THEN DO
+          IF Q <> '' THEN CALL WRAPOUT INLINE(Q), '| ', '| '
+          Q = ''; CALL OUT '|'
+        END
+        ELSE Q = Q X
+        I = I + 1
+      END
+      IF Q <> '' THEN CALL WRAPOUT INLINE(Q), '| ', '| '
+    END
+    WHEN POS('|', T) > 0 & ISSEP(I + 1) THEN DO
+      CALL FLUSH; CALL GAP; CALL TABLE
+    END
+    WHEN ISITEM(L) THEN DO
+      CALL FLUSH; CALL GAP; CALL LIST
+    END
+    OTHERWISE DO
+      IF RIGHT(L, 2) = '  ' | RIGHT(T, 1) = '\' THEN DO
+        PARA = PARA STRIP(T, 'T', '\') || '0A'X
+      END
+      ELSE PARA = PARA T
+      I = I + 1
+    END
+  END
+END
+CALL FLUSH
+
+/* --- out: terminal, disk or printer ------------------------------- */
+SELECT
+  WHEN DEST = 'TYPE' THEN DO K = 1 TO O.0; SAY O.K; END
+  OTHERWISE DO
+    OFT = 'DOCUMENT'                      /* LISTING: CC in column 1   */
+    IF DEST = 'PRINT' THEN OFT = 'LISTING'
+    'SET CMSTYPE HT'
+    'ERASE' FN OFT 'A'
+    'SET CMSTYPE RT'
+    DO K = 1 TO O.0
+      IF DEST = 'PRINT' THEN DO
+        IF CC.K = 1 THEN QUEUE '1' || O.K; ELSE QUEUE ' ' || O.K
+      END
+      ELSE IF O.K = '' THEN QUEUE ' '; ELSE QUEUE O.K
+      IF QUEUED() >= 100 THEN 'EXECIO' QUEUED() 'DISKW' FN OFT 'A'
+    END
+    IF QUEUED() > 0 THEN 'EXECIO' QUEUED() 'DISKW' FN OFT 'A'
+    'FINIS' FN OFT 'A'
+    IF DEST = 'PRINT' THEN DO
+      'PRINT' FN 'LISTING A (CC'
+      PRC = RC
+      'SET CMSTYPE HT'; 'ERASE' FN 'LISTING A'; 'SET CMSTYPE RT'
+      IF PRC <> 0 THEN EXIT PRC
+      SAY 'MDPRINT:' FN FT 'printed,' O.0 'lines'
+    END
+    ELSE SAY 'MDPRINT:' FN 'DOCUMENT A,' O.0 'lines'
+  END
+END
+EXIT 0
+
+/* --- the pieces ---------------------------------------------------- */
+OUT: PROCEDURE EXPOSE O. CC.
+  PARSE ARG X
+  N = O.0 + 1; O.N = STRIP(X, 'T'); O.0 = N; CC.N = 0
+  RETURN
+GAP: PROCEDURE EXPOSE O. CC.           /* one empty line before a block */
+  N = O.0
+  IF N > 0 THEN IF O.N <> '' THEN CALL OUT ''
+  RETURN
+FLUSH:
+  IF STRIP(PARA) <> '' THEN DO
+    CALL GAP; CALL WRAPOUT INLINE(STRIP(PARA)), '', ''
+  END
+  PARA = ''
+  RETURN
+HEAD: PARSE ARG HL, HT
+  HT = INLINE(HT)
+  IF HL = 1 & DEST = 'PRINT' & O.0 > 0 THEN DO
+    CALL OUT HT; N = O.0; CC.N = 1      /* a new page for each # head  */
+  END
+  ELSE DO
+    CALL GAP
+    IF HL = 1 THEN CALL OUT TRANSLATE(HT); ELSE CALL OUT HT
+  END
+  IF HL = 1 THEN DO; N = O.0; O.N = TRANSLATE(O.N); END
+  IF HL = 1 THEN CALL OUT COPIES('=', MIN(LENGTH(HT), WIDTH))
+  IF HL = 2 THEN CALL OUT COPIES('-', MIN(LENGTH(HT), WIDTH))
+  CALL OUT ''
+  RETURN
+ISHEAD: PROCEDURE
+  PARSE ARG X
+  IF LEFT(X, 1) <> '#' THEN RETURN 0
+  N = VERIFY(X, '#') - 1
+  IF N < 0 THEN RETURN LENGTH(X) <= 6
+  RETURN N <= 6 & SUBSTR(X, N + 1, 1) = ' '
+ISRULE: PROCEDURE
+  PARSE ARG X
+  X = SPACE(X, 0)
+  IF LENGTH(X) < 3 THEN RETURN 0
+  C = LEFT(X, 1)
+  IF POS(C, '-*_') = 0 THEN RETURN 0
+  RETURN VERIFY(X, C) = 0
+ISSEP: PROCEDURE EXPOSE S.
+  PARSE ARG J
+  IF J > S.0 THEN RETURN 0
+  X = SPACE(S.J, 0)
+  IF POS('-', X) = 0 THEN RETURN 0
+  RETURN VERIFY(X, '|:-') = 0
+ISITEM: PROCEDURE
+  PARSE ARG X
+  X = STRIP(X, 'L')
+  IF LEFT(X, 2) = '- ' | LEFT(X, 2) = '* ' | LEFT(X, 2) = '+ ' THEN RETURN 1
+  PARSE VAR X NUM '.' REST
+  IF DATATYPE(NUM, 'W') & LEFT(REST, 1) = ' ' & LENGTH(NUM) < 10 THEN RETURN 1
+  PARSE VAR X NUM ')' REST
+  IF DATATYPE(NUM, 'W') & LEFT(REST, 1) = ' ' & LENGTH(NUM) < 10 THEN RETURN 1
+  RETURN 0
+
+/* a list: each item with the lines that belong to it; nesting by the */
+/* indentation of the marker                                          */
+LIST:
+  ITEXT = ''; LKIND = ''
+  DO WHILE I <= S.0
+    L = STRIP(S.I, 'T')
+    IF STRIP(L) = '' THEN DO
+      J = I + 1
+      IF J > S.0 THEN LEAVE
+      IF \ISITEM(S.J) & LEFT(S.J, 2) <> '  ' THEN LEAVE
+      I = I + 1; ITERATE
+    END
+    IF \ISITEM(L) THEN DO                 /* a continuation line        */
+      IF LEFT(L, 2) <> '  ' & ISRULE(L) THEN LEAVE
+      IF ISHEAD(STRIP(L)) THEN LEAVE
+      ITEXT = ITEXT STRIP(L)
+      I = I + 1; ITERATE
+    END
+    IND = LENGTH(L) - LENGTH(STRIP(L, 'L'))
+    X = STRIP(L)
+    KIND = POS(LEFT(X, 1), '-*+') > 0
+    IF IND < 2 & LKIND <> '' & KIND <> LKIND THEN LEAVE
+    IF IND < 2 THEN LKIND = KIND
+    CALL ITEMOUT
+    IF POS(LEFT(X, 1), '-*+') > 0 THEN DO
+      MARK = '-'; ITEXT = SUBSTR(X, 3)
+    END
+    ELSE DO
+      MARK = WORD(X, 1); ITEXT = STRIP(SUBSTR(X, LENGTH(MARK) + 1))
+    END
+    ILEV = IND % 2
+    I = I + 1
+  END
+  CALL ITEMOUT
+  CALL OUT ''
+  RETURN
+ITEMOUT:
+  IF SYMBOL('ITEXT') = 'VAR' THEN IF ITEXT <> '' THEN DO
+    PAD = LEFT('', 2 * ILEV)
+    TAG = LEFT(MARK, MAX(2, LENGTH(MARK) + 1))
+    CALL WRAPOUT INLINE(STRIP(ITEXT)), PAD || TAG, PAD || LEFT('', LENGTH(TAG))
+  END
+  ITEXT = ''
+  RETURN
+
+/* a table: the header, the alignment row, the rows; columns as wide   */
+/* as their widest cell, the widest cut down until it fits; a cell     */
+/* longer than its column goes on over more lines                      */
+TABLE:
+  NR = 0
+  CALL ROW S.I; I = I + 1
+  SEP = SPACE(S.I, 0); I = I + 1
+  IF LEFT(SEP, 1) = '|' THEN SEP = SUBSTR(SEP, 2)
+  IF RIGHT(SEP, 1) = '|' THEN SEP = LEFT(SEP, LENGTH(SEP) - 1)
+  DO C = 1 TO NC
+    PARSE VAR SEP A '|' SEP
+    AL.C = 'L'
+    IF LEFT(A, 1) = ':' & RIGHT(A, 1) = ':' THEN AL.C = 'C'
+    ELSE IF RIGHT(A, 1) = ':' THEN AL.C = 'R'
+  END
+  DO WHILE I <= S.0
+    IF POS('|', S.I) = 0 | STRIP(S.I) = '' THEN LEAVE
+    CALL ROW S.I; I = I + 1
+  END
+  TOT = 1
+  DO C = 1 TO NC
+    CW.C = 1
+    DO R = 1 TO NR; CW.C = MAX(CW.C, LENGTH(CELL.R.C)); END
+    TOT = TOT + CW.C + 3
+  END
+  DO WHILE TOT > WIDTH
+    BIG = 1
+    DO C = 2 TO NC; IF CW.C > CW.BIG THEN BIG = C; END
+    IF CW.BIG <= 4 THEN LEAVE
+    CW.BIG = CW.BIG - 1; TOT = TOT - 1
+  END
+  RULE = '+'
+  DO C = 1 TO NC; RULE = RULE || COPIES('-', CW.C + 2) || '+'; END
+  CALL OUT RULE
+  DO R = 1 TO NR
+    DO C = 1 TO NC; REST.C = CELL.R.C; END
+    DO FOREVER
+      LN = '|'; MORE = 0
+      DO C = 1 TO NC
+        PART = CUT(REST.C, CW.C)
+        REST.C = STRIP(SUBSTR(REST.C, LENGTH(PART) + 1))
+        IF REST.C <> '' THEN MORE = 1
+        SELECT
+          WHEN AL.C = 'R' THEN PART = RIGHT(PART, CW.C)
+          WHEN AL.C = 'C' THEN PART = CENTER(PART, CW.C)
+          OTHERWISE PART = LEFT(PART, CW.C)
+        END
+        LN = LN || ' ' || PART || ' |'
+      END
+      CALL OUT LN
+      IF \MORE THEN LEAVE
+    END
+    IF R = 1 THEN CALL OUT TRANSLATE(RULE, '=', '-')
+  END
+  CALL OUT RULE
+  RETURN
+ROW: PARSE ARG X
+  X = STRIP(X)
+  IF LEFT(X, 1) = '|' THEN X = SUBSTR(X, 2)
+  IF RIGHT(X, 1) = '|' THEN X = LEFT(X, LENGTH(X) - 1)
+  NR = NR + 1; C = 0
+  DO WHILE X <> '' | C = 0
+    PARSE VAR X V '|' X
+    C = C + 1; CELL.NR.C = INLINE(STRIP(V))
+  END
+  IF NR = 1 THEN NC = C
+  DO C = C + 1 TO NC; CELL.NR.C = ''; END
+  RETURN
+CUT: PROCEDURE                       /* at most n characters, at a blank */
+  PARSE ARG X, N
+  IF LENGTH(X) <= N THEN RETURN X
+  K = LASTPOS(' ', LEFT(X, N + 1))
+  IF K < 2 THEN RETURN LEFT(X, N)
+  RETURN LEFT(X, K - 1)
+
+/* text laid out in WIDTH columns, first and later lines prefixed;    */
+/* X'0A' in the text is a hard line break                             */
+WRAPOUT: PARSE ARG TX, P1, P2
+  DO WHILE TX <> ''
+    PARSE VAR TX SEG '0A'X TX
+    LN = P1; FIRSTW = 1
+    DO K = 1 TO WORDS(SEG)
+      WD = WORD(SEG, K)
+      IF \FIRSTW & LENGTH(LN) + 1 + LENGTH(WD) > WIDTH THEN DO
+        CALL OUT LN; LN = P2; FIRSTW = 1
+      END
+      IF FIRSTW THEN LN = LN || WD; ELSE LN = LN WD
+      FIRSTW = 0
+    END
+    CALL OUT LN
+    P1 = P2
+  END
+  RETURN
+
+/* inline markup: \x escapes, `code`, images, links, emphasis marks    */
+INLINE: PROCEDURE
+  PARSE ARG X
+  Y = ''
+  DO WHILE X <> ''
+    C = LEFT(X, 1)
+    SELECT
+      WHEN C = '\' & LENGTH(X) > 1 THEN DO
+        Y = Y || SUBSTR(X, 2, 1); X = SUBSTR(X, 3)
+      END
+      WHEN C = '`' THEN DO
+        E = POS('`', X, 2)
+        IF E = 0 THEN DO; Y = Y || X; X = ''; END
+        ELSE DO; Y = Y || SUBSTR(X, 2, E - 2); X = SUBSTR(X, E + 1); END
+      END
+      WHEN LEFT(X, 2) = '![' | C = '[' THEN DO
+        IMG = (C = '!'); IF IMG THEN X = SUBSTR(X, 2)
+        E = POS('](', X)
+        Z = POS(')', X, MAX(E, 1))
+        IF E = 0 | Z = 0 THEN DO; Y = Y || C; X = SUBSTR(X, 2 - IMG); END
+        ELSE DO
+          TXT = SUBSTR(X, 2, E - 2)
+          URL = WORD(SUBSTR(X, E + 2, Z - E - 2), 1)
+          IF IMG THEN Y = Y || '[image: ' || TXT || ']'
+          ELSE IF URL = '' | URL = TXT THEN Y = Y || INLINE(TXT)
+          ELSE Y = Y || INLINE(TXT) '(' || URL || ')'
+          X = SUBSTR(X, Z + 1)
+        END
+      END
+      WHEN C = '<' & (LEFT(X,8) = '<http://' | LEFT(X,9) = '<https://') THEN DO
+        E = POS('>', X)
+        IF E = 0 THEN DO; Y = Y || C; X = SUBSTR(X, 2); END
+        ELSE DO; Y = Y || SUBSTR(X, 2, E - 2); X = SUBSTR(X, E + 1); END
+      END
+      WHEN LEFT(X, 2) = '**' | LEFT(X, 2) = '__' THEN X = SUBSTR(X, 3)
+      WHEN C = '*' THEN X = SUBSTR(X, 2)
+      WHEN C = '_' THEN DO           /* only around words, not inside   */
+        PREV = RIGHT(Y, 1); NXT = SUBSTR(X, 2, 1)
+        IF DATATYPE(PREV, 'A') & DATATYPE(NXT, 'A') & PREV <> '' THEN Y = Y || C
+        X = SUBSTR(X, 2)
+      END
+      OTHERWISE DO; Y = Y || C; X = SUBSTR(X, 2); END
+    END
+  END
+  RETURN Y
+
+/* --- PS: md2ms in the Debian guest, over the spool bridge ---------- */
+TOPS:
+  'SET CMSTYPE HT'
+  'ERASE MDPRINT CARDS A'
+  'ERASE LXCALL OPTIONS A'
+  'SET CMSTYPE RT'
+  DO K = 1 TO S.0
+    IF S.K = '' THEN QUEUE ' '; ELSE QUEUE S.K
+    IF QUEUED() >= 100 THEN 'EXECIO' QUEUED() 'DISKW MDPRINT CARDS A'
+  END
+  IF QUEUED() > 0 THEN 'EXECIO' QUEUED() 'DISKW MDPRINT CARDS A'
+  'FINIS MDPRINT CARDS A'
+  QUEUE 'FILE MDPRINT CARDS A NOTYPE'
+  'EXECIO 1 DISKW LXCALL OPTIONS A (FINIS'
+  'EXEC LXCALL MARKDOWN PS' FN
+  SRC = RC
+  'SET CMSTYPE HT'
+  'ERASE MDPRINT CARDS A'
+  'SET CMSTYPE RT'
+  'EXECIO * DISKR LXCALL RESULT A (FINIS STEM L.'
+  DO K = 2 TO L.0
+    IF STRIP(L.K) = '::PS' THEN LEAVE
+    SAY STRIP(L.K, 'T')
+  END
+  IF SRC <> 0 | K > L.0 THEN EXIT MAX(SRC, 1)
+  'SET CMSTYPE HT'
+  'ERASE' FN 'PS A'
+  'SET CMSTYPE RT'
+  N = 0
+  DO J = K + 1 TO L.0
+    IF L.J = '' THEN QUEUE ' '; ELSE QUEUE L.J
+    N = N + 1
+    IF QUEUED() >= 100 THEN 'EXECIO' QUEUED() 'DISKW' FN 'PS A'
+  END
+  IF QUEUED() > 0 THEN 'EXECIO' QUEUED() 'DISKW' FN 'PS A'
+  'FINIS' FN 'PS A'
+  SAY 'MDPRINT:' FN 'PS A,' N 'lines -- PSPRINT' FN 'to print it'
+  EXIT 0

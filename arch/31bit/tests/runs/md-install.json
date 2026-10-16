@@ -1,0 +1,247 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp disc",
+  "expect": "DISCONNECT",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/ipl 190",
+  "expect": "VM Community|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp purge rdr all",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp spool 00c class *",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/mdi/mdprint.txt ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp q rdr all",
+  "settle": 15
+ },
+ {
+  "send": "/readcard mdprint exec a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/mdi/unstream.txt ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp q rdr all",
+  "settle": 15
+ },
+ {
+  "send": "/readcard unstream exec a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/mdi/sample.ebc ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp q rdr all",
+  "settle": 15
+ },
+ {
+  "send": "/readcard sample md a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/unstream sample md a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile * * a (label",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/access 19e d",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile mdprint exec a = = d2 (replace",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile unstream exec a = = d2 (replace",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase mdprint exec a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase unstream exec a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/release d",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp ipl 190",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/listfile * exec y",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/mdprint sample md (type width 72",
+  "expect": "Ready",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "send": "/mdprint sample md (disk width 64",
+  "expect": "Ready",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "send": "/type sample document a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp spool 00e class a",
+  "expect": "Ready",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/mdprint sample md (print",
+  "expect": "Ready",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "send": "/erase sample * a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/logon operator operator",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/start 00e",
+  "settle": 10
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

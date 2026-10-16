@@ -179,6 +179,13 @@ B(['A user who has IPLed the shared CMS may IPL another system; the shared pages
    'CP emulates the System/370 interval timer from the TOD clock, since ESA/390 has none; time slices end and virtual interval timers run.',
    'CPWATCH is not autologged (see Chapter 2).']);
 
+H2('Spooling decks from the PC');
+P('Two socket card readers in `vm370ce.conf` take decks from the PC: 010C for text (ASCII) and 020C for binary (EBCDIC). AUTOLOG1 starts both after IPL. `tools/vmspool.py` (Python 3, on Windows, Linux or macOS) sends a file to a user’s virtual reader: `python3 vmspool.py FILE USERID [FN [FT]]`. FN and FT default to the file’s name and extension. On CMS the deck is read with `READCARD fn ft A` (or found in RDRLIST).');
+B(['A text file goes card by card. UTF-8 characters that CMS has no code for are replaced (an em dash becomes `--`).',
+   'A text file with lines longer than 80 characters goes as a stream through 020C (or always with `--stream`). After READCARD, `UNSTREAM fn ft` rebuilds the lines as a V-format file. `--cut` cuts the long lines instead.',
+   '`--binary` sends the file unchanged in 80-byte cards: a TEXT deck, a VMARC file, a tape dump.']);
+SCREEN(['$ python3 vmspool.py README.md cmsuser', 'vmspool: README.md -> CMSUSER, README MD, 212 line(s) as a stream: on CMS  READCARD README MD A  then  UNSTREAM README MD'], 'A Markdown file sent from the PC');
+
 // ---------------------------------------------------------------- chapter 5
 H1('Running Linux/390');
 P('This chapter describes ESA/390 virtual machines and Linux/390 in them. Linux runs in two forms: a small system in storage (BusyBox), which needs no disk, and Debian 7 on a 3390 disk of its own.');
@@ -523,6 +530,10 @@ P('The tags are those of BookMaster: `:userdoc`, `:prolog` with `:title`, `:docn
 SCREEN([':h1.Introduction', ':p.This book is written in :hp2.BookMaster:ehp2. markup.', ':ul.', ':li.headings, paragraphs and highlighting;', ':li.lists, screens, figures and tables.', ':eul.'], 'BookMaster markup');
 H2('LaTeX');
 P('`LATEX fn [ft [fm]]` (file type TEX by default) runs LaTeX (pdfTeX, TeX Live 2023) twice, for the contents and references, and dvips; the PostScript comes back as `fn PS A`. `LATEX fn (PDF` runs pdfLaTeX and leaves the PDF in the Debian guest. The packages are those of LaTeX itself, amsmath, graphics, tools, geometry and url; a run takes about a minute.');
+H2('Markdown: MDPRINT');
+P('`MDPRINT fn [ft [fm]]` (file type MD by default) prints a Markdown document. The CMS EXEC itself handles headings (ATX and setext), paragraphs, bullet and numbered lists (nested by indentation), code blocks, block quotes, horizontal rules and GitHub tables; inline marks are removed and links are shown with the address in parentheses. Options: `(TYPE` shows the result at the terminal (the default), `(DISK` writes `fn DOCUMENT A`, `(PRINT` prints it with a new page for each top-level heading, and `WIDTH n` sets the line width (default 79 at the terminal, 132 for DISK and PRINT).');
+P('`MDPRINT fn (PS` sends the document over the spool bridge to the Debian guest, where `md2ms` turns it into troff ms with tbl tables and groff typesets it. The PostScript comes back as `fn PS A`, ready for `PSPRINT`. In the Debian guest, `mdprint FILE` shows a file at the terminal, `mdprint FILE -ps` or `-pdf` typesets it, and `md2ms` alone gives the troff source.');
+SCREEN(['mdprint sample (width 72', 'VM/370PLUS MARKDOWN SAMPLE', '==========================', '', '- first item', '- second item, which is long enough to be wrapped when the text is laid', '  out in a narrow column on a terminal', '  - nested item', 'Ready;'], 'A Markdown file at the terminal');
 H2('Printing PostScript');
 P('`PSPRINT fn [ft [fm]]` (file type PS by default) prints a PostScript file. By default it goes to the virtual printer without page headers; CP\u2019s printer 00E writes it on the PC, where `tools/psprint.py` takes each PostScript job out unchanged and hands it to the printer (lp, or a printer\u2019s port 9100) or makes a PDF. With `(BRIDGE [format]` it goes through the spool bridge: Ghostscript in the Debian guest converts it to `ps`, `pdf`, `ljet4`, `pxlmono` or `pxlcolor` and sends it to the printer named in `/etc/vmspool.d/print.conf`.');
 P('On a newly installed system the real printer 00E is drained, so spooled print files wait. An operator starts it once with `START 00E` (from MAINT, or `vmcp start 00e` in the Debian guest). The EXECs of this chapter are on MAINT\u2019s 19D disk, so they work under the usual `IPL CMS`; the samples (`SAMPLE SCRIPT`, `GUIDE SCRIPT`, `HELLO TEX`, `HELLO TROFF`) are on the language disk, which uses EDF and needs the EC-mode CMS: `IPL 290`, then `LANG`.');
@@ -614,6 +625,8 @@ H2('RXPIP');
 P('`RXPIP AVAIL`, `SEARCH term`, `SHOW name`, `BUILD fn`, `RUN fn [args]`, `GET name`.');
 H2('TROFF, BOOKIE, LATEX, PSPRINT');
 P('`TROFF fn [ft [fm]] (MACROS m PS`; `BOOKIE fn [ft [fm]] (PS`; `LATEX fn [ft [fm]] (PDF`; `PSPRINT fn [ft [fm]] (BRIDGE [format]`.');
+H2('MDPRINT, UNSTREAM');
+P('`MDPRINT fn [ft [fm]] (TYPE|DISK|PRINT|PS WIDTH n`; `UNSTREAM fn ft [fm]`.');
 H2('LINUX EXEC');
 SCREEN(['LINUX [DISK|READER]'], 'LINUX EXEC');
 P('On MAINT 19D. **DISK** (the default) issues `CP IPL LINUX`. **READER** punches `LINUX48 KERNEL1`, `KERNEL2` and `userid LXPARM` (or `DEFAULT LXPARM`) to the user’s reader, holding the other reader files, and IPLs the reader as an ESA/390 machine. Needs 64 MB and, for Debian, the devices listed in Chapter 5 under “What a Linux user needs”.');

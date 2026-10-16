@@ -9,6 +9,12 @@ NEXT BUILD (in the development system)
     then on CMS: READCARD HELLO EXEC A (or RDRLIST).  Two socket card
     readers in vm370ce.conf take the decks (010C, port 3505, text;
     020C, port 3506, binary); AUTOLOG1 starts them at IPL.
+    A text file with lines over 80 characters goes as a stream:
+    READCARD fn ft A, then UNSTREAM fn ft (19E).
+  - MDPRINT fn [ft [fm]] (TYPE|DISK|PRINT|PS WIDTH n: Markdown documents
+    printed on CMS (headings, lists, code, quotes, tables); (PS sends
+    them to Debian (md2ms and groff -ms -t) for PostScript, then PSPRINT.
+    In Debian: mdprint FILE [-w N | -ps | -pdf].
 
 
 NEW IN BUILD 21

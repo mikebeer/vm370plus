@@ -1,0 +1,14 @@
+#!/bin/sh
+# mdprint -- print a Markdown file on Debian (VM/370plus 9.42)
+#   mdprint FILE [-w N]       plain text, N columns (default: the terminal's)
+#   mdprint FILE -ps [OUT]    PostScript (groff -ms -t), to OUT or FILE.ps
+#   mdprint FILE -pdf [OUT]   PDF, when groff can make one
+M=/usr/local/share/groff/tmac123
+f=$1; [ -r "$f" ] || { echo "usage: mdprint FILE [-w N | -ps [OUT] | -pdf [OUT]]" >&2; exit 4; }
+case "$2" in
+-ps|-pdf) t=${2#-}; o=${3:-${f%.*}.$t}
+          /usr/local/bin/md2ms "$f" | groff -M$M -ms -t -T$t > "$o" && echo "mdprint: $o" ;;
+-w)       /usr/local/bin/md2ms --text --width "${3:-80}" "$f" ;;
+'')       /usr/local/bin/md2ms --text --width "$(tput cols 2>/dev/null || echo 80)" "$f" ;;
+*)        echo "usage: mdprint FILE [-w N | -ps [OUT] | -pdf [OUT]]" >&2; exit 4 ;;
+esac

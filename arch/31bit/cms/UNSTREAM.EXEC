@@ -1,0 +1,33 @@
+/* UNSTREAM EXEC -- a text file sent by vmspool with long lines       */
+/*   UNSTREAM fn ft [fm]   (VM/370plus 9.41)                           */
+/* vmspool sends a text file with lines longer than 80 characters as  */
+/* a stream: the lines one after the other, each ended by X'15', in   */
+/* 80-byte cards (padded with X'00').  READCARD makes that fn ft A    */
+/* (F 80); UNSTREAM turns it back into the lines, in place (V).        */
+PARSE UPPER ARG FN FT FM .
+IF FT = '' THEN DO; SAY 'UNSTREAM: usage: UNSTREAM fn ft [fm]'; EXIT 24; END
+IF FM = '' THEN FM = 'A'
+'EXECIO * DISKR' FN FT FM '(FINIS STEM C.'
+IF RC <> 0 THEN EXIT RC
+S = ''
+DO I = 1 TO C.0; S = S || LEFT(C.I, 80, '00'X); END
+P = POS('00'X, S)                      /* the padding after the end   */
+IF P > 0 THEN S = LEFT(S, P - 1)
+N = 0; MAXL = 1
+DO WHILE S <> ''
+  PARSE VAR S L '15'X S
+  N = N + 1; L.N = L; MAXL = MAX(MAXL, LENGTH(L))
+END
+'SET CMSTYPE HT'
+'ERASE UNSTREAM CMSUT1 A'
+'SET CMSTYPE RT'
+DO I = 1 TO N
+  IF L.I = '' THEN QUEUE ' '; ELSE QUEUE L.I
+  IF QUEUED() >= 100 THEN 'EXECIO' QUEUED() 'DISKW UNSTREAM CMSUT1 A 0 V' MAXL
+END
+IF QUEUED() > 0 THEN 'EXECIO' QUEUED() 'DISKW UNSTREAM CMSUT1 A 0 V' MAXL
+'FINIS UNSTREAM CMSUT1 A'
+'ERASE' FN FT FM
+'RENAME UNSTREAM CMSUT1 A' FN FT FM
+SAY 'UNSTREAM:' FN FT FM',' N 'lines, the longest' MAXL
+EXIT 0
