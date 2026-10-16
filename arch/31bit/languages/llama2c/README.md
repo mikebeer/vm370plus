@@ -24,8 +24,11 @@ tokens ("VMferrerferrer judge judge ...") on the PC (x86-64), on Debian/390
 (llmd, 3.0 tok/s) and on CMS (llm1/llm2/llmi, 0.9 tok/s, soft float); the
 dim-64 model and seeded sampling (`-t 0.9 -s 42`) likewise.
 
-The real model, stories15M.bin (60 MB, huggingface.co/karpathy/tinyllamas),
-is not in the kit (the build machine cannot reach Hugging Face): on Debian
-put it in `/usr/local/share/llama2c/`; on CMS (IPL 290, DEF STOR 128M) as
-STORIES BIN on an EDF disk (it has more than 65,533 80-byte records), e.g.
-`vmspool.py stories15M.bin cmsuser stories bin --binary`, READCARD.
+The model, stories15M.bin (60,816,028 bytes, MD5 644db0bc012b405d6baf99559272ab11,
+from huggingface.co/karpathy/tinyllamas), is not in the kit but on
+https://vm370plus.com/wp-content/uploads/stories15M.bin (`llama.conf`):
+`llama --get` on Debian; `LLAMA GET fm` on CMS -- the service `llamaget`
+(linux390/vmspool/handlers) fetches it if need be and has vmspoold punch it
+(outbox `FILE`, binary, 760,201 cards, about 14 KB/s) to the caller, LLAMA
+EXEC reads it onto an EDF disk.  Verified 16 Oct: on CMS "Once upon a
+time, there was a" as on the PC (0.066 tok/s); Debian in 192 MB 0.11 tok/s.

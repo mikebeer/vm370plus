@@ -2111,16 +2111,35 @@ IBM's SPACK.
 :h2.A tiny language model&colon. LLAMA
 :p.Andrej Karpathy's llama2.c runs language models of the Llama-2
 architecture from one C file. VM/370plus has it on CMS and in the Debian
-guest, made for their big-endian 31-bit storage&colon. :xph.LLAMA prompt
-(MODEL fn ft TEMP t STEPS n SEED s:exph. on CMS (IPL 290, the language
-disk; DEF STOR 128M for the stories15M model), :xph.llama prompt:exph.
-in Debian (MODEL, TEMP, STEPS, SEED in the environment). The model
-itself is not in the kit&colon. download :xph.stories15M.bin:exph. from
-huggingface.co/karpathy/tinyllamas and put it in
-:xph./usr/local/share/llama2c/:exph. (Debian) or, as STORIES BIN, on an
-EDF disk of the CMS user. It writes children's stories, slowly&colon.
-CMS has no hardware floating point in its C runtime. For real questions,
-see ASK (Chapter 6).
+guest, made for their big-endian 31-bit storage. The model, stories15M
+(58 MB, it writes children's stories), is not in the kit; it is fetched
+once from vm370plus.com&colon.
+:ul.
+:li.Debian&colon. :xph.llama --get:exph. (the URL and its MD5 are in
+:xph./etc/llama.conf:exph.; the guest must reach the internet through
+the PC or BORDER). Then :xph.llama Once upon a time:exph., with MODEL,
+TEMP, STEPS and SEED in the environment. The model wants a 192 MB
+machine (:xph.DEF STOR 192M:exph. before :xph.IPL LINUX:exph.).
+:li.CMS&colon. :xph.LLAMA GET fm:exph. asks the Debian guest (the spool
+bridge) to fetch the model and punch it to your reader, about 760,000
+cards in an hour, and reads it onto disk fm as STORIES BIN. The disk
+must be an EDF disk with 60 MB free (:xph.FORMAT cuu fm (BLKSIZE
+4096:exph.; a T-disk of 150 cylinders will do). Then :xph.LLAMA Once
+upon a time (TEMP 0 STEPS 24:exph. under IPL 290 with the language disk
+(LANG) and :xph.DEF STOR 160M:exph..
+:eul.
+:fig.
+:xmp.
+llama Once (temp 0 steps 8
+Once upon a time, there was a
+achieved tok/s: 0.065614
+Ready;
+:exmp.
+:figcap.A story begins on CMS
+:efig.
+:p.It is slow&colon. about 15 seconds a word on CMS, whose C runtime has
+no hardware floating point, and 9 in the Debian guest. For real
+questions, see ASK (Chapter 6).
 :h2.File names in C programs
 :p.Programs built with the CMS runtime (all those of this chapter) use
 Unix file names and map them to CMS files&colon. :xph.fn.ft:exph. is
@@ -2747,7 +2766,8 @@ channel:exph.; :xph.MQTT PUB topic message:exph., :xph.MQTT SUB topic [n
 :p.:xph.PCPRINT fn [ft [fm]] [(PRINT options]:exph. (file type LISTING
 by default; PS through PSPRINT).
 :h2.LLAMA
-:p.:xph.LLAMA [prompt] [(MODEL fn ft | TEMP t | STEPS n | SEED s]:exph..
+:p.:xph.LLAMA [prompt] [(MODEL fn ft | TEMP t | STEPS n | SEED s]:exph.;
+:xph.LLAMA GET [fm]:exph..
 :h2.MDPRINT, UNSTREAM
 :p.:xph.MDPRINT fn [ft [fm]] (TYPE|DISK|PRINT|PS WIDTH n:exph.;
 :xph.UNSTREAM fn ft [fm]:exph..

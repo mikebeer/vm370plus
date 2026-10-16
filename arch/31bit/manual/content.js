@@ -522,7 +522,11 @@ P('`ZIP zipfile files` and `UNZIP zipfile` are Info-ZIP zip 3.0 and unzip 6.0, s
 SCREEN(['zip notes.zip report.txt data.csv', '  adding: report.txt (deflated 61%)', '  adding: data.csv (deflated 48%)', 'Ready;', 'unzip -l notes.zip', 'Archive:  notes.zip', '...'], 'ZIP on CMS');
 P('`UNTERSE fn.trs out.ft` unpacks an IBM TERSE file (PACK or SPACK, as AMATERSE or TRSMAIN write it on z/OS) into a CMS text file, one record per line; `UNTERSE -b` keeps the bytes (variable records get their 4-byte RDW), for binary data such as load modules or dumps; `UNTERSE -i` shows the header (PACK/SPACK, RECFM, LRECL). It is the Open Mainframe Project\u2019s tersedecompress, in C. `TERSE fn.ft out.trs` goes the other way: SPACK format, RECFM F with the longest line as LRECL (`-l n` sets it, `-v` makes V records); `TERSE -b -l n` packs binary data. The encoder runs the decoder\u2019s own model and compresses as well as IBM\u2019s SPACK.');
 H2('A tiny language model: LLAMA');
-P('Andrej Karpathy’s llama2.c runs language models of the Llama-2 architecture from one C file. VM/370plus has it on CMS and in the Debian guest, made for their big-endian 31-bit storage: `LLAMA prompt (MODEL fn ft TEMP t STEPS n SEED s` on CMS (IPL 290, the language disk; DEF STOR 128M for the stories15M model), `llama prompt` in Debian (MODEL, TEMP, STEPS, SEED in the environment). The model itself is not in the kit: download `stories15M.bin` from huggingface.co/karpathy/tinyllamas and put it in `/usr/local/share/llama2c/` (Debian) or, as STORIES BIN, on an EDF disk of the CMS user. It writes children’s stories, slowly: CMS has no hardware floating point in its C runtime. For real questions, see ASK (Chapter 6).');
+P('Andrej Karpathy’s llama2.c runs language models of the Llama-2 architecture from one C file. VM/370plus has it on CMS and in the Debian guest, made for their big-endian 31-bit storage. The model, stories15M (58 MB, it writes children’s stories), is not in the kit; it is fetched once from vm370plus.com:');
+B(['Debian: `llama --get` (the URL and its MD5 are in `/etc/llama.conf`; the guest must reach the internet through the PC or BORDER). Then `llama Once upon a time`, with MODEL, TEMP, STEPS and SEED in the environment. The model wants a 192 MB machine (`DEF STOR 192M` before `IPL LINUX`).',
+   'CMS: `LLAMA GET fm` asks the Debian guest (the spool bridge) to fetch the model and punch it to your reader, about 760,000 cards in an hour, and reads it onto disk fm as STORIES BIN. The disk must be an EDF disk with 60 MB free (`FORMAT cuu fm (BLKSIZE 4096`; a T-disk of 150 cylinders will do). Then `LLAMA Once upon a time (TEMP 0 STEPS 24` under IPL 290 with the language disk (LANG) and `DEF STOR 160M`.']);
+SCREEN(['llama Once (temp 0 steps 8', 'Once upon a time, there was a', 'achieved tok/s: 0.065614', 'Ready;'], 'A story begins on CMS');
+P('It is slow: about 15 seconds a word on CMS, whose C runtime has no hardware floating point, and 9 in the Debian guest. For real questions, see ASK (Chapter 6).');
 H2('File names in C programs');
 P('Programs built with the CMS runtime (all those of this chapter) use Unix file names and map them to CMS files: `fn.ft` is `fn ft *` for reading (any accessed disk) and `fn ft A` for writing; `fn.ft.fm` and `x/fn.ft` give the mode; `/tmp/fn.ft` is a scratch file on A; a name without a dot is `FILE name`, as FILEDEF defaults it; parts longer than eight characters are cut to eight. Text files are converted between ASCII and EBCDIC (IBM-1047); file types such as `O`, `TEXT`, `TAR`, `ZIP`, `GZ`, `DB`, `DBF` and `BIN` are binary and passed through unchanged. Absolute paths under `/usr` are read from SYSROOT TAR. File dates come from the CMS file status table.');
 H2('SQLite');
@@ -652,7 +656,7 @@ P('`TROFF fn [ft [fm]] (MACROS m PS`; `BOOKIE fn [ft [fm]] (PS`; `LATEX fn [ft [
 H2('PCPRINT');
 P('`PCPRINT fn [ft [fm]] [(PRINT options]` (file type LISTING by default; PS through PSPRINT).');
 H2('LLAMA');
-P('`LLAMA [prompt] [(MODEL fn ft | TEMP t | STEPS n | SEED s]`.');
+P('`LLAMA [prompt] [(MODEL fn ft | TEMP t | STEPS n | SEED s]`; `LLAMA GET [fm]`.');
 H2('MDPRINT, UNSTREAM');
 P('`MDPRINT fn [ft [fm]] (TYPE|DISK|PRINT|PS WIDTH n`; `UNSTREAM fn ft [fm]`.');
 H2('LINUX EXEC');

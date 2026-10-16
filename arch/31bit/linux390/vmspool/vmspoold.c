@@ -370,10 +370,10 @@ static void outbox(void)
         b[len] = 0;
         nl = strchr(b, '\n');
         if (nl) {
-            char *t, *save, *w[8];
+            char *t, *save, *w[16];
             int k = 0;
             *nl = 0;
-            for (t = strtok_r(b, " ", &save); t && k < 8; t = strtok_r(NULL, " ", &save)) w[k++] = t;
+            for (t = strtok_r(b, " ", &save); t && k < 16; t = strtok_r(NULL, " ", &save)) w[k++] = t;
             if (k >= 2 && !strcasecmp(w[0], "TO")) {
                 int j;
                 snprintf(user, sizeof user, "%.8s", w[1]);
