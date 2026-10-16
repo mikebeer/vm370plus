@@ -1,0 +1,145 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/i294/med.deck ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 15
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/i294/big.deck ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 40
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 290 290 rr",
+  "expect": "LINKED|DMK",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...T",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp def t3350 as 1a0 cyl 60",
+  "expect": "DEFINED|DMK",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "format 1a0 c",
+  "settle": 5
+ },
+ {
+  "term": "yes",
+  "settle": 5
+ },
+ {
+  "term": "tmp",
+  "expect": "Ready|Unknown CP/CMS|DMS...T",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "query disk",
+  "expect": "Ready|Unknown CP/CMS|DMS...T",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp q rdr all",
+  "expect": "Ready|Unknown CP/CMS|DMS...T",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "readcard med data c",
+  "expect": "Ready|Unknown CP/CMS|DMS...T",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "listfile * data c",
+  "expect": "Ready|Unknown CP/CMS|DMS...T",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "readcard big data c",
+  "expect": "Ready|Unknown CP/CMS|DMS...T",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "listfile * data c (label",
+  "expect": "Ready|Unknown CP/CMS|DMS...T",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp q rdr all",
+  "expect": "Ready|Unknown CP/CMS|DMS...T",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]
