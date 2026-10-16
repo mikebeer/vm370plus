@@ -1,0 +1,349 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ipl 190",
+  "expect": "VM Community|DMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp purge rdr all",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp link border 191 391 mr",
+  "expect": "Ready|DMK",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "access 391 b",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase linux12 kernel1 b",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase linux12 kernel2 b",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase border exec b",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase linux13 kernel1 b",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase linux13 kernel2 b",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/k13a.deck ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 60
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/k13b.deck ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 60
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/dns/border.exec.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 15
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/dns/border.config.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 15
+ },
+ {
+  "term": "cp q rdr all",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard linux13 kernel1 b",
+  "expect": "Ready",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "readcard linux13 kernel2 b",
+  "expect": "Ready",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "readcard border exec b",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard border config a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "access 19e d",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "copyfile border config a = = d2 (replace",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase border config a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "release d",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "listfile * * b (label",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "release b",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp detach 391",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/autolog border border",
+  "settle": 5
+ },
+ {
+  "send": "/q n",
+  "expect": "IPL of its Linux",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "send": "/q n",
+  "settle": 150
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 128m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp define lcs 650",
+  "expect": "LCS|DEFINED|DMK",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp define lcs 651",
+  "expect": "LCS|DEFINED|DMK",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp purge rdr all",
+  "expect": "PURGED|NO RDR|DMK",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/dns/k13u.deck ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 60
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/dns/parmu.deck ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 15
+ },
+ {
+  "term": "cp q rdr all",
+  "settle": 5
+ },
+ {
+  "term": "cp set esa on",
+  "expect": "ESA|DMK|Ready|^$",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "term": "cp ipl 00c",
+  "expect": "HELLO FROM LINUX|# $",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "",
+  "settle": 30
+ },
+ {
+  "term": "ifconfig eth0 | head -2",
+  "settle": 5
+ },
+ {
+  "term": "cat /etc/resolv.conf",
+  "settle": 5
+ },
+ {
+  "term": "nslookup maint",
+  "settle": 15
+ },
+ {
+  "term": "nslookup cmsuser.vm370plus.lan",
+  "settle": 15
+ },
+ {
+  "term": "nslookup border",
+  "settle": 15
+ },
+ {
+  "term": "nslookup nobody.vm370plus.lan",
+  "settle": 15
+ },
+ {
+  "term": "nslookup -type=mx vm370plus.lan",
+  "settle": 15
+ },
+ {
+  "term": "nslookup 10.3.0.2",
+  "settle": 15
+ },
+ {
+  "term": "nslookup www.example.com",
+  "settle": 15
+ },
+ {
+  "term": "ping -c 2 border",
+  "settle": 10
+ },
+ {
+  "send": "/force cmsuser",
+  "settle": 10
+ },
+ {
+  "send": "/force border",
+  "settle": 10
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

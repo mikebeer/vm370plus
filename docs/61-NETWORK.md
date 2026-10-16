@@ -200,3 +200,29 @@ BORDER only forwards.
 
 A service machine runs DHCP and DNS for the internal segment: dnsmasq on Debian,
 or BORDER itself. It needs only the inside segment, not the outside.
+
+## 9.40: the local zone (16 October, kernel #13)
+
+BORDER answers for the LAN's own names. `vmdns` (`linux390/border/vmdns.c`,
+in kernel #13's initramfs) listens on 10.3.0.1:53: names in the zone
+(default `vm370plus.lan`, or bare one-label names) are answered from BORDER
+CONFIG -- `DOMAIN name`, `HOST name address`, `MX preference name` -- with A,
+PTR (10.3.0.x), MX, NS and SOA records, NXDOMAIN for unknown names; every
+other question is relayed to the `DNS` server (default the PC, 10.1.4.1)
+and its answer back. `border` is always 10.3.0.1; the shipped BORDER CONFIG
+names MAINT 10.3.0.2 and CMSUSER 10.3.0.3. DHCP clients get the domain
+(`search vm370plus.lan`). BORDER EXEC passes the zone as `vmdomain=`,
+`vmhost=` and `vmmx=` parameter cards. If vmdns cannot start, `/init` falls
+back to the 9.12d DNAT to the upstream server.
+
+Tested (dns2): BORDER started by AUTOLOG with kernel #13; CMSUSER's
+in-storage Linux took 10.3.0.100 by DHCP with `search vm370plus.lan`;
+`nslookup maint` 10.3.0.2, `cmsuser.vm370plus.lan` 10.3.0.3, `border`
+10.3.0.1, `nobody.vm370plus.lan` NXDOMAIN, `10.3.0.2` -> maint.vm370plus.lan,
+`www.example.com` relayed to the PC's (fake) server, `ping border`.
+Tools: `tools/dnsq.py SERVER NAME [TYPE]` (one question, decoded) and
+`tools/fakedns.py [ADDRESS]` (a stand-in upstream).
+
+Open: Debian with a static LAN address (MAINT 10.3.0.2 by vm370plus-lan)
+gets `nameserver 10.3.0.1` but no `search` line yet; use full names there
+until vm370plus-lan adds it.

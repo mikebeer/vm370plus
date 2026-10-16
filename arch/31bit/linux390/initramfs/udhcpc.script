@@ -9,6 +9,7 @@ case "$1" in
       for r in $router; do route add default gw $r; break; done
     fi
     [ -n "$dns" ] && { : > /etc/resolv.conf; for d in $dns; do echo "nameserver $d" >> /etc/resolv.conf; done; }
+    [ -n "$domain" ] && echo "search $domain" >> /etc/resolv.conf
     echo "network: eth0 $ip from DHCP (router $router, dns $dns)" ;;
 esac
 exit 0

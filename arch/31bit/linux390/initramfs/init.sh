@@ -72,9 +72,10 @@ fi
 # the IPL parameters, else 10.3.0.(n+1) for the CTC pair n above, else
 # 10.3.0.1 for BORDER (vmrole=border).  Without a CTC the default route
 # is BORDER, 10.3.0.1 (9.12c).
-ROLE=; LANIP=; FWD=; DNS=
+ROLE=; LANIP=; FWD=; DNS=; DOMAIN=; HOSTS=; MXS=
 for a in $(cat /proc/cmdline); do case $a in
-  vmrole=*) ROLE=${a#vmrole=};; vmlan=*) LANIP=${a#vmlan=};; vmfwd=*) FWD="$FWD,${a#vmfwd=}";; vmdns=*) DNS=${a#vmdns=};; esac; done
+  vmrole=*) ROLE=${a#vmrole=};; vmlan=*) LANIP=${a#vmlan=};; vmfwd=*) FWD="$FWD,${a#vmfwd=}";; vmdns=*) DNS=${a#vmdns=};;
+  vmdomain=*) DOMAIN=${a#vmdomain=};; vmhost=*) HOSTS="$HOSTS,${a#vmhost=}";; vmmx=*) MXS="$MXS,${a#vmmx=}";; esac; done
 LAN=
 for d in /sys/bus/ccw/devices/*; do
   [ "$(cat $d/cutype 2>/dev/null)" = 3088/60 ] || continue
@@ -126,17 +127,26 @@ EOT
     echo "border: $VMIP $pr $po -> $ad:${dp:-$po}"
   done
   # 9.12d: DHCP for the LAN (10.3.0.100-199; the router and the name
-  # server are BORDER), and names: 10.3.0.1:53 is passed on to vmdns=
-  # (default the PC, 10.1.4.1)
-  DNS=${DNS:-$VMPEER}
-  printf 'start 10.3.0.100\nend 10.3.0.199\ninterface eth0\nlease_file /tmp/udhcpd.leases\nopt router 10.3.0.1\nopt dns 10.3.0.1\nopt subnet 255.255.255.0\nopt lease 86400\n' > /etc/udhcpd.conf
+  # server are BORDER).  9.40: BORDER's vmdns answers for the local zone
+  # (vmdomain=, default vm370plus.lan: vmhost=name:address,..., vmmx=
+  # pref:name,...) and passes every other name on to vmdns= (default the
+  # PC, 10.1.4.1)
+  DNS=${DNS:-$VMPEER}; DOMAIN=${DOMAIN:-vm370plus.lan}
+  printf 'start 10.3.0.100\nend 10.3.0.199\ninterface eth0\nlease_file /tmp/udhcpd.leases\nopt router 10.3.0.1\nopt dns 10.3.0.1\nopt domain %s\nopt subnet 255.255.255.0\nopt lease 86400\n' $DOMAIN > /etc/udhcpd.conf
   : > /tmp/udhcpd.leases
   udhcpd /etc/udhcpd.conf && echo "border: DHCP on eth0, 10.3.0.100-199"
-  for p in udp tcp; do
-    ipt -t nat -A PREROUTING -i eth0 -d 10.3.0.1 -p $p --dport 53 -j DNAT --to-destination $DNS
-  done
-  echo "nameserver $DNS" > /etc/resolv.conf
-  echo "border: names (10.3.0.1:53) from $DNS"
+  { echo "domain $DOMAIN"; echo "listen 10.3.0.1"; echo "upstream $DNS"; echo "host border 10.3.0.1"
+    for h in $(echo "$HOSTS" | tr ',' ' '); do echo "host ${h%%:*} ${h#*:}"; done
+    for m in $(echo "$MXS" | tr ',' ' '); do echo "mx ${m%%:*} ${m#*:}"; done; } > /etc/vmdns.conf
+  if /sbin/vmdns -c /etc/vmdns.conf; then
+    echo "border: names: zone $DOMAIN ($(grep -c '^host' /etc/vmdns.conf) host(s)) on 10.3.0.1, others from $DNS"
+  else   # as before 9.40: 10.3.0.1:53 passed straight on
+    for p in udp tcp; do
+      ipt -t nat -A PREROUTING -i eth0 -d 10.3.0.1 -p $p --dport 53 -j DNAT --to-destination $DNS
+    done
+    echo "border: names (10.3.0.1:53) from $DNS"
+  fi
+  printf 'search %s\nnameserver 10.3.0.1\n' $DOMAIN > /etc/resolv.conf
   hostname border
   echo "border: NAT for 10.3.0.0/24 out through ctc0 $VMIP; ip_forward on"
 fi

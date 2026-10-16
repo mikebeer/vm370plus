@@ -1072,7 +1072,7 @@ from the operator (or in AUTOLOG1's profile)&colon.
 autolog border border
 AUTO LOGON   ***   BORDER   USERS = 006  BY  OPERATOR
  MSG FROM BORDER  :  BORDER: STARTING (BORDER EXEC)
- MSG FROM BORDER  :  BORDER: IPL OF ITS LINUX (KERNEL #12)
+ MSG FROM BORDER  :  BORDER: IPL OF ITS LINUX (KERNEL #13)
 :exmp.
 :figcap.Starting BORDER
 :efig.
@@ -1104,8 +1104,35 @@ with a line :xph.DNS address:exph. (for example :xph.DNS 8.8.8.8:exph.).
 A Linux started without :xph.vmlan=:exph. and without a CTC asks for its
 address by itself; Debian does when :xph./etc/vm370plus-lan.conf:exph.
 has no address for the user.
+:p.BORDER is also the name server for the LAN's own names, the local
+zone (default :xph.vm370plus.lan:exph.). BORDER CONFIG names the hosts
+and, for mail, the exchanger; :xph.border:exph. is always 10.3.0.1.
+Names in the zone, short (:xph.maint:exph.) or full
+(:xph.maint.vm370plus.lan:exph.), and their addresses backwards are
+answered by BORDER itself; all other names go on to the outside name
+server as before. Guests that take their address by DHCP also get
+:xph.search vm370plus.lan:exph..
+:fig.
+:xmp.
+DOMAIN vm370plus.lan
+HOST MAINT 10.3.0.2
+HOST CMSUSER 10.3.0.3
+MX 10 MAINT
+:exmp.
+:figcap.The local zone in BORDER CONFIG
+:efig.
+:fig.
+:xmp.
+# nslookup maint
+Name:   maint.vm370plus.lan
+Address: 10.3.0.2
+# ping -c 1 border
+64 bytes from 10.3.0.1: seq=0 ttl=64 time=34.354 ms
+:exmp.
+:figcap.Names on the LAN
+:efig.
 :p.BORDER's own disk (191, 20 cylinders on VM50U1) holds its kernel
-(LINUX12 KERNEL1 and KERNEL2), BORDER EXEC and a PROFILE EXEC that
+(LINUX13 KERNEL1 and KERNEL2), BORDER EXEC and a PROFILE EXEC that
 starts it. To look at it in CMS, log on as BORDER with :xph.ACCESS
 (NOPROF:exph. as the first command.
 :h1.Service Machines

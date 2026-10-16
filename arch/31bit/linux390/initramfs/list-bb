@@ -63,3 +63,4 @@ file /lib/xtables/libxt_state.so /home/claude/src/ipt/lib/xtables/libxt_state.so
 file /lib/xtables/libxt_tcp.so /home/claude/src/ipt/lib/xtables/libxt_tcp.so 0755 0 0
 file /lib/xtables/libxt_udp.so /home/claude/src/ipt/lib/xtables/libxt_udp.so 0755 0 0
 file /etc/udhcpc.script /home/claude/vm370/arch/31bit/linux390/initramfs/udhcpc.script 0755 0 0
+file /sbin/vmdns /home/claude/vm370/arch/31bit/linux390/border/vmdns 0755 0 0

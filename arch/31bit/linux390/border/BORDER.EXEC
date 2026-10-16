@@ -1,7 +1,7 @@
 /* BORDER EXEC -- VM/370plus 9.12c: start BORDER, the guest LAN's    */
 /* only way out (user BORDER; its PROFILE EXEC runs this at logon).  */
 /*                                                                   */
-/* BORDER is an in-storage Linux, kernel #12 (LINUX12 KERNEL1 and    */
+/* BORDER is an in-storage Linux, kernel #13 (LINUX13 KERNEL1 and    */
 /* KERNEL2 on BORDER's 191), with two network adapters: eth0 on the  */
 /* CP guest LAN as 10.3.0.1 (CP DEFINE LCS 640/641, done here) and   */
 /* ctc0 to the PC (the CTC pair 0606/0607, DEDICATEd as 626/636:     */
@@ -13,12 +13,12 @@
 /* Log on with  ACCESS (NOPROF  as the first command to stay in CMS. */
 'CP SET MSG ON'
 'CP MSG OPERATOR BORDER: starting (BORDER EXEC)'
-'STATE LINUX12 KERNEL2 A'
+'STATE LINUX13 KERNEL2 A'
 if rc <> 0 then do
-  'CP MSG OPERATOR BORDER: LINUX12 KERNEL1/KERNEL2 A missing'
+  'CP MSG OPERATOR BORDER: LINUX13 KERNEL1/KERNEL2 A missing'
   exit 28; end
 /* the forwards from BORDER CONFIG, as vmfwd= parameters             */
-fwd = ''; dns = ''
+fwd = ''; dns = ''; dom = ''; hosts = ''; mxs = ''
 cfm = ''
 'STATE BORDER CONFIG A'
 if rc = 0 then cfm = 'A'
@@ -31,6 +31,12 @@ if cfm <> '' then do
   do i = 1 to c.0
     parse upper var c.i w1 pr po w4 ad dp .
     if w1 = 'DNS' & pr <> '' then do; dns = pr; iterate; end
+    /* 9.40, the local zone: DOMAIN name, HOST name addr, MX pref name */
+    if w1 = 'DOMAIN' & pr <> '' then do; dom = lower(pr); iterate; end
+    if w1 = 'HOST' & po <> '' then do
+      hosts = hosts lower(pr)':'po; iterate; end
+    if w1 = 'MX' & datatype(pr, 'W') & po <> '' then do
+      mxs = mxs pr':'lower(po); iterate; end
     if w1 <> 'EXPOSE' then iterate
     if w4 <> 'TO' | ad = '' then do
       say 'BORDER: ignored:' strip(c.i); iterate; end
@@ -51,6 +57,9 @@ do i = 1 to words(fwd)
 end
 if cur <> '' then do; n = n + 1; p.n = 'vmfwd='cur; end
 if dns <> '' then do; n = n + 1; p.n = 'vmdns='dns; end
+if dom <> '' then do; n = n + 1; p.n = 'vmdomain='dom; end
+call cards 'vmhost=', hosts
+call cards 'vmmx=', mxs
 'SET CMSTYPE HT'
 'ERASE BORDER PARM A'
 'SET CMSTYPE RT'
@@ -59,9 +68,9 @@ do i = 1 to n; queue left(p.i, 80); end
 if rc <> 0 then exit rc
 'CP PURGE RDR ALL'
 'CP SPOOL PUNCH TO * CONT'
-'PUNCH LINUX12 KERNEL1 A (NOHEADER'
+'PUNCH LINUX13 KERNEL1 A (NOHEADER'
 if rc <> 0 then exit rc
-'PUNCH LINUX12 KERNEL2 A (NOHEADER'
+'PUNCH LINUX13 KERNEL2 A (NOHEADER'
 if rc <> 0 then exit rc
 'CP SPOOL PUNCH NOCONT'
 'CP CLOSE PUNCH'
@@ -71,7 +80,23 @@ if rc <> 0 then exit rc
 do i = 3 to n; say 'BORDER:' p.i; end
 'CP DEFINE LCS 640'
 'CP DEFINE LCS 641'
-'CP MSG OPERATOR BORDER: IPL of its Linux (kernel #12)'
+'CP MSG OPERATOR BORDER: IPL of its Linux (kernel #13)'
 'CP SET ESA ON'
 'CP IPL 00C'
 exit rc
+
+/* the words of list as key= cards, comma-separated, each under 80  */
+cards: procedure expose n p.
+  parse arg key, list
+  cur = ''
+  do i = 1 to words(list)
+    f = word(list, i)
+    if cur <> '' & length(key || cur || ',' || f) > 79 then do
+      n = n + 1; p.n = key || cur; cur = ''; end
+    if cur = '' then cur = f; else cur = cur','f
+  end
+  if cur <> '' then do; n = n + 1; p.n = key || cur; end
+  return
+
+lower: return translate(arg(1), 'abcdefghijklmnopqrstuvwxyz',,
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ')

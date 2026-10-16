@@ -1,6 +1,14 @@
 VM/370plus  --  overlay kit, 16 October 2026 (build 22)
 ========================================================
 
+NEXT BUILD (in the development system)
+  - BORDER answers for the LAN's own names (9.40): in BORDER CONFIG
+    (MAINT 19E),  DOMAIN name  (default vm370plus.lan),  HOST name address,
+    MX preference name.  ping maint, ssh cmsuser.vm370plus.lan; other
+    names go on to the DNS server as before.  Kernel #13
+    (vm370plus/linux/linux13.rdr) on BORDER's 191.
+
+
 NEW IN BUILD 22
   - vmspool (vm370plus/tools/vmspool.py, Python 3, Windows or Linux):
     a file on the PC straight into a VM/370plus user's reader, e.g.

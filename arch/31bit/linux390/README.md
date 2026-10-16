@@ -46,6 +46,8 @@ On Debian:
   use it.
 
 `decks/linux12.rdr` (kernel #12, 15 Oct): kernel #11 (14 Oct) added the LCS driver for the CP guest LAN (9.12b); #12 adds netfilter (conntrack, NAT, filter) and carries Debian 7's iptables 1.4.14 with its libraries in the initramfs, for BORDER (9.12c). `config-4.0-31bit` is its configuration. The initramfs's `/init` also brings up eth0 on an LCS pair (`vmlan=` or 10.3.0.(n+1)) and, with `vmrole=border`, sets up NAT and the `vmfwd=` forwards.
+
+`decks/linux13.rdr` (kernel #13, 16 Oct, 9.40): #12 with `/sbin/vmdns` in the initramfs (`border/vmdns.c`, built by `border/mkvmdns.sh` dynamically against Debian 7's libc, which the initramfs carries for iptables). With `vmrole=border`, `/init` starts it on 10.3.0.1:53 as the LAN's name server: the local zone (`vmdomain=`, default vm370plus.lan; `vmhost=name:address,...`; `vmmx=pref:name,...`) answered by BORDER itself, every other name passed on to `vmdns=` (default the PC). udhcpd hands out the domain, and udhcpc writes it as `search`. BORDER's 191 now holds LINUX13 KERNEL1/KERNEL2.
 `decks/linux49.rdr` is a reader deck of the GCC 13-fixed kernel: use it to
 boot when the disk's IPL records point to a kernel that does not boot,
 then run vmzipl again.
