@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+"""njecards SPOOLFILE OUTFILE -- VM/370plus 9.13b: the card images of an
+NJE-II spool file, 80 bytes each, EBCDIC as they came (padded with
+blanks).  Exit 0 and prints NETDATA when the first card starts a NETDATA
+stream (INMR01), TEXT otherwise.  (NJE-II's receive always decodes
+NETDATA; CMS's RECEIVE wants it whole.)"""
+import struct, sys
+d = open(sys.argv[1], 'rb').read()
+p = d.find(b'\nEND:\n')
+if p < 0:
+    sys.exit('njecards: no END: in the spool header')
+p += 6
+out = []
+while p + 2 <= len(d):
+    n = struct.unpack('>H', d[p:p + 2])[0]
+    r = d[p + 2:p + 2 + n]
+    p += 2 + n
+    if len(r) < 2:
+        continue
+    card = r[2:2 + r[1]]
+    out.append((card + b'\x40' * 80)[:80])
+open(sys.argv[2], 'wb').write(b''.join(out))
+print('NETDATA' if out and out[0][2:8] == b'\xc9\xd5\xd4\xd9\xf0\xf1' else 'TEXT')

@@ -1,0 +1,121 @@
+/* NJEGATE EXEC -- VM/370plus 9.13b: the RSCS machine as a gateway  */
+/* to NJE.  SENDFILE fn ft fm TO user AT node (CE's SENDFILE) spools */
+/* a NETDATA file to RSCS with TAG node user; NJEGATE takes it from  */
+/* the reader, RECEIVEs it and hands it to NJE-II in the Debian      */
+/* guest (LXCALL NJE SENDFILE).  Files from NJE come the other way   */
+/* straight to the user's reader (class N: RECEIVE).                 */
+/*   NJEGATE         loop (stop it with CP FORCE RSCS)               */
+/*   NJEGATE ONCE    one pass over the reader                        */
+ARG MODE .
+'CP SET MSG ON'
+'CP SPOOL RDR CLASS * NOHOLD'
+SAY 'NJEGATE: the NJE gateway is up ('DATE() TIME()')'
+DO FOREVER
+  N = PASS()
+  IF MODE = 'ONCE' THEN LEAVE
+  IF N > 0 THEN ITERATE
+  'WAKEUP +000500 (RDR QUIET'   /* a file, or 5 minutes */
+END
+EXIT 0
+
+/* one pass: every reader file that is not held; returns how many  */
+PASS: PROCEDURE
+'EXECIO * CP (STRING QUERY RDR ALL'
+N = 0; H = ''
+DO I = 1 TO QUEUED()
+  PARSE PULL L
+  IF WORD(L, 1) = 'ORIGINID' THEN DO; H = L; ITERATE; END
+  IF WORD(L, 2) = '' | DATATYPE(WORD(L, 2)) <> 'NUM' THEN ITERATE
+  N = N + 1; F.N = L
+END
+IF H = '' THEN RETURN 0
+PN = POS('NAME', H); PT = POS('TYPE', H, PN)
+K = 0
+DO I = 1 TO N
+  L = F.I
+  PARSE VAR L ORG ID CL . . . HOLD .
+  IF HOLD <> 'NONE' THEN ITERATE
+  FN = STRIP(SUBSTR(L, PN, 8)); FT = STRIP(SUBSTR(L, PT, 8))
+  CALL ONE ID, ORG, CL, FN, FT
+  K = K + 1
+END
+RETURN K
+
+/* one file */
+ONE: PROCEDURE
+PARSE ARG ID, ORG, CL, FN, FT
+'EXECIO * CP (STRING TAG QUERY FILE' ID
+T = ''
+DO QUEUED(); PARSE PULL X; T = T X; END
+PARSE UPPER VAR T NODE USER .
+IF USER = '' THEN DO
+  'CP PURGE RDR' ID
+  IF ORG <> 'MAINT' THEN
+    'CP MSG' ORG 'RSCS: file' ID 'has no TAG node user;',
+      'use SENDFILE fn ft fm TO user AT node'
+  RETURN
+END
+IF FN = '' THEN FN = 'NONAME'
+IF FT = '' THEN FT = 'FILE'
+IF CL = 'N' THEN DO   /* NETDATA: RECEIVE names it */
+  CALL CLEAN
+  CALL QUIET 'RECEIVE' ID '= = A1'
+  R = RESULT
+  IF R = 0 THEN DO
+    CALL QUIET 'LISTFILE * * A (EXEC'
+    'EXECIO * DISKR CMS EXEC A (FINIS STEM L.'
+    DO J = 1 TO L.0
+      PARSE UPPER VAR L.J . . X Y .
+      IF Y = 'EXEC' & (X = 'PROFILE' | X = 'CMS') THEN ITERATE
+      FN = X; FT = Y
+    END
+    CALL QUIET 'ERASE CMS EXEC A'
+  END
+END
+ELSE DO
+  CALL QUIET 'ERASE' FN FT 'A'
+  CALL QUIET 'CP ORDER RDR' ID
+  CALL QUIET 'READCARD' FN FT 'A'
+  R = RESULT
+END
+IF R <> 0 THEN DO
+  'CP MSG' ORG 'RSCS: could not read file' ID '(rc' R')'
+  CALL QUIET 'CP PURGE RDR' ID
+  RETURN
+END
+/* options through LXCALL OPTIONS A (see LXCALL: 8 arguments)     */
+CALL QUIET 'ERASE LXCALL OPTIONS A'
+QUEUE 'FILE' FN FT 'A NOTYPE'
+'EXECIO 1 DISKW LXCALL OPTIONS A (FINIS'
+'EXEC LXCALL NJE SENDFILE' USER NODE FN FT ORG
+R = RC
+IF R = 0 THEN
+  'CP MSG' ORG 'RSCS:' FN FT 'sent to' USER 'at' NODE
+ELSE
+  'CP MSG' ORG 'RSCS:' FN FT 'to' USER 'at' NODE 'failed (rc' R')'
+SAY 'NJEGATE:' ORG FN FT '->' USER'@'NODE 'rc' R
+CALL QUIET 'ERASE' FN FT 'A'
+CALL QUIET 'ERASE LXCALL RESULT A'
+RETURN
+
+/* the A-disk keeps only PROFILE EXEC between files */
+CLEAN: PROCEDURE
+CALL QUIET 'LISTFILE * * A (EXEC'
+IF RESULT <> 0 THEN RETURN
+'EXECIO * DISKR CMS EXEC A (FINIS STEM L.'
+DO J = 1 TO L.0
+  PARSE UPPER VAR L.J . . X Y Z .
+  IF X = 'PROFILE' & Y = 'EXEC' THEN ITERATE
+  IF X = 'CMS' & Y = 'EXEC' THEN ITERATE
+  CALL QUIET 'ERASE' X Y Z
+END
+CALL QUIET 'ERASE CMS EXEC A'
+RETURN
+
+QUIET: PROCEDURE
+  PARSE ARG CMD
+  'SET CMSTYPE HT'
+  CMD
+  R = RC
+  'SET CMSTYPE RT'
+  RETURN R

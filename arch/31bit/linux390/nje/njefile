@@ -1,0 +1,36 @@
+#!/bin/sh
+# njefile SPOOL TOUSER FRUSER FRNODE FNAME FTYPE CLASS -- VM/370plus 9.13b:
+# NJE-II's file exit.  A file for a VM/370 user goes to the user's reader
+# through vmspoold's outbox: a NETDATA file (SENDFILE from RSCS, z/VM,
+# NJE-II) as it is, class N, for CMS's RECEIVE; anything else (print,
+# punch, job output) as text, class A.  The user gets a CP MSG.  On a
+# machine without vmspoold (the PC) the file is kept in var/in/.
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+P=$(cd $(dirname $0)/.. && pwd)
+S=$1 U=$(echo $2 | tr a-z A-Z) FU=$3 FN=$4 N=${5:-NONAME} T=${6:-FILE}
+Q=/var/spool/vmspool/outq; K=/var/spool/vmspool/nje
+log() { echo "$(date '+%m/%d %H:%M:%S') $*" >> $P/var/log/njefile.log; }
+if [ ! -d $Q ] || ! command -v vmcp >/dev/null; then
+  mkdir -p $P/var/in; o=$P/var/in/$U.$N.$T.$$
+  $P/bin/receive -o $o "$S" >> $P/var/log/njefile.log 2>&1 || { log "receive failed: $S"; exit 1; }
+  log "$N $T from $FU@$FN to $U (kept in var/in)"; exit 0
+fi
+mkdir -p $K; find $K -type f -mtime +1 -delete 2>/dev/null
+raw=$K/$U.$N.$T.$$
+kind=$($P/lib/njecards "$S" $raw 2>>$P/var/log/njefile.log) || { log "njecards failed: $S"; exit 1; }
+if [ "$kind" = NETDATA ]; then
+  o=$Q/nje$$.tmp
+  echo "TO $U CLASS N NAME $N $T FILE $raw" > $o && mv $o $Q/nje$$.out
+  how="RECEIVE"
+else
+  log "not NETDATA: $(python3 -c "import sys,binascii;d=open(sys.argv[1],'rb').read();p=d.find(b'\\nEND:\\n')+6;print(binascii.hexlify(d[p:p+24]).decode())" "$S")"
+  cp "$S" $K/last.spool 2>/dev/null
+  rm -f $raw; tmp=$K/.txt.$$
+  $P/bin/receive -o $tmp "$S" >> $P/var/log/njefile.log 2>&1 || { log "receive failed: $S"; exit 1; }
+  o=$Q/nje$$.tmp
+  { echo "TO $U CLASS A NAME $N $T"; cat $tmp; } > $o && mv $o $Q/nje$$.out
+  rm -f $tmp; how="READCARD"
+fi
+rm -f "$S"
+vmcp -k MSG $U "NJE: $N $T from $FU at $FN is in your reader ($how)" >/dev/null 2>&1
+log "$N $T from $FU@$FN to $U (reader, $how)"

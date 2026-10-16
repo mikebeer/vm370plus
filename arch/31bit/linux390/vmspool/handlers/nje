@@ -1,0 +1,35 @@
+#!/bin/sh
+# nje -- vmspoold service (9.13b): NJE for CMS users, through NJE-II
+# (/usr/local/nje, linux390/nje) in the Debian guest.
+#   TELL user node            the input (cards, joined) is the message
+#   SENDFILE user node fn ft [origin]
+#                             the input is the file; origin (the CMS
+#                             user who sent it) only from RSCS, the
+#                             gateway machine (NJEGATE EXEC)
+#   QUERY                     this node, its links (NJE-II's  ucp)
+# The sender is the CMS user (VMSPOOL_FROM).
+P=/usr/local/nje
+from=$(echo "${VMSPOOL_FROM:-UNKNOWN}" | tr a-z A-Z)
+[ -x $P/bin/njed ] || { echo "nje: NJE-II is not installed in the Debian guest"; exit 8; }
+pgrep -x njed >/dev/null || { echo "nje: njed is not running (/etc/init.d/nje start)"; exit 8; }
+op=$(echo "$1" | tr a-z A-Z)
+ok() { case "$1" in ''|*[!A-Za-z0-9@#\$_-]*) return 1;; esac; [ ${#1} -le 8 ]; }
+case "$op" in
+TELL)
+  ok "$2" && ok "$3" || { echo "nje: TELL user node"; exit 4; }
+  msg=$(sed 's/[[:space:]]*$//' | tr '\n' ' ' | tr -d '\000-\010\013-\037' | sed 's/ *$//')
+  [ -n "$msg" ] || { echo "nje: no message"; exit 4; }
+  $P/bin/tell -u "$from" "$2@$3" "$msg" 2>&1 && echo "nje: message sent to $2 at $3" ;;
+SENDFILE)
+  ok "$2" && ok "$3" && ok "$4" && ok "$5" || { echo "nje: SENDFILE user node fn ft"; exit 4; }
+  [ "$from" = RSCS ] && ok "$6" && from=$(echo "$6" | tr a-z A-Z)
+  t=$(mktemp); sed 's/[[:space:]]*$//' > $t
+  $P/bin/sendfile "$2@$3" -u "$from" -fn "$4" "$5" $t 2>&1; r=$?
+  rm -f $t
+  [ $r = 0 ] && echo "nje: $4 $5 sent to $2 at $3"
+  exit $r ;;
+QUERY|Q)
+  echo "nje: node $(awk '$1=="NAME"{print $2}' $P/etc/nje.cf)"
+  $P/bin/ucp show lines 2>&1 | head -40 ;;
+*) echo "nje: TELL user node | SENDFILE user node fn ft | QUERY"; exit 4 ;;
+esac

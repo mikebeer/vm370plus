@@ -1,0 +1,14 @@
+#!/bin/sh
+# njemsg FRUSER FRNODE TOUSER TEXT -- VM/370plus 9.13b: NJE-II's message
+# exit.  A message for a VM/370 user becomes a CP MSG; on a machine
+# without vmcp (the PC) it is kept in var/in/messages.
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+P=$(cd $(dirname $0)/.. && pwd)
+U=$(echo $3 | tr a-z A-Z)
+line="$1@$2: $4"
+echo "$(date '+%m/%d %H:%M:%S') $U <- $line" >> $P/var/log/njemsg.log
+if command -v vmcp >/dev/null; then
+  vmcp -k MSG $U "$line" >/dev/null 2>&1 || echo "$(date '+%m/%d %H:%M:%S') CP MSG $U failed" >> $P/var/log/njemsg.log
+else
+  mkdir -p $P/var/in; echo "$U <- $line" >> $P/var/in/messages
+fi

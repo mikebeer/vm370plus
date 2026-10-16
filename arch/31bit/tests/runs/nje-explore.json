@@ -1,0 +1,107 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/purge cmsuser rdr all",
+  "settle": 3
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/nje/tagt.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 10
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ipl cms",
+  "expect": "VM Community|DMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard tagt exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "tagt",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "listfile note * *",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "listfile sendfile * *",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "listfile rdrlist * *",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase tagt exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp purge rdr all",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

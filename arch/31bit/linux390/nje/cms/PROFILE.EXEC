@@ -1,0 +1,3 @@
+/* PROFILE EXEC of RSCS (9.13b): the NJE gateway                   */
+'CP SET RUN ON'
+'EXEC NJEGATE'
