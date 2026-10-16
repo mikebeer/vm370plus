@@ -1,17 +1,24 @@
 /* LLAMA EXEC -- a tiny language model on CMS (VM/370plus 9.17)       */
-/*   LLAMA [prompt ...] [(options]                                     */
-/* options:  MODEL fn ft     the checkpoint (default STORIES BIN: the  */
-/*                           stories15M model of karpathy/tinyllamas)  */
-/*           TEMP t          temperature (default 0.8; 0 = greedy)     */
-/*           STEPS n         tokens to make (default 128)              */
-/*           SEED s          random seed (default: the time)           */
-/* LLAMA2C MODULE is Karpathy's llama2.c (run.c) for big-endian CMS;   */
+/*   LLAMA [prompt ...] [(options]                                    */
+/* options:  MODEL fn ft     the checkpoint (default STORIES BIN: the */
+/*                           stories15M model of karpathy/tinyllamas) */
+/*           TEMP t          temperature (default 0.8; 0 = greedy)    */
+/*           STEPS n         tokens to make (default 128)             */
+/*           SEED s          random seed (default: the time)          */
+/*   LLAMA GET [fm]          fetch the model: the Debian guest gets it*/
+/*                           (URL in its /etc/llama.conf) and punches */
+/*                           it here; it goes on fm (default A) as    */
+/*                           STORIES BIN -- an EDF disk (FORMAT ...   */
+/*                           (BLKSIZE 4096), 60 MB free               */
+/* LLAMA2C MODULE is Karpathy's llama2.c (run.c) for big-endian CMS;  */
 /* the tokenizer is LLAMATOK BIN.  Needs IPL 290 and storage for the  */
-/* model (stories15M: DEF STOR 128M).                                  */
+/* model (stories15M: DEF STOR 128M).                                 */
 PARSE ARG LINE
+IF TRANSLATE(WORD(LINE, 1)) = 'GET' THEN CALL GET WORD(LINE, 2)
 OPT = ''
 P = LASTPOS('(', LINE)
-IF P > 0 THEN DO; OPT = SUBSTR(LINE, P + 1); LINE = LEFT(LINE, P - 1); END
+IF P > 0 THEN DO
+  OPT = SUBSTR(LINE, P + 1); LINE = LEFT(LINE, P - 1); END
 PROMPT = STRIP(LINE)
 MFN = 'STORIES'; MFT = 'BIN'; TEMP = '0.8'; STEPS = 128; SEED = ''
 UOPT = TRANSLATE(OPT)
@@ -37,3 +44,38 @@ IF PROMPT <> '' THEN CMD = CMD '-i "'PROMPT'"'
 QUEUE CMD
 'LLAMA2C =STACK'
 EXIT RC
+
+/* LLAMA GET: the model through the spool bridge                      */
+GET:
+  ARG FM .
+  IF FM = '' THEN FM = 'A'
+  SAY 'LLAMA: asking the Debian guest for the model ...'
+  'EXEC LXCALL LLAMAGET'
+  IF RC <> 0 THEN EXIT RC
+  SAY 'LLAMA: waiting for STORIES BIN in the reader (minutes) ...'
+  CALL TIME 'R'
+  DO FOREVER
+    SID = ''
+    'MAKEBUF'
+    'EXECIO * CP (STRING QUERY READER ALL' USERID()
+    DO WHILE QUEUED() > 0
+      PARSE PULL ROW
+      IF WORD(ROW, 10) = 'STORIES' & WORD(ROW, 11) = 'BIN' THEN
+        SID = WORD(ROW, 2)
+    END
+    'DROPBUF'
+    IF SID <> '' THEN LEAVE
+    IF TIME('E') > 7200 THEN DO
+      SAY 'LLAMA: no STORIES BIN after two hours'; EXIT 8; END
+    'WAKEUP +000030 (RDR QUIET'
+  END
+  'SET CMSTYPE HT'
+  'CP ORDER READER' SID
+  'ERASE STORIES BIN' FM
+  'SET CMSTYPE RT'
+  'READCARD STORIES BIN' FM
+  IF RC <> 0 THEN DO
+    SAY 'LLAMA: READCARD RC' RC '-- is' FM 'an EDF disk with room?'
+    EXIT RC; END
+  SAY 'LLAMA: the model is STORIES BIN' FM
+  EXIT 0

@@ -295,6 +295,46 @@ static int punchto(const char *user, const char *cls, const char *name, const ch
     return rc;
 }
 
+/* 9.17: a file punched as it is (binary), 80 bytes a card, the last
+   card padded with X'00'; read in pieces, as it can be larger than the
+   machine's storage */
+static int punchfile(const char *user, const char *cls, const char *name, const char *path)
+{
+    char p[64], cmd[128], resp[512];
+    static unsigned char buf[80 * 100];
+    int in, fd, rc = 0;
+    ssize_t n;
+    if ((in = open(path, O_RDONLY)) < 0) { logf_("outbox: %s: %s", path, strerror(errno)); return -1; }
+    snprintf(cmd, sizeof cmd, "spool %s to %s class %s", pundev + 5, user, cls);
+    cp(cmd, resp, sizeof resp);
+    if (strstr(resp, "INVALID") || strstr(resp, "NOT")) {
+        logf_("cannot spool to %s: %s", user, resp);
+        snprintf(cmd, sizeof cmd, "spool %s off", pundev + 5);
+        cp(cmd, NULL, 0);
+        close(in);
+        return -1;
+    }
+    snprintf(p, sizeof p, "/dev/vmpun-%s", pundev);
+    fd = open(p, O_WRONLY);
+    if (fd < 0) { logf_("%s: %s", p, strerror(errno)); close(in); return -1; }
+    for (;;) {
+        size_t got = 0;
+        while (got < sizeof buf && (n = read(in, buf + got, sizeof buf - got)) > 0) got += n;
+        if (got == 0) break;
+        if (got % 80) { memset(buf + got, 0, 80 - got % 80); got += 80 - got % 80; }
+        for (size_t o = 0; o < got; o += 80)
+            if (write(fd, buf + o, 80) != 80) { rc = -1; break; }
+        if (rc || got < sizeof buf) break;
+    }
+    close(fd);
+    close(in);
+    snprintf(cmd, sizeof cmd, "close %s name %s", pundev + 5, name);
+    cp(cmd, NULL, 0);
+    snprintf(cmd, sizeof cmd, "spool %s off", pundev + 5);
+    cp(cmd, NULL, 0);
+    return rc;
+}
+
 static int punch(const char *user, const char *text, size_t len)
 {
     return punchto(user, "a", "VMSPOOL REPLY", text, len);
@@ -304,8 +344,9 @@ static int punch(const char *user, const char *text, size_t len)
    vmspoold files to punch, so that one program owns the punch: a file
    <spool>/outq/NAME.out, written elsewhere and renamed into place, whose
    first line is
-       TO userid [CLASS c] [NAME fn ft]
-   and whose other lines are punched to userid.  Done files are removed;
+       TO userid [CLASS c] [NAME fn ft] [FILE path]
+   and whose other lines are punched to userid (FILE: that file instead,
+   binary, 80 bytes a card).  Done files are removed;
    files that cannot be punched go to <spool>/outq/failed. */
 static void outbox(void)
 {
@@ -316,7 +357,7 @@ static void outbox(void)
     if (!(dir = opendir(d))) return;
     while ((e = readdir(dir))) {
         size_t n = strlen(e->d_name), len;
-        char *b, *nl, user[16] = "", cls[4] = "a", fn[16] = "", ft[16] = "", name[40];
+        char *b, *nl, user[16] = "", cls[4] = "a", fn[16] = "", ft[16] = "", name[40], path[256] = "";
         FILE *fp;
         struct stat st;
         if (n < 5 || strcmp(e->d_name + n - 4, ".out")) continue;
@@ -338,6 +379,7 @@ static void outbox(void)
                 snprintf(user, sizeof user, "%.8s", w[1]);
                 for (j = 2; j < k; j++) {
                     if (!strcasecmp(w[j], "CLASS") && j + 1 < k) snprintf(cls, sizeof cls, "%.1s", w[++j]);
+                    else if (!strcasecmp(w[j], "FILE") && j + 1 < k) snprintf(path, sizeof path, "%s", w[++j]);
                     else if (!strcasecmp(w[j], "NAME") && j + 2 < k) {
                         snprintf(fn, sizeof fn, "%.8s", w[j + 1]); snprintf(ft, sizeof ft, "%.8s", w[j + 2]); j += 2;
                     }
@@ -345,7 +387,8 @@ static void outbox(void)
             }
         }
         if (fn[0]) snprintf(name, sizeof name, "%s %s", fn, ft); else strcpy(name, "VMSPOOL OUTBOX");
-        if (user[0] && nl && punchto(user, cls, name, nl + 1, len - (nl + 1 - b)) == 0) {
+        if (user[0] && nl && (path[0] ? punchfile(user, cls, name, path)
+                              : punchto(user, cls, name, nl + 1, len - (nl + 1 - b))) == 0) {
             unlink(f);
             logf_("outbox: punched %s to %s", e->d_name, user);
         } else {

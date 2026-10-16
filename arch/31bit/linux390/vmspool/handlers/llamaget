@@ -1,0 +1,14 @@
+#!/bin/sh
+# llamaget -- vmspoold service (9.17): the model for LLAMA on CMS.
+# Fetches it first if this guest has none (llama --get), then has
+# vmspoold punch it to the caller's reader as STORIES BIN (binary, about
+# 760,000 cards); LLAMA GET on CMS reads it onto an EDF disk.
+M=/usr/local/share/llama2c/stories15M.bin
+U=$(echo "${VMSPOOL_FROM:-}" | tr a-z A-Z)
+[ -n "$U" ] || { echo "llamaget: no user"; exit 4; }
+if [ ! -r $M ]; then /usr/local/bin/llama --get || exit 8; fi
+Q=/var/spool/vmspool/outq; mkdir -p $Q
+T=$Q/llama-$U-$$.tmp
+echo "TO $U CLASS A NAME STORIES BIN FILE $M" > $T && mv $T ${T%.tmp}.out
+echo "llamaget: STORIES BIN ($(wc -c < $M) bytes, $(( ($(wc -c < $M) + 79) / 80 )) cards) is on its way to your reader"
+exit 0
