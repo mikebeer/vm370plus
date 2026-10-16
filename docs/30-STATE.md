@@ -814,3 +814,18 @@ vmprint connected; CMSUSER (IPL 290, LANG) ran LLAMA on a random-weight
 model with the PC's 24 tokens; PCPRINT of a listing arrived on the PC as a
 .txt; ASK present. The ask service and vmmaild are on the shipped Debian
 disk (installed in dev, mdd5/ask1). 19 parts.
+
+## Kit b25 (16 October 2026, 17:15)
+
+9.43, 9.17 finished. EXEC 2: EXEC2 EXEC (19E) and the DMSEXC change in
+the 290 nucleus (first line &TRACE -> EXEC2). MAINT's PROFILE EXEC
+(ACCESS 5E5 B/B) restored. The llama model is downloaded, not shipped:
+Debian `llama --get` (URL and MD5 in /etc/llama.conf, vm370plus.com);
+CMS `LLAMA GET fm` (service llamaget; vmspoold's outbox FILE option punches
+the file binary, 16 words per header now); the language disk carries no
+model. Guide refreshed. Verified on a fresh CE + b25 (kt39): MAINT logs on
+with B = 5E5 and PROFILE EXEC A; CMSUSER under IPL 290 ran the EXEC 2
+test t1 by dispatch and by EXEC2, EXEC 1 and REXX still run as before;
+LLAMA EXEC/LLAMA2C MODULE/LLAMATOK BIN on L, no STORIES BIN, LLAMA says
+the model is not found. LLAMA GET end to end on dev (llg2, small model).
+19 parts.

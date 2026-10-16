@@ -1,14 +1,15 @@
-VM/370plus  --  overlay kit, 16 October 2026 (build 24)
+VM/370plus  --  overlay kit, 16 October 2026 (build 25)
 ========================================================
 
-NEXT BUILD (in the development system)
+NEW IN BUILD 25
   - EXEC 2 (9.43): an EXEC whose first line starts with &TRACE runs under
     EXEC2 EXEC (19E, our own interpreter) when CMS is IPLed from 290;
     EXEC2 fn args anywhere.
   - MAINT's PROFILE EXEC (ACCESS 5E5 B/B) is back (b22-b24 lacked it).
   - The llama model (stories15M, 58 MB) is fetched, not shipped: Debian
     llama --get (from vm370plus.com, /etc/llama.conf); CMS LLAMA GET fm
-    (through the Debian guest; fm an EDF disk with 60 MB free).
+    (through the Debian guest; fm an EDF disk with 60 MB free; about an
+    hour of punching).  vmspoold's outbox takes FILE path (binary).
 
 
 NEW IN BUILD 24
