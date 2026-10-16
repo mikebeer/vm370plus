@@ -80,12 +80,15 @@ DO FOREVER
   'EXECIO * CP (STRING QUERY READER ALL' USERID()
   DO WHILE QUEUED() > 0
     PARSE PULL ROW
-    IF WORD(ROW, 1) = SERVER & WORD(ROW, 10) = 'VMSPOOL' THEN GOT = 1
+    IF WORD(ROW, 1) = SERVER & WORD(ROW, 10) = 'VMSPOOL' THEN DO
+      GOT = 1; SID = WORD(ROW, 2); END
   END
   'DROPBUF'
   IF GOT THEN LEAVE
 END
 IF \GOT THEN DO; SAY 'LXCALL: no answer from' SERVER; EXIT 8; END
+/* 9.18: other files (mail) may be in the reader: the answer first   */
+CALL QUIET 'CP ORDER READER' SID
 CALL QUIET 'ERASE LXCALL RESULT A'
 'READCARD LXCALL RESULT A (NOHEADER'
 /* only the first card is read here: BREXX aborted (DLMalloc) at the */

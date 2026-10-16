@@ -1,0 +1,175 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp disc",
+  "expect": "DISCONNECT",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/ipl 190",
+  "expect": "VM Community|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp purge rdr all",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp spool 00c class *",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp q v 19d",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/mailinst/LXCALL.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp q rdr all",
+  "settle": 12
+ },
+ {
+  "send": "/readcard lxcall exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/access 19d e",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/query disk e",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile lxcall exec a = = e1 (replace",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile lxcall exec e",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/access 19e d",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase lxcall exec d2",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/release d",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/release e",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase lxcall exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp ipl 190",
+  "expect": "VM Community|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/listfile lxcall exec * (label",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/logon operator operator",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

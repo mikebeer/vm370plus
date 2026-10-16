@@ -1,0 +1,77 @@
+#!/usr/bin/python3
+"""mail -- vmspoold service (9.18): mail from a CMS user (SENDMAIL EXEC).
+
+    SEND        the input is the note: header lines (To:, Cc:, Bcc:,
+                Subject:, Reply-To:), an empty line, the text
+The sender is VMSPOOL_FROM at the first DOMAIN of mail.conf.  CMS users
+get it in their reader at once; other addresses go out by SMARTHOST or MX.
+"""
+import email.mime.text, email.utils, re, sys
+sys.path.insert(0, __import__('os').environ.get('VMMAIL_LIB', '/usr/local/lib/vmspool'))
+import vmmail
+
+if len(sys.argv) < 2 or sys.argv[1].upper() != 'SEND':
+    print('mail: SEND (the note on input)')
+    sys.exit(4)
+c = vmmail.conf()
+user = (__import__('os').environ.get('VMSPOOL_FROM') or 'unknown').lower()
+text = sys.stdin.buffer.read().decode('latin-1')
+lines = [l.rstrip() for l in text.split('\n')]
+h, i = {}, 0
+while i < len(lines) and lines[i].strip():
+    m = re.match(r'^\s*([A-Za-z-]+)\s*:\s*(.*)$', lines[i])
+    if m:
+        k = m.group(1).lower(); h[k] = (h[k] + ', ' + m.group(2)) if k in h else m.group(2)
+    elif h:                       # a continuation of the header above
+        k = list(h)[-1]; h[k] += ' ' + lines[i].strip()
+    i += 1
+body = '\n'.join(lines[i + 1:]).rstrip() + '\n'
+
+
+def addrs(v):
+    out = []
+    for name, a in email.utils.getaddresses([v.replace(';', ',')]):
+        for w in (a.split() if a else []):
+            out.append(w)
+    return out
+to, cc, bcc = addrs(h.get('to', '')), addrs(h.get('cc', '')), addrs(h.get('bcc', ''))
+if not to + cc + bcc:
+    print('mail: no To: line in the note (To:, Cc:, Bcc:, Subject:, an empty line, the text)')
+    sys.exit(4)
+
+
+def full(a):
+    return a if '@' in a else '%s@%s' % (a.lower(), c['DOMAINS'][0])
+sender = '%s@%s' % (user, c['DOMAINS'][0])
+msg = email.mime.text.MIMEText(body, 'plain', 'iso-8859-1' if any(ord(ch) > 127 for ch in body) else 'us-ascii')
+msg['From'] = sender
+msg['To'] = ', '.join(full(a) for a in to)
+if cc:
+    msg['Cc'] = ', '.join(full(a) for a in cc)
+if h.get('reply-to'):
+    msg['Reply-To'] = h['reply-to']
+msg['Subject'] = h.get('subject', '')
+msg['Date'] = email.utils.formatdate(localtime=True)
+msg['Message-ID'] = email.utils.make_msgid('vm370plus')
+msg['X-Mailer'] = 'VM/370plus SENDMAIL'
+data = msg.as_string()
+rc, remote = 0, []
+for a in to + cc + bcc:
+    u = vmmail.local_user(a, c)
+    if u:
+        try:
+            vmmail.deliver_local(u, msg, data.encode('latin-1', 'replace'))
+            if u == vmmail.myid():
+                print('mail: %s -- kept in /var/spool/vmspool/mail/%s (the Linux machine itself)' % (a, u.lower()))
+            else:
+                print('mail: %s -- in the reader of %s' % (a, u))
+        except Exception as e:
+            print('mail: %s -- failed: %s' % (a, e)); rc = 1
+    else:
+        remote.append(a)
+if remote:
+    for r, res in vmmail.relay(c, sender, remote, data):
+        print('mail: %s -- %s' % (r, res))
+        if not res.startswith('ok'):
+            rc = 1
+sys.exit(rc)

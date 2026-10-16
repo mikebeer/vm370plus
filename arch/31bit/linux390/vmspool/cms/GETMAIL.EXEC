@@ -1,0 +1,40 @@
+/* GETMAIL EXEC -- the mail in your reader (VM/370plus 9.18)          */
+/*   GETMAIL     each reader file of type MAIL (mail from outside, or  */
+/*               from a SENDMAIL) becomes  MAILnnnn MAIL A  (nnnn:     */
+/*               its spool id); who sent it and the subject are shown. */
+/*               Read one with  TYPE MAILnnnn MAIL  (or EDIT it).      */
+N = 0
+'MAKEBUF'
+'EXECIO * CP (STRING QUERY READER ALL' USERID()
+DO WHILE QUEUED() > 0
+  PARSE PULL ROW
+  IF WORD(ROW, 11) = 'MAIL' & DATATYPE(WORD(ROW, 2), 'W') THEN DO
+    N = N + 1; ID.N = WORD(ROW, 2); END
+END
+'DROPBUF'
+IF N = 0 THEN DO; SAY 'GETMAIL: no mail'; EXIT 0; END
+DO I = 1 TO N
+  F = 'MAIL' || RIGHT(ID.I, 4, '0')
+  CALL QUIET 'CP ORDER READER' ID.I
+  CALL QUIET 'ERASE' F 'MAIL A'
+  CALL QUIET 'READCARD' F 'MAIL A (NOHEADER'
+  IF RESULT <> 0 THEN DO
+    SAY 'GETMAIL: reader file' ID.I 'not read'; ITERATE; END
+  'EXECIO 6 DISKR' F 'MAIL A 1 (FINIS STEM H.'
+  FR = ''; SU = ''
+  DO K = 1 TO H.0
+    IF LEFT(H.K, 5) = 'From:' THEN FR = STRIP(SUBSTR(H.K, 6))
+    IF LEFT(H.K, 8) = 'Subject:' THEN SU = STRIP(SUBSTR(H.K, 9))
+  END
+  SAY F 'MAIL A  ' LEFT(FR, 32) SU
+END
+SAY 'GETMAIL:' N 'message(s); read one with  TYPE MAILnnnn MAIL'
+EXIT 0
+
+QUIET: PROCEDURE
+  PARSE ARG CMD
+  'SET CMSTYPE HT'
+  CMD
+  R = RC
+  'SET CMSTYPE RT'
+  RETURN R

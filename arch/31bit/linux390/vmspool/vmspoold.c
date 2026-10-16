@@ -21,6 +21,8 @@
  * The reader is read through vmur (VM/370 mode: CCW READ, one card per
  * I/O, unit exception = end of file; needs the CP fix of I-276).  A read()
  * that returns less than it asked for, or 0, ends the file.
+ *
+ * 9.18: files left in <spool>/outq are punched too (see outbox()).
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +37,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <dirent.h>
+#include <strings.h>
 
 static const unsigned char e2a[256] = {
     0x00,0x01,0x02,0x03,0x9C,0x09,0x86,0x7F,0x97,0x8D,0x8E,0x0B,0x0C,0x0D,0x0E,0x0F,
@@ -252,15 +256,16 @@ static int run(const char *path, char **argv, const char *from, const char *svc,
     return 128 + (WIFSIGNALED(status) ? WTERMSIG(status) : 0);
 }
 
-/* the answer punched to user: text cut into 80-column EBCDIC cards */
-static int punch(const char *user, const char *text, size_t len)
+/* text punched to user, in class cls, named name ("fn ft"): cut into
+   80-column EBCDIC cards */
+static int punchto(const char *user, const char *cls, const char *name, const char *text, size_t len)
 {
-    char p[64], cmd[96], resp[512];
+    char p[64], cmd[128], resp[512];
     unsigned char c[80];
     size_t i = 0;
     int fd, k, rc = 0;
 
-    snprintf(cmd, sizeof cmd, "spool %s to %s class a", pundev + 5, user);
+    snprintf(cmd, sizeof cmd, "spool %s to %s class %s", pundev + 5, user, cls);
     cp(cmd, resp, sizeof resp);
     if (strstr(resp, "INVALID") || strstr(resp, "NOT")) {
         logf_("cannot spool to %s: %s", user, resp);
@@ -283,11 +288,75 @@ static int punch(const char *user, const char *text, size_t len)
         i = e + 1;
     }
     close(fd);
-    snprintf(cmd, sizeof cmd, "close %s name VMSPOOL REPLY", pundev + 5);
+    snprintf(cmd, sizeof cmd, "close %s name %s", pundev + 5, name);
     cp(cmd, NULL, 0);
     snprintf(cmd, sizeof cmd, "spool %s off", pundev + 5);
     cp(cmd, NULL, 0);
     return rc;
+}
+
+static int punch(const char *user, const char *text, size_t len)
+{
+    return punchto(user, "a", "VMSPOOL REPLY", text, len);
+}
+
+/* 9.18: the outbox.  Other programs (vmmaild, the mail service) hand
+   vmspoold files to punch, so that one program owns the punch: a file
+   <spool>/outq/NAME.out, written elsewhere and renamed into place, whose
+   first line is
+       TO userid [CLASS c] [NAME fn ft]
+   and whose other lines are punched to userid.  Done files are removed;
+   files that cannot be punched go to <spool>/outq/failed. */
+static void outbox(void)
+{
+    char d[256], f[512], g[512];
+    DIR *dir;
+    struct dirent *e;
+    snprintf(d, sizeof d, "%s/outq", sdir);
+    if (!(dir = opendir(d))) return;
+    while ((e = readdir(dir))) {
+        size_t n = strlen(e->d_name), len;
+        char *b, *nl, user[16] = "", cls[4] = "a", fn[16] = "", ft[16] = "", name[40];
+        FILE *fp;
+        struct stat st;
+        if (n < 5 || strcmp(e->d_name + n - 4, ".out")) continue;
+        snprintf(f, sizeof f, "%s/%s", d, e->d_name);
+        if (stat(f, &st) || !(fp = fopen(f, "r"))) continue;
+        b = malloc(st.st_size + 1);
+        len = b ? fread(b, 1, st.st_size, fp) : 0;
+        fclose(fp);
+        if (!b) continue;
+        b[len] = 0;
+        nl = strchr(b, '\n');
+        if (nl) {
+            char *t, *save, *w[8];
+            int k = 0;
+            *nl = 0;
+            for (t = strtok_r(b, " ", &save); t && k < 8; t = strtok_r(NULL, " ", &save)) w[k++] = t;
+            if (k >= 2 && !strcasecmp(w[0], "TO")) {
+                int j;
+                snprintf(user, sizeof user, "%.8s", w[1]);
+                for (j = 2; j < k; j++) {
+                    if (!strcasecmp(w[j], "CLASS") && j + 1 < k) snprintf(cls, sizeof cls, "%.1s", w[++j]);
+                    else if (!strcasecmp(w[j], "NAME") && j + 2 < k) {
+                        snprintf(fn, sizeof fn, "%.8s", w[j + 1]); snprintf(ft, sizeof ft, "%.8s", w[j + 2]); j += 2;
+                    }
+                }
+            }
+        }
+        if (fn[0]) snprintf(name, sizeof name, "%s %s", fn, ft); else strcpy(name, "VMSPOOL OUTBOX");
+        if (user[0] && nl && punchto(user, cls, name, nl + 1, len - (nl + 1 - b)) == 0) {
+            unlink(f);
+            logf_("outbox: punched %s to %s", e->d_name, user);
+        } else {
+            snprintf(g, sizeof g, "%s/failed", d); mkdir(g, 0700);
+            snprintf(g, sizeof g, "%s/failed/%s", d, e->d_name);
+            rename(f, g);
+            logf_("outbox: %s could not be punched%s (kept in failed)", e->d_name, "");
+        }
+        free(b);
+    }
+    closedir(dir);
 }
 
 static void keep(const unsigned char *b, size_t len)
@@ -386,6 +455,7 @@ int main(int argc, char **argv)
             free(b);
             continue;           /* the next file at once */
         }
+        outbox();
         if (once) break;
         sleep(interval);
     }

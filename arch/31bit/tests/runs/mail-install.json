@@ -1,0 +1,289 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp disc",
+  "expect": "DISCONNECT",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/ipl 190",
+  "expect": "VM Community|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/cp purge rdr all",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp spool 00c class *",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/query search",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile lxcall exec *",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile mail exec *",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/access 19d u",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile lxcall exec u",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/type mail exec y 1 12",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/mailinst/SENDMAIL.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp q rdr all",
+  "settle": 12
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/mailinst/GETMAIL.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp q rdr all",
+  "settle": 12
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/mailinst/LXCALL.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp q rdr all",
+  "settle": 12
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/mailinst/BCONFIG.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/cp start 00c",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/cp q rdr all",
+  "settle": 12
+ },
+ {
+  "send": "/readcard sendmail exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/readcard getmail exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/readcard lxcall exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/readcard border config a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/access 19e d",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile sendmail exec a = = d2 (replace",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile getmail exec a = = d2 (replace",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile lxcall exec a = = d2 (replace",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/copyfile border config a = = d2 (replace",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase sendmail exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase getmail exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase lxcall exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/erase border config a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/release d",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp ipl 190",
+  "expect": "VM Community|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Ready",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/listfile lxcall exec *",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/listfile *mail exec *",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/type border config y",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/logon operator operator",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

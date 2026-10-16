@@ -46,6 +46,7 @@ avoids that.
 | `phone` | `PHONE STATUS`, `CHANNELS`, `PEERS`, `CALL ext [context]`, `HANGUP channel` | Asterisk, through `asterisk -rx`. Arguments are checked: `PHONE CALL 1;reboot` gives `bad argument`, RC 4. |
 | `troff` | `TROFF fn [ft [fm]] (MACROS ms PS` | groff 1.21 (groff-base) with the ms, me, mm and mom macros of groff 1.23 (`/usr/local/share/groff/tmac123`). Plain text comes back as `fn DOCUMENT A`; with PS, PostScript comes back as `fn PS A`, and a copy stays in `/var/spool/vmspool/out/<user>/`. (9.28) |
 | `markdown` | `MDPRINT fn [ft [fm]] (PS` | (9.42) Markdown through `md2ms` (Markdown to troff ms with tbl tables) and `groff -t`: PostScript comes back as `fn PS A` (then `PSPRINT`), a copy stays in `/var/spool/vmspool/out/<user>/`. `MDPRINT` without PS lays the text out on CMS itself (TYPE, DISK, PRINT). On Debian: `mdprint FILE [-w N \| -ps [OUT] \| -pdf [OUT]]`. |
+| `mail` | `SENDMAIL fn [ft [fm]]` | (9.18) The note (To:, Cc:, Bcc:, Subject:, an empty line, the text) as a mail from `userid@DOMAIN`: CMS users get it in their reader at once (`GETMAIL`), other addresses go out by `SMARTHOST` or the domain's MX (`/etc/vmspool.d/mail.conf`). |
 | `tell` | `TELL user AT LINUX message` | (9.14) The message (sent as input cards, so any text is safe) is written to the Linux user's terminals and kept in `/var/spool/vmspool/msg/<user>`; `ALL` reaches everybody logged on. RC 1 when the user is not logged on. The other way, `tell userid message` on Linux sends `CP MSG userid (linuxuser) message` through the setuid helper `vmmsg` (only MSG, user ID checked); `tell` alone shows the kept messages. `TELL userid message` without `AT` is CP MSG. |
 | `mqtt` | `MQTT PUB topic message`, `MQTT PUB topic (FILE fn ft`, `MQTT SUB topic [n [secs]]` | mosquitto_pub and mosquitto_sub against `MQTT_HOST` (`/etc/vmspool.d/mqtt.conf`, default localhost). |
 
@@ -55,13 +56,15 @@ A new service is any executable dropped into `/etc/vmspool.d`.
 
 | File | What it is |
 |---|---|
-| `vmspoold.c` | The daemon. Build: `../../languages/common/wcc -O2 -Wall -o vmspoold vmspoold.c` (wheezy glibc, `-m31`). |
+| `vmspoold.c` | The daemon; since 9.18 it also punches the files other programs leave in `<spool>/outq` (first line `TO userid [CLASS c] [NAME fn ft]`), so that it alone uses the punch. Build: `../../languages/common/wcc -O2 -Wall -o vmspoold vmspoold.c` (wheezy glibc, `-m31`). |
 | `vmspoold` | The binary. |
 | `vmspoold.init` | `/etc/init.d/vmspoold`. Starts mosquitto first, with `-c /etc/mosquitto/mosquitto.conf`; see the note below. |
 | `install.sh` | Installs the daemon, the handlers and the init script, and runs `update-rc.d`. |
 | `handlers/` | `echo`, `sys`, `phone`, `mqtt`. |
 | `cms/LXCALL.EXEC` | The client. Options: `FILE fn ft fm`, `SERVER userid`, `WAIT n`, `NOTYPE`. Its RC is the service's RC. |
 | `cms/PHONE.EXEC`, `cms/MQTT.EXEC`, `cms/TELL.EXEC` | Short front ends to LXCALL. |
+| `linux/vmmail.py`, `linux/vmmaild`, `linux/vmmaild.init`, `linux/mail.conf` | (9.18) Mail: `vmmaild` takes SMTP on port 25 and delivers `userid@DOMAIN` to that user's reader as `sender MAIL` (through vmspoold's outbox); mail for other domains only from 10.x/127.x (no open relay). `vmmail.py` (in `/usr/local/lib/vmspool`) is shared with the `mail` service. Mail for the Linux machine's own userid stays in `/var/spool/vmspool/mail/<user>/`, where a copy of every message is kept. |
+| `cms/SENDMAIL.EXEC`, `cms/GETMAIL.EXEC` | (9.18) Mail from CMS (over LXCALL) and from the reader into `MAILnnnn MAIL A` files. |
 | `linux/tell`, `linux/vmmsg.c` | The Linux half of TELL (9.14); `vmmsg` is installed setuid root. |
 
 The mosquitto note: started without `-c`, mosquitto drops privileges to a

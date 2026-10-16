@@ -7,6 +7,11 @@ NEXT BUILD (in the development system)
     MX preference name.  ping maint, ssh cmsuser.vm370plus.lan; other
     names go on to the DNS server as before.  Kernel #13
     (vm370plus/linux/linux13.rdr) on BORDER's 191.
+  - Mail (9.18): userid@vm370plus.lan.  SENDMAIL fn [NOTE] sends a note
+    (To:, Cc:, Bcc:, Subject:, an empty line, the text); GETMAIL reads the
+    MAIL files in your reader into MAILnnnn MAIL A.  The Debian guest
+    (MAINT) is the mail host: vmmaild on port 25; set SMARTHOST in
+    /etc/vmspool.d/mail.conf for mail to the internet.
 
 
 NEW IN BUILD 22

@@ -1436,6 +1436,47 @@ Ready;
 :exmp.
 :figcap.PostgreSQL from CMS
 :efig.
+:h2.Mail&colon. SENDMAIL and GETMAIL
+:p.CMS users have mail addresses :xph.userid@vm370plus.lan:exph.. The
+Debian guest (MAINT) is the mail host&colon. :xph.vmmaild:exph. takes
+mail in by SMTP on port 25 and puts each message into the user's reader
+as a file :xph.sender MAIL:exph.; the spool bridge's :xph.mail:exph.
+service sends the users' mail out. BORDER's local zone names MAINT as
+the mail exchanger for the domain (:xph.MX 10 MAINT:exph. in BORDER
+CONFIG); to receive mail from the PC side, add :xph.EXPOSE TCP 25 TO
+10.3.0.2 25:exph..
+:p.:xph.SENDMAIL fn [ft [fm]]:exph. (file type NOTE by default) sends a
+note&colon. header lines :xph.To&colon.:exph., :xph.Cc&colon.:exph.,
+:xph.Bcc&colon.:exph. and :xph.Subject&colon.:exph., an empty line, then
+the text. A CMS user is written as its userid. Mail to CMS users is in
+their readers at once; mail to other addresses goes out through the
+smarthost named in :xph./etc/vmspool.d/mail.conf:exph. of the Debian
+guest (most providers want one), or straight to the domain's mail
+exchanger. :xph.GETMAIL:exph. reads every :xph.MAIL:exph. file in the
+reader into a file :xph.MAILnnnn MAIL A:exph. and lists who sent it and
+the subject. Attachments are named in the text, not kept on CMS; a copy
+of each message stays in :xph./var/spool/vmspool/mail/<userid>/:exph..
+:fig.
+:xmp.
+type test note
+To: cmsuser, bob@example.com
+Subject: Hello from CMS
+
+This note was written on CMS and sent with SENDMAIL.
+Ready;
+sendmail test
+mail: cmsuser -- in the reader of CMSUSER
+mail: bob@example.com -- ok via 10.1.1.1:2526
+Ready;
+getmail
+MAIL0110 MAIL A   cmsuser@vm370plus.lan            Hello from CMS
+GETMAIL: 1 message(s); read one with  TYPE MAILnnnn MAIL
+Ready;
+:exmp.
+:figcap.Mail from CMS
+:efig.
+:p.CE's own MAIL EXEC (19E) is a different program&colon. it reads notes
+that VM/370 users send each other with NOTE and SENDFILE.
 :h2.TELL
 :p.:xph.TELL userid message:exph. sends a message to a VM/370 user (CP
 MSG). :xph.TELL user AT LINUX message:exph. sends it to a user of the
@@ -2606,6 +2647,10 @@ unpacks PACK and SPACK files, :xph.UNTERSE -i in:exph. shows the header.
 :p.:xph.SQL db statement:exph., :xph.SQL db (FILE fn ft fm:exph.,
 :xph.SQL STOP:exph., :xph.(SERVER userid:exph.; :xph.SQLSERV
 [(LOUD]:exph. runs the service machine.
+:h2.SENDMAIL, GETMAIL
+:p.:xph.SENDMAIL fn [ft [fm]]:exph. (the note&colon. To&colon.,
+Cc&colon., Bcc&colon., Subject&colon., an empty line, the text);
+:xph.GETMAIL:exph..
 :h2.LXCALL, PHONE, MQTT
 :p.:xph.LXCALL service [args] (FILE fn ft fm | SERVER userid | WAIT n |
 NOTYPE:exph.; :xph.PHONE STATUS|CHANNELS|PEERS|CALL ext [ctx]|HANGUP

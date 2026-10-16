@@ -1,0 +1,17 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          vmmaild
+# Required-Start:    $network $syslog
+# Required-Stop:     $network $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: VM/370plus mail for CMS users (9.18)
+### END INIT INFO
+P=/var/run/vmmaild.pid
+case "$1" in
+start)   echo -n "Starting VM/370plus mail: vmmaild"; /usr/local/sbin/vmmaild; echo "." ;;
+stop)    echo -n "Stopping VM/370plus mail: vmmaild"; [ -r $P ] && kill $(cat $P) 2>/dev/null; rm -f $P; echo "." ;;
+restart|force-reload) $0 stop; sleep 1; $0 start ;;
+status)  [ -r $P ] && kill -0 $(cat $P) 2>/dev/null && echo "vmmaild is running" || { echo "vmmaild is not running"; exit 3; } ;;
+*)       echo "usage: $0 start|stop|restart|status"; exit 2 ;;
+esac

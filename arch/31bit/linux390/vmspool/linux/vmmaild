@@ -1,0 +1,71 @@
+#!/usr/bin/python3
+"""vmmaild -- VM/370plus 9.18: the SMTP server for CMS users' mail.
+
+    vmmaild [-f]          (-f: stay in the foreground, log to stderr)
+
+Listens on LISTEN of /etc/vmspool.d/mail.conf (default 0.0.0.0:25).
+Mail for userid@DOMAIN goes to that user's reader (as  sender MAIL ,
+read with GETMAIL on CMS); mail for other domains is refused (no open
+relay), unless it comes from the LAN or the PC (10.0.0.0/8, 127.0.0.0/8),
+which may relay through SMARTHOST or the domain's MX.
+"""
+import asyncore, email, os, smtpd, sys, syslog, time
+sys.path.insert(0, __import__('os').environ.get('VMMAIL_LIB', '/usr/local/lib/vmspool'))
+import vmmail
+
+
+def log(msg):
+    if FG:
+        sys.stderr.write('vmmaild: %s\n' % msg)
+    else:
+        syslog.syslog(syslog.LOG_MAIL | syslog.LOG_INFO, msg)
+
+
+class Server(smtpd.SMTPServer):
+    def process_message(self, peer, mailfrom, rcpttos, data, **kw):
+        c = vmmail.conf()
+        raw = data.encode('latin-1', 'replace') if isinstance(data, str) else data
+        msg = email.message_from_string(data if isinstance(data, str) else data.decode('latin-1'))
+        trusted = peer[0].startswith('10.') or peer[0].startswith('127.')
+        local, remote, bad = [], [], []
+        for r in rcpttos:
+            u = vmmail.local_user(r, c)
+            if u:
+                local.append(u)
+            elif trusted:
+                remote.append(r)
+            else:
+                bad.append(r)
+        if bad and not local and not remote:
+            log('refused from %s (%s): %s -- not our domain' % (peer[0], mailfrom, ', '.join(bad)))
+            return '550 relaying denied'
+        for u in local:
+            try:
+                fn = vmmail.deliver_local(u, msg, raw)
+                log('from %s (%s) to %s: reader file %s MAIL' % (peer[0], mailfrom, u, fn))
+            except Exception as e:
+                log('to %s failed: %s' % (u, e))
+                return '451 local delivery failed'
+        if remote:
+            for r, res in vmmail.relay(c, mailfrom, remote, data):
+                log('from %s (%s) to %s: %s' % (peer[0], mailfrom, r, res))
+        return None
+
+
+FG = '-f' in sys.argv[1:]
+c = vmmail.conf()
+h, _, p = c['LISTEN'].partition(':')
+Server((h or '0.0.0.0', int(p or 25)), None)
+log('listening on %s, domain %s, %s' % (c['LISTEN'], ' '.join(c['DOMAINS']),
+    'smarthost ' + c['SMARTHOST'] if c['SMARTHOST'] else 'mail out by MX'))
+if not FG:
+    if os.fork():
+        os._exit(0)
+    os.setsid()
+    if os.fork():
+        os._exit(0)
+    open('/var/run/vmmaild.pid', 'w').write('%d\n' % os.getpid())
+    fd = os.open('/dev/null', os.O_RDWR)
+    for i in (0, 1, 2):
+        os.dup2(fd, i)
+asyncore.loop()

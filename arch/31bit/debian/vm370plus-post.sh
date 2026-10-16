@@ -82,6 +82,14 @@ cat > /usr/local/sbin/vm370plus-lan <<'LAN'
 # ADDRESS lines) for this user, else 10.3.0.(n+1) for the CTC pair n of
 # vm370plus-net (MAINT 10.3.0.2, CMSUSER 10.3.0.3), else none.
 # Run from /etc/rc.local.
+# 9.40: the LAN's names in /etc/hosts (they work without BORDER): border
+# and every USERID ADDRESS of the conf, as userid.DOMAIN (DOMAIN line,
+# default vm370plus.lan); and the domain as the resolver's search domain
+D=$(awk 'toupper($1)=="DOMAIN" {print $2}' /etc/vm370plus-lan.conf 2>/dev/null); D=${D:-vm370plus.lan}
+sed -i '/# vm370plus-lan$/d' /etc/hosts
+{ echo "10.3.0.1 border.$D border # vm370plus-lan"
+  awk -v d="$D" 'toupper($1)!="DOMAIN" && $2 ~ /^10\./ {print $2, tolower($1) "." d, tolower($1), "# vm370plus-lan"}' /etc/vm370plus-lan.conf 2>/dev/null; } >> /etc/hosts
+grep -q "^search" /etc/resolv.conf || echo "search $D" >> /etc/resolv.conf
 r=
 for d in /sys/bus/ccw/devices/*; do
   [ "$(cat $d/cutype 2>/dev/null)" = 3088/60 ] || continue

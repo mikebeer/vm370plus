@@ -17,3 +17,11 @@ mkdir -p /var/spool/vmspool/msg
 # 9.42 Markdown: md2ms (Markdown to troff ms or plain text), mdprint
 install -m 755 linux/md2ms /usr/local/bin/md2ms
 install -m 755 linux/mdprint /usr/local/bin/mdprint
+# 9.18 mail: vmmail.py (shared), vmmaild (SMTP in) and the service mail
+mkdir -p /usr/local/lib/vmspool /var/spool/vmspool/outq /var/spool/vmspool/mail
+install -m 644 linux/vmmail.py /usr/local/lib/vmspool/vmmail.py
+install -m 755 linux/vmmaild /usr/local/sbin/vmmaild
+[ -r /etc/vmspool.d/mail.conf ] || install -m 600 linux/mail.conf /etc/vmspool.d/mail.conf
+install -m 755 linux/vmmaild.init /etc/init.d/vmmaild
+update-rc.d vmmaild defaults >/dev/null
+/etc/init.d/vmmaild restart

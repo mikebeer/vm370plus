@@ -1,0 +1,27 @@
+/* SENDMAIL EXEC -- mail from CMS (VM/370plus 9.18)                   */
+/*   SENDMAIL fn [ft [fm]]          (file type NOTE by default)        */
+/* The file is the note: header lines, an empty line, the text:        */
+/*     To: cmsuser, mike@example.org                                   */
+/*     Cc: ...      Bcc: ...      Subject: ...                         */
+/* A CMS user is its userid (or userid@vm370plus.lan): the mail is in  */
+/* its reader at once (GETMAIL).  Other addresses go out through the   */
+/* Debian guest (its mail.conf: a SMARTHOST, or the domain's MX).      */
+/* Over the spool bridge: the server is LXCALL's (GLOBALV LXCALL).     */
+PARSE ARG FN FT FM .
+IF FN = '' | FN = '?' THEN DO
+  SAY 'SENDMAIL: usage: SENDMAIL fn [ft [fm]]   (ft NOTE by default)'
+  SAY '  the file: To: ...  Subject: ...  an empty line, the text'
+  EXIT 24
+END
+IF FT = '' THEN FT = 'NOTE'
+IF FM = '' THEN FM = '*'
+'SET CMSTYPE HT'
+'STATE' FN FT FM
+SRC = RC
+'ERASE LXCALL OPTIONS A'
+'SET CMSTYPE RT'
+IF SRC <> 0 THEN DO; SAY 'SENDMAIL:' FN FT FM 'not found'; EXIT 28; END
+QUEUE 'FILE' FN FT FM
+'EXECIO 1 DISKW LXCALL OPTIONS A (FINIS'
+'EXEC LXCALL MAIL SEND'
+EXIT RC
