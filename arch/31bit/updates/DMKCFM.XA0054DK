@@ -3,5 +3,9 @@
 ./ I 00290000 $ 00290100 100                                                    
 VMESA390 EQU   X'02'          VMFSTAT: ESA/390 MACHINE         XA0054DK         
 CFMLBRK  TM    VMFSTAT,VMESA390  I-288: AN ESA/390 GUEST RUNS  XA0054DK         
-         BO    CONFBGN2       ON, DISCONNECTED                 XA0054DK         
-         B     CONFBGN3       OTHERS STAY IN CF WAIT           XA0054DK         
+         BNO   CONFBGN3       ON, DISCONNECTED; OTHERS WAIT    XA0054DK         
+         TM    VMPSW+1,X'02'  I-299: UNLESS IT IS IN A         XA0054DK         
+         BNO   CONFBGN2       DISABLED WAIT (LINUX HALT):      XA0054DK         
+         TM    VMPSW,X'03'    THEN CP WOULD ENTER CF AGAIN,    XA0054DK         
+         BNZ   CONFBGN2       AND AGAIN, STACKING A CPEXBLOK   XA0054DK         
+         B     CONFBGN3       EACH TIME (STK001)               XA0054DK         

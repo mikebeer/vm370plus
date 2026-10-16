@@ -3863,6 +3863,9 @@ def m7decks():
     # function), whose read then ends with 'line break' and leaves VMCFWAIT
     # on (CONFBGN3): the guest stays stopped in CP READ.  An ESA/390 guest
     # goes back to running (CONFBGN2), disconnected, as after #CP DISC.
+    # I-299: not from a disabled wait (a halted Linux): CP enters console
+    # function again at once, the read ends with line break again, and
+    # every round stacks a CPEXBLOK -- 32768 of them in ten seconds, STK001.
     d = Deck(XA54)
     d.replace('00283000', first='00283000', inc=10,
               limit=next_seq(src('DMKCFM'), '00283000'), lines=[
@@ -3871,8 +3874,12 @@ def m7decks():
     d.insert('00290000', first='00290100', inc=100,
              limit=next_seq(src('DMKCFM'), '00290000'), lines=M7EQU[:1] + [
         "CFMLBRK  TM    VMFSTAT,VMESA390  I-288: AN ESA/390 GUEST RUNS",
-        "         BO    CONFBGN2       ON, DISCONNECTED",
-        "         B     CONFBGN3       OTHERS STAY IN CF WAIT",
+        "         BNO   CONFBGN3       ON, DISCONNECTED; OTHERS WAIT",
+        "         TM    VMPSW+1,X'02'  I-299: UNLESS IT IS IN A",
+        "         BNO   CONFBGN2       DISABLED WAIT (LINUX HALT):",
+        "         TM    VMPSW,X'03'    THEN CP WOULD ENTER CF AGAIN,",
+        "         BNZ   CONFBGN2       AND AGAIN, STACKING A CPEXBLOK",
+        "         B     CONFBGN3       EACH TIME (STK001)",
     ])
     decks['DMKCFM'] = d
 

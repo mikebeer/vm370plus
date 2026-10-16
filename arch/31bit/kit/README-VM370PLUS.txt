@@ -1,5 +1,16 @@
-VM/370plus  --  overlay kit, 16 October 2026 (build 25)
+VM/370plus  --  overlay kit, 16 October 2026 (build 26)
 ========================================================
+
+NEW IN BUILD 26
+  - NJE (9.13b): VM/370plus is NJE node VM370CE.  NJE-II in the Debian
+    guest speaks TCPNJE (port 175) to RSCS, JES2 or NJE-II peers; the
+    first peer is PCNJE at 10.1.1.1 (NJE-II on the PC, see
+    vm370plus/linux/nje/README.md).  On CMS: SENDFILE fn ft fm TO user
+    AT node and TELL user AT node message; files from other nodes come
+    to the reader (NETDATA: RECEIVE).  RSCS is the gateway machine
+    (NJEGATE EXEC, started by AUTOLOG1); CE's RSCS V1 is RSCSV1.
+    Peers: njeconf in the Debian guest, then /etc/init.d/nje restart.
+
 
 NEW IN BUILD 25
   - EXEC 2 (9.43): an EXEC whose first line starts with &TRACE runs under

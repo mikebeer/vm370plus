@@ -26,6 +26,14 @@ s=s.replace('PANTITLE        "VM370CE 1.1.2"','PANTITLE        "VM/370plus (VM37
 open(sys.argv[2],'w').write(s)
 PY
 cp $C/disks/vm50-4.cckd $K/disks/; cp $C/disks/shadows/*_1.shadow $K/disks/shadows/
+# b26: paging and spool leave TEMP and T-disk cylinders (VM50-2 466-550,
+# VM50-3 1-200, VM50-4 1-200) in the shadows -- 100 MB after a day of
+# tests.  Build the kit after PURGE SYSTEM ALL and SHUTDOWN (no spool file
+# points there), and the kit carries the base's tracks instead.
+for v in vm50-2:466-550 vm50-3:1-200 vm50-4:1-200; do
+  f=$K/disks/shadows/${v%%:*}_1.shadow
+  python3 $R/arch/31bit/tools/shadowrevert.py $f ${v#*:} --out $f.new >/dev/null && mv $f.new $f || exit 1
+done
 for f in $K/disks/shadows/*_1.shadow; do cckdcomp $f >/dev/null; cckdcdsk -3 -ro $f >/dev/null; done   # free space out
 # VM50-3 carries spool and TEMP paging: test runs leave tens of MB of dead
 # tracks there that cckdcomp cannot reclaim.  SHADOW3=<a clean vm50-3_1.shadow>
@@ -41,6 +49,7 @@ cp -r $R/arch/31bit/linux390/cms $K/vm370plus/linux/   # LINUX EXEC and LXPARM f
 test -n "$GUIDE" && cp "$GUIDE" $K/vm370plus/linux/VM370PLUS-Guide.docx
 mkdir -p $K/vm370plus/chatbot; cp -r $R/arch/31bit/chatbot/{upstream-b1,cbpatch.py,mkcbdeck.sh,VM370PLUS.TXT} $K/vm370plus/chatbot/
 cp $R/arch/31bit/linux390/debian/vmzipl $K/vm370plus/linux/
+mkdir -p $K/vm370plus/linux/nje; cp -r $R/arch/31bit/linux390/nje/{README.md,mknje.sh,njeconf.sh,njefile,njemsg,njecards,nje.init,install.sh,cms} $K/vm370plus/linux/nje/   # 9.13b
 mkdir -p $K/vm370plus/tools; cp $R/arch/31bit/tools/psprint.py $R/arch/31bit/tools/netfwd.py $R/arch/31bit/tools/nettell.py $R/arch/31bit/tools/vmspool.py $R/arch/31bit/tools/vmprint.py $K/vm370plus/tools/
 mkdir -p $K/vm370plus/nicof/nhfs; cp $R/arch/31bit/nicof/{README.md,nicof.jar,nicof.sh,nicofpxy.properties,tcpip.properties,nicof_logging.properties} $K/vm370plus/nicof/; cp $R/arch/31bit/nicof/nhfs/readme.txt $K/vm370plus/nicof/nhfs/
 mkdir -p $D; cd $W

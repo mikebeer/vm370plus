@@ -1,0 +1,55 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/q rdr all",
+  "settle": 5
+ },
+ {
+  "send": "/q prt all",
+  "settle": 5
+ },
+ {
+  "send": "/q pun all",
+  "settle": 5
+ },
+ {
+  "send": "/purge system all",
+  "settle": 5
+ },
+ {
+  "send": "/purge all system",
+  "settle": 5
+ },
+ {
+  "send": "/q rdr all",
+  "settle": 5
+ },
+ {
+  "send": "/q prt all",
+  "settle": 5
+ },
+ {
+  "send": "/q pun all",
+  "settle": 5
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

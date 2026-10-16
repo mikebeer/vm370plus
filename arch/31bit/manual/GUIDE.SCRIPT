@@ -1547,6 +1547,48 @@ Ready;
 :exmp.
 :figcap.A message from Linux arrives on CMS
 :efig.
+:h2.NJE&colon. files and messages to other systems
+:p.VM/370plus is a node of an NJE network, the protocol of RSCS, JES2
+and BITNET. Its NJE end is NJE-II (FUNET-NJE) in the Debian guest.
+NJE-II speaks TCPNJE on port 175, so the peers can be z/VM or VM/ESA
+with RSCS, MVS or z/OS with JES2, other NJE-II hosts, and hobbyist
+networks. The node name is :xph.VM370CE:exph., as in CMS's :xph.SYSTEM
+NETID:exph..
+:p.On CMS, CE's own commands do the work. :xph.SENDFILE fn ft fm TO user
+AT node:exph. packs the file as NETDATA and spools it to the RSCS
+machine with a TAG. RSCS is the gateway&colon. :xph.NJEGATE EXEC:exph.
+(19E) passes the cards, untouched, to the Debian guest, which sends them
+on. AUTOLOG1 starts RSCS; CE's old RSCS V1 is still there as
+:xph.RSCSV1:exph.. :xph.TELL user AT node message:exph. sends a message.
+A file from another node arrives in the reader with a CP MSG from MAINT.
+A NETDATA file arrives as class N, and :xph.RECEIVE:exph. stores it
+under its own name. Print and punch output arrives as plain cards for
+:xph.READCARD:exph.. Messages arrive as :xph.MSG FROM MAINT&colon.
+user@node&colon. text:exph..
+:fig.
+:xmp.
+sendfile profile exec a to bob at zvm1
+PUN FILE 0519  TO  RSCS     COPY 01 NOHOLD
+Ready;
+MSG FROM RSCS    :  RSCS: PROFILE EXEC SENT TO BOB AT ZVM1
+MSG FROM MAINT   :  NJE: NJETEST DATA from PCUSER at PCNJE is in your reader (RECEIVE)
+receive
+NJETEST DATA A1 created
+Ready;
+:exmp.
+:figcap.NJE on CMS
+:efig.
+:p.In the Debian guest, :xph.njeconf /usr/local/nje NODE IP
+PEER&colon.HOST[&colon.PORT] ...:exph. writes the configuration&colon.
+the node name, the guest's address and one TCPNJE link per peer (the
+first is the default route). Then :xph./etc/init.d/nje restart:exph..
+The kit sets up :xph.VM370CE 10.1.1.2 PCNJE&colon.10.1.1.1:exph., a peer
+on the PC. On the other side, the peer needs a TCPNJE link to VM370CE,
+for example in RSCS on z/VM&colon. :xph.LINKDEFINE VM370CE TYPE
+TCPNJE:exph. and :xph.PARM VM370CE HOST=address LCLPORT=175
+RMTPORT=175:exph.. NJE-II runs on the PC too&colon.
+:xph.linux390/nje/README.md:exph. shows how, and the PC's router has to
+forward port 175 for peers outside.
 :h2.RXPIP&colon. REXX packages
 :p.RXPIP is the package manager of rexxpository&colon. REXX routines are
 published as packages, and a program names what it needs with
@@ -2748,11 +2790,16 @@ Cc&colon., Bcc&colon., Subject&colon., an empty line, the text);
 :xph.GETMAIL:exph..
 :h2.ASK
 :p.:xph.ASK question ... [(FILE fn ft fm]:exph.; :xph.ASK NEW:exph..
+:h2.SENDFILE, RECEIVE, TELL (NJE)
+:p.:xph.SENDFILE fn ft fm TO user AT node:exph.; :xph.RECEIVE [spoolid]
+[fn [ft [fm]]] [(REPLACE]:exph.; :xph.TELL user AT node message:exph..
+Debian&colon. :xph.njeconf:exph., :xph./usr/local/nje/bin/tell:exph.,
+:xph.sendfile:exph., :xph.qrdr:exph..
 :h2.LXCALL, PHONE, MQTT
 :p.:xph.LXCALL service [args] (FILE fn ft fm | SERVER userid | WAIT n |
 NOTYPE:exph.; :xph.PHONE STATUS|CHANNELS|PEERS|CALL ext [ctx]|HANGUP
 channel:exph.; :xph.MQTT PUB topic message:exph., :xph.MQTT SUB topic [n
-[secs]]:exph.; :xph.TELL userid [AT LINUX|NET] message:exph..
+[secs]]:exph.; :xph.TELL userid [AT LINUX|NET|node] message:exph..
 :h2.PGSQL
 :p.:xph.PGSQL statement:exph., :xph.PGSQL (FILE fn [ft [fm]]:exph..
 :h2.RXPIP

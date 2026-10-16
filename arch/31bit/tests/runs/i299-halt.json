@@ -1,0 +1,149 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/purge maint rdr all",
+  "settle": 3
+ },
+ {
+  "send": "/purge cmsuser rdr all",
+  "settle": 3
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/attach 600 to maint as 620",
+  "settle": 3
+ },
+ {
+  "send": "/attach 601 to maint as 630",
+  "settle": 3
+ },
+ {
+  "send": "/attach 190 to maint as 250",
+  "settle": 3
+ },
+ {
+  "term": "cp ipl linux",
+  "expect": "login:",
+  "timeout": 1500,
+  "cont": true
+ },
+ {
+  "term": "",
+  "settle": 240
+ },
+ {
+  "term": "#cp disc",
+  "expect": "DISCONNECT",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 290 290 rr",
+  "expect": "LINKED|DMK",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "lxcall echo hello from cmsuser",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "tell root at linux hi",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "cp msg cmsuser I299-END",
+  "expect": "I299-END",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/q n",
+  "expect": "MDDEB-DONE",
+  "timeout": 1200,
+  "cont": true
+ },
+ {
+  "send": "/q rdr maint all",
+  "settle": 5
+ },
+ {
+  "send": "/force maint",
+  "settle": 10
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]
