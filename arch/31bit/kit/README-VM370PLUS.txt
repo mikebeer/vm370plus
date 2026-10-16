@@ -1,7 +1,7 @@
-VM/370plus  --  overlay kit, 15 October 2026 (build 21)
+VM/370plus  --  overlay kit, 16 October 2026 (build 22)
 ========================================================
 
-NEXT BUILD (in the development system)
+NEW IN BUILD 22
   - vmspool (vm370plus/tools/vmspool.py, Python 3, Windows or Linux):
     a file on the PC straight into a VM/370plus user's reader, e.g.
         python vmspool.py hello.exec cmsuser

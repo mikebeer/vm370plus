@@ -764,3 +764,20 @@ XLRES lists REGINA, BANG (/*!REGINA) rc 7, NEST -> BANG rc 7 back, rc 5,
 STK/SHOWQ lines both ways between Regina and BREXX, EIO (EXECIO STEM
 LN.0=4, VAR, GLOBALV GET/PUT/STACK), SETREXX REGINA/BREXX switching
 PLAIN between the two, REGINA RT.REX, SHUTDOWN clean.
+
+## Kit b22 (16 October 2026, 07:45)
+
+9.41 and 9.42. vmspool.py sends files from the PC into a user's reader
+through two socket card readers (010C text, 020C binary/stream), which
+AUTOLOG1 starts; a file with lines over 80 goes as a stream and UNSTREAM
+EXEC rebuilds it. MDPRINT EXEC (19E) prints Markdown on CMS (TYPE, DISK,
+PRINT: headings, nested lists, code, quotes, tables); `(PS` goes to the
+Debian `markdown` vmspool handler (md2ms, which carries the ms subset it
+needs since groff-base has no ms, and groff -t). Debian also has md2ms and
+mdprint. Fixed on the way: MDPRINT helper routines clobbered LIST's
+variables (now PROCEDUREs); Python 3.2's re rejects `(\s*\1){2,}`. The
+Debian disk is lnx190 (GOTCHAS). 19 parts. New: kit/kittest.sh (fresh CE,
+all parts, dev parked and restored). Verified (kt36): PCHELLO EXEC and
+SAMPLE MD sent from the PC by vmspool.py arrived in CMSUSER's reader with
+no operator action, UNSTREAM 37 lines, MDPRINT TYPE and DISK correct,
+SHUTDOWN clean. The Debian handler was verified on the dev disk (mdd4).

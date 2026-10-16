@@ -32,7 +32,7 @@
   "settle": 3
  },
  {
-  "send": "/attach 192 to maint as 250",
+  "send": "/attach 190 to maint as 250",
   "settle": 3
  },
  {

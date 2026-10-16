@@ -583,3 +583,20 @@ JamVM's `gcMemRealloc` grows a mapping in place while the new size stays in
 the same page, trusting the kernel's page rounding. A malloc-backed mmap that
 returned exactly `len` bytes let its GC lists overrun the next heap block:
 freed bytecode, "Unrecognised bytecode 255 found while preparing ...".
+
+## The Debian disk is lnx190, not lnx192 (16 October)
+
+The dev pack has two Debian disks.  `disks/lnx190.cckd` (real 190) is the
+current one: everything since M7.11 was installed there (kernel #11, bookie,
+ooRexx, the vmspool services) and it is what the kit ships (mkkit's
+`DEBDISK`, renamed lnx190.cckd in the kit).  `disks/lnx192.cckd` (real 192)
+is the M7.11 copy of golden8 and is stale.  Debian tests attach **190** as
+250 (`/cp attach 190 to maint as 250`).  The 9.42 handler went onto 192 by
+mistake first (mdd1-3) and was redone on 190 (mdd4).
+
+Also: on a test console that MAINT or CMSUSER owns, end a step that may
+answer "Unknown CP/CMS command" with `expect` "Ready|Unknown CP/CMS" -- the
+CMS answer there has no Ready line and the step otherwise waits out its
+timeout.  And log OPERATOR on again before `/shutdown` when a run did
+`/cp disc` (otherwise "?CP: SHUTDOWN", no warm-start data, and the next IPL
+needs CKPT).

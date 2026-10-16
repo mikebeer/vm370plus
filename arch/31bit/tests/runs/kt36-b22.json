@@ -1,0 +1,145 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/cp disc",
+  "expect": "DISCONNECT",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 290 290 rr",
+  "expect": "LINKED|DMK",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp q rdr all",
+  "settle": 45
+ },
+ {
+  "term": "cp q rdr all",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard pchello exec a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "pchello",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard sample md a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "unstream sample md",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "listfile sample * a (label",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "mdprint sample (width 72",
+  "expect": "Ready",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "mdprint sample (disk",
+  "expect": "Ready",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "type sample document a 1 12",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase sample * a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase pchello exec a",
+  "expect": "Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/logon operator operator",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]
