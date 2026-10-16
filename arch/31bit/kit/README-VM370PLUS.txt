@@ -7,6 +7,9 @@ NEXT BUILD (in the development system)
     llama.cpp's llama-server or Ollama on the PC (10.1.1.1), any
     OpenAI-compatible service, or Anthropic's API.  ASK NEW forgets the
     earlier questions; ask on Linux does the same.
+  - vmprint (vm370plus/tools/vmprint.py): CP's printer 10E (class P, a
+    socket printer, port 1403) on the PC; each print file becomes a .txt
+    or .ps (--pdf, --lp queue).  On CMS: PCPRINT fn ft fm.
 
 
 NEW IN BUILD 23

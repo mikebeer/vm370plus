@@ -186,6 +186,11 @@ B(['A text file goes card by card. UTF-8 characters that CMS has no code for are
    '`--binary` sends the file unchanged in 80-byte cards: a TEXT deck, a VMARC file, a tape dump.']);
 SCREEN(['$ python3 vmspool.py README.md cmsuser', 'vmspool: README.md -> CMSUSER, README MD, 212 line(s) as a stream: on CMS  READCARD README MD A  then  UNSTREAM README MD'], 'A Markdown file sent from the PC');
 
+H2('Printing on the PC');
+P('A third printer in `vm370ce.conf`, 010E, is a socket printer: `tools/vmprint.py` on the PC (Python 3, Windows, Linux or macOS) connects to it and writes every print file it gets as a file in a folder: a listing as `print-date-time.txt`, a PostScript job (from PSPRINT) as `.ps`, with `--pdf` also as a PDF (when ps2pdf is installed), and with `--lp queue` it prints them as well. AUTOLOG1 starts 10E for class P (`START 10E CLASS P NOSEP`), so the other printers are not disturbed. On CMS, `PCPRINT fn ft fm` prints a file there (a PS file through PSPRINT); or `CP SPOOL PRINTER CLASS P`, then PRINT as usual.');
+SCREEN(['$ python3 vmprint.py prints', 'vmprint: connected to 127.0.0.1:1403, print files go to prints', 'vmprint: prints/print-20261016-103501.txt (1564 bytes)'], 'Print files arriving on the PC');
+P('Start vmprint before VM/370plus starts the printer. If 10E printed while no vmprint was connected, CP stops it (`DMKRSE501A PRT 10E INT REQ`); start vmprint, then `START 10E CLASS P NOSEP` from the operator.');
+
 // ---------------------------------------------------------------- chapter 5
 H1('Running Linux/390');
 P('This chapter describes ESA/390 virtual machines and Linux/390 in them. Linux runs in two forms: a small system in storage (BusyBox), which needs no disk, and Debian 7 on a 3390 disk of its own.');
@@ -640,6 +645,8 @@ H2('RXPIP');
 P('`RXPIP AVAIL`, `SEARCH term`, `SHOW name`, `BUILD fn`, `RUN fn [args]`, `GET name`.');
 H2('TROFF, BOOKIE, LATEX, PSPRINT');
 P('`TROFF fn [ft [fm]] (MACROS m PS`; `BOOKIE fn [ft [fm]] (PS`; `LATEX fn [ft [fm]] (PDF`; `PSPRINT fn [ft [fm]] (BRIDGE [format]`.');
+H2('PCPRINT');
+P('`PCPRINT fn [ft [fm]] [(PRINT options]` (file type LISTING by default; PS through PSPRINT).');
 H2('MDPRINT, UNSTREAM');
 P('`MDPRINT fn [ft [fm]] (TYPE|DISK|PRINT|PS WIDTH n`; `UNSTREAM fn ft [fm]`.');
 H2('LINUX EXEC');

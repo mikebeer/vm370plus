@@ -1,0 +1,149 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/prinst/al1.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 12
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/prinst/pcp.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 12
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ipl cms",
+  "expect": "VM Community|DMS|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard al1prof exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard pcprint exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp link autolog1 191 391 mr",
+  "expect": "Ready|DMK|PASSWORD",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "access 391 b",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "copyfile al1prof exec a profile exec b (replace",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "type profile exec b",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "release b",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp detach 391",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "access 19e d",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "copyfile pcprint exec a = = d2 (replace",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "release d",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase al1prof exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase pcprint exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

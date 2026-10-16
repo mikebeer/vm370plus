@@ -1,0 +1,20 @@
+/* PCPRINT EXEC -- print on the PC (VM/370plus 9.44)                  */
+/*   PCPRINT fn [ft [fm]] [(options]     ft default LISTING            */
+/* The file goes to CP's printer 10E (class P), a socket printer that  */
+/* vmprint.py on the PC takes: each print file becomes a .txt there,   */
+/* a PostScript file (ft PS, through PSPRINT) a .ps (and .pdf).        */
+/* Options are PRINT's (CC, LINECOUNT n, ...).                         */
+PARSE ARG FN FT FM '(' OPT
+IF FN = '' | FN = '?' THEN DO
+  SAY 'PCPRINT: usage: PCPRINT fn [ft [fm]] [(PRINT options]'
+  EXIT 24
+END
+IF FT = '' THEN FT = 'LISTING'
+IF FM = '' THEN FM = '*'
+'CP SPOOL PRINTER CLASS P'
+IF TRANSLATE(FT) = 'PS' THEN 'EXEC PSPRINT' FN FT FM
+ELSE IF STRIP(OPT) = '' THEN 'PRINT' FN FT FM
+ELSE 'PRINT' FN FT FM '(' OPT
+SRC = RC
+'CP SPOOL PRINTER CLASS A'
+EXIT SRC

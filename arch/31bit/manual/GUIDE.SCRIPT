@@ -659,6 +659,29 @@ vmspool: README.md -> CMSUSER, README MD, 212 line(s) as a stream: on CMS  READC
 :exmp.
 :figcap.A Markdown file sent from the PC
 :efig.
+:h2.Printing on the PC
+:p.A third printer in :xph.vm370ce.conf:exph., 010E, is a socket
+printer&colon. :xph.tools/vmprint.py:exph. on the PC (Python 3, Windows,
+Linux or macOS) connects to it and writes every print file it gets as a
+file in a folder&colon. a listing as :xph.print-date-time.txt:exph., a
+PostScript job (from PSPRINT) as :xph..ps:exph., with :xph.--pdf:exph.
+also as a PDF (when ps2pdf is installed), and with :xph.--lp queue:exph.
+it prints them as well. AUTOLOG1 starts 10E for class P (:xph.START 10E
+CLASS P NOSEP:exph.), so the other printers are not disturbed. On CMS,
+:xph.PCPRINT fn ft fm:exph. prints a file there (a PS file through
+PSPRINT); or :xph.CP SPOOL PRINTER CLASS P:exph., then PRINT as usual.
+:fig.
+:xmp.
+$ python3 vmprint.py prints
+vmprint: connected to 127.0.0.1:1403, print files go to prints
+vmprint: prints/print-20261016-103501.txt (1564 bytes)
+:exmp.
+:figcap.Print files arriving on the PC
+:efig.
+:p.Start vmprint before VM/370plus starts the printer. If 10E printed
+while no vmprint was connected, CP stops it (:xph.DMKRSE501A PRT 10E INT
+REQ:exph.); start vmprint, then :xph.START 10E CLASS P NOSEP:exph. from
+the operator.
 :h1.Running Linux/390
 :p.This chapter describes ESA/390 virtual machines and Linux/390 in
 them. Linux runs in two forms&colon. a small system in storage
@@ -2687,6 +2710,9 @@ channel:exph.; :xph.MQTT PUB topic message:exph., :xph.MQTT SUB topic [n
 :p.:xph.TROFF fn [ft [fm]] (MACROS m PS:exph.; :xph.BOOKIE fn [ft [fm]]
 (PS:exph.; :xph.LATEX fn [ft [fm]] (PDF:exph.; :xph.PSPRINT fn [ft [fm]]
 (BRIDGE [format]:exph..
+:h2.PCPRINT
+:p.:xph.PCPRINT fn [ft [fm]] [(PRINT options]:exph. (file type LISTING
+by default; PS through PSPRINT).
 :h2.MDPRINT, UNSTREAM
 :p.:xph.MDPRINT fn [ft [fm]] (TYPE|DISK|PRINT|PS WIDTH n:exph.;
 :xph.UNSTREAM fn ft [fm]:exph..
