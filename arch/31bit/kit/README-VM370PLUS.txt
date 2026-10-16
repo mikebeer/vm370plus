@@ -1,6 +1,14 @@
 VM/370plus  --  overlay kit, 16 October 2026 (build 23)
 ========================================================
 
+NEXT BUILD (in the development system)
+  - ASK question [(FILE fn ft fm]: the AI gateway (9.10).  The Debian
+    guest passes the question to the model in /etc/vmspool.d/ask.conf:
+    llama.cpp's llama-server or Ollama on the PC (10.1.1.1), any
+    OpenAI-compatible service, or Anthropic's API.  ASK NEW forgets the
+    earlier questions; ask on Linux does the same.
+
+
 NEW IN BUILD 23
   - BORDER answers for the LAN's own names (9.40): in BORDER CONFIG
     (MAINT 19E),  DOMAIN name  (default vm370plus.lan),  HOST name address,

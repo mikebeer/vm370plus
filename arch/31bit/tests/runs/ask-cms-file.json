@@ -1,0 +1,91 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/askc/askt.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 12
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ipl cms",
+  "expect": "VM Community|DMS|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard askt exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "askt Explain this EXEC please, it is the SENDMAIL EXEC of VM/370plus and I would like to know more (FILE sendmail exec y",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "askt short one (FILE nosuch file",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase askt exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase ask question a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

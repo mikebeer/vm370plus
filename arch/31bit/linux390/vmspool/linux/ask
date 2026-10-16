@@ -1,0 +1,24 @@
+#!/usr/bin/python3
+"""ask -- the AI gateway from Linux (VM/370plus 9.10)
+    ask question ...        ask new      (forget the earlier ones)
+    ask -f file question    (the file's text follows the question)"""
+import os, pwd, sys
+sys.path.insert(0, '/usr/local/lib/vmspool')
+import vmask
+user = 'linux-' + pwd.getpwuid(os.getuid()).pw_name
+a = sys.argv[1:]
+if a == ['new']:
+    vmask.forget(user); print('ask: earlier questions forgotten'); sys.exit(0)
+f = None
+if a[:1] == ['-f'] and len(a) >= 2:
+    f, a = a[1], a[2:]
+q = ' '.join(a) if a else sys.stdin.read()
+if f:
+    q += '\n--- %s ---\n%s' % (os.path.basename(f), open(f, errors='replace').read())
+if not q.strip():
+    print(__doc__); sys.exit(4)
+try:
+    ans, secs = vmask.ask(user, q)
+except Exception as e:
+    print('ask: %s' % e); sys.exit(8)
+print('\n'.join(vmask.lines(ans, int(os.environ.get('COLUMNS', '80')) - 1)))

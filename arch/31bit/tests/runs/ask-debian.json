@@ -1,0 +1,199 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/ask/ask.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 12
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ipl cms",
+  "expect": "VM Community|DMS|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard ask exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "access 19e d",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "copyfile ask exec a = = d2 (replace",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase ask exec a",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "release d",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "listfile ask exec *",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/attach 600 to maint as 620",
+  "settle": 3
+ },
+ {
+  "send": "/attach 601 to maint as 630",
+  "settle": 3
+ },
+ {
+  "send": "/attach 190 to maint as 250",
+  "settle": 3
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp ipl linux",
+  "expect": "login:",
+  "timeout": 1200,
+  "cont": true
+ },
+ {
+  "term": "",
+  "settle": 300
+ },
+ {
+  "term": "#cp disc",
+  "expect": "DISCONNECT",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ipl cms",
+  "expect": "VM Community|DMS|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "ask What is CMS?",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "ask And what about CP, the control program that runs all the virtual machines on the real machine?",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "ask Explain this EXEC (FILE sendmail exec y",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "ask new",
+  "expect": "Ready|Unknown CP/CMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp msg cmsuser ASKTEST-END",
+  "expect": "ASKTEST-END",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/q n",
+  "expect": "MDDEB-DONE",
+  "timeout": 1200,
+  "cont": true
+ },
+ {
+  "send": "/q n",
+  "settle": 60
+ },
+ {
+  "send": "/force maint",
+  "settle": 10
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

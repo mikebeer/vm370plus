@@ -1477,6 +1477,26 @@ Ready;
 :efig.
 :p.CE's own MAIL EXEC (19E) is a different program&colon. it reads notes
 that VM/370 users send each other with NOTE and SENDFILE.
+:h2.ASK&colon. the AI gateway
+:p.:xph.ASK question:exph. puts a question to a language model and shows
+the answer; :xph.ASK question (FILE fn ft fm:exph. sends a file with it
+("explain this EXEC"). The model keeps the user's last few questions and
+answers as context; :xph.ASK NEW:exph. starts afresh. The question goes
+over the spool bridge to the Debian guest, which passes it to the model
+named in :xph./etc/vmspool.d/ask.conf:exph.&colon. a model server on the
+PC with the OpenAI protocol (llama.cpp's :xph.llama-server:exph.,
+Ollama, LM Studio) at 10.1.1.1, a cloud service with the same protocol,
+or Anthropic's API. In the Debian guest, :xph.ask question:exph. does
+the same.
+:fig.
+:xmp.
+ask What is CMS?
+CMS, the Conversational Monitor System, is the single-user operating system
+that runs in a VM/370 virtual machine ...
+Ready;
+:exmp.
+:figcap.A question from CMS
+:efig.
 :h2.TELL
 :p.:xph.TELL userid message:exph. sends a message to a VM/370 user (CP
 MSG). :xph.TELL user AT LINUX message:exph. sends it to a user of the
@@ -2651,6 +2671,8 @@ unpacks PACK and SPACK files, :xph.UNTERSE -i in:exph. shows the header.
 :p.:xph.SENDMAIL fn [ft [fm]]:exph. (the note&colon. To&colon.,
 Cc&colon., Bcc&colon., Subject&colon., an empty line, the text);
 :xph.GETMAIL:exph..
+:h2.ASK
+:p.:xph.ASK question ... [(FILE fn ft fm]:exph.; :xph.ASK NEW:exph..
 :h2.LXCALL, PHONE, MQTT
 :p.:xph.LXCALL service [args] (FILE fn ft fm | SERVER userid | WAIT n |
 NOTYPE:exph.; :xph.PHONE STATUS|CHANNELS|PEERS|CALL ext [ctx]|HANGUP

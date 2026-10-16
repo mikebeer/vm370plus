@@ -25,3 +25,8 @@ install -m 755 linux/vmmaild /usr/local/sbin/vmmaild
 install -m 755 linux/vmmaild.init /etc/init.d/vmmaild
 update-rc.d vmmaild defaults >/dev/null
 /etc/init.d/vmmaild restart
+# 9.10 the AI gateway: vmask.py (shared), the service ask, ask on Linux
+install -m 644 linux/vmask.py /usr/local/lib/vmspool/vmask.py
+install -m 755 linux/ask /usr/local/bin/ask
+[ -r /etc/vmspool.d/ask.conf ] || install -m 600 linux/ask.conf /etc/vmspool.d/ask.conf
+mkdir -p /var/spool/vmspool/ask

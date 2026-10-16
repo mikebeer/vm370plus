@@ -1,0 +1,64 @@
+/* ASK EXEC -- a question to the AI gateway (VM/370plus 9.10)          */
+/*   ASK question ...                 the answer is shown (and kept    */
+/*                                    in LXCALL RESULT A)              */
+/*   ASK question ... (FILE fn ft [fm]   the file follows the question */
+/*   ASK NEW                          forget the earlier questions     */
+/* The model is the one /etc/vmspool.d/ask.conf of the Debian guest    */
+/* names: a llama.cpp or Ollama server on the PC, or a cloud API.      */
+/* Over the spool bridge: the server is LXCALL's (GLOBALV LXCALL).     */
+PARSE ARG Q
+OPT = ''
+P = LASTPOS('(', Q)
+IF P > 0 THEN DO; OPT = SUBSTR(Q, P + 1); Q = LEFT(Q, P - 1); END
+Q = STRIP(Q)
+IF Q = '' | Q = '?' THEN DO
+  SAY 'ASK: usage: ASK question ... [(FILE fn ft fm]   or   ASK NEW'
+  EXIT 24
+END
+IF TRANSLATE(Q) = 'NEW' THEN DO; 'EXEC LXCALL ASK NEW'; EXIT RC; END
+CALL QUIET 'ERASE ASK QUESTION A'
+CALL QUIET 'ERASE LXCALL OPTIONS A'
+/* the question in lines of at most 79                                 */
+N = 0
+DO WHILE Q <> ''
+  IF LENGTH(Q) <= 79 THEN DO; L = Q; Q = ''; END
+  ELSE DO
+    K = LASTPOS(' ', LEFT(Q, 80))
+    IF K < 2 THEN K = 80
+    L = LEFT(Q, K - 1); Q = STRIP(SUBSTR(Q, K))
+  END
+  QUEUE L; N = N + 1
+END
+PARSE UPPER VAR OPT W FN FT FM .
+IF W = 'FILE' & FN <> '' THEN DO
+  IF FT = '' THEN FT = 'DATA'
+  IF FM = '' THEN FM = '*'
+  'SET CMSTYPE HT'
+  'STATE' FN FT FM
+  SRC = RC
+  'SET CMSTYPE RT'
+  IF SRC <> 0 THEN DO
+    'DROPBUF 0'
+    SAY 'ASK:' FN FT FM 'not found'; EXIT 28; END
+  QUEUE '---' FN FT '---'; N = N + 1
+END
+'EXECIO' N 'DISKW ASK QUESTION A (FINIS'
+IF W = 'FILE' & FN <> '' THEN DO   /* the file as 80-column cards      */
+  CALL QUIET 'ERASE ASK FILETMP A'
+  CALL QUIET 'COPYFILE' FN FT FM 'ASK FILETMP A (RECFM F LRECL 80 TRUNC'
+  CALL QUIET 'COPYFILE ASK FILETMP A ASK QUESTION A (APPEND'
+  CALL QUIET 'ERASE ASK FILETMP A'
+END
+QUEUE 'FILE ASK QUESTION A'
+'EXECIO 1 DISKW LXCALL OPTIONS A (FINIS'
+'EXEC LXCALL ASK Q'
+SRC = RC
+CALL QUIET 'ERASE ASK QUESTION A'
+EXIT SRC
+
+QUIET: PROCEDURE
+  PARSE ARG CMD
+  'SET CMSTYPE HT'
+  CMD
+  'SET CMSTYPE RT'
+  RETURN
