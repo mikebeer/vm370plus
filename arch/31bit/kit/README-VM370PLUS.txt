@@ -1,6 +1,16 @@
 VM/370plus  --  overlay kit, 15 October 2026 (build 21)
 ========================================================
 
+NEXT BUILD (in the development system)
+  - vmspool (vm370plus/tools/vmspool.py, Python 3, Windows or Linux):
+    a file on the PC straight into a VM/370plus user's reader, e.g.
+        python vmspool.py hello.exec cmsuser
+        python vmspool.py prog.text cmsuser --binary
+    then on CMS: READCARD HELLO EXEC A (or RDRLIST).  Two socket card
+    readers in vm370ce.conf take the decks (010C, port 3505, text;
+    020C, port 3506, binary); AUTOLOG1 starts them at IPL.
+
+
 NEW IN BUILD 21
   - An EXEC can name its interpreter on its first line:  /*!REGINA */
     (still a REXX comment) runs it with Regina instead of BREXX.

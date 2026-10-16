@@ -1,0 +1,12 @@
+[
+ {"send": "ipl 6A1", "expect": "DMKCPI966I|Start \\(\\(Warm", "timeout": 180, "cont": true},
+ {"send": "/", "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT", "timeout": 60, "cont": true},
+ {"send": "/start 10c", "expect": "STARTED|DMK", "timeout": 30, "cont": true},
+ {"send": "/start 20c", "expect": "STARTED|DMK", "timeout": 30, "cont": true},
+ {"send": "/q rdr cmsuser all", "settle": 60},
+ {"send": "/q rdr cmsuser all", "settle": 5},
+ {"send": "/q rdr cmsuser all", "settle": 60},
+ {"send": "/q rdr cmsuser all", "settle": 5},
+ {"send": "/shutdown", "expect": "HHCCP011I|SHUTDOWN COMPLETE", "timeout": 90, "cont": true},
+ {"send": "exit"}
+]

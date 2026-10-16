@@ -1,0 +1,19 @@
+[
+ {"send": "ipl 6A1", "expect": "DMKCPI966I|Start \\(\\(Warm", "timeout": 180, "cont": true},
+ {"send": "/", "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT", "timeout": 60, "cont": true},
+ {"send": "/purge rdr cmsuser all", "settle": 5},
+ {"send": "/cp disc", "expect": "DISCONNECT", "timeout": 30, "cont": true},
+ {"term": "", "expect": "Online|ONLINE", "timeout": 30, "cont": true},
+ {"term": "logon cmsuser cmsuser noipl", "expect": "LOGON AT|RECONNECT", "timeout": 60, "cont": true},
+ {"term": "ipl cms", "expect": "VM Community|DMS", "timeout": 120, "cont": true},
+ {"term": "", "expect": "Ready", "timeout": 60, "cont": true},
+ {"term": "cp q rdr all", "settle": 60},
+ {"term": "cp q rdr all", "expect": "Ready", "timeout": 30, "cont": true},
+ {"term": "readcard * *", "expect": "Ready", "timeout": 60, "cont": true},
+ {"term": "type hellosp exec a", "expect": "Ready", "timeout": 30, "cont": true},
+ {"term": "hellosp", "expect": "Ready", "timeout": 30, "cont": true},
+ {"term": "erase hellosp exec a", "expect": "Ready", "timeout": 30, "cont": true},
+ {"term": "cp logoff", "settle": 5},
+ {"send": "/shutdown", "expect": "HHCCP011I|SHUTDOWN COMPLETE", "timeout": 90, "cont": true},
+ {"send": "exit"}
+]
