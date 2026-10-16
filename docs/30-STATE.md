@@ -781,3 +781,21 @@ all parts, dev parked and restored). Verified (kt36): PCHELLO EXEC and
 SAMPLE MD sent from the PC by vmspool.py arrived in CMSUSER's reader with
 no operator action, UNSTREAM 37 lines, MDPRINT TYPE and DISK correct,
 SHUTDOWN clean. The Debian handler was verified on the dev disk (mdd4).
+
+## Kit b23 (16 October 2026, 09:45)
+
+9.40 and 9.18. BORDER runs vmdns (kernel #13, LINUX13 KERNEL1/2 on its 191):
+the local zone vm370plus.lan from BORDER CONFIG (DOMAIN, HOST, MX), other
+names relayed to the PC; DHCP hands out the search domain; Debian's
+vm370plus-lan writes the LAN names into /etc/hosts. Mail: the Debian guest
+(MAINT) is the mail host -- vmmaild (SMTP, port 25) delivers
+userid@vm370plus.lan to the user's reader as `sender MAIL` through
+vmspoold's new outbox; SENDMAIL EXEC (19E) sends a note over the `mail`
+service (CMS users at once, others by SMARTHOST or MX); GETMAIL EXEC (19E)
+reads MAIL files into MAILnnnn MAIL A; LXCALL (19D) orders its answer to
+the front of the reader. Verified (dns2, mail1 on dev; kt37 on a fresh CE +
+b23): LINUX13 and the zone in BORDER CONFIG shipped; Debian booted with
+vmmaild; CMSUSER SENDMAIL to cmsuser and maint ("in the reader of CMSUSER",
+"kept in /var/spool/vmspool/mail/maint"), GETMAIL "MAIL0148 MAIL A
+cmsuser@vm370plus.lan kit b23 mail test"; SHUTDOWN clean. 19 parts.
+Note: MAINT 19D is 99% full.

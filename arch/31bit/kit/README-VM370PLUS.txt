@@ -1,7 +1,7 @@
-VM/370plus  --  overlay kit, 16 October 2026 (build 22)
+VM/370plus  --  overlay kit, 16 October 2026 (build 23)
 ========================================================
 
-NEXT BUILD (in the development system)
+NEW IN BUILD 23
   - BORDER answers for the LAN's own names (9.40): in BORDER CONFIG
     (MAINT 19E),  DOMAIN name  (default vm370plus.lan),  HOST name address,
     MX preference name.  ping maint, ssh cmsuser.vm370plus.lan; other
