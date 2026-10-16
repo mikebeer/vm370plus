@@ -1,6 +1,13 @@
 VM/370plus  --  overlay kit, 16 October 2026 (build 24)
 ========================================================
 
+NEXT BUILD (in the development system)
+  - EXEC 2 (9.43): an EXEC whose first line starts with &TRACE runs under
+    EXEC2 EXEC (19E, our own interpreter) when CMS is IPLed from 290;
+    EXEC2 fn args anywhere.
+  - MAINT's PROFILE EXEC (ACCESS 5E5 B/B) is back (b22-b24 lacked it).
+
+
 NEW IN BUILD 24
   - ASK question [(FILE fn ft fm]: the AI gateway (9.10).  The Debian
     guest passes the question to the model in /etc/vmspool.d/ask.conf:

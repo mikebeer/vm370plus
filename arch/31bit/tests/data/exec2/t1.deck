@@ -1,0 +1,61 @@
+ID CMSUSER NAME T1 EXEC
+&TRACE OFF
+&TYPE Hello &1, you gave &N args: &ARGSTRING
+&X = 5
+&Y = &X + 3 * 2
+&TYPE Y is &Y
+&I = 1
+&LOOP 2 3
+&V&I = item&I
+&I = &I + 1
+&TYPE V2 is &V2, V3 is &V3
+&S = &CONCAT abc def &X
+&L = &LENGTH &S
+&TYPE concat &S length &L
+&SUB = &SUBSTR &S 2 3
+&TYPE substr &SUB
+&P = &PIECE &ARGSTRING 2
+&TYPE piece2 &P datatype &DATATYPE
+&D = &DATATYPE &X
+&TYPE datatype of X: &D
+&IF &X > 3 &TYPE X is big
+&IF &X = 4 &TYPE never
+&CALL -SUB a b c
+&TYPE back rc &RC args again &ARGSTRING
+&STACK hello stack
+&READ VARS &R1 &R2
+&TYPE read &R1 / &R2
+&BEGTYPE
+Text with &X substituted
+&END
+&BEGTYPE ALL
+Raw &X
+&END
+&ERROR &TYPE error rc &RC
+STATE NOSUCH FILE A
+&ERROR
+&J = 0
+-L1
+&J = &J + 1
+&IF &J < 3 &GOTO -L1
+&TYPE J &J
+&LOOP -E &J >= 5
+&J = &J + 1
+-E &TYPE in loop &J
+&TYPE after loop &J
+&UPPER VARS &S
+&TYPE upper &S
+&BEGSTACK
+line one &X
+line two
+&END
+&READ STRING &Q
+&TYPE first stacked: &Q
+&READ STRING &Q
+&TYPE second stacked: &Q
+CP QUERY TIME
+&TYPE rc of echo &RC
+&EXIT 7
+-SUB
+&TYPE in sub &N args: &1 &2 &3
+&RETURN 3

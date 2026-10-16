@@ -1688,6 +1688,26 @@ REXX. :xph.CRX82 EXEC:exph. rebuilds the three on CMS. Link LANG
 read/write as A (:xph.LINK MAINT 19F 29F MR:exph., :xph.ACCESS 29F
 A:exph.) in a 256M machine started with :xph.IPL 290:exph., then
 :xph.CRX82:exph.; it takes about two hours.
+:h2.EXEC 2
+:p.EXEC 2, the language that came between EXEC and REXX on VM/SP, runs
+on VM/370plus too&colon. an EXEC whose first line starts with
+:xph.&amp.TRACE:exph. is run by :xph.EXEC2 EXEC:exph. (19E), our own
+interpreter written from the language description. It has the statements
+(:xph.&amp.IF:exph., :xph.&amp.GOTO:exph., :xph.&amp.LOOP:exph.,
+:xph.&amp.CALL:exph./:xph.&amp.RETURN:exph., :xph.&amp.STACK:exph.,
+:xph.&amp.READ:exph., :xph.&amp.BEGTYPE:exph., :xph.&amp.BEGSTACK:exph.,
+:xph.&amp.ERROR:exph., :xph.&amp.EXIT:exph., :xph.&amp.TRACE:exph.,
+:xph.&amp.UPPER:exph., :xph.&amp.PRESUME:exph., :xph.&amp.COMMAND:exph.,
+:xph.&amp.SUBCOMMAND:exph.), assignments with arithmetic from left to
+right and the functions :xph.&amp.CONCAT:exph.,
+:xph.&amp.DATATYPE:exph., :xph.&amp.DIV:exph., :xph.&amp.LEFT:exph.,
+:xph.&amp.LENGTH:exph., :xph.&amp.LITERAL:exph., :xph.&amp.PIECE:exph.,
+:xph.&amp.POSITION:exph., :xph.&amp.RIGHT:exph., :xph.&amp.SUBSTR:exph..
+Words are substituted from the right, so :xph.&amp.X&amp.I:exph. is
+:xph.&amp.X1:exph. when :xph.&amp.I:exph. is 1. The dispatch needs
+:xph.IPL 290:exph.; :xph.EXEC2 fn args:exph. works under any CMS. Files
+of the old EXEC language (first line :xph.&amp.CONTROL:exph. or anything
+else) still run under EXEC.
 :h2.Regina REXX on CMS
 :p.Regina 3.9.5, the REXX interpreter of the Debian guest, also runs on
 CMS (:xph.REGINA:exph. on the LANG disk). It runs a REXX program from a

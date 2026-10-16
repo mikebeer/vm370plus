@@ -1,5 +1,5 @@
 ./ R 00098410          $ 00098411 001                                           
-         BNE   NOTREXX        NO, CONTINUE WITH EXEC           XA0057DK         
+         BNE   NOTREX2        NO: EXEC 2 OR EXEC (9.43)        XA0057DK         
          CLI   2(R3),C'!'     /*!NAME: ANOTHER INTERPRETER     XA0057DK         
          BE    BANG                                            XA0057DK         
          L     R15,=A(NUCREXXD-NUCON) SETREXX                  XA0057DK         
@@ -42,7 +42,7 @@ BANG20   CLI   0(R7),C' '     NO NAME: BREXX AFTER ALL         XA0057DK
          MVC   16(8,R7),8(R11) THE EXEC'S NAME                 XA0057DK         
          MVC   24(8,R7),=CL8'EXEC'                             XA0057DK         
          LA    R2,32(,R7)                                      XA0057DK         
-         LA    R1,16(,R11)    ITS ARGUMENTS                    XA0057DK         
+BANG25   LA    R1,16(,R11)    ITS ARGUMENTS                    XA0057DK         
          LA    R14,BANGPLE-8  ROOM FOR THE FENCE               XA0057DK         
 BANG30   CLI   0(R1),X'FF'                                     XA0057DK         
          BE    BANG40                                          XA0057DK         
@@ -62,6 +62,23 @@ BANG40   MVC   0(8,R2),=8X'FF'                                 XA0057DK
          DMSFRET DWORDS=(0),LOC=WORK,TYPCALL=BALR              XA0057DK         
          LR    R15,R3                                          XA0057DK         
          BR    R9                                              XA0057DK         
+*        EXEC 2 (9.43): FIRST LINE &TRACE -> EXEC2 EXEC        XA0057DK         
+NOTREX2  LR    R14,R5                                          XA0057DK         
+         SR    R14,R3         BYTES LEFT IN THE LINE           XA0057DK         
+         CH    R14,=H'6'                                       XA0057DK         
+         BL    NOTREXX                                         XA0057DK         
+         CLC   0(6,R3),=C'&&TRACE'                             XA0057DK         
+         BE    E2GO                                            XA0057DK         
+         CLC   0(6,R3),=C'&&trace'                             XA0057DK         
+         BNE   NOTREXX                                         XA0057DK         
+E2GO     LA    R7,BANGPL      EXEC EXEC2 =EXEC FN EXEC ARGS    XA0057DK         
+         MVC   0(8,R7),=CL8'EXEC'                              XA0057DK         
+         MVC   8(8,R7),=CL8'EXEC2'                             XA0057DK         
+         MVC   16(8,R7),=CL8'=EXEC'                            XA0057DK         
+         MVC   24(8,R7),8(R11) THE EXEC'S NAME                 XA0057DK         
+         MVC   32(8,R7),=CL8'EXEC'                             XA0057DK         
+         LA    R2,40(,R7)                                      XA0057DK         
+         B     BANG25                                          XA0057DK         
          DROP  R8                                              XA0057DK         
 ./ R 00230600          $ 00230610 010                                           
 FSCBEXEC DS    ((FSCBDSIZ+7)/8)D                               XA0057DK         

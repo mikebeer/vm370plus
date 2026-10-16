@@ -113,7 +113,7 @@ XA52 = 'XA0052DK'
 XA53 = 'XA0053DK'   # M4b: real storage above 16 MB
 XA54 = 'XA0054DK'   # M7: ESA/390 virtual machines
 XA55 = 'XA0055DK'   # M4b.3: guest pages in frames above 16 MB
-XA57 = 'XA0057DK'   # 9.39: /*!name -- EXECs for other interpreters
+XA57 = 'XA0057DK'   # 9.39: /*!name -- EXECs for other interpreters; 9.43: &TRACE -> EXEC2
 
 
 def psa():
@@ -8763,7 +8763,7 @@ ECMODS = {
 # '/*' goes to BREXX as before; X'05' calls (functions) always do.
 BANGMODS = {
     'DMSEXC': [
-        ('00098410', ["         BNE   NOTREXX        NO, CONTINUE WITH EXEC",
+        ('00098410', ["         BNE   NOTREX2        NO: EXEC 2 OR EXEC (9.43)",
                       "         CLI   2(R3),C'!'     /*!NAME: ANOTHER INTERPRETER",
                       "         BE    BANG",
                       "         L     R15,=A(NUCREXXD-NUCON) SETREXX",
@@ -8806,7 +8806,7 @@ BANGMODS = {
             "         MVC   16(8,R7),8(R11) THE EXEC'S NAME",
             "         MVC   24(8,R7),=CL8'EXEC'",
             "         LA    R2,32(,R7)",
-            "         LA    R1,16(,R11)    ITS ARGUMENTS",
+            "BANG25   LA    R1,16(,R11)    ITS ARGUMENTS",
             "         LA    R14,BANGPLE-8  ROOM FOR THE FENCE",
             "BANG30   CLI   0(R1),X'FF'",
             "         BE    BANG40",
@@ -8826,6 +8826,23 @@ BANGMODS = {
             "         DMSFRET DWORDS=(0),LOC=WORK,TYPCALL=BALR",
             "         LR    R15,R3",
             "         BR    R9",
+            "*        EXEC 2 (9.43): FIRST LINE &TRACE -> EXEC2 EXEC",
+            "NOTREX2  LR    R14,R5",
+            "         SR    R14,R3         BYTES LEFT IN THE LINE",
+            "         CH    R14,=H'6'",
+            "         BL    NOTREXX",
+            "         CLC   0(6,R3),=C'&&TRACE'",
+            "         BE    E2GO",
+            "         CLC   0(6,R3),=C'&&trace'",
+            "         BNE   NOTREXX",
+            "E2GO     LA    R7,BANGPL      EXEC EXEC2 =EXEC FN EXEC ARGS",
+            "         MVC   0(8,R7),=CL8'EXEC'",
+            "         MVC   8(8,R7),=CL8'EXEC2'",
+            "         MVC   16(8,R7),=CL8'=EXEC'",
+            "         MVC   24(8,R7),8(R11) THE EXEC'S NAME",
+            "         MVC   32(8,R7),=CL8'EXEC'",
+            "         LA    R2,40(,R7)",
+            "         B     BANG25",
             "         DROP  R8",
         ]),
         ('00230600', [

@@ -1,0 +1,461 @@
+/* EXEC2 EXEC -- EXEC 2 for VM/370plus (9.43)                         */
+/*   EXEC2 fn [ft [fm]] [args]     (ft EXEC by default)               */
+/* An EXEC 2 file starts with &TRACE; written from the EXEC 2         */
+/* Reference (VM/SP), not IBM code.  Statements: commands (to         */
+/* &PRESUME's environment, CMS COMMAND by default; &RC, &RETCODE),    */
+/* assignments  &V = word | a + b - c ... | &function args,           */
+/* &ARGS &BEGSTACK &BEGTYPE &CALL &COMMAND &END &ERROR &EXIT &GOTO    */
+/* &IF &LOOP &PRESUME &READ &RETURN &SKIP &STACK &SUBCOMMAND &TRACE   */
+/* &TYPE &UPPER; functions &CONCAT &DATATYPE &DIV &LEFT &LENGTH       */
+/* &LITERAL &PIECE &POSITION &RIGHT &SUBSTR; variables &RC &RETCODE   */
+/* &N &0..&n &ARGSTRING &EXEC &LINENUM &READFLAG &TYPEFLAG.  A word  */
+/* is substituted from the right: &X&I is &X1 when &I is 1.  An unset */
+/* variable is null.  Labels are lines starting with -name.           */
+PARSE SOURCE SYS .
+CMS = (SYS = 'CMS')
+PARSE ARG A1 REST
+IF A1 = '=EXEC' THEN PARSE VAR REST FN FT ARGLINE  /* DMSEXC dispatch */
+ELSE DO; FN = A1; FT = 'EXEC'; ARGLINE = REST; END
+IF FN = '' | FN = '?' THEN DO
+  SAY 'EXEC2: usage: EXEC2 fn [args]   (fn EXEC, an EXEC 2 file)'
+  EXIT 24
+END
+FM = '*'
+/* the file                                                           */
+IF CMS THEN DO
+  'SET CMSTYPE HT'
+  'STATE' FN FT FM
+  SRC = RC
+  'SET CMSTYPE RT'
+  IF SRC <> 0 THEN DO; SAY 'EXEC2:' FN FT 'not found'; EXIT 28; END
+  'EXECIO * DISKR' FN FT FM '(FINIS STEM L.'
+END
+ELSE DO  /* the PC: a test file */
+  F = FN
+  IF STREAM(F, 'C', 'QUERY EXISTS') = '' THEN F = FN'.'FT
+  LC = 'abcdefghijklmnopqrstuvwxyz'; UC = TRANSLATE(LC)
+  IF STREAM(F, 'C', 'QUERY EXISTS') = '' THEN
+    F = FN'.'TRANSLATE(FT, LC, UC)
+  L.0 = 0
+  DO WHILE LINES(F) > 0
+    K = L.0 + 1; L.K = LINEIN(F); L.0 = K
+  END
+END
+DO I = 1 TO L.0
+  L.I = STRIP(L.I, 'T')
+END
+/* the state                                                          */
+V. = ''; DEF. = 0
+CALL SETARGS ARGLINE
+CALL SETV 'EXEC', FN FT FM
+CALL SETV '0', FN
+CALL SETV 'RC', 0
+CALL SETV 'RETCODE', 0
+TRACE_ = 'OFF'; ERRACT = ''; PRESUME = 'COMMAND'
+NLOOP = 0; NCALL = 0; EXITING = 0; EXITRC = 0
+PC = 1
+/* the main loop                                                      */
+DO WHILE PC <= L.0
+  CUR = PC
+  PC = PC + 1
+  CALL SETV 'LINENUM', CUR
+  CALL STATEMENT L.CUR
+  IF EXITING THEN LEAVE
+  CALL LOOPEND
+END
+IF \EXITING THEN EXITRC = VAL('RC')
+EXIT EXITRC
+
+/* the end of a &LOOP body: again, or on                              */
+LOOPEND:
+  DO WHILE NLOOP > 0
+    K = NLOOP
+    IF PC <= LEND.K THEN RETURN
+    IF LCOND.K <> '' THEN DO
+      IF \COND(LCOND.K) THEN DO; PC = LSTART.K; RETURN; END
+    END
+    ELSE DO
+      LCOUNT.K = LCOUNT.K - 1
+      IF LCOUNT.K > 0 THEN DO; PC = LSTART.K; RETURN; END
+    END
+    NLOOP = NLOOP - 1
+  END
+  RETURN
+
+/* one statement                                                      */
+STATEMENT:
+  PARSE ARG LINE
+  EXITING = 0
+  IF STRIP(LINE) = '' THEN RETURN
+  W1 = WORD(LINE, 1)
+  IF LEFT(W1, 1) = '-' THEN DO                 /* a label            */
+    LINE = SUBWORD(LINE, 2)
+    IF STRIP(LINE) = '' THEN RETURN
+    W1 = WORD(LINE, 1)
+  END
+  U1 = TRANSLATE(W1)
+  IF LEFT(W1, 1) = '&' & WORD(LINE, 2) = '=' THEN DO
+    CALL ASSIGN LINE; RETURN
+  END
+  IF LEFT(W1, 1) = '&' & WORDPOS(U1, CONTROLS()) > 0 THEN DO
+    IF TRACE_ = 'ALL' THEN CALL TR SUBLINE(LINE)
+    CALL CONTROL LINE; RETURN
+  END
+  CALL COMMAND PRESUME, SUBLINE(LINE)
+  RETURN
+
+CONTROLS: RETURN '&ARGS &BEGSTACK &BEGTYPE &CALL &COMMAND &END &ERROR',
+  '&EXIT &GOTO &IF &LOOP &PRESUME &READ &RETURN &SKIP &STACK',
+  '&SUBCOMMAND &TRACE &TYPE &UPPER'
+
+/* a command to an environment; &RC, &ERROR                           */
+COMMAND:
+  PARSE ARG ENV, CMD
+  IF TRACE_ = 'ALL' | TRACE_ = 'CMS' THEN CALL TR CMD
+  IF CMS THEN DO
+    SELECT
+      WHEN ENV = 'COMMAND' THEN ADDRESS COMMAND CMD
+      WHEN ENV = 'CMS' THEN ADDRESS CMS CMD
+      OTHERWISE INTERPRET 'ADDRESS' ENV 'CMD'
+    END
+  END
+  ELSE ADDRESS SYSTEM CMD
+  R = RC
+  CALL SETV 'RC', R
+  CALL SETV 'RETCODE', R
+  IF R <> 0 & (TRACE_ = 'ERR' | TRACE_ = 'CMS') THEN
+    SAY '  +++ RC('R') +++'
+  IF R <> 0 & ERRACT <> '' THEN DO
+    A = ERRACT; ERRACT = ''  /* no recursion */
+    CALL STATEMENT A
+    ERRACT = A
+  END
+  RETURN
+
+TR: PARSE ARG T
+  SAY RIGHT(CUR, 5) '*-*' T
+  RETURN
+
+/* &var = ...                                                         */
+ASSIGN:
+  PARSE ARG W1 '=' RHS
+  T = TARGET(STRIP(W1))
+  RHS = STRIP(RHS)
+  F = TRANSLATE(WORD(RHS, 1))
+  IF LEFT(F, 1) = '&' & WORDPOS(F, FUNCS()) > 0 THEN
+    VAL = FUNC(F, SUBWORD(RHS, 2))
+  ELSE IF WORDS(RHS) = 0 THEN VAL = ''
+  ELSE IF WORDS(RHS) = 1 THEN VAL = SUBW(RHS)
+  ELSE VAL = ARITH(RHS)
+  IF TRACE_ = 'ALL' THEN CALL TR '&'T '=' VAL
+  CALL SETV T, VAL
+  RETURN
+
+/* the name a target word &X or &X&I stands for                       */
+TARGET: PROCEDURE EXPOSE V. DEF. CMS
+  PARSE ARG W
+  N = SUBSTR(W, 2)
+  IF POS('&', N) > 0 THEN N = SUBW(N)
+  RETURN N
+
+FUNCS: RETURN '&CONCAT &DATATYPE &DIV &LEFT &LENGTH &LITERAL &PIECE',
+  '&POSITION &RIGHT &SUBSTR'
+
+FUNC:
+  PARSE ARG FN_, A
+  IF FN_ = '&LITERAL' THEN RETURN STRIP(A)
+  N = WORDS(A)
+  DO K = 1 TO N; X.K = SUBW(WORD(A, K)); END
+  SELECT
+    WHEN FN_ = '&CONCAT' THEN DO
+      S = ''; DO K = 1 TO N; S = S || X.K; END; RETURN S; END
+    WHEN FN_ = '&DATATYPE' THEN DO
+      IF N > 0 THEN IF DATATYPE(X.1, 'W') THEN RETURN 'NUM'
+      RETURN 'CHAR'; END
+    WHEN FN_ = '&DIV' THEN RETURN X.1 % X.2
+    WHEN FN_ = '&LENGTH' THEN RETURN LENGTH(X.1)
+    WHEN FN_ = '&LEFT' THEN RETURN LEFT(X.1, X.2)
+    WHEN FN_ = '&RIGHT' THEN RETURN RIGHT(X.1, X.2)
+    WHEN FN_ = '&SUBSTR' THEN DO
+      IF N > 2 THEN RETURN SUBSTR(X.1, X.2, X.3)
+      RETURN SUBSTR(X.1, X.2); END
+    WHEN FN_ = '&PIECE' THEN DO  /* &PIECE string n [m]: words */
+      IF N > 2 THEN RETURN SUBWORD(X.1, X.2, X.3)
+      RETURN WORD(X.1, X.2); END
+    WHEN FN_ = '&POSITION' THEN RETURN POS(X.1, X.2)
+    OTHERWISE NOP
+  END
+  RETURN ''
+
+/* a + b - c ...: whole numbers, left to right                        */
+ARITH:
+  PARSE ARG E
+  ACC = SUBW(WORD(E, 1))
+  DO K = 2 TO WORDS(E) BY 2
+    OP = WORD(E, K); B = SUBW(WORD(E, K + 1))
+    IF \DATATYPE(ACC, 'W') | \DATATYPE(B, 'W') THEN DO
+      /* not arithmetic: the words as they are, blanks between        */
+      S = ''; DO J = 1 TO WORDS(E); S = S SUBW(WORD(E, J)); END
+      RETURN STRIP(S)
+    END
+    SELECT
+      WHEN OP = '+' THEN ACC = ACC + B
+      WHEN OP = '-' THEN ACC = ACC - B
+      WHEN OP = '*' THEN ACC = ACC * B
+      WHEN OP = '/' THEN ACC = ACC % B
+      OTHERWISE DO
+        S = ''; DO J = 1 TO WORDS(E); S = S SUBW(WORD(E, J)); END
+        RETURN STRIP(S)
+      END
+    END
+  END
+  RETURN ACC
+
+/* the control statements                                             */
+CONTROL:
+  PARSE ARG W1 REST
+  U = TRANSLATE(W1)
+  SELECT
+    WHEN U = '&TYPE' THEN SAY SUBLINE(REST)
+    WHEN U = '&STACK' THEN DO
+      PARSE VAR REST O REST2
+      UO = TRANSLATE(O)
+      IF UO = 'LIFO' THEN PUSH SUBLINE(REST2)
+      ELSE IF UO = 'FIFO' THEN QUEUE SUBLINE(REST2)
+      ELSE QUEUE SUBLINE(REST)
+    END
+    WHEN U = '&BEGTYPE' | U = '&BEGSTACK' THEN CALL BLOCK U, REST
+    WHEN U = '&END' THEN NOP
+    WHEN U = '&TRACE' THEN DO
+      T = TRANSLATE(SUBW(WORD(REST, 1)))
+      IF T = '' | T = 'OFF' THEN TRACE_ = 'OFF'
+      ELSE IF T = 'ON' THEN TRACE_ = 'ALL'
+      ELSE TRACE_ = T
+    END
+    WHEN U = '&ERROR' THEN ERRACT = STRIP(REST)
+    WHEN U = '&EXIT' THEN DO
+      R = STRIP(SUBLINE(REST))
+      IF R = '' THEN R = 0
+      EXITRC = R; EXITING = 1
+    END
+    WHEN U = '&RETURN' THEN DO
+      R = STRIP(SUBLINE(REST))
+      IF R = '' THEN R = 0
+      IF NCALL = 0 THEN DO; EXITRC = R; EXITING = 1; END
+      ELSE DO
+        K = NCALL
+        PC = CRET.K; NLOOP = CLOOP.K
+        CALL SETARGS CARGS.K
+        NCALL = NCALL - 1
+        CALL SETV 'RC', R
+      END
+    END
+    WHEN U = '&GOTO' THEN CALL GOTO SUBW(WORD(REST, 1))
+    WHEN U = '&SKIP' THEN DO
+      N = SUBW(WORD(REST, 1)); IF N = '' THEN N = 1
+      PC = PC + N
+    END
+    WHEN U = '&IF' THEN DO
+      PARSE VAR REST A OP B STMT
+      IF COND(A OP B) THEN CALL STATEMENT STMT
+    END
+    WHEN U = '&LOOP' THEN CALL LOOP REST
+    WHEN U = '&CALL' THEN DO
+      PARSE VAR REST LBL CARG
+      NCALL = NCALL + 1; K = NCALL
+      CRET.K = PC; CLOOP.K = NLOOP
+      CARGS.K = VAL('ARGSTRING')
+      CALL SETARGS SUBLINE(CARG)
+      CALL GOTO SUBW(LBL)
+    END
+    WHEN U = '&ARGS' THEN CALL SETARGS SUBLINE(REST)
+    WHEN U = '&READ' THEN CALL READ REST
+    WHEN U = '&UPPER' THEN DO
+      PARSE VAR REST O NAMES
+      IF TRANSLATE(O) = 'ARGS' THEN
+        CALL SETARGS TRANSLATE(VAL('ARGSTRING'))
+      ELSE DO K = 1 TO WORDS(NAMES)
+        T = TARGET(WORD(NAMES, K)); CALL SETV T, TRANSLATE(VAL(T))
+      END
+    END
+    WHEN U = '&PRESUME' THEN DO
+      PARSE VAR REST E1 E2 .
+      IF TRANSLATE(E1) = '&SUBCOMMAND' THEN PRESUME = TRANSLATE(E2)
+      ELSE PRESUME = 'COMMAND'
+    END
+    WHEN U = '&COMMAND' THEN CALL COMMAND 'COMMAND', SUBLINE(REST)
+    WHEN U = '&SUBCOMMAND' THEN DO
+      PARSE VAR REST E1 REST2
+      CALL COMMAND TRANSLATE(E1), SUBLINE(REST2)
+    END
+    OTHERWISE NOP
+  END
+  RETURN
+
+/* &GOTO -label | TOP | n: forward from here, then from the top       */
+GOTO:
+  PARSE ARG TG
+  UT = TRANSLATE(TG)
+  IF UT = 'TOP' THEN DO; PC = 1; NLOOP = 0; RETURN; END
+  IF DATATYPE(TG, 'W') THEN DO; PC = TG; RETURN; END
+  IF LEFT(UT, 1) <> '-' THEN UT = '-'UT
+  DO K = PC TO L.0
+    IF TRANSLATE(WORD(L.K, 1)) = UT THEN DO; PC = K; RETURN; END
+  END
+  DO K = 1 TO PC - 1
+    IF TRANSLATE(WORD(L.K, 1)) = UT THEN DO; PC = K; RETURN; END
+  END
+  SAY 'EXEC2: label' TG 'not found (line' CUR')'
+  EXITRC = 1; EXITING = 1
+  RETURN
+
+/* &LOOP n|-label count|condition                                     */
+LOOP:
+  PARSE ARG TG REST
+  TG = SUBW(TG)
+  IF DATATYPE(TG, 'W') THEN E = PC + TG - 1
+  ELSE DO
+    UT = TRANSLATE(TG)
+    IF LEFT(UT, 1) <> '-' THEN UT = '-'UT
+    E = 0
+    DO K = PC TO L.0
+      IF TRANSLATE(WORD(L.K, 1)) = UT THEN DO; E = K; LEAVE; END
+    END
+    IF E = 0 THEN DO
+      SAY 'EXEC2: &LOOP label' TG 'not found'
+      EXITRC = 1; EXITING = 1; RETURN
+    END
+  END
+  REST = STRIP(REST)
+  IF WORDS(REST) = 1 THEN DO
+    N = SUBW(REST)
+    IF N < 1 THEN DO; PC = E + 1; RETURN; END
+    NLOOP = NLOOP + 1; K = NLOOP
+    LSTART.K = PC; LEND.K = E; LCOUNT.K = N; LCOND.K = ''
+  END
+  ELSE DO
+    IF COND(REST) THEN DO; PC = E + 1; RETURN; END
+    NLOOP = NLOOP + 1; K = NLOOP
+    LSTART.K = PC; LEND.K = E; LCOUNT.K = 0; LCOND.K = REST
+  END
+  RETURN
+
+/* a op b: numbers as numbers, otherwise as strings                   */
+COND:
+  PARSE ARG A OP B .
+  A = SUBW(A); B = SUBW(B); OP = TRANSLATE(OP)
+  NUM = DATATYPE(A, 'N') & DATATYPE(B, 'N')
+  IF \NUM THEN DO; A = '"' || A || '"'; B = '"' || B || '"'; END
+  SELECT
+    WHEN OP = '=' | OP = '==' | OP = 'EQ' THEN R = A = B
+    WHEN OP = '\=' | OP = '^=' | OP = '/=' | OP = '<>' | OP = 'NE',
+       | OP = '\==' | OP = '^==' THEN R = A <> B
+    WHEN OP = '<' | OP = 'LT' THEN R = A < B
+    WHEN OP = '>' | OP = 'GT' THEN R = A > B
+    WHEN OP = '<=' | OP = 'LE' | OP = '^>' THEN R = A <= B
+    WHEN OP = '>=' | OP = 'GE' | OP = '^<' THEN R = A >= B
+    OTHERWISE DO
+      IF OP = '' THEN RETURN 0
+      R = A = B
+    END
+  END
+  RETURN R
+
+/* &BEGTYPE / &BEGSTACK [FIFO|LIFO] [ALL] ... &END                    */
+BLOCK:
+  PARSE ARG KIND, OPTS
+  OPTS = TRANSLATE(OPTS)
+  RAW = WORDPOS('ALL', OPTS) > 0
+  LIFO = WORDPOS('LIFO', OPTS) > 0
+  N = 0
+  DO WHILE PC <= L.0
+    K = PC; PC = PC + 1
+    IF TRANSLATE(STRIP(L.K)) = '&END' THEN LEAVE
+    T = L.K
+    IF \RAW THEN T = SUBLINE(T)
+    N = N + 1; B.N = T
+  END
+  IF KIND = '&BEGTYPE' THEN DO K = 1 TO N; SAY B.K; END
+  ELSE IF LIFO THEN DO K = N TO 1 BY -1; PUSH B.K; END
+  ELSE DO K = 1 TO N; QUEUE B.K; END
+  RETURN
+
+/* &READ [n] | ARGS | VARS &a ... | STRING &v                         */
+READ:
+  PARSE ARG O NAMES
+  UO = TRANSLATE(O)
+  IF UO = '' THEN UO = '1'
+  CALL SETV 'READFLAG', WORD('CONSOLE STACK', (QUEUED() > 0) + 1)
+  IF UO = 'ARGS' THEN DO; PARSE PULL T; CALL SETARGS T; RETURN; END
+  IF UO = 'STRING' THEN DO
+    PARSE PULL T; CALL SETV TARGET(WORD(NAMES, 1)), T; RETURN
+  END
+  IF UO = 'VARS' THEN DO
+    PARSE PULL T
+    DO K = 1 TO WORDS(NAMES)
+      IF K < WORDS(NAMES) THEN
+        CALL SETV TARGET(WORD(NAMES, K)), WORD(T, K)
+      ELSE CALL SETV TARGET(WORD(NAMES, K)), SUBWORD(T, K)
+    END
+    RETURN
+  END
+  IF DATATYPE(UO, 'W') THEN DO RD_ = 1 TO UO   /* run as statements */
+    PARSE PULL RDL_; CALL STATEMENT RDL_
+    IF EXITING THEN RETURN
+  END
+  RETURN
+
+/* the arguments: &N, &1 ... &n, &ARGSTRING                           */
+SETARGS:
+  PARSE ARG S
+  N0 = VAL('N'); IF N0 = '' THEN N0 = 0
+  DO K = 1 TO N0; CALL SETV K, ''; END
+  S = STRIP(S)
+  CALL SETV 'ARGSTRING', S
+  CALL SETV 'N', WORDS(S)
+  DO K = 1 TO WORDS(S); CALL SETV K, WORD(S, K); END
+  RETURN
+
+SETV: PROCEDURE EXPOSE V. DEF.
+  PARSE ARG N, X
+  V.N = X; DEF.N = 1
+  RETURN
+
+VAL: PROCEDURE EXPOSE V. DEF. CMS
+  PARSE ARG N
+  UN = TRANSLATE(N)
+  IF UN = 'READFLAG' & \DEF.N THEN
+    RETURN WORD('CONSOLE STACK', (QUEUED() > 0) + 1)
+  IF UN = 'TYPEFLAG' THEN RETURN 'RT'
+  IF DEF.N THEN RETURN V.N
+  IF UN <> N THEN IF DEF.UN THEN RETURN V.UN    /* &rc is &RC        */
+  RETURN ''
+
+/* a word substituted from the right                                  */
+SUBW: PROCEDURE EXPOSE V. DEF. CMS
+  PARSE ARG W
+  LIM = LENGTH(W)
+  DO FOREVER
+    IF LIM < 1 THEN LEAVE
+    P = LASTPOS('&', W, LIM)
+    IF P = 0 THEN LEAVE
+    N = SUBSTR(W, P + 1)
+    IF N = '' THEN DO; LIM = P - 1; ITERATE; END
+    W = LEFT(W, P - 1) || VAL(N)
+    LIM = P - 1
+  END
+  RETURN W
+
+/* a line substituted word by word, its blanks kept                   */
+SUBLINE: PROCEDURE EXPOSE V. DEF. CMS
+  PARSE ARG S
+  OUT = ''
+  DO WHILE S <> ''
+    B = VERIFY(S, ' ')
+    IF B = 0 THEN DO; OUT = OUT || S; LEAVE; END
+    OUT = OUT || LEFT(S, B - 1); S = SUBSTR(S, B)
+    E = POS(' ', S)
+    IF E = 0 THEN DO; OUT = OUT || SUBW(S); LEAVE; END
+    OUT = OUT || SUBW(LEFT(S, E - 1)); S = SUBSTR(S, E)
+  END
+  RETURN OUT

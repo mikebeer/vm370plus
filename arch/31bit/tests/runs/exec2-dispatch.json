@@ -1,0 +1,235 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/purge maint rdr all",
+  "settle": 3
+ },
+ {
+  "send": "/purge cmsuser rdr all",
+  "settle": 3
+ },
+ {
+  "send": "devinit 000c /home/claude/vm370/arch/31bit/tests/data/exec2/exec2.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 10
+ },
+ {
+  "send": "devinit 000c /home/claude/vm370/arch/31bit/tests/data/exec2/t1.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 10
+ },
+ {
+  "send": "devinit 000c /home/claude/vm370/arch/31bit/tests/data/exec2/e1.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 10
+ },
+ {
+  "send": "devinit 000c /home/claude/vm370/arch/31bit/tests/data/exec2/r1.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 10
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ipl 190",
+  "expect": "VM Community|DMS|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard exec2 exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "access 19e d",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "copyfile exec2 exec a = = d2 (replace",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "release d",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase exec2 exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 290 290 rr",
+  "expect": "LINKED|DMK",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard t1 exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard e1 exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "readcard r1 exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "t1 one two three",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "exec t1 alpha beta",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "exec2 t1 direct call",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "e1 hello",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "r1 hello",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase t1 exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase e1 exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase r1 exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

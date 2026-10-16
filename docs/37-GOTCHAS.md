@@ -600,3 +600,14 @@ CMS answer there has no Ready line and the step otherwise waits out its
 timeout.  And log OPERATOR on again before `/shutdown` when a run did
 `/cp disc` (otherwise "?CP: SHUTDOWN", no warm-start data, and the next IPL
 needs CKPT).
+
+## READCARD onto MAINT's A disk: never a file called PROFILE EXEC (16 October)
+
+The 9.41 test sp2 installed AUTOLOG1's profile by `READCARD PROFILE EXEC A`
+under MAINT, copied it to AUTOLOG1's 191 and erased it from A -- and with it
+MAINT's own PROFILE EXEC (`ACCESS 5E5 B/B`), which READCARD had replaced.
+MAINT then came up without its tools disk, and the CMS build (`build.sh
+cmsstage`, VMSETUP EXEC on 5E5) failed with "VMSETUP ... File not found".
+Kits b22-b24 shipped that MAINT 191.  Restored from a pristine CE (test
+maint-profile-restore).  Name such decks something else (AL1PROF EXEC) and
+COPYFILE them to the target under the right name.
