@@ -454,7 +454,7 @@ USER RPG NOLOG 2M 2M G                                                  03930000
 *        cuu type adr num volser mode readpw   writepw  multpw          03940000
  MDISK   191 3350 265 035 VM50-7 MR   ALL      WRITE    MULT            03950000
                                                                         03960000
-USER RSCS RSCS 2M 16M                                                   03970000
+USER RSCSV1 RSCSV1 2M 16M                                               03970000
  IPL 191                                                                03980000
  OPTION ECMODE BMX                                                      03990000
  CONSOLE 009 3215                                                       04000000
@@ -683,3 +683,20 @@ USER BORDER BORDER 64M 64M G
  DEDICATE 626 606                                                               
  DEDICATE 636 607                                                               
  MDISK 191 3350 071 020 VM50U1 MR ALL WRITE MULT                                
+*                                                                               
+* RSCS (9.13b): the NJE gateway.  SENDFILE to a user at another                 
+* node spools to RSCS with a TAG; NJEGATE EXEC (19E) passes the                 
+* file to NJE-II in the Debian guest.  AUTOLOG1 starts it.                      
+* CE's RSCS V1 is RSCSV1.                                                       
+*                                                                               
+USER RSCS NJEGATE 8M 16M G                                                      
+ OPTION ECMODE                                                                  
+ IPL CMS                                                                        
+ CONSOLE 009 3215                                                               
+ SPOOL 00C 2540 READER *                                                        
+ SPOOL 00D 2540 PUNCH A                                                         
+ SPOOL 00E 1403 A                                                               
+ LINK MAINT 190 190 RR                                                          
+ LINK MAINT 19D 19D RR                                                          
+ LINK MAINT 19E 19E RR                                                          
+ MDISK 191 3350 091 010 VM50U1 MR ALL WRITE MULT                                

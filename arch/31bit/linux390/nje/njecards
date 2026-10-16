@@ -15,7 +15,9 @@ while p + 2 <= len(d):
     n = struct.unpack('>H', d[p:p + 2])[0]
     r = d[p + 2:p + 2 + n]
     p += 2 + n
-    if len(r) < 2:
+    # data records only: CC_NO_SRCB 0x80 (punch); not the job and data
+    # set headers and trailer (SRCB 0xC0, 0xE0, 0xD0, 0xF0)
+    if len(r) < 2 or r[0] != 0x80:
         continue
     card = r[2:2 + r[1]]
     out.append((card + b'\x40' * 80)[:80])

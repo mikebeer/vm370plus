@@ -6,6 +6,10 @@
 #                             the input is the file; origin (the CMS
 #                             user who sent it) only from RSCS, the
 #                             gateway machine (NJEGATE EXEC)
+#   PUNCH user node fn ft [origin]
+#                             the input cards as they are (VMSPOOL_RAW,
+#                             EBCDIC): NETDATA from CMS's SENDFILE goes
+#                             on untouched, class N (RSCS: NJEGATE EXEC)
 #   QUERY                     this node, its links (NJE-II's  ucp)
 # The sender is the CMS user (VMSPOOL_FROM).
 P=/usr/local/nje
@@ -28,8 +32,17 @@ SENDFILE)
   rm -f $t
   [ $r = 0 ] && echo "nje: $4 $5 sent to $2 at $3"
   exit $r ;;
+PUNCH)
+  ok "$2" && ok "$3" && ok "$4" && ok "$5" || { echo "nje: PUNCH user node fn ft"; exit 4; }
+  [ "$from" = RSCS ] && ok "$6" && from=$(echo "$6" | tr a-z A-Z)
+  [ -s "$VMSPOOL_RAW" ] || { echo "nje: no cards"; exit 4; }
+  cl=A
+  [ "$(dd if="$VMSPOOL_RAW" bs=1 skip=2 count=6 2>/dev/null | od -An -tx1 | tr -d ' \n')" = c9d5d4d9f0f1 ] && cl=N
+  $P/bin/punch "$2@$3" -u "$from" -class $cl -fn "$4" "$5" -rawpun "$VMSPOOL_RAW" 2>&1; r=$?
+  [ $r = 0 ] && echo "nje: $4 $5 sent to $2 at $3"
+  exit $r ;;
 QUERY|Q)
   echo "nje: node $(awk '$1=="NAME"{print $2}' $P/etc/nje.cf)"
   $P/bin/ucp show lines 2>&1 | head -40 ;;
-*) echo "nje: TELL user node | SENDFILE user node fn ft | QUERY"; exit 4 ;;
+*) echo "nje: TELL user node | SENDFILE|PUNCH user node fn ft | QUERY"; exit 4 ;;
 esac

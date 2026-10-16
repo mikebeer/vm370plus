@@ -7,6 +7,7 @@
 # GitHub at a fixed commit, makes the changes below and builds it.
 #   - -fcommon: the headers define MAX_LINES etc. in every object
 #   - sys_nerr: glibc declares it (int); PRINT_ERRNO is strerror(errno)
+#   - files for a RUN exit are not reported as spooled to POSTMAST
 # Output: nje-<target>.tgz (bin/, lib/, etc/ under PREFIX, default
 # /usr/local/nje), the binaries stripped.
 set -e
@@ -18,6 +19,10 @@ git clone -q $REPO $W/src; (cd $W/src && git checkout -q $COMMIT)
 cd $W/src
 sed -i -E 's/^extern const int[[:space:]]+sys_nerr;//; s/\(errno > sys_nerr \? "\*\*\*" : strerror\(errno\)\)/strerror(errno)/' *.c *.h
 echo '/* sys_nerr: glibc has it (VM/370plus) */' > sysnerr.c
+# a file a RUN exit takes (njefile: VM/370 users are no Unix users) is
+# not "spooled to POSTMAST"
+sed -i 's/if (!RealUser \&\& !ExplicitePseudoUser) {/if (!RealUser \&\& !ExplicitePseudoUser \&\& Action->Action != Act_RUN) {/' unix_files.c
+grep -q 'Action->Action != Act_RUN) {' unix_files.c || { echo "mknje: unix_files.c patch failed"; exit 1; }
 D="-DUSG -DNBCONNECT -DNBSTREAM -DUSE_XMIT_QUEUE -DUNIX -DHAS_PUTENV -DUSE_SOCKOPT -DSOCKBUFSIZE=8192 -DUSE_ENUM_TYPES"
 D="$D -DCONFIG_FILE='\"$P/etc/nje.cf\"' -DPID_FILE='\"$P/etc/nje.pid\"'"
 D="$D -DDEF_SPOOL_DIR_RULE='\"$P/var/spool/bitnet/\"' -DDEF_POSTMAST_SPOOL_DIR='\"$P/var/spool/bitnet/POSTMAST\"' -DVMNET_IP_PORT=175"
@@ -30,6 +35,7 @@ fi
 make -s CC="$CC" CDEFS="$D" $M njed receive tell sendfile njeroutes bitsend qrdr ygone ucp transfer >/dev/null 2>$W/err || { cat $W/err; exit 1; }
 O=$W/out$P; mkdir -p $O/bin $O/lib $O/etc $O/var/spool/bitnet $O/var/log
 for b in njed receive tell sendfile njeroutes bitsend qrdr ygone ucp transfer; do cp $b $O/bin/; $ST $O/bin/$b; done
+ln -s sendfile $O/bin/punch     # punch -rawpun: cards as they are
 cp cmd-help.txt $O/lib/
 cp LICENSE* COPYING* $O/lib/ 2>/dev/null || head -12 main.c > $O/lib/COPYRIGHT
 (cd $W/out && tar czf $H/nje-$T.tgz .${P})

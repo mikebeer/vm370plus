@@ -193,8 +193,8 @@
  },
  {
   "term": "cp define storage 64m",
-  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
-  "timeout": 120,
+  "expect": "CP ENTERED|STORAGE",
+  "timeout": 30,
   "cont": true
  },
  {

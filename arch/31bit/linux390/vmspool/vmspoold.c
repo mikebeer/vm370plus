@@ -11,7 +11,8 @@
  *     service FROM userid [argument ...]
  * and whose other cards are the input of the service.  The handler is the
  * executable  <dir>/<service>  (lower case), run with the arguments, the
- * input on stdin, VMSPOOL_FROM and VMSPOOL_SERVICE in its environment.
+ * input on stdin, VMSPOOL_FROM and VMSPOOL_SERVICE in its environment
+ * (and VMSPOOL_RAW: a file of the input cards as they came, EBCDIC).
  * The answer, punched to userid as  VMSPOOL REPLY , is
  *     VMSPOOL RC n
  * followed by what the handler wrote (stdout and stderr), cut into
@@ -453,7 +454,20 @@ static void serve(const unsigned char *b, size_t len)
         rc = 404;
     } else {
         size_t h = snprintf(out, MAXOUT, "VMSPOOL RC    \n");
+        /* 9.13b: the input cards as they came (EBCDIC, 80 bytes each)
+           in a file named by VMSPOOL_RAW, for handlers that pass
+           binary data on (nje PUNCH) */
+        char raw[256];
+        FILE *rf;
+        snprintf(raw, sizeof raw, "%s/raw-%ld-%d.cards", sdir, (long) time(NULL), getpid());
+        if ((rf = fopen(raw, "wb")) != NULL) {
+            if (len > 80) fwrite(b + 80, 1, len - 80 - (len % 80), rf);
+            fclose(rf);
+            setenv("VMSPOOL_RAW", raw, 1);
+        }
         rc = run(path, argv, from, svc, in, inlen, out + h, &olen);
+        unsetenv("VMSPOOL_RAW");
+        unlink(raw);
         olen += h;
         memcpy(out + 11, line, sprintf(line, "%-3d", rc));
     }

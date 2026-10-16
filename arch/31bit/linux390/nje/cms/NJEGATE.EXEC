@@ -1,8 +1,8 @@
 /* NJEGATE EXEC -- VM/370plus 9.13b: the RSCS machine as a gateway  */
 /* to NJE.  SENDFILE fn ft fm TO user AT node (CE's SENDFILE) spools */
 /* a NETDATA file to RSCS with TAG node user; NJEGATE takes it from  */
-/* the reader, RECEIVEs it and hands it to NJE-II in the Debian      */
-/* guest (LXCALL NJE SENDFILE).  Files from NJE come the other way   */
+/* the reader and hands its cards, as they are, to NJE-II in the    */
+/* Debian guest (LXCALL NJE PUNCH).  Files from NJE come the other  */
 /* straight to the user's reader (class N: RECEIVE).                 */
 /*   NJEGATE         loop (stop it with CP FORCE RSCS)               */
 /*   NJEGATE ONCE    one pass over the reader                        */
@@ -57,45 +57,43 @@ IF USER = '' THEN DO
 END
 IF FN = '' THEN FN = 'NONAME'
 IF FT = '' THEN FT = 'FILE'
-IF CL = 'N' THEN DO   /* NETDATA: RECEIVE names it */
-  CALL CLEAN
-  CALL QUIET 'RECEIVE' ID '= = A1'
-  R = RESULT
-  IF R = 0 THEN DO
-    CALL QUIET 'LISTFILE * * A (EXEC'
-    'EXECIO * DISKR CMS EXEC A (FINIS STEM L.'
-    DO J = 1 TO L.0
-      PARSE UPPER VAR L.J . . X Y .
-      IF Y = 'EXEC' & (X = 'PROFILE' | X = 'CMS') THEN ITERATE
-      FN = X; FT = Y
-    END
-    CALL QUIET 'ERASE CMS EXEC A'
-  END
-END
-ELSE DO
-  CALL QUIET 'ERASE' FN FT 'A'
-  CALL QUIET 'CP ORDER RDR' ID
-  CALL QUIET 'READCARD' FN FT 'A'
-  R = RESULT
-END
+/* the cards as they are: NETDATA goes on untouched (PUNCH)       */
+CALL CLEAN
+CALL QUIET 'CP ORDER RDR' ID
+CALL QUIET 'READCARD NJEGRAW CARDS A'
+R = RESULT
 IF R <> 0 THEN DO
   'CP MSG' ORG 'RSCS: could not read file' ID '(rc' R')'
   CALL QUIET 'CP PURGE RDR' ID
   RETURN
 END
+/* NETDATA names the file (INMDSNAM: mode, name, type)            */
+IF CL = 'N' THEN DO
+  'EXECIO 10 DISKR NJEGRAW CARDS A 1 (FINIS STEM R.'
+  B = ''
+  DO J = 1 TO R.0; B = B || R.J; END
+  P = POS('00020003'X, B)
+  IF P > 0 THEN DO
+    P = P + 4
+    DO K = 1 TO 3
+      L = C2D(SUBSTR(B, P, 2)); V.K = SUBSTR(B, P + 2, L)
+      P = P + 2 + L
+    END
+    IF V.2 <> '' & V.3 <> '' THEN DO; FN = V.2; FT = V.3; END
+  END
+END
 /* options through LXCALL OPTIONS A (see LXCALL: 8 arguments)     */
 CALL QUIET 'ERASE LXCALL OPTIONS A'
-QUEUE 'FILE' FN FT 'A NOTYPE'
+QUEUE 'FILE NJEGRAW CARDS A NOTYPE'
 'EXECIO 1 DISKW LXCALL OPTIONS A (FINIS'
-'EXEC LXCALL NJE SENDFILE' USER NODE FN FT ORG
+'EXEC LXCALL NJE PUNCH' USER NODE FN FT ORG
 R = RC
 IF R = 0 THEN
   'CP MSG' ORG 'RSCS:' FN FT 'sent to' USER 'at' NODE
 ELSE
   'CP MSG' ORG 'RSCS:' FN FT 'to' USER 'at' NODE 'failed (rc' R')'
 SAY 'NJEGATE:' ORG FN FT '->' USER'@'NODE 'rc' R
-CALL QUIET 'ERASE' FN FT 'A'
-CALL QUIET 'ERASE LXCALL RESULT A'
+CALL CLEAN
 RETURN
 
 /* the A-disk keeps only PROFILE EXEC between files */

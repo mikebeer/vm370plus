@@ -35,6 +35,9 @@ END
 /* NJEGATE on 19E; TELL where it is (19D)                           */
 'ACCESS 19E D'
 'COPYFILE NJEGATE EXEC A = = D2 (REPLACE'
+'SET CMSTYPE HT'
+'ERASE TELL EXEC D2'   /* a copy from an early test; TELL is on 19D */
+'SET CMSTYPE RT'
 'RELEASE D'
 'ACCESS 19D E'
 'COPYFILE TELL EXEC A = = E (REPLACE'

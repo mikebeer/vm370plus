@@ -1,19 +1,30 @@
 /* DIRUP4 EXEC -- 9.13b: RSCS becomes the NJE gateway (NJEGATE EXEC  */
 /* on 19E, through NJE-II in the Debian guest).  CE's RSCS V1 entry */
 /* is kept as RSCSV1; RSCS gets IPL CMS and its own 191 (VM50U1     */
-/* cylinders 91-100) with a PROFILE EXEC that runs NJEGATE.         */
+/* cylinders 91-100) with a PROFILE EXEC that runs NJEGATE.  Run    */
+/* again, it writes the same entries (and repairs earlier ones).    */
 'EXECIO * DISKR USER DIRECT A (FINIS STEM D.'
 if rc <> 0 then exit rc
-have = 0; old = 0
+n = 0; skip = 0; old = 0
 do i = 1 to d.0
-  if word(d.i, 1) <> 'USER' then iterate
-  if word(d.i, 2) = 'RSCS' & word(d.i, 3) = 'RSCS' then old = i
-  if word(d.i, 2) = 'RSCS' & word(d.i, 3) = 'NJEGATE' then have = 1
+  l = d.i
+  if pos('* RSCS (9.13b)', l) = 1 then do
+    skip = 1
+    if n > 0 then if strip(left(o.n, 72)) = '*' then n = n - 1
+  end
+  if skip then do
+    if pos('MDISK 191 3350 091', l) > 0 then skip = 0
+    iterate
+  end
+  if word(l, 1) = 'USER' & left(word(l, 2), 4) = 'RSCS' then
+    if word(l, 2) = 'RSCS' | left(word(l, 2), 6) = 'RSCSV1' then
+      if old = 0 then do
+        old = 1
+        l = left('USER RSCSV1 RSCSV1 2M 16M', 72)substr(l, 73)
+      end
+  n = n + 1; o.n = l
 end
-if have then do; say 'DIRUP4: RSCS is already the gateway'; exit 0; end
-if old = 0 then do; say 'DIRUP4: no USER RSCS RSCS'; exit 8; end
-r = subword(left(d.old, 72), 4)
-d.old = left('USER RSCSV1 RSCSV1' r, 72)substr(d.old, 73)
+if old = 0 then do; say 'DIRUP4: no RSCS V1 entry'; exit 8; end
 e.1  = '*'
 e.2  = '* RSCS (9.13b): the NJE gateway.  SENDFILE to a user at another'
 e.3  = '* node spools to RSCS with a TAG; NJEGATE EXEC (19E) passes the'
@@ -31,11 +42,11 @@ e.14 = ' LINK MAINT 190 190 RR'
 e.15 = ' LINK MAINT 19D 19D RR'
 e.16 = ' LINK MAINT 19E 19E RR'
 e.17 = ' MDISK 191 3350 091 010 VM50U1 MR ALL WRITE MULT'
+do i = 1 to 17; n = n + 1; o.n = left(e.i, 80); end
 'COPYFILE USER DIRECT A USERB913 DIRECT A (REPLACE'
 'ERASE USER DIRECT A'
-do i = 1 to d.0; queue d.i; end
-do i = 1 to 17; queue left(e.i, 80); end
-'EXECIO' d.0 + 17 'DISKW USER DIRECT A 0 F 80 (FINIS'
+do i = 1 to n; queue o.i; end
+'EXECIO' n 'DISKW USER DIRECT A 0 F 80 (FINIS'
 if rc <> 0 then exit rc
 'DIRECT USER DIRECT A'
 say 'DIRUP4: RC' rc

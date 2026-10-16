@@ -12,7 +12,7 @@ Q=/var/spool/vmspool/outq; K=/var/spool/vmspool/nje
 log() { echo "$(date '+%m/%d %H:%M:%S') $*" >> $P/var/log/njefile.log; }
 if [ ! -d $Q ] || ! command -v vmcp >/dev/null; then
   mkdir -p $P/var/in; o=$P/var/in/$U.$N.$T.$$
-  $P/bin/receive -o $o "$S" >> $P/var/log/njefile.log 2>&1 || { log "receive failed: $S"; exit 1; }
+  $P/bin/receive -a -o $o "$S" >> $P/var/log/njefile.log 2>&1 || { log "receive failed: $S"; exit 1; }
   log "$N $T from $FU@$FN to $U (kept in var/in)"; exit 0
 fi
 mkdir -p $K; find $K -type f -mtime +1 -delete 2>/dev/null
