@@ -1,7 +1,22 @@
-VM/370plus  --  overlay kit, 15 October 2026 (build 20)
+VM/370plus  --  overlay kit, 15 October 2026 (build 21)
 ========================================================
 
-NEW IN BUILD 20
+NEW IN BUILD 21
+  - An EXEC can name its interpreter on its first line:  /*!REGINA */
+    (still a REXX comment) runs it with Regina instead of BREXX.
+    SETREXX REGINA makes Regina the interpreter for every EXEC that
+    starts with a plain /* (until the next IPL of CMS); SETREXX BREXX
+    goes back, SETREXX alone shows the setting.  (IPL 290, after LANG.)
+  - Regina is resident (XLRES): Regina EXECs may call each other, and
+    Regina works with CMS as BREXX does -- PUSH, QUEUE, PULL and
+    QUEUED() use the CMS console stack, EXECIO ... (STEM name. / (VAR
+    name and GLOBALV GET / PUT reach Regina's variables, and PARSE
+    SOURCE gives  CMS COMMAND fn ft * fn CMS.
+  - XLRES LOAD name keeps any large program (fn XIMAGE) resident above
+    16 MB as a command; XLRES alone lists them.
+
+
+IN BUILD 20
   - cREXX built ON CMS (M8.2): RXC82, RXAS82 and RXBVM82 on the
     language disk are the current cREXX compiler, assembler and VM,
     compiled on CMS by the GCC 13 that runs there.  Use them as the

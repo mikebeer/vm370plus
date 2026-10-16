@@ -1,0 +1,9 @@
+ID CMSUSER NAME SHOWQ EXEC
+/* BREXX: show and drain the stack */
+say 'brexx: queued' queued()
+do queued()
+  parse pull x
+  say 'brexx got:' x
+end
+queue 'from brexx'
+exit 0

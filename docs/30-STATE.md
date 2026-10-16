@@ -747,3 +747,20 @@ RXC82/RXAS82/RXBVM82 on C82HELLO ("Hello from natively built cREXX on
 VM/370plus"), FORMAT of a T3350 as EDF then COPYFILE to it and STATE on L
 (rc 0), CP DUMP 0-FFFF and 1000000-100FFFF, SHUTDOWN clean. The Debian disk
 is the dev disk on which ooRexx was installed and tested (rx1).
+
+## Kit b21 (15 October 2026, 22:50)
+
+9.39, REXX dispatch and Regina as a CMS REXX: an EXEC's first line
+`/*!name` runs it by the command `name` (DMSEXC XA0057DK); `SETREXX
+name|BREXX` sets the interpreter for plain `/*` EXECs (NUCON word);
+XLRES (nucleus extension, loaded by SYSPROFX under IPL 290) keeps
+XIMAGEs resident above 16 MB with a fresh copy per call, and LANG loads
+Regina into it, so Regina EXECs nest; Regina uses the CMS console stack
+(PUSH/QUEUE/QUEUED), serves EXECCOMM (EXECIO STEM/VAR, GLOBALV GET/PUT)
+and gives PARSE SOURCE in CMS form. cmsrt: cms_subcom, the extended
+plist on CMS commands, cms_program_init; XL rebuilt. 19 parts as b20.
+Verified on a fresh CE + all parts (kt35): CMSUSER (64M, IPL 290) LANG,
+XLRES lists REGINA, BANG (/*!REGINA) rc 7, NEST -> BANG rc 7 back, rc 5,
+STK/SHOWQ lines both ways between Regina and BREXX, EIO (EXECIO STEM
+LN.0=4, VAR, GLOBALV GET/PUT/STACK), SETREXX REGINA/BREXX switching
+PLAIN between the two, REGINA RT.REX, SHUTDOWN clean.

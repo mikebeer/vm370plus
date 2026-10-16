@@ -62,7 +62,7 @@ static void cms_init_array(void)
 void *cms_main_stack_base, *cms_main_stack_top;
 /* a program's own start-up, before main (a constructor would need
    .init_array, which elf_to_cms does not take) */
-void cms_program_init(void) __attribute__((weak));
+__attribute__((weak)) void cms_program_init(void) { }
 static int cms_run_main(int argc, char **argv)
 {
     /* 9.39: an EXEC whose first line is '/*!name' (or any plain '/*' EXEC
@@ -79,7 +79,7 @@ static int cms_run_main(int argc, char **argv)
         argv[argc] = 0;
     }
     cms_init_array();
-    if (cms_program_init) cms_program_init();
+    cms_program_init();
     char *s = malloc(cms_stack_mb << 20);
     if (!s) return main(argc, argv);
     cms_main_stack_base = s;
