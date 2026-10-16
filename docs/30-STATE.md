@@ -799,3 +799,18 @@ vmmaild; CMSUSER SENDMAIL to cmsuser and maint ("in the reader of CMSUSER",
 "kept in /var/spool/vmspool/mail/maint"), GETMAIL "MAIL0148 MAIL A
 cmsuser@vm370plus.lan kit b23 mail test"; SHUTDOWN clean. 19 parts.
 Note: MAINT 19D is 99% full.
+
+## Kit b24 (16 October 2026, 11:30)
+
+9.10, 9.44, 9.17. ASK EXEC (19E) and the Debian service `ask` (the AI
+gateway: OpenAI-protocol servers such as llama.cpp's llama-server or Ollama
+on the PC, or Anthropic's API, per /etc/vmspool.d/ask.conf; per-user
+history). A socket printer 010E (class P, started by AUTOLOG1) with
+tools/vmprint.py on the PC and PCPRINT EXEC on CMS. llama2.c for big-endian
+31-bit: LLAMA EXEC + LLAMA2C MODULE + LLAMATOK BIN on the language disk,
+llama/llama2c in Debian; bit-exact with the PC. I-294 closed (I-297).
+Verified on a fresh CE + b24 (kt38): AUTOLOG1 started 10E CLASS P NOSEP and
+vmprint connected; CMSUSER (IPL 290, LANG) ran LLAMA on a random-weight
+model with the PC's 24 tokens; PCPRINT of a listing arrived on the PC as a
+.txt; ASK present. The ask service and vmmaild are on the shipped Debian
+disk (installed in dev, mdd5/ask1). 19 parts.

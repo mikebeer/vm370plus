@@ -1,7 +1,7 @@
-VM/370plus  --  overlay kit, 16 October 2026 (build 23)
+VM/370plus  --  overlay kit, 16 October 2026 (build 24)
 ========================================================
 
-NEXT BUILD (in the development system)
+NEW IN BUILD 24
   - ASK question [(FILE fn ft fm]: the AI gateway (9.10).  The Debian
     guest passes the question to the model in /etc/vmspool.d/ask.conf:
     llama.cpp's llama-server or Ollama on the PC (10.1.1.1), any
