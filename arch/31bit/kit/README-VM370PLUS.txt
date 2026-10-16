@@ -13,7 +13,7 @@ NEXT BUILD (in the development system)
     READCARD fn ft A, then UNSTREAM fn ft (19E).
   - MDPRINT fn [ft [fm]] (TYPE|DISK|PRINT|PS WIDTH n: Markdown documents
     printed on CMS (headings, lists, code, quotes, tables); (PS sends
-    them to Debian (md2ms and groff -ms -t) for PostScript, then PSPRINT.
+    them to Debian (md2ms and groff) for PostScript, then PSPRINT.
     In Debian: mdprint FILE [-w N | -ps | -pdf].
 
 

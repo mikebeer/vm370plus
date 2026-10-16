@@ -3,7 +3,7 @@
 
     md2ms.py [--text [--width N]] [FILE]      (stdin if no FILE)
 
-Default: troff ms with tbl tables, for  groff -ms -t -Tps  (or -Tpdf,
+Default: troff (the ms macros md2ms uses are built in) with tbl tables, for  groff -t -Tps  (or -Tpdf,
 -Tutf8).  --text: plain text laid out in N columns (default 132), for a
 line printer or a terminal -- the same rendering MDPRINT EXEC does on CMS.
 
@@ -333,6 +333,8 @@ def to_ms(blocks, out, depth=0):
             ordered, num = b[1], b[2]
             if depth:
                 out.append('.RS')
+            else:
+                out.append('.ie n .sp\n.el .sp 0.5v')
             for item in b[3]:
                 tag = ('%d.' % num) if ordered else '\\(bu'
                 out.append('.IP "%s" %d' % (tag, 4 if ordered else 3))
@@ -362,10 +364,114 @@ def to_ms(blocks, out, depth=0):
             out.append('.TE')
 
 
+# The few ms macros md2ms uses, defined here so that plain  groff -t  works
+# where the ms package is missing (Debian's groff-base 1.21 has none); when
+# ms is loaded (groff -ms) these are skipped and ms's own are used.
+MACROS = r""".if n .ftr CW R
+.if d PP .ig MD-END
+.nr md-pd 0.5v
+.if n .nr md-pd 1v
+.nr md-base 0
+.nr md-lvl 0
+.pl 11i
+.po \n(POu
+.ll \n(LLu
+.lt \n(LLu
+.de md-hd
+'sp \\n(HMu
+..
+.de md-fo
+'sp 0.3i
+.tl ''- % -''
+'bp
+..
+.wh 0 md-hd
+.wh -\n(FMu md-fo
+.de md-reset
+.br
+.ft R
+.ps \\n(PS
+.vs \\n(VSp
+.in \\n[md-base]u
+..
+.de LP
+.md-reset
+.sp \\n[md-pd]u
+..
+.de PP
+.LP
+.ti +3n
+..
+.de SH
+.md-reset
+.sp 1v
+.ne 4v
+.ft B
+.if '\\$1'1' \{\
+.  ps \\n(PS+4
+.  vs \\n(VS+4p
+.\}
+.if '\\$1'2' \{\
+.  ps \\n(PS+2
+.  vs \\n(VS+2p
+.\}
+..
+.de IP
+.md-reset
+.sp \\n[md-pd]u/2u
+.in \\n[md-base]u+\\$2n
+.ti -\\$2n
+\&\\$1\h'|\\$2n'\c
+..
+.de RS
+.br
+.nr md-lvl +1
+.nr md-s\\n[md-lvl] \\n[md-base]
+.nr md-base \\n(.i
+..
+.de RE
+.br
+.nr md-base \\n[md-s\\n[md-lvl]]
+.nr md-lvl -1
+.in \\n[md-base]u
+..
+.de QS
+.md-reset
+.nr md-q\\n[md-lvl] \\n[md-base]
+.nr md-base +5n
+.in \\n[md-base]u
+.ll -5n
+..
+.de QE
+.br
+.nr md-base \\n[md-q\\n[md-lvl]]
+.in \\n[md-base]u
+.ll +5n
+..
+.de DS
+.md-reset
+.sp \\n[md-pd]u
+.nf
+..
+.de DE
+.fi
+.sp \\n[md-pd]u
+..
+.de TS
+.md-reset
+.sp \\n[md-pd]u
+..
+.de TE
+.sp \\n[md-pd]u
+..
+.MD-END"""
+
+
 def render_ms(blocks):
     out = ['.\\" from Markdown by md2ms.py (VM/370plus)',
            '.nr PS 10', '.nr VS 12', '.nr LL 6.5i', '.nr PO 1i', '.nr HM 0.8i', '.nr FM 0.8i',
            '.ds CH', '.ds CF - % -']
+    out.append(MACROS)
     to_ms(blocks, out)
     return '\n'.join(x for x in out if x is not None) + '\n'
 

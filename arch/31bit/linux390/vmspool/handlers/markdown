@@ -1,17 +1,16 @@
 #!/bin/sh
 # markdown -- vmspoold: Markdown from CMS (MDPRINT EXEC (PS, 9.42)
 #   TEXT [width]         the input laid out as plain text (default 132)
-#   PS name              PostScript through md2ms and groff -ms -t, kept as
+#   PS name              PostScript through md2ms and groff -t, kept as
 #                        /var/spool/vmspool/out/<user>/name.ps and sent back
 #                        after a  ::PS  line
-M=/usr/local/share/groff/tmac123
 cmd=$(echo "$1" | tr a-z A-Z); shift
 case "$cmd" in
 TEXT) w=${1:-132}; case "$w" in *[!0-9]*) echo "markdown: bad width: $w"; exit 4;; esac
       /usr/local/bin/md2ms --text --width "$w" 2>&1 ;;
 PS)   n=$(echo "$1" | tr A-Z a-z); case "$n" in ''|*[!a-z0-9_@#$-]*) echo "markdown: bad name: $1"; exit 4;; esac
       d=/var/spool/vmspool/out/$(echo "$VMSPOOL_FROM" | tr A-Z a-z); mkdir -p $d
-      /usr/local/bin/md2ms | groff -M$M -mms -t -Tps > $d/$n.ps 2>$d/$n.log; rc=$?
+      /usr/local/bin/md2ms | groff -t -Tps > $d/$n.ps 2>$d/$n.log; rc=$?
       cat $d/$n.log
       echo "markdown: $d/$n.ps, $(wc -c < $d/$n.ps) bytes, $(grep -c '^%%Page:' $d/$n.ps) page(s)"
       [ $rc = 0 ] && { echo "::PS"; cat $d/$n.ps; }     # back to CMS as fn PS
