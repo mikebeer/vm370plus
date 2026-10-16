@@ -52,9 +52,8 @@ GET:
   SAY 'LLAMA: asking the Debian guest for the model ...'
   'EXEC LXCALL LLAMAGET'
   IF RC <> 0 THEN EXIT RC
-  SAY 'LLAMA: waiting for STORIES BIN in the reader (minutes) ...'
-  CALL TIME 'R'
-  DO FOREVER
+  SAY 'LLAMA: waiting for STORIES BIN (about an hour) ...'
+  DO WAITS = 1 BY 1
     SID = ''
     'MAKEBUF'
     'EXECIO * CP (STRING QUERY READER ALL' USERID()
@@ -65,8 +64,8 @@ GET:
     END
     'DROPBUF'
     IF SID <> '' THEN LEAVE
-    IF TIME('E') > 7200 THEN DO
-      SAY 'LLAMA: no STORIES BIN after two hours'; EXIT 8; END
+    IF WAITS > 360 THEN DO            /* 3 hours of 30 s waits   */
+      SAY 'LLAMA: no STORIES BIN after three hours'; EXIT 8; END
     'WAKEUP +000030 (RDR QUIET'
   END
   'SET CMSTYPE HT'
