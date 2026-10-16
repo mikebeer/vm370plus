@@ -3,6 +3,10 @@
 /* of RSCS), AL1PROF EXEC (the PROFILE of AUTOLOG1).                 */
 'EXEC DIRUP4'
 IF RC <> 0 THEN EXIT RC
+'SET CMSTYPE HT'
+'CP FORCE RSCS'          /* AUTOLOG1 may have started it: its 191  */
+'SET CMSTYPE RT'
+'WAKEUP +000005 (QUIET'   /* let it log off */
 /* RSCS's 191: format it if it is new, then its PROFILE EXEC        */
 'CP LINK RSCS 191 391 MR MULT'
 IF RC <> 0 THEN EXIT RC
@@ -42,5 +46,6 @@ END
 'ACCESS 19D E'
 'COPYFILE TELL EXEC A = = E (REPLACE'
 'RELEASE E'
-SAY 'NJEINST: done; start the gateway with CP AUTOLOG RSCS NJEGATE'
+'CP AUTOLOG RSCS NJEGATE'
+SAY 'NJEINST: done; the gateway RSCS is started'
 EXIT 0

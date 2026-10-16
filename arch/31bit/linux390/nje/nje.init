@@ -13,7 +13,10 @@ case "$1" in
 start)   [ -r $N/etc/nje.cf ] || { echo "nje: no $N/etc/nje.cf (njeconf)"; exit 0; }
          running && exit 0
          echo -n "Starting VM/370plus NJE: njed"; (cd $N && setsid $N/bin/njed >/dev/null 2>&1 </dev/null &); echo "." ;;
-stop)    echo -n "Stopping VM/370plus NJE: njed"; running && kill $(cat $P) 2>/dev/null; pkill -x njed 2>/dev/null; rm -f $P; echo "." ;;
+stop)    echo -n "Stopping VM/370plus NJE: njed"
+         $N/bin/ucp shut >/dev/null 2>&1          # signs the links off
+         for i in 1 2 3 4 5 6 7 8 9 10; do pgrep -x njed >/dev/null || break; sleep 1; done
+         pkill -9 -x njed 2>/dev/null; rm -f $P; echo "." ;;
 restart|force-reload) $0 stop; sleep 1; $0 start ;;
 status)  pgrep -x njed >/dev/null && echo "njed is running" || { echo "njed is not running"; exit 3; } ;;
 *)       echo "usage: $0 start|stop|restart|status"; exit 2 ;;

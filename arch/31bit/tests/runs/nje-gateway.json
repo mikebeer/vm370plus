@@ -226,6 +226,10 @@
   "cont": true
  },
  {
+  "send": "/force rscs",
+  "settle": 8
+ },
+ {
   "send": "/autolog rscs njegate",
   "settle": 20
  },
