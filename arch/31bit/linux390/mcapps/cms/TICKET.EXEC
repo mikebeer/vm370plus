@@ -2,8 +2,8 @@
 /*   TICKET subject               then type the description,       */
 /*                                an empty line ends it            */
 /*   TICKET subject (FILE fn [ft [fm]]  the description from a file */
-/* The answer names the ticket (T-000123).  TICKET [T-000123] text  */
-/* adds to that ticket.  The subject must not contain "(".          */
+/* The answer names the ticket (VM3-000001); TICKET [VM3-000001] x */
+/* adds to it.  The subject must not contain "(".                  */
 PARSE ARG SUBJ '(' OPT
 SUBJ = STRIP(SUBJ)
 IF SUBJ = '' THEN DO

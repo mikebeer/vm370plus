@@ -27,5 +27,6 @@ for z in $R/dist/VM370PLUS-kit-*-b$B-part*.zip; do unzip -oq $z -d $S; done
 # KITNET=1: the CTC pair to the PC (0600, 10.1.1.2) on, as the README tells
 # users to do for Linux networking (ssh, NJE, mail from outside)
 if [ "$KITNET" = 1 ]; then sed -i 's/^#0600.2  CTCI/0600.2  CTCI/' $C/vm370ce.conf; fi
+case "${H[0]:-}" in *.py) H=(python3 "${H[@]}");; esac   # a .py helper needs no exec bit (kt45)
 if [ ${#H[@]} -gt 0 ]; then setsid "${H[@]}" $C/$N.term.log > /home/claude/scratch/kittest-$N.helper.out 2>&1 < /dev/null & fi
 bash $R/arch/31bit/tools/esa390mb.sh 256 $N $STEPS

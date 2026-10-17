@@ -56,3 +56,14 @@ the socket as stdin and stdout. Two lessons: start-stop-daemon `--background`
 leaves fd 0-2 closed, so the children get a real stderr (`VMINETD_LOG`),
 or the first file they open becomes fd 2; and an ignored SIGCHLD survives
 exec, so the child resets it (Regina's ADDRESS SYSTEM failed with RC -32).
+
+## TICKET on CMS (verified 17 Oct, tk1)
+
+`TICKET subject`, then the description (an empty line ends it), or
+`TICKET subject (FILE fn [ft [fm]]`: the vmspool service `ticket`
+(`ticket.handler`, installed as `/etc/vmspool.d/ticket`) turns it into a
+mail from `userid@vm370plus.lan` and gives it to MChelpdesk's `mailin` in
+tenant `vm370plus` (made with `hd-admin tenant-create vm370plus maint
+maint@vm370plus.lan VM/370plus`). CMSUSER's first ticket: `created ticket
+VM3-000001` (prefix from the tenant code). A subject with `[VM3-000001]`
+adds an article to that ticket instead.
