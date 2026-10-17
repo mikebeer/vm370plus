@@ -15,6 +15,14 @@ void *aligned_alloc(size_t, size_t);
 #define TIME_UTC 1
 #endif
 int timespec_get(struct timespec *, int);
+/* glibc 2.30 clock-selecting waits; GCC 13's <mutex>, <condition_variable>
+   and <shared_mutex> call them (shim: converted to CLOCK_REALTIME waits) */
+#include <pthread.h>
+int pthread_cond_clockwait(pthread_cond_t *, pthread_mutex_t *, clockid_t,
+                           const struct timespec *);
+int pthread_mutex_clocklock(pthread_mutex_t *, clockid_t, const struct timespec *);
+int pthread_rwlock_clockrdlock(pthread_rwlock_t *, clockid_t, const struct timespec *);
+int pthread_rwlock_clockwrlock(pthread_rwlock_t *, clockid_t, const struct timespec *);
 #ifdef __cplusplus
 }
 #endif

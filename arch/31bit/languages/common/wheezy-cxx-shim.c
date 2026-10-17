@@ -69,3 +69,39 @@ int _dl_find_object(void *pc, struct dl_find_object *r)
   dl_iterate_phdr(dlfo_cb, &q);
   return q.found ? 0 : -1;
 }
+/* glibc 2.30 clock-selecting waits (GCC 13's <condition_variable>, <mutex>,
+   <shared_mutex>): turn an absolute time on `clk` into one on
+   CLOCK_REALTIME, the clock wheezy's timed waits use by default */
+#include <pthread.h>
+#include <sys/syscall.h>
+/* weak: a program that never waits on a clock need not link libpthread */
+#pragma weak pthread_cond_timedwait
+#pragma weak pthread_mutex_timedlock
+#pragma weak pthread_rwlock_timedrdlock
+#pragma weak pthread_rwlock_timedwrlock
+/* the system call, not clock_gettime(): that is in librt in glibc 2.13,
+   and every wc++ link would need -lrt */
+#define clock_gettime(c, t) syscall(SYS_clock_gettime, (c), (t))
+static struct timespec to_realtime(clockid_t clk, const struct timespec *at)
+{
+  struct timespec now, real, r;
+  long long ns;
+  if (clk == CLOCK_REALTIME) return *at;
+  clock_gettime(clk, &now);
+  clock_gettime(CLOCK_REALTIME, &real);
+  ns = (at->tv_sec - now.tv_sec) * 1000000000LL + (at->tv_nsec - now.tv_nsec);
+  if (ns < 0) ns = 0;
+  ns += real.tv_nsec;
+  r.tv_sec = real.tv_sec + ns / 1000000000LL;
+  r.tv_nsec = ns % 1000000000LL;
+  return r;
+}
+int pthread_cond_clockwait(pthread_cond_t *c, pthread_mutex_t *m, clockid_t clk,
+                           const struct timespec *at)
+{ struct timespec r = to_realtime(clk, at); return pthread_cond_timedwait(c, m, &r); }
+int pthread_mutex_clocklock(pthread_mutex_t *m, clockid_t clk, const struct timespec *at)
+{ struct timespec r = to_realtime(clk, at); return pthread_mutex_timedlock(m, &r); }
+int pthread_rwlock_clockrdlock(pthread_rwlock_t *l, clockid_t clk, const struct timespec *at)
+{ struct timespec r = to_realtime(clk, at); return pthread_rwlock_timedrdlock(l, &r); }
+int pthread_rwlock_clockwrlock(pthread_rwlock_t *l, clockid_t clk, const struct timespec *at)
+{ struct timespec r = to_realtime(clk, at); return pthread_rwlock_timedwrlock(l, &r); }

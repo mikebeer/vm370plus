@@ -8,7 +8,13 @@ GI=$(s390x-linux-gnu-gcc -m31 -print-file-name=include)
 X=/usr/s390x-linux-gnu/include/c++/13
 LINK=-Wl,--no-as-needed
 for a in "$@"; do [ "$a" = -c ] && LINK=; [ "$a" = -E ] && LINK=; [ "$a" = -S ] && LINK=; done
+# -lgcc_s is the cross toolchain's (glibc 2.34 symbols): libgcc is static
+# here.  Drop it wherever a build system asks for it (MariaDB does).
+for a in "$@"; do shift; [ "$a" = -lgcc_s ] || set -- "$@" "$a"; done
+# $LINK (--no-as-needed) must come before the libraries, and -lrt
+# -lpthread after the shim: the static libstdc++ that the driver adds last
+# needs clock_gettime (librt in glibc 2.13) and pthread_once.
 exec s390x-linux-gnu-g++ -m31 -nostdinc -include $H/wheezy-cxx.h -isystem $X -isystem $X/s390x-linux-gnu/32 -isystem $X/backward \
   -isystem $GI -isystem $S/usr/include/s390-linux-gnu -isystem $S/usr/include --sysroot=$S \
   -B$S/usr/lib/s390-linux-gnu -L$S/usr/lib/s390-linux-gnu -L$S/lib/s390-linux-gnu \
-  -Wl,-rpath-link,$S/lib/s390-linux-gnu -no-pie -static-libstdc++ -static-libgcc "$@" ${LINK:+$H/wheezy-cxx-shim.o}
+  -Wl,-rpath-link,$S/lib/s390-linux-gnu -no-pie -static-libstdc++ -static-libgcc $LINK "$@" ${LINK:+$H/wheezy-cxx-shim.o -lrt -lpthread}
