@@ -1,0 +1,131 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/purge cpwatch rdr all",
+  "settle": 3
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/cw/cntrl.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 8
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cpwatch cpwatch noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ipl cms",
+  "expect": "VM Community|DMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "access (noprof",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "q disk",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 191 391 rr",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "access 391 c",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "access 192 d",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "listfile * maclib *",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "listfile * text a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "readcard cpwr6 cntrl a (replace",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "type cpwr6 cntrl a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "exec asmall",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "listfile * text a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "listfile * listing a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

@@ -23,7 +23,7 @@ and the work after 64-bit is **M11**.
 | M4 | 4b.3 step 4 | Real storage | DMKCCW / DMKDGD: one-page data areas in high frames through IDALs | Done | 11 Oct | ac962df; I-262 fixed later |
 | M4 | 4b.3 step 5 | Real storage | CORTABLE to frames top, high free list, switch (frames 16–160 MB) | Done | 11 Oct | 9ed9957; I-259..I-262; regression clean at 16/256 MB |
 | M4 | 4b.3 step 6 | Real storage | Two Debians at once (I-254) | Done | 11 Oct | dd6: both at login, both answer SSH; I-263, I-264 |
-| M4 | 4c | Real storage | CPWATCH running again (I-251) | Planned |  | After CP leftovers |
+| M4 | 4c | Real storage | CPWATCH running again (I-251) | Done |  | 17 Oct: CPWATCH 3.3 runs again (I-251): rebuilt against VM/370plus's macros (cpwatch/r6), two 31-bit fixes in CPWATCH, and the CP fix I-302 (DIAG 38 symbol table, DIAG 4 31-bit). Idle CPU, menu and SYSTEM STATUS via DIAL CPWATCH (cw12, cw13). |
 | M5 | 5a | CMS | Build CMS from source with our pipeline | Done | 5 Oct |  |
 | M5 | 5b | CMS | EC-mode CMS (IPL 290) | Done | 6 Oct | XA0051DK |
 | M5 | 5c | CMS | CMS storage above the line (HIGHSTOR, CMSSTOR) | Done | 6 Oct |  |

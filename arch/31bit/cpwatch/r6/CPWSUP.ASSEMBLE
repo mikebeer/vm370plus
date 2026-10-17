@@ -1,0 +1,1048 @@
+SUP TITLE 'CPWSUP -                    CPWATCH NUCLEUS AND SUPERVISOR.' CPW00010
+CPWSUP   START 0                                                        CPW00020
+         COPY  CPWPRM                                                   CPW00030
+         COPY  CPWDSC                                                   CPW00040
+CPWSUP   CSECT                                                          CPW00050
+         CPWSUP                                                         CPW00060
+         PRINT NOGEN                                                    CPW00070
+*********************************************************************** CPW00080
+*              D E V I C E   T A B L E.                                 CPW00090
+*********************************************************************** CPW00100
+         SPACE 1                                                        CPW00110
+         ENTRY DEVICES,CONSOLE                                          CPW00120
+DEVICES  DS    0D                                                       CPW00130
+CONSOLE  DEVENTRY 009,TYPE=DEVCONS,IFLAG=DEVCONN+DEVHOLD+DEVREADY       CPW00140
+PRINTER  DEVENTRY 00E,TYPE=DEVPRT,IFLAG=DEVHOLD+DEVREADY                CPW00150
+         DEVENTRY 040                                                   CPW00160
+         DEVENTRY 041                                                   CPW00170
+         DEVENTRY 042                                                   CPW00180
+         DEVENTRY 043                                                   CPW00190
+         DEVENTRY 044                                                   CPW00200
+         DEVENTRY 045                                                   CPW00210
+         DEVENTRY 046                                                   CPW00220
+         DEVENTRY 047                                                   CPW00230
+DEVICNT  EQU   (*-DEVICES)/DEVSECTL                                     CPW00240
+         DEVENTRY FFFF                                                  CPW00250
+         EJECT                                                          CPW00260
+FREEKB   DC    X'C3'                                                    CPW00270
+         SPACE 3                                                        CPW00280
+*              COMMON CCW'S.                                            CPW00290
+*        NOTE THAT THESE ARE MODIFIED AND USED BY ALL DEVICES, WITHOUT  CPW00300
+*        WAITING FOR DEVICE END.  THIS WOULD NOT BE VALID ON A REAL     CPW00310
+*        MACHINE, BUT UNDER VM THE CCW CHAIN IS NOLONGER USED AFTER     CPW00320
+*        TRANSLATION (IE AFTER SIO SIMULATION IS COMPLETED).            CPW00330
+GRAFWRTE CCW   WRITE,WCC,SILI+CD,L'WCC                                  CPW00340
+         CCW   WRITE,*-*,SILI+CC,SCREEND-SCRBEG                         CPW00350
+         CCW   SENSE,0,SKIP+SILI,1                                      CPW00360
+WCC      DC    X'C21140401DC91140C91D60'                                CPW00370
+         SPACE 1                                                        CPW00380
+GRAFIWRT CCW   WRITERAS,WCCI,SILI+CD,L'WCCI                             CPW00390
+         CCW   WRITERAS,*-*,SILI+CC,SCREEND-SCRBEG                      CPW00400
+         CCW   SENSE,0,SKIP+SILI,1                                      CPW00410
+WCCI     DC    X'C21140401DC8131140C91D60' (INCLUDES INSERT CURSOR).    CPW00420
+         SPACE 1                                                        CPW00430
+GRAFREAD CCW   READMOD,*-*,SILI+CC,L'DEVINA                             CPW00440
+         CCW   WRITE,EUA,SILI+CC,L'EUA ERASE IT, FREEKB, & RESET CURSOR CPW00450
+         CCW   SENSE,0,SKIP+SILI,1                                      CPW00460
+EUA      DC    X'C31140401DC813124040'                                  CPW00470
+         SPACE 1                                                        CPW00480
+CONWRTE  CCW   9,*-*,SILI+CC,L'CONDATA                                  CPW00490
+         CCW   SENSE,0,SKIP+SILI,1                                      CPW00500
+         SPACE 1                                                        CPW00510
+CONREAD  CCW   10,CONCMD,SILI+CC,L'CONCMD                               CPW00520
+         CCW   SENSE,0,SKIP+SILI,1                                      CPW00530
+         SPACE 1                                                        CPW00540
+*              CONSOLE HANDLER WORK AREAS.                              CPW00550
+CONCMD   DC    CL80' '        CONSOLE INPUT AREA.                       CPW00560
+COND     DS    D                                                        CPW00570
+         SPACE 6                                                        CPW00580
+         EJECT                                                          CPW00590
+*---------------------------------------------------------------------- CPW00600
+*              P R O G R A M   C H E C K S                              CPW00610
+*---------------------------------------------------------------------- CPW00620
+         ENTRY PGMINTER,PGMSAVE                                         CPW00630
+         DS    0D                                                       CPW00640
+         DC    C'**PROG**'                                              CPW00650
+PGMSAVE  DS    16F                                                      CPW00660
+         SPACE 3                                                        CPW00670
+PGMINTER DS    0H             MINIMAL PROG CHECK HANDLER.               CPW00680
+         STM   R0,R15,PGMSAVE                                           CPW00690
+         LM    R2,R3,=A(DUMPCMD,L'DUMPCMD)                              CPW00700
+         DIAG R2,R3,X'8'      CP COMMAND.                               CPW00710
+         LM    R2,R3,=A(SPCMD,L'SPCMD)                                  CPW00720
+         DIAG  R2,R3,X'8'     CLOSE SPOOL FILE.                         CPW00730
+         SPACE 1                                                        CPW00740
+         LM    R2,R3,=A(SPCON,L'SPCON)                                  CPW00750
+         DIAG  R2,R3,X'8'     CLOSE CONSOLE FILE                        CPW00760
+         SPACE 1                                                        CPW00770
+         LM    R0,R15,PGMSAVE                                           CPW00780
+         MVC   RSTNWPSW,PGMOPSW         SET UP FOR A RESTART.           CPW00790
+         LPSW  PGMDISPS                                                 CPW00800
+PGMDISPS DS    0D                                                       CPW00810
+         DC    X'000200000F000028'                                      CPW00820
+         SPACE 12                                                       CPW00830
+         LTORG                                                          CPW00840
+         EJECT                                                          CPW00850
+*---------------------------------------------------------------------- CPW00860
+*              E X T E R N A L   I N T E R R U P T S                    CPW00870
+*---------------------------------------------------------------------- CPW00880
+         ENTRY EXTINTER                                                 CPW00890
+EXTINTER DS    0H                                                       CPW00900
+*        IF CP,LISTNRS,=P'0',NZ,THEN                                    CPW00910
+            NI    EXTOPSW+1,255-WAIT                                    CPW00920
+*        IF END                                                         CPW00930
+         LPSW  EXTOPSW                                                  CPW00940
+         SPACE 6                                                        CPW00950
+         LTORG                                                          CPW00960
+         EJECT                                                          CPW00970
+*********************************************************************** CPW00980
+*              I / O   I N T E R R U P T   H A N D L E R              * CPW00990
+*********************************************************************** CPW01000
+         SPACE 1                                                        CPW01010
+         DC    0D'0',CL8'*IOSAVE*'                                      CPW01020
+IOSAVE   DS    16F                                                      CPW01030
+         SPACE 1                                                        CPW01040
+         ENTRY IOINTER                                                  CPW01050
+IOINTER  DS    0H                                                       CPW01060
+         STM   R0,R15,IOSAVE                                            CPW01070
+         L     R13,=A(CPWSUP+4096)                                      CPW01080
+         USING CPWSUP,R0,R13                                            CPW01090
+         SPACE 1                                                        CPW01100
+         LA    R5,DEVICES                                               CPW01110
+         USING DEVSECT,R5                                               CPW01120
+         SPACE 1                                                        CPW01130
+*---------------------------------------------------------------------- CPW01140
+*              S P E C I F I C   D E V I C E   S E R V I C E            CPW01150
+*---------------------------------------------------------------------- CPW01160
+         SPACE 1                                                        CPW01170
+*                             WHO IS HE ?                               CPW01180
+         DO WHILE,CLC,DEVADDR,IOOLD+2,LT                                CPW01190
+            LA  R5,DEVNEXT              NEXT ONE.                       CPW01200
+         DO END                                                         CPW01210
+         SPACE 1                                                        CPW01220
+*                             UPDATE HIS STATUS.                        CPW01230
+         IF CLC,DEVADDR,IOOLD+2,EQ,THEN WE HANDLE IT.                   CPW01240
+            OC  DEVSTAT1,CPCSW+4                                        CPW01250
+            IF TM,DEVSTAT1,DE,O,THEN                                    CPW01260
+               OI  DEVFLAGS,DEVREADY                                    CPW01270
+               IF CLI,DEVTYPE,DEVCONS,EQ,AND, CONSOLE                  +CPW01280
+               TM,DEVFLAGS,DEVRDIS,Z,THEN     WRITE                     CPW01290
+                  ICM R1,B'1111',DEVBEGST        FREE UP CONSECT        CPW01300
+                  IF NZ,THEN                                            CPW01310
+                      USING CONSECT,R1                                  CPW01320
+                      MVC DEVBEGST,CONLINK                              CPW01330
+                      LH  R0,CONLEN                                     CPW01340
+                      SVC SVCFREEM                                      CPW01350
+                      DROP R1                                           CPW01360
+                  IF END                                                CPW01370
+               IF END                                                   CPW01380
+            IF END                                                      CPW01390
+            SPACE 1                                                     CPW01400
+*              WAS IT READ COMPLETE ?                                   CPW01410
+            IF TM,DEVSTAT1,CE,O,AND,TM,DEVFLAGS,DEVRDIS,O,THEN          CPW01420
+               OI  DEVFLAGS,DEVRDCP POST AS COMPLETE                    CPW01430
+               NI  DEVFLAGS,255-DEVRDIS                                 CPW01440
+            IF END                                                      CPW01450
+            SPACE 1                                                     CPW01460
+*              IS HE STILL THERE ?                                      CPW01470
+            IF TM,DEVSTAT1,UC,O,AND, ASSUME HE'S DEAD                  +CPW01480
+               CLI,DEVTYPE,DEVGRAF,EQ,THEN                              CPW01490
+                MVI DEVSTAT1,0                                          CPW01500
+*              FAKE A READ/CLEAR KEY.                                   CPW01510
+                MVI DEVFLAGS,DEVCONN+DEVRDCP (READ COMPLETE)            CPW01520
+                MVI DEVAID,CLR       (AND CLEAR KEY)                    CPW01530
+            IF END                                                      CPW01540
+            SPACE  1                                                    CPW01550
+*              ANY INTERRUPT FROM DISCONNECTED DEVICE.                  CPW01560
+            IF TM,DEVFLAGS,DEVCONN,Z,THEN                               CPW01570
+               MVI DEVFLAGS,DEVCONN+DEVREADY                            CPW01580
+               MVI DEVSTAT1,0                                           CPW01590
+               IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                           CPW01600
+                  AP  DIALS,=P'1'                                       CPW01610
+                  NI  DIALS,X'7F'          PREVENT OVERFLOW.            CPW01620
+                  OI  DEVFLAGS,DEVWRQ+DEVHOLD+DEVERAS                   CPW01630
+                  L   R3,ADSPLAY                                        CPW01640
+                  USING DSPSECT,R3                                      CPW01650
+                  AP  DSPUSRS,=P'1'                                     CPW01660
+                  MVC DEVPAG,DSPFSCR                                    CPW01670
+                  DROP R3                                               CPW01680
+                  ST  R3,DEVDSP                                         CPW01690
+                  IF CP,LISTNRS,Z,THEN    WAKE UP AT ONCE.              CPW01700
+                     NI  IOOLD+1,255-WAIT WAKE UP.                      CPW01710
+                  IF END                                                CPW01720
+                  AP  LISTNRS,=P'1'                                     CPW01730
+               IF END                                                   CPW01740
+            IF END                                                      CPW01750
+            SPACE 1                                                     CPW01760
+            NI  DEVSTAT1,ATTN           ALL WE NEED NOW IS ATTENTION.   CPW01770
+         IF END                                                         CPW01780
+         DROP R5                                                        CPW01790
+         SPACE 1                                                        CPW01800
+         XC    CPCSW,CPCSW    THIS INTERRUPT HAS BEEN HANDLED           CPW01810
+         SPACE 2                                                        CPW01820
+*---------------------------------------------------------------------- CPW01830
+*              A L L   D E V I C E S   S E R V I C E S                  CPW01840
+*---------------------------------------------------------------------- CPW01850
+         SPACE 1                                                        CPW01860
+*                             ISSUE ANY OUTSTANDING SIOS.               CPW01870
+         SVC   SVCDISP        DISPATCH NEXT.                            CPW01880
+         SPACE 3                                                        CPW01890
+         LM    R0,R15,IOSAVE                                            CPW01900
+         LPSW  IOOLD                                                    CPW01910
+         EJECT                                                          CPW01920
+*********************************************************************** CPW01930
+*              SVC HANDLER                                            * CPW01940
+*********************************************************************** CPW01950
+         SPACE 1                                                        CPW01960
+         DS    0D                                                       CPW01970
+         DC    CL8'*SVSAVE*'                                            CPW01980
+SVCSAVE  DS    5CL(SVCSECTL)                                            CPW01990
+SVCSAVEL EQU   *-SVCSECTL                                               CPW02000
+         SPACE 1                                                        CPW02010
+SVCS12   DC    F'0'                                                     CPW02020
+         SPACE 1                                                        CPW02030
+SVCSPTR  DC    A(SVCSAVE-SVCSECTL)      BEGIN -1                        CPW02040
+SVCSMAX  DC    A(SVCSAVEL)    LAST SAVE AREA.                           CPW02050
+         SPACE 1                                                        CPW02060
+SVCERPSW DS    0D                                                       CPW02070
+         DC    X'0002000000E00020'                                      CPW02080
+         SPACE 1                                                        CPW02090
+         ENTRY SVCINTER                                                 CPW02100
+SVCINTER DS    0H                                                       CPW02110
+         CLC   SVCSPTR,SVCSMAX          HAVE WE ANOTHER SAVEAREA ?      CPW02120
+         BNL   SVCERR         TOO DEEP.                                 CPW02130
+         SPACE 1                                                        CPW02140
+*              FETCH SAVE AREA.                                         CPW02150
+         ST    R12,SVCS12                                               CPW02160
+         L     R12,SVCSPTR                                              CPW02170
+         LA    R12,SVCSECTL(,R12)       NEXT SAVE AREA.                 CPW02180
+         ST    R12,SVCSPTR                                              CPW02190
+         USING SVCSECT,R12                                              CPW02200
+         STM   R0,R15,SVCSREGS                                          CPW02210
+         MVC   SVCSREGS+4*R12(4),SVCS12                                 CPW02220
+         MVC   SVCSPSW,SVCOLD                                           CPW02230
+         SPACE 1                                                        CPW02240
+         L     R13,=A(CPWSUP+4096)                                      CPW02250
+         USING CPWSUP,R0,R13                                            CPW02260
+         SPACE 1                                                        CPW02270
+         LH    R15,SVCSPSW+2                                            CPW02280
+         N     R15,X00FC                                                CPW02290
+         C     R15,=A(SVCMAX)                                           CPW02300
+         BNL   SVCERR         OVER THE END - DISABLED WAIT.             CPW02310
+         SPACE 1                                                        CPW02320
+         BAL   R14,SVCVECTR(R15)                                        CPW02330
+         SPACE 1                                                        CPW02340
+         SH    R12,=Y(SVCSECTL)         BACK UP PTR.                    CPW02350
+         ST    R12,SVCSPTR    AND SAVE                                  CPW02360
+         MVC   SVCOLD,SVCSPSW+SVCSECTL RESTORE SVC OLD.                 CPW02370
+         LM    R0,R15,SVCSREGS+SVCSECTL                                 CPW02380
+         LPSW  SVCOLD                                                   CPW02390
+         SPACE 3                                                        CPW02400
+*********************************************************************** CPW02410
+*        SVC VECTOR TABLE.                                            * CPW02420
+*********************************************************************** CPW02430
+         SPACE 1                                                        CPW02440
+         PRINT ON,GEN,DATA                                              CPW02450
+*              NOTE THAT THIS VECTOR TABLE IS OVERLAYED LATER ON.       CPW02460
+* BEWARE: FOLLOWING STATEMENT GENERATES A SERIES OF ' B SVCERR'         CPW02470
+* INSTRUCTIONS. THE HORRIBLE TRICKEYNESS IS TO USE AN EQUATED SYMBOL    CPW02480
+* (SVCMAX) RATHER THAN A CONDITIONAL ASSEMBLY VARIABLE.                 CPW02490
+SVCVECTR DC    (SVCMAX/4)S(X'7F0'(4),SVCERR) (MUST BE ADDR BY R0)       CPW02500
+         PRINT ON,NOGEN,NODATA                                          CPW02510
+         SPACE 3                                                        CPW02520
+SVCERR   MVC   SVCERPSW+2(2),SVCSPSW+2                                  CPW02530
+         LPSW  SVCERPSW                                                 CPW02540
+         EJECT                                                          CPW02550
+*********************************************************************** CPW02560
+*              SVC HANDLING ROUTINES.                                 * CPW02570
+*********************************************************************** CPW02580
+         SPACE 3                                                        CPW02590
+*---------------------------------------------------------------------- CPW02600
+*              WAIT ON INTERVAL TIMER.                                  CPW02610
+*---------------------------------------------------------------------- CPW02620
+         PRINT ON,GEN,DATA                                              CPW02630
+SVCWAIT  CPWSVC                                                         CPW02640
+         PRINT ON,NOGEN,NODATA                                          CPW02650
+         IF TM,CPTIMER,X'80',Z,THEN NOT EXPIRED.                        CPW02660
+            OI  SVCSPSW+1,WAIT          SET WAIT STATE.                 CPW02670
+         IF END                                                         CPW02680
+         BR    R14                                                      CPW02690
+         SPACE 3                                                        CPW02700
+*---------------------------------------------------------------------- CPW02710
+*              SET INTERVAL TIMER.                                      CPW02720
+*---------------------------------------------------------------------- CPW02730
+SVCTIMES CPWSVC                                                         CPW02740
+         M   R0,=A(300*256) SEC --> TIMER UNITS.                        CPW02750
+         ST  R1,CPTIMER                                                 CPW02760
+         BR  R14                                                        CPW02770
+         SPACE 3                                                        CPW02780
+*---------------------------------------------------------------------- CPW02790
+*              QUEUE A CONSOLE WRITE REQUEST.                           CPW02800
+*---------------------------------------------------------------------- CPW02810
+SVCWTO   CPWSVC                                                         CPW02820
+         LTR R4,R0            LENGTH OF DATA TO WRITE                   CPW02830
+         BNP SVCERR                                                     CPW02840
+         C   R4,=F'255'       ARBITRARY MAXIMUM.                        CPW02850
+         BH  SVCERR                                                     CPW02860
+         LA  R5,0(,R1)        ADDR OF DATA TO WRITE.                    CPW02870
+         SPACE 1                                                        CPW02880
+         LA  R0,CONDATA-CONSECT(,R4) MAX STORAGE POSSIBLE               CPW02890
+         SVC SVCGETM                                                    CPW02900
+         LR  R3,R1                                                      CPW02910
+         USING CONSECT,R3                                               CPW02920
+         STH R0,CONLEN        FOR FREEMAIN                              CPW02930
+         SPACE 1                                                        CPW02940
+         XC  CONLINK,CONLINK                                            CPW02950
+         SPACE 3                                                        CPW02960
+*              MOVE IN DATA                                             CPW02970
+         LA  R1,CONDATA       BEGIN OF OUTPUT.                          CPW02980
+         AR  R4,R5            END POINT ON INPUT                        CPW02990
+         DO WHILE,R5,R4,LT                                              CPW03000
+            IF CLC,0(2,R5),BLANKL,NE,THEN                               CPW03010
+               MVC 0(1,R1),0(R5)                                        CPW03020
+               SPACE 1                                                  CPW03030
+               LA  R1,1(,R1)  NEXT OUTPUT BYTE.                         CPW03040
+            IF END                                                      CPW03050
+            SPACE 1                                                     CPW03060
+            LA  R5,1(,R5)     NEXT INPUT BYTE.                          CPW03070
+         DO END                                                         CPW03080
+         SPACE 1                                                        CPW03090
+*           CALCULATE LENGTH OF MOVED DATA.                             CPW03100
+         BCTR R1,0            SUPPRESS POSSIBLE TRAILING BLANK.         CPW03110
+         IF CLI,0(R1),C' ',NE,THEN                                      CPW03120
+            LA  R1,1(,R1)                                               CPW03130
+         IF END                                                         CPW03140
+         LA  R0,CONDATA                                                 CPW03150
+         SR  R1,R0                                                      CPW03160
+         STH R1,CONDATLN                                                CPW03170
+         SPACE 2                                                        CPW03180
+         DROP R3                                                        CPW03190
+         SPACE 1                                                        CPW03200
+*                    CHAIN IT OFF CONSOLE OUTPUT STACK.                 CPW03210
+         LA  R2,CONSOLE+(DEVBEGST-DEVSECT)-(CONLINK-CONSECT)            CPW03220
+         USING CONSECT,R2                                               CPW03230
+         DO WHILE,CLC,CONLINK,ZEROS,NE                                  CPW03240
+            L   R2,CONLINK                                              CPW03250
+         DO END                                                         CPW03260
+         ST  R3,CONLINK                                                 CPW03270
+         DROP R2                                                        CPW03280
+         SPACE 3                                                        CPW03290
+         SVC   SVCDISP        AND DISPATCH IT.                          CPW03300
+         BR    R14                                                      CPW03310
+         SPACE 3                                                        CPW03320
+*---------------------------------------------------------------------- CPW03330
+*              EXAMINE REAL STORAGE.                                    CPW03340
+*---------------------------------------------------------------------- CPW03350
+SVCDCP   CPWSVC                                                         CPW03360
+         NI    SVCSPSW+4,B'11001111'     ZERO CC.                       CPW03370
+         SPACE 1                                                        CPW03380
+*                             MOVE INTO WORK AREA AND RELOCATE.         CPW03390
+         LR  R4,R1         INPUT ADDRESS.                               CPW03400
+         L   R2,AEXDIAG     OUTPUT ADDRESS.                             CPW03410
+         LA  R2,4(,R2)                                                  CPW03420
+MVLP     EQU            *                                               CPW03430
+            L   R5,0(,R4)     FETCH OFFSET.                             CPW03440
+            ALR R5,R0         RELOCATE.                                 CPW03450
+            N   R5,=X'7FFFFFFF' 31-BIT CP ADDRESS (VM/370PLUS)          CPW03460
+            LA  R6,4(,R5)     END OF FULLWORD, + 1.                     CPW03470
+            C   R6,CORESIZE   IS IT A VALID CP ADDRESS ?                CPW03480
+            BNH MVSTOR        BRANCH IF FINE.                           CPW03490
+               CLC CORESIZE,ZEROS (NO, BUT IS CORESIZE VALID ?)         CPW03500
+               BE  MVSTOR     BR IF GETTING CORESIZE.                   CPW03510
+               SR  R5,R5      MAKE IT VALID                             CPW03520
+               OI  SVCSPSW+4,B'00110000' SET CC = 3, ERROR.             CPW03530
+MVSTOR      ST  R5,0(,R2)                                               CPW03540
+            TM   3(R4),3      WAS IT FULLWORD ALIGNED ?                 CPW03550
+            BZ   MVONCE       YES, FINE, SKIP.                          CPW03560
+               NI  3(R2),255-3          MAKE IT FULLWORD ALIGNED.       CPW03570
+               SPACE 1                                                  CPW03580
+               LA  R2,4(,R2)  AND SET UP SECOND PART.                   CPW03590
+               LA  R5,4(,R5)                                            CPW03600
+               ST  R5,0(,R2)                                            CPW03610
+               NI  3(R2),255-3                                          CPW03620
+MVONCE      EQU *                                                       CPW03630
+            SPACE 1                                                     CPW03640
+            TM  0(R4),X'80'          LAST UNIT ?                        CPW03650
+            BO  MVLPN      YES.                                         CPW03660
+            LA  R4,4(,R4)                                               CPW03670
+            LA  R2,4(,R2)                                               CPW03680
+            B   MVLP                                                    CPW03690
+MVLPN    EQU *                                                          CPW03700
+         SPACE 1                                                        CPW03710
+         LR    R3,R2          CALCULATE COUNT VALUE.                    CPW03720
+         S     R3,AEXDIAG                                               CPW03730
+         SRL   R3,2           COUNT.                                    CPW03740
+         LR    R7,R4          SAVE END ADDR.                            CPW03750
+         SPACE 1                                                        CPW03760
+         L   R2,AEXDIAG                                                 CPW03770
+         LA  R2,4(,R2)                                                  CPW03780
+         LR  R4,R2                                                      CPW03790
+         L   R5,AEXDIAG                                                 CPW03800
+         EX  0,0(,R5)      EXECUTE DIAGNOSE 4.                          CPW03810
+         SPACE 1                                                        CPW03820
+*              RETURN LOOP                                              CPW03830
+         L   R2,AEXDIAG                                                 CPW03840
+         LA  R2,4(,R2)                                                  CPW03850
+         LR  R4,R1                                                      CPW03860
+OLOOP    EQU *                                                          CPW03870
+            L   R6,0(,R4)     WAS FROM                                  CPW03880
+            N   R6,=F'3'      OFFSET FROM ALIGNMENT                     CPW03890
+            AR  R2,R6         BEGIN OF SOURCE DATA.                     CPW03900
+            SPACE 1                                                     CPW03910
+            MVC 0(4,R4),0(R2) MOVE REAL DATA.                           CPW03920
+            SPACE 1                                                     CPW03930
+            LA  R2,7(,R2)     COMPLETE SOURCE INCREMENT.                CPW03940
+            N   R2,=F'-4'     ROUND BACK TO FULLWORD.                   CPW03950
+            SPACE 1                                                     CPW03960
+            LA  R4,4(,R4)     INCREMENT DEST.                           CPW03970
+         CR  R4,R7            END ?                                     CPW03980
+         BNH   OLOOP                                                    CPW03990
+         SPACE 1                                                        CPW04000
+         BR    R14                                                      CPW04010
+         EJECT                                                          CPW04020
+*---------------------------------------------------------------------- CPW04030
+*              GETMAIN REQUEST.                                         CPW04040
+*---------------------------------------------------------------------- CPW04050
+SVCGETM  CPWSVC                                                         CPW04060
+*              KEEP TRACK.                                              CPW04070
+         AP    GETMAINS,=P'1'                                           CPW04080
+         NI    GETMAINS,X'0F' PREVENT OVERFLOW, USE YOUR ASHTRAY.       CPW04090
+         SPACE 1                                                        CPW04100
+*              FORCE DOUBLEWORD MULTIPLE.                               CPW04110
+         A     R0,F00007      ROUND UP TO DOUBLEWORD BOUNDARY.          CPW04120
+         N     R0,FM00008                                               CPW04130
+         SPACE 1                                                        CPW04140
+         LTR   R0,R0          ZERO OR - LENGTH ?                        CPW04150
+         BNP   SVCERR       FREE STORAGE ERROR.                         CPW04160
+         SPACE 1                                                        CPW04170
+*        SEARCH FOR FIRST FIT.                                          CPW04180
+*        NOTE SEPARATE ROUTINES FOR REGULAR AND PAGE ALLIGNED REQUESTS, CPW04190
+*        FOR EFFICIENCY.                                                CPW04200
+         IF TM,SVCSPSW+3,SVCPAGE,Z,THEN                                 CPW04210
+*              REGULAR GETMAIN.                                         CPW04220
+            LA    R3,AFREECH     OLD SEGMENT.                           CPW04230
+            L     R1,0(,R3)      NEW SEGMENT.                           CPW04240
+            DO WHILE,R1,NZ,AND,C,R0,4(,R1),H                            CPW04250
+               LR  R3,R1                                                CPW04260
+               L   R1,0(,R3)                                            CPW04270
+            DO END                                                      CPW04280
+            SPACE 1                                                     CPW04290
+         IF ELSE PAGE ALLIGNED REQUEST.                                 CPW04300
+            LA  R3,AFREECH    OLD SEGMENT.                              CPW04310
+            SR  R1,R1                                                   CPW04320
+            SR  R5,R5         WORK.                                     CPW04330
+SVCGLP2        ICM R1,B'1111',0(R3)                                     CPW04340
+               BNP SVCERR      NO STORAGE AVAILABLE.                    CPW04350
+               SPACE 1                                                  CPW04360
+               LR  R4,R1      END OF SEGMENT.                           CPW04370
+               A   R4,4(,R1)  END OF SPACE.                             CPW04380
+               SPACE 1                                                  CPW04390
+               LA  R5,4095(,R1)         ROUND UP.                       CPW04400
+               N   R5,FM04096 BEGIN NEW PAGE                            CPW04410
+               SPACE 1                                                  CPW04420
+               SR  R4,R5      LEN - REM BYTES IN FIRST PAGE=PAGALGN LEN CPW04430
+*                             NOTE MAY BE NEGATIVE.                     CPW04440
+               SPACE 1                                                  CPW04450
+               CR  R0,R4         COMPARE TO REQUESTED LEN.              CPW04460
+               BNH SVCGOK2       FINE - IT'LL FIT.                      CPW04470
+               LR  R3,R1         NO, THAT'S THE OLD ONE.                CPW04480
+               B   SVCGLP2                                              CPW04490
+SVCGOK2     EQU   *                                                     CPW04500
+            SPACE 1                                                     CPW04510
+*              R4 = PAGE ALIGNED LENGTH.                                CPW04520
+*              R5 -> PAGE ALIGNED BEGINNING.                            CPW04530
+            C   R4,4(,R1)               MUST WE FORCE ALIGNMENT ?       CPW04540
+            BE  SVCGNF2                                                 CPW04550
+               LR  R3,R1      CALC PAGEALIGN BEGIN.                     CPW04560
+               LR  R1,R5                                                CPW04570
+               SPACE 1                                                  CPW04580
+               ST  R4,4(,R1)  NEW LENGTH 2.                             CPW04590
+               SPACE 1                                                  CPW04600
+               LR  R2,R1      NEW LENGTH 1                              CPW04610
+               SR  R2,R3                                                CPW04620
+               ST  R2,4(,R3)                                            CPW04630
+               SPACE 1                                                  CPW04640
+               MVC 0(4,R1),0(R3) CHAIN TO NEXT SEG.                     CPW04650
+               SPACE 1                                                  CPW04660
+               ST  R1,0(,R3)  CHAIN.                                    CPW04670
+SVCGNF2  EQU   *                                                        CPW04680
+            SPACE 1                                                     CPW04690
+         IF END                                                         CPW04700
+         SPACE 1                                                        CPW04710
+         LTR   R1,R1                                                    CPW04720
+         BZ    SVCERR       NONE AVAILABLE.                             CPW04730
+         SPACE 1                                                        CPW04740
+*                             R1 -> SELECTED SEGM., R3 -> PREC. SEGM.   CPW04750
+*              IF WE MUST SEGMENT SEGMENT, THEN:                        CPW04760
+         IF C,R0,4(,R1),NE,THEN          SEGMENT.                       CPW04770
+            LR  R2,R1         BEGIN OF REMAINDER SEGMENT.               CPW04780
+            AR  R2,R0                                                   CPW04790
+            SPACE 1                                                     CPW04800
+            MVC 0(4,R2),0(R1)          CHAIN TO NEXT SEGMENT.           CPW04810
+            ST  R2,0(,R3)     CHAIN OFF PREC. SEGMENT.                  CPW04820
+            SPACE 1                                                     CPW04830
+            L   R3,4(,R1)     LENGTH OF REMAINDER SEGMENT.              CPW04840
+            SR  R3,R0                                                   CPW04850
+            ST  R3,4(,R2)                                               CPW04860
+         IF ELSE JUST DECHAIN.                                          CPW04870
+            MVC 0(4,R3),0(R1)                                           CPW04880
+         IF END                                                         CPW04890
+         SPACE 1                                                        CPW04900
+         STM  R0,R1,SVCSREGS+4*R0                                       CPW04910
+         SPACE 1                                                        CPW04920
+         BR    R14                                                      CPW04930
+         EJECT                                                          CPW04940
+*---------------------------------------------------------------------- CPW04950
+*              FREEMAIN.                                                CPW04960
+*---------------------------------------------------------------------- CPW04970
+SVCFREEM CPWSVC                                                         CPW04980
+*              KEEP COUNT.                                              CPW04990
+         AP    FREMAINS,=P'1'                                           CPW05000
+         NI    FREMAINS,X'0F' PREVENT OVERFLOW.                         CPW05010
+         SPACE 1                                                        CPW05020
+         AR    R0,R1          ROUND HI END DOWN.                        CPW05030
+         N     R0,FM00008                                               CPW05040
+         SPACE 1                                                        CPW05050
+         A     R1,F00007      ROUND LOW END UP.                         CPW05060
+         N     R1,FM00008                                               CPW05070
+         LR    R2,R0          SAVE HIGH END (+1) ADDRESS.               CPW05080
+         SR    R0,R1          NEW LENGTH.                               CPW05090
+         SPACE 1                                                        CPW05100
+         C     R1,AHICSECT    BELOW HIGH END OF PROGRAM ?               CPW05110
+         BL    SVCERR       ERROR IF YES.                               CPW05120
+         C     R2,AHICORE     ERROR.                                    CPW05130
+         BH    SVCERR                                                   CPW05140
+         SPACE 1                                                        CPW05150
+*              FIND SLOT BETWEEN TWO SEGMENTS.                          CPW05160
+*              R2 IS STILL HI END OF SEG +1.                            CPW05170
+         LA    R3,AFREECH     ANCHOR                                    CPW05180
+         DO WHILE,CR,R3,R2,LT,AND,R3,NZ                                 CPW05190
+            LR  R4,R3                                                   CPW05200
+            ICM R3,B'0111',1(R4)                                        CPW05210
+         DO END                                                         CPW05220
+         SPACE 1                                                        CPW05230
+*              CHAIN IT IN.                                             CPW05240
+         ST  R1,0(,R4)        CHAIN OFF LOWER SEG                       CPW05250
+         ST  R3,0(,R1)        CHAIN TO HIGHER SEGMENT.                  CPW05260
+         ST  R0,4(,R1)        AND INSERT LENGTH.                        CPW05270
+         SPACE 1                                                        CPW05280
+*              CLEAN UP HIGH END OF CHAIN.                              CPW05290
+         IF CR,R2,R3,EQ,THEN  AMALGAMATE THESE SEGMENTS.                CPW05300
+            MVC 0(4,R1),0(R3)                                           CPW05310
+            A   R2,4(,R3)     NEW HIGH END.                             CPW05320
+            SR  R2,R1         NEW LENGTH.                               CPW05330
+            STCM R2,B'0111',5(R1)                                       CPW05340
+         IF END                                                         CPW05350
+         SPACE 1                                                        CPW05360
+*              CLEAN UP LOW END.                                        CPW05370
+         L     R2,4(,R4)                                                CPW05380
+         AR  R2,R4                                                      CPW05390
+         LA    R2,0(,R2)                                                CPW05400
+         IF CR,R2,R1,EQ,THEN                                            CPW05410
+            MVC 0(4,R4),0(R1) CHAIN PAST.                               CPW05420
+            A   R2,4(,R1)     HIGH END OF SEG.                          CPW05430
+            SR  R2,R4         LENGTH.                                   CPW05440
+            STCM  R2,B'0111',5(R4)                                      CPW05450
+         IF END                                                         CPW05460
+         SPACE 1                                                        CPW05470
+         XC    SVCSREGS+4*R0(8),SVCSREGS+4*R0  CLEAR R0, R1 FOR CALLER. CPW05480
+         SPACE 1                                                        CPW05490
+         BR    R14                                                      CPW05500
+         EJECT                                                          CPW05510
+*---------------------------------------------------------------------- CPW05520
+*        TRACE, AND OPTIONALLY HALT PROGRAM EXECUTION.                  CPW05530
+*---------------------------------------------------------------------- CPW05540
+SVCMARK  CPWSVC                                                         CPW05550
+         IF TM,CPFLAG,CPNOTRAC,Z,THEN WE ARE TRACEING.                  CPW05560
+            LA  R0,L'MARKCMD                                            CPW05570
+            LA  R1,MARKCMD                                              CPW05580
+            DIAG R1,R0,8                                                CPW05590
+            SPACE 1                                                     CPW05600
+            IF TM,SVCSPSW+3,SVCSTOP-SVCMARK,O,THEN                      CPW05610
+               SR    R15,R15      ZERO LENGTH COMMAND - GO INTO CP MODE CPW05620
+               DIAG  0,R15,8                                            CPW05630
+            IF END                                                      CPW05640
+         IF END                                                         CPW05650
+         BR    R14                                                      CPW05660
+MARKCMD  DC    C'D 20.8'                                                CPW05670
+         EJECT                                                          CPW05680
+*---------------------------------------------------------------------- CPW05690
+*              SERVICE COMPLETED READS, DISPATCH QUEUED I/O.            CPW05700
+*---------------------------------------------------------------------- CPW05710
+SVCDISP  CPWSVC                                                         CPW05720
+         LA  R11,DEVICES                                                CPW05730
+         USING DEVSECT,R11                                              CPW05740
+         DO WHILE,CLC,DEVADDR,HEXFS,NE                                  CPW05750
+            SPACE 1                                                     CPW05760
+*              SERVICE ANY COMPLETED ATTENTION READS.                   CPW05770
+            IF TM,DEVFLAGS,DEVRDCP,O,THEN HE'S FINISHED A READ.         CPW05780
+               NI  DEVFLAGS,255-DEVRDCP                                 CPW05790
+               SPACE 1                                                  CPW05800
+               IF CLI,DEVTYPE,DEVCONS,EQ,THEN                           CPW05810
+                  BAL R10,SVC1CCNS                                      CPW05820
+               IF END                                                   CPW05830
+               IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                           CPW05840
+                  BAL R10,SVC1CGRF                                      CPW05850
+               IF END                                                   CPW05860
+            IF END                                                      CPW05870
+            SPACE 3                                                     CPW05880
+*              ISSUE ANY I/O NECESSARY.                                 CPW05890
+*              IS HE WAITING ?  IS THERE SOMETHING FOR HIM TO DO ?      CPW05900
+            IF TM,DEVFLAGS,DEVREADY,O,AND,                             +CPW05910
+               TM,DEVFLAGS,DEVWRQ,O,OR,TM,DEVSTAT1,ATTN,O,OR,          +CPW05920
+               (CLI,DEVTYPE,DEVCONS,EQ,AND,CLC,DEVBEGST,ZEROS,NE),THEN  CPW05930
+               SPACE 1                                                  CPW05940
+*              NOW IS IT A READ OR A WRITE ?  FIND CCW CHAIN.           CPW05950
+               IF TM,DEVSTAT1,ATTN,O,THEN ISSUE READ REGARDLESS.        CPW05960
+                  IF CLI,DEVTYPE,DEVCONS,EQ,THEN                        CPW05970
+                     MVC CONCMD,BLANKL  CLEAR INPUT LINE.               CPW05980
+                     LA  R2,CONREAD                                     CPW05990
+                  IF ELSE                                               CPW06000
+                     MVC DEVINA,BLANKL                                  CPW06010
+                     LA  R2,GRAFREAD                                    CPW06020
+                     LA  R0,DEVINA                                      CPW06030
+                     STCM R0,B'0111',1(R2)                              CPW06040
+                  IF END                                                CPW06050
+               IF ELSE WRITE REQUEST.                                   CPW06060
+                  IF CLI,DEVTYPE,DEVCONS,EQ,THEN                        CPW06070
+                     L   R2,DEVBEGST                                    CPW06080
+                     USING CONSECT,R2                                   CPW06090
+                     LA  R0,CONDATA                                     CPW06100
+                     STCM R0,B'0111',CONWRTE+1                          CPW06110
+                     MVC CONWRTE+6(2),CONDATLN                          CPW06120
+                     SPACE 1                                            CPW06130
+                     DROP R2                                            CPW06140
+                     LA  R2,CONWRTE                                     CPW06150
+                  IF END                                                CPW06160
+                  IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                        CPW06170
+                     ICM R2,B'1111',DEVPAG                              CPW06180
+                     IF Z,THEN                                          CPW06190
+                        L   R2,DEVDSP                                   CPW06200
+                        USING DSPSECT,R2                                CPW06210
+                        ICM R2,B'1111',DSPFSCR                          CPW06220
+                        DROP R2                                         CPW06230
+                        IF Z,THEN                                       CPW06240
+                           L   R2,=V(SCRMENU)                           CPW06250
+                        IF END                                          CPW06260
+                     IF END                                             CPW06270
+                     LA  R0,SCRBEG-SCRSECT(,R2) A(DATA)                 CPW06280
+                     IF TM,DEVFLAGS,DEVERAS,O,THEN                      CPW06290
+                        LA  R2,GRAFIWRT                                 CPW06300
+                     IF ELSE                                            CPW06310
+                        LA  R2,GRAFWRTE                                 CPW06320
+                     IF END                                             CPW06330
+                     STCM R0,B'0111',9(R2)                              CPW06340
+                  IF END                                                CPW06350
+                  IF CLI,DEVTYPE,DEVPRT,EQ,THEN                         CPW06360
+                  IF END                                                CPW06370
+               IF END                                                   CPW06380
+               SPACE 3                                                  CPW06390
+*              NOW ISSUE START I/O                                      CPW06400
+SIO            ST  R2,CPCAW                                             CPW06410
+               LH  R3,DEVADDR                                           CPW06420
+               SIO 0(R3)                                                CPW06430
+               BC  B'0100',SIO1                                         CPW06440
+               BC  B'0010',SIO2                                         CPW06450
+               BC  B'0001',SIO3                                         CPW06460
+SIO0           EQU   *        COMPLETED SUCCESSFULLY.                   CPW06470
+               IF TM,DEVSTAT1,ATTN,O,THEN IT'S A READ.                  CPW06480
+                  OI  DEVFLAGS,DEVRDIS FLAG AS ISSUED SUCCESSFULLY.     CPW06490
+                  NI  DEVSTAT1,255-ATTN                                 CPW06500
+               SPACE 1                                                  CPW06510
+               IF ELSE IT'S A WRITE                                     CPW06520
+                  NI  DEVFLAGS,255-DEVWRQ                               CPW06530
+                  IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                        CPW06540
+                     NI  DEVFLAGS,255-DEVERAS                           CPW06550
+                  IF END                                                CPW06560
+               IF END                                                   CPW06570
+               SPACE 1                                                  CPW06580
+               NI  DEVFLAGS,255-DEVREADY                                CPW06590
+               MVI DEVSTAT1,0                                           CPW06600
+                  B   SIOEND                                            CPW06610
+               SPACE 3                                                  CPW06620
+SIO1           EQU *          CSW STORED.                               CPW06630
+               SPACE 1                                                  CPW06640
+               OC  DEVSTAT1,CPCSW+4                                     CPW06650
+               IF TM,DEVSTAT1,UC,O,THEN  (HE'S DEAD)                    CPW06660
+                  MVI DEVSTAT1,0                                        CPW06670
+                  MVI DEVFLAGS,DEVRDCP                                  CPW06680
+                  MVI DEVAID,CLR        SIMULATE CLEAR KEY.             CPW06690
+               IF END                                                   CPW06700
+               SPACE 1                                                  CPW06710
+               IF TM,DEVSTAT1,ATTN,O,THEN ASSUME WE CAN DO IT           CPW06720
+                  OI  DEVFLAGS,DEVREADY                                 CPW06730
+                  NI  DEVSTAT1,ATTN                                     CPW06740
+                  B   SIO   RE-ISSUE.                                   CPW06750
+               IF END                                                   CPW06760
+                  B   SIOEND                                            CPW06770
+               SPACE 3                                                  CPW06780
+SIO2           EQU *          INTERRUPT PENDING IN CHANNEL.             CPW06790
+*              THIS SHOULD ONLY HAPPEN WHEN INTERRUPT KEY ENTERED WHILE CPW06800
+*              RUNNING DISABLED - FAIRLY RARE.                          CPW06810
+*                   ACTION - NONE.   COMPLETE SCAN AND I/O ATTEMPTS     CPW06820
+*              (ALL PENDING SIO'S WILL FAIL), THEN LOAD ENABLED PSW.    CPW06830
+*              INTERRUPT WILL BE ACCEPTED, AND TRIGGER NEW SCAN FOR     CPW06840
+*              OUTSTANDING I/O.                                         CPW06850
+               B              SIOEND                                    CPW06860
+               SPACE 3                                                  CPW06870
+SIO3           EQU *          HE'S A DEADER.                            CPW06880
+               MVI DEVSTAT1,0                                           CPW06890
+               MVI DEVFLAGS,DEVRDCP                                     CPW06900
+               MVI DEVAID,CLR                                           CPW06910
+*              B  SIOEND                                                CPW06920
+               SPACE 1                                                  CPW06930
+SIOEND         EQU *                                                    CPW06940
+            IF END            END SIO PROCESSING.                       CPW06950
+            SPACE 1                                                     CPW06960
+            LA  R11,DEVNEXT                                             CPW06970
+         DO END                                                         CPW06980
+         DROP R11                                                       CPW06990
+         SPACE 3                                                        CPW07000
+         BR    R14                                                      CPW07010
+         EJECT                                                          CPW07020
+*---------------------------------------------------------------------- CPW07030
+*              SERVICE CONSOLE READ COMPLETE.                           CPW07040
+*---------------------------------------------------------------------- CPW07050
+SVC1CCNS EQU   *                                                        CPW07060
+         USING DEVSECT,R11                                              CPW07070
+         OC  CONCMD,BLANKL FORCE UPPERCASE                              CPW07080
+         IF =C'STOP',CONCMD,EQ,OR,=C'CMS',CONCMD,EQ,THEN                CPW07090
+            NI  IOOLD+1,255-WAIT  FORCE END OF WAIT.                    CPW07100
+            OI  CPFLAG,CPSHUT1                                          CPW07110
+         IF ELSE                                                        CPW07120
+            LA  R2,CONCMD                                               CPW07130
+            LA  R3,L'CONCMD                                             CPW07140
+            DIAG R2,R3,8    CONSOLE FUNCTION.                           CPW07150
+            SPACE 1                                                     CPW07160
+            IF CLC,=C'DISC',CONCMD,NE,THEN                              CPW07170
+               MVC CONCMD,BLANKL                                        CPW07180
+               SPACE 1                                                  CPW07190
+               IF R3,Z,THEN                                             CPW07200
+                  MVC CONCMD(9),=CL9'RIGHT;'                            CPW07210
+               IF ELSE                                                  CPW07220
+                  CVD  R3,COND                                          CPW07230
+                  UNPK CONCMD(7),COND                                   CPW07240
+                  OI  CONCMD+6,C'0'                                     CPW07250
+                  MVC CONCMD(3),=C'NO('                                 CPW07260
+                  MVC CONCMD+7(2),=C');'                                CPW07270
+               IF END                                                   CPW07280
+               SPACE 1                                                  CPW07290
+*                    CHAIN IT OFF CONSOLE OUTPUT STACK.                 CPW07300
+               LA  R1,CONCMD                                            CPW07310
+               LA  R0,9                                                 CPW07320
+               SVC SVCWTO                                               CPW07330
+               SPACE 1                                                  CPW07340
+               MVC CONCMD,BLANKL                                        CPW07350
+            IF END                                                      CPW07360
+         IF END                                                         CPW07370
+         DROP R11                                                       CPW07380
+         SPACE 3                                                        CPW07390
+         BR    R10            AND CONTINUE.                             CPW07400
+         EJECT                                                          CPW07410
+*---------------------------------------------------------------------- CPW07420
+*              SERVICE 3270 READS                                       CPW07430
+*---------------------------------------------------------------------- CPW07440
+SVC1CGRF EQU   *                                                        CPW07450
+         USING DEVSECT,R11                                              CPW07460
+         SPACE 1                                                        CPW07470
+         IF CLI,DEVAID,ENT,NE,THEN LOOK UP AID.                         CPW07480
+            LM  R7,R9,=A(AIDTAB,AIDSECTL,AIDTABND-AIDSECTL)             CPW07490
+            USING AIDSECT,R7                                            CPW07500
+SVC1CLP1    EQU   *                                                     CPW07510
+               ICM R6,B'0111',AIDROUT                                   CPW07520
+               CLC DEVAID,AIDKEY                                        CPW07530
+               BE  AIDOK          FOUND HIM.                            CPW07540
+            BXLE R7,R8,SVC1CLP1                                         CPW07550
+            SR  R6,R6         DEFAULT ACTION, UNKNOWN KEY - IGNORE.     CPW07560
+AIDOK       EQU   *                                                     CPW07570
+            DROP R7                                                     CPW07580
+         SPACE 2                                                        CPW07590
+         IF ELSE MUST BE ENTER KEY.  LOOK UP COMMAND NAME.              CPW07600
+            OC  DEVDATA,BLANKL          FORCE COMMAND TO UPPER CASE.    CPW07610
+            SPACE 1                                                     CPW07620
+            LM    R7,R9,=A(ENTTAB,ENTSECTL,ENTTABND-ENTSECTL)           CPW07630
+            USING ENTSECT,R7                                            CPW07640
+ENTLOOP     EQU   *                                                     CPW07650
+               ICM   R6,B'0111',ENTROUT                                 CPW07660
+               CLC   ENTNAME,DEVDATA                                    CPW07670
+               BE    ENTOK                                              CPW07680
+            BXLE  R7,R8,ENTLOOP                                         CPW07690
+            SR  R6,R6 (DEFAULT FOR INVALID ENTER)                       CPW07700
+ENTOK       EQU   *                                                     CPW07710
+            DROP R7                                                     CPW07720
+         IF END                                                         CPW07730
+         SPACE 3                                                        CPW07740
+         IF R6,NZ,THEN                                                  CPW07750
+            BALR  R8,R6       CALL SELECTED ROUTINE.                    CPW07760
+         IF ELSE                                                        CPW07770
+            BAL R8,FIRSTSCR      DEFAULT IS CALL MENU.                  CPW07780
+         IF END                                                         CPW07790
+         SPACE 3                                                        CPW07800
+         BR  R10              RETURN TO CALLER.                         CPW07810
+         SPACE 3                                                        CPW07820
+         SPENDCHK                                                       CPW07830
+         EJECT                                                          CPW07840
+*              NEXT DISPLAY, PLEASE.                                    CPW07850
+NXTSCR   EQU   *              NEXT FRAME  OR DISPLAY.                   CPW07860
+         SPACE 1                                                        CPW07870
+         L   R4,DEVPAG                                                  CPW07880
+         USING SCRSECT,R4                                               CPW07890
+         L   R5,SCRNEXT                                                 CPW07900
+         IF R4,NZ,AND,R5,NZ,THEN                                        CPW07910
+            ST  R5,DEVPAG                                               CPW07920
+            OI  DEVFLAGS,DEVWRQ                                         CPW07930
+            SPACE 1                                                     CPW07940
+         IF ELSE   GET NEW SCREEN                                       CPW07950
+            L   R3,DEVDSP                                               CPW07960
+            USING DSPSECT,R3                                            CPW07970
+            L   R3,DSPNEXT                                              CPW07980
+            SPACE 1                                                     CPW07990
+            BAL R2,NEWSCR        AND SET IT.                            CPW08000
+         IF END                                                         CPW08010
+         SPACE 1                                                        CPW08020
+         DROP R3,R4                                                     CPW08030
+         SPACE 1                                                        CPW08040
+         BR   R8              RETURN.                                   CPW08050
+         SPACE 6                                                        CPW08060
+*              NEW SCREEN.                                              CPW08070
+NEWSCR   EQU   *              DROP FROM OLD, ADD TO NEW.                CPW08080
+*        ENTRY:                                                         CPW08090
+*              R2  - RETURN ADDRESS                                     CPW08100
+*              R3  - NEW DSPSECT                                        CPW08110
+*              R11 - SET (DEVSECT)                                      CPW08120
+         NI  DEVFLAGS,255-DEVHOLD       HE CAN'T BE.                    CPW08130
+         SPACE 1                                                        CPW08140
+         L     R1,DEVDSP                                                CPW08150
+         USING DSPSECT,R1                                               CPW08160
+         SP    DSPUSRS,=P'1'                                            CPW08170
+         DROP  R1                                                       CPW08180
+         SPACE 3                                                        CPW08190
+         USING DSPSECT,R3                                               CPW08200
+         SPACE 1                                                        CPW08210
+         ST    R3,DEVDSP                                                CPW08220
+         MVC   DEVPAG,DSPFSCR                                           CPW08230
+         SPACE 1                                                        CPW08240
+         AP    DSPUSRS,=P'1'                                            CPW08250
+         SPACE 1                                                        CPW08260
+         OI  DEVFLAGS,DEVWRQ+DEVERAS  WRITE OUT NEW SCREEN.             CPW08270
+         DROP R3                                                        CPW08280
+         SPACE 1                                                        CPW08290
+         BR  R2               AND RETURN                                CPW08300
+         SPACE 6                                                        CPW08310
+FIRSTSCR EQU   *                                                        CPW08320
+         L     R3,ADSPLAY                                               CPW08330
+         BAL   R2,NEWSCR                                                CPW08340
+         BR    R8                                                       CPW08350
+SYSSCR   EQU   *                                                        CPW08360
+         L     R3,=V(DSPSYS)                                            CPW08370
+         BAL   R2,NEWSCR                                                CPW08380
+         BR    R8                                                       CPW08390
+TERMSCR  EQU   *                                                        CPW08400
+         L     R3,=V(DSPTRM)                                            CPW08410
+         BAL   R2,NEWSCR                                                CPW08420
+         BR    R8                                                       CPW08430
+DEVSCR   EQU   *                                                        CPW08440
+         L     R3,=V(DSPSDV)                                            CPW08450
+         BAL   R2,NEWSCR                                                CPW08460
+         BR    R8                                                       CPW08470
+ALLSCR   EQU   *                                                        CPW08480
+         L     R3,=V(DSPALL)                                            CPW08490
+         BAL   R2,NEWSCR                                                CPW08500
+         BR    R8                                                       CPW08510
+ACTSCR   EQU   *                                                        CPW08520
+         L     R3,=V(DSPACT)                                            CPW08530
+         BAL   R2,NEWSCR                                                CPW08540
+         BR    R8                                                       CPW08550
+SYMSCRA  EQU   *                                                        CPW08560
+         L     R3,=V(DSPSYA)                                            CPW08570
+         BAL   R2,NEWSCR                                                CPW08580
+         BR    R8                                                       CPW08590
+SYMSCRX  EQU   *                                                        CPW08600
+         L     R3,=V(DSPSYX)                                            CPW08610
+         BAL   R2,NEWSCR                                                CPW08620
+         BR    R8                                                       CPW08630
+         SPACE 6                                                        CPW08640
+*              RELEASE THE SCREEN.                                      CPW08650
+DISCONN  EQU   *                                                        CPW08660
+         MVC DETADR,DEVCADDR  KNOCK HIM OFF                             CPW08670
+         LM  R3,R4,=A(DETCMD,L'DETCMD)                                  CPW08680
+         DIAG R3,R4,8                                                   CPW08690
+         SPACE 1                                                        CPW08700
+         MVC DEFADR,DEVCADDR  AND OPEN UP THE PORT AGAIN.               CPW08710
+         LM  R3,R4,=A(DEFCMD,L'DEFCMD)                                  CPW08720
+         DIAG R3,R4,8                                                   CPW08730
+         SPACE 1                                                        CPW08740
+         L  R3,DEVDSP                                                   CPW08750
+         USING DSPSECT,R3                                               CPW08760
+         SP  DSPUSRS,=P'1'                                              CPW08770
+         DROP R3                                                        CPW08780
+         SPACE 1                                                        CPW08790
+         MVI DEVFLAGS,0                                                 CPW08800
+         MVI DEVSTAT1,0                                                 CPW08810
+         MVC DEVDSP,ADSPLAY                                             CPW08820
+         SPACE 1                                                        CPW08830
+         SP  LISTNRS,=P'1'                                              CPW08840
+         SPACE 1                                                        CPW08850
+         BR    R8                                                       CPW08860
+         EJECT                                                          CPW08870
+*              NEXT FRAME, PLEASE.                                      CPW08880
+NXTFR    EQU   *                                                        CPW08890
+         OI  DEVFLAGS,DEVWRQ                                            CPW08900
+         SPACE 1                                                        CPW08910
+         L   R3,DEVDSP                                                  CPW08920
+         USING DSPSECT,R3                                               CPW08930
+         ICM R4,B'1111',DEVPAG                                          CPW08940
+         USING SCRSECT,R4                                               CPW08950
+         IF Z,THEN (THERE WASN'T ONE LAST TIME)                         CPW08960
+            ICM R4,B'1111',DSPFSCR                                      CPW08970
+         IF END                                                         CPW08980
+         IF NZ,THEN                                                     CPW08990
+            ICM R4,B'1111',SCRNEXT                                      CPW09000
+            IF Z,THEN                                                   CPW09010
+               L   R4,DSPFSCR                                           CPW09020
+            IF END                                                      CPW09030
+            ST  R4,DEVPAG                                               CPW09040
+         IF END                                                         CPW09050
+         DROP R3,R4                                                     CPW09060
+         SPACE 1                                                        CPW09070
+         BR   R8                                                        CPW09080
+         EJECT                                                          CPW09090
+*              GO TO CLOCK SCREEN.                                      CPW09100
+CLKSCR   EQU   *                                                        CPW09110
+         SPACE 1                                                        CPW09120
+         L   R3,ADSPCLOK                                                CPW09130
+         SPACE 1                                                        CPW09140
+         BAL R2,NEWSCR                                                  CPW09150
+         SPACE 1                                                        CPW09160
+         BR    R8   L   R3,ADSPCLOK                                     CPW09170
+         SPACE 12                                                       CPW09180
+*              HOLD THIS SCREEN.                                        CPW09190
+CPWHOLD  EQU   *              HOLD/RELEASE THIS SCREEN.                 CPW09200
+         XI  DEVFLAGS,DEVHOLD CHANGE HOLD BIT.                          CPW09210
+         IF Z,THEN                                                      CPW09220
+            OI  DEVFLAGS,DEVWRQ+DEVERAS RELEASING HOLD.                 CPW09230
+         IF END                                                         CPW09240
+         BR  R8                                                         CPW09250
+         SPACE 3                                                        CPW09260
+GOSCR    EQU   *              UNCONDITIONAL RELEASE & REWRITE.          CPW09270
+         NI  DEVFLAGS,255-DEVHOLD                                       CPW09280
+         OI  DEVFLAGS,DEVWRQ+DEVERAS                                    CPW09290
+         BR  R8                                                         CPW09300
+         SPACE 6                                                        CPW09310
+         SPENDCHK                                                       CPW09320
+         EJECT                                                          CPW09330
+*---------------------------------------------------------------------- CPW09340
+*              L I T E R A L   P O O L                                  CPW09350
+*---------------------------------------------------------------------- CPW09360
+         LTORG                                                          CPW09370
+         EJECT                                                          CPW09380
+*---------------------------------------------------------------------- CPW09390
+*              CP COMMANDS, ETC.                                        CPW09400
+*---------------------------------------------------------------------- CPW09410
+DETCMD   DC    C'DETACH XXX'                                            CPW09420
+         ORG   *-3                                                      CPW09430
+DETADR   DS    CL3                                                      CPW09440
+         ORG                                                            CPW09450
+DEFCMD   DC    C'DEFINE GRAF XXX'                                       CPW09460
+         ORG   *-3                                                      CPW09470
+DEFADR   DS    CL3                                                      CPW09480
+         ORG                                                            CPW09490
+DUMPCMD  DC    C'DUMP L * PROGRAM CHECK DUMP'                           CPW09500
+SPCMD    DC    C'SPOOL PRINT OFF CLOSE'                                 CPW09510
+SPCON    DC    C'SPOOL CONSOLE CLOSE'                                   CPW09520
+         EJECT                                                          CPW09530
+*---------------------------------------------------------------------- CPW09540
+*              TABLE OF DISPLAY TUBE COMMANDS.                          CPW09550
+*---------------------------------------------------------------------- CPW09560
+ENTTAB   DS    0D                                                       CPW09570
+         DC    CL8' ',AL3(NXTSCR)                                       CPW09580
+         DC    CL8'ACT',AL3(ACTSCR)                                     CPW09590
+         DC    CL8'ALL',AL3(ALLSCR)                                     CPW09600
+         DC    CL8'CLOCK',AL3(CLKSCR)                                   CPW09610
+         DC    CL8'DEV',AL3(DEVSCR)                                     CPW09620
+         DC    CL8'DISC',AL3(DISCONN)                                   CPW09630
+         DC    CL8'HOLD',AL3(CPWHOLD)                                   CPW09640
+         DC    CL8'GO',AL3(GOSCR)                                       CPW09650
+         DC    CL8'MENU',AL3(FIRSTSCR)                                  CPW09660
+         DC    CL8'PAGE',AL3(NXTFR)                                     CPW09670
+         DC    CL8'SYM',AL3(SYMSCRA)                                    CPW09680
+         DC    CL8'SYMX',AL3(SYMSCRX)                                   CPW09690
+         DC    CL8'SYS',AL3(SYSSCR)                                     CPW09700
+         DC    CL8'TERM',AL3(TERMSCR)                                   CPW09710
+ENTTABND EQU   *                                                        CPW09720
+         SPACE 3                                                        CPW09730
+AIDTAB   EQU   *                                                        CPW09740
+         DC    AL1(TRQ),AL3(CLKSCR)                                     CPW09750
+         DC    AL1(NINTR),AL3(CLKSCR) TRQ FROM REMOTE DIAL              CPW09760
+         SPACE 1                                                        CPW09770
+         DC    AL1(PA1),AL3(CPWHOLD)                                    CPW09780
+         DC    AL1(PA2),AL3(NXTFR)                                      CPW09790
+         DC    AL1(PA3),AL3(FIRSTSCR)                                   CPW09800
+         SPACE 1                                                        CPW09810
+         DC    AL1(CLR),AL3(DISCONN)                                    CPW09820
+         SPACE 1                                                        CPW09830
+         DC    AL1(PF1),AL3(FIRSTSCR)                                   CPW09840
+         DC    AL1(PF2),AL3(SYSSCR)                                     CPW09850
+         DC    AL1(PF3),AL3(TERMSCR)                                    CPW09860
+         DC    AL1(PF4),AL3(DEVSCR)                                     CPW09870
+         DC    AL1(PF5),AL3(ALLSCR)                                     CPW09880
+         DC    AL1(PF6),AL3(ACTSCR)                                     CPW09890
+         DC    AL1(PF7),AL3(SYMSCRA)                                    CPW09900
+         DC    AL1(PF8),AL3(SYMSCRX)                                    CPW09910
+*        DC    AL1(PF9),AL3(FIRSTSCR)                                   CPW09920
+         DC    AL1(PF10),AL3(DISCONN)                                   CPW09930
+*        DC    AL1(PF11),AL3(FIRSTSCR)                                  CPW09940
+         DC    AL1(PF12),AL3(CLKSCR)                                    CPW09950
+AIDTABND EQU   *                                                        CPW09960
+         EJECT                                                          CPW09970
+*********************************************************************** CPW09980
+*              E Q U A T E S                                          * CPW09990
+*********************************************************************** CPW10000
+         SPACE 1                                                        CPW10010
+*              3270 AID CHARACTER EQUATES.                              CPW10020
+*        NOTE THAT USING FRAN MINOZ'S REMOTE DIAL FEATURE,              CPW10030
+*        TEST REQUEST ON A LOCAL 3270 DEVICE RESULTS IN X'60' = '-',    CPW10040
+*        NO INTERRUPT KEY PRESSED; TEST REQUEST CANNOT BE GENERATED ON  CPW10050
+*        A TRUE REMOTE 3270.  TEST REQUEST ON A TRUE LOCAL DIAL RESULTS CPW10060
+*        IN X'01' (SOH) BEING TRANSMITTED AS THE FIRST BYTE.            CPW10070
+         SPACE 1                                                        CPW10080
+NINTR    EQU   C'-'           NO INTERRUPT KEY PRESSED.                 CPW10090
+ENT      EQU   C''''                                                    CPW10100
+CLR      EQU   C'_'                                                     CPW10110
+PA1      EQU   C'%'                                                     CPW10120
+PA2      EQU   C'>'                                                     CPW10130
+PA3      EQU   C','                                                     CPW10140
+PEN      EQU   C'='           LIGHT PEN HIT.                            CPW10150
+RDR      EQU   C'W'           BADGE READER (OH, REALLY ?)               CPW10160
+TRQ      EQU   X'01' EQU SOH - FIRST BYTE TRANSFERRED.                  CPW10170
+PF1      EQU   C'1'                                                     CPW10180
+PF2      EQU   C'2'                                                     CPW10190
+PF3      EQU   C'3'                                                     CPW10200
+PF4      EQU   C'4'                                                     CPW10210
+PF5      EQU   C'5'                                                     CPW10220
+PF6      EQU   C'6'                                                     CPW10230
+PF7      EQU   C'7'                                                     CPW10240
+PF8      EQU   C'8'                                                     CPW10250
+PF9      EQU   C'9'                                                     CPW10260
+PFA      EQU   C':'                                                     CPW10270
+PF10     EQU   PFA                                                      CPW10280
+PFB      EQU   C'#'                                                     CPW10290
+PF11     EQU   PFB                                                      CPW10300
+PFC      EQU   C'@'                                                     CPW10310
+PF12     EQU   PFC                                                      CPW10320
+         SPACE 1                                                        CPW10330
+         COPY  EQU                                                      CPW10340
+         SPACE 1                                                        CPW10350
+TIC      EQU   X'08'                                                    CPW10360
+SENSE    EQU   X'04'                                                    CPW10370
+         SPACE 1                                                        CPW10380
+WRITE    EQU   X'01'          GENERAL WRITE                             CPW10390
+WRITERAS EQU   X'05'          WRITE, ERASING SCREEN.                    CPW10400
+ERASEAU  EQU   X'0F'          ERASE ALL UNPROTECTED FIELDS.             CPW10410
+         SPACE 1                                                        CPW10420
+READ     EQU   X'02'          GENERAL READ.                             CPW10430
+READBUFF EQU   X'02'          READ FULL BUFFER.                         CPW10440
+READMOD  EQU   X'06'          READ MODIFIED FIELDS ONLY.                CPW10450
+READINQ  EQU   X'0A'          READ INQUIRY FROM CONSOLE.                CPW10460
+         SPACE 12                                                       CPW10470
+          END                                                           CPW10480

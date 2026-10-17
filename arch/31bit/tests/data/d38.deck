@@ -1,0 +1,53 @@
+ID MAINT NAME D38 ASSEMBLE
+D38      CSECT                                                                  
+         USING *,12                                                             
+         STM   14,12,12(13)                                                     
+         LR    12,15                                                            
+         LA    1,BUF                                                            
+         LA    1,4095(,1)                                                       
+         N     1,=X'00FFF000'                                                   
+         ST    1,ABUF                                                           
+         DC    X'83100038'        DIAG 1,0,X'38'                                
+         L     2,ABUF                                                           
+         LA    3,0                                                              
+         LA    4,1000             MAX ENTRIES                                   
+LOOP     CLC   0(8,2),=8X'00'                                                   
+         BE    END                                                              
+         CLC   0(8,2),=CL8'DMKSYSRM'                                            
+         BE    FOUND                                                            
+         LA    2,12(,2)                                                         
+         LA    3,1(,3)                                                          
+         BCT   4,LOOP                                                           
+END      ST    3,CNT                                                            
+         UNPK  HEX(9),CNT(5)                                                    
+         TR    HEX(8),TRT-240                                                   
+         MVC   MSG1+14(8),HEX                                                   
+         WRTERM MSG1,L'MSG1                                                     
+         B     RET                                                              
+FOUND    MVC   VAL,8(2)                                                         
+         UNPK  HEX(9),VAL(5)                                                    
+         TR    HEX(8),TRT-240                                                   
+         MVC   MSG2+16(8),HEX                                                   
+         ST    3,CNT                                                            
+         UNPK  HEX(9),CNT(5)                                                    
+         TR    HEX(8),TRT-240                                                   
+         MVC   MSG2+33(8),HEX                                                   
+         WRTERM MSG2,L'MSG2                                                     
+RET      DS    0H                                                               
+         LM    14,12,12(13)                                                     
+         SR    15,15                                                            
+         BR    14                                                               
+ABUF     DS    A                                                                
+CNT      DS    F                                                                
+         DS    X                                                                
+VAL      DS    F                                                                
+         DS    X                                                                
+HEX      DS    CL9                                                              
+CCODE    DS    X                                                                
+MSG1     DC    C'D38 NOT FOUND, XXXXXXXX ENTRIES'                               
+MSG2     DC    C'D38 DMKSYSRM AT XXXXXXXX, INDEX XXXXXXXX'                      
+TRT      DC    C'0123456789ABCDEF'                                              
+         LTORG                                                                  
+BUF      DS    0D                                                               
+         DS    16384X                                                           
+         END                                                                    

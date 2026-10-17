@@ -1,0 +1,147 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/purge cpwatch rdr all",
+  "settle": 3
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/cw/cpwsup.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 8
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/cw/cpwusr.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 8
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cpwatch cpwatch noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ipl cms",
+  "expect": "VM Community|DMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "access (noprof",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 191 391 rr",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "access 391 c",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "access 192 d",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "readcard cpwsup assemble a (replace",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "readcard cpwusr assemble a (replace",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "exec cpwa cpwsup cpwr6",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "exec cpwa cpwusr cpwr6",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "listfile cpw* text a (date",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "exec cpwx",
+  "expect": "CPWATCH ACTIVE",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/q n",
+  "expect": "MDDEB-DONE",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "send": "/ind user cpwatch",
+  "settle": 5
+ },
+ {
+  "send": "/ind user cpwatch",
+  "settle": 60
+ },
+ {
+  "send": "/ind user cpwatch",
+  "settle": 5
+ },
+ {
+  "send": "/force cpwatch",
+  "settle": 10
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

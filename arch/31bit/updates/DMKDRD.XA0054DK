@@ -1,0 +1,9 @@
+./ R 01099000 01100000 $ 01099000 010                                           
+         TM    3(R7),SEGINVAL IS THE SEGMENT AVAILABLE ? (4C)  XA0054DK         
+         BO    SETCOD1        NO - CC = 1                      XA0054DK         
+         L     R7,0(,R7)      ESA/390 STE: PTO IS BITS 1-25    XA0054DK         
+         N     R7,=A(X'7FFFFFC0')  (4C, I-251)                 XA0054DK         
+         B     DRDSYPT                                         XA0054DK         
+./ R 01102000 01103000 $ 01102000 010                                           
+DRDSYPT  S     R7,=F'12'      PAGSWP IS PAGPFRA-12 (4C)        XA0054DK         
+         L     R7,0(,R7)      PICK UP SWAPTABLE POINTER        XA0054DK         

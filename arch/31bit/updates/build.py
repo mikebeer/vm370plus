@@ -3883,6 +3883,40 @@ def m7decks():
     ])
     decks['DMKCFM'] = d
 
+    # 4c (I-251): DIAGNOSE 4 reads real storage up to DMKSYSRM, which is
+    # all of it now -- CP's control blocks live above 16 MB -- but cut each
+    # request to 24 bits, so CPWATCH read the wrong frames and lost the
+    # VMBLOK chain at once ("VMBLOK CHAIN FAILURE" without end).
+    d = Deck(XA54)
+    d.replace('00770010', first='00770010', inc=1,
+              limit=next_seq(src('DMKHVD'), '00770010'), lines=[
+        "         N     R10,=A(X'7FFFFFFF')  31 BITS (4C, I-251)",
+    ])
+    decks['DMKHVD'] = d
+
+    # 4c (I-251): DIAGNOSE 38 (read the symbol table, DMKDRDSY) found the
+    # pageable DMKSYM through the system segment table with S/370 rules:
+    # TM 3(R7),X'01' is inside PTL in an ESA/390 STE, so every call said
+    # "no symbol table" (CC 1, and CPWATCH never learned the storage
+    # size); and the swap-table pointer is PAGSWP, now 12 bytes before
+    # the page table (PAGORIG and a reserved word moved in, CORE XA0033DK),
+    # not 4.  The PTO is bits 1-25 of the whole entry.
+    d = Deck(XA54)
+    d.replace('01099000', '01100000', first='01099000', inc=10,
+              limit=next_seq(src('DMKDRD'), '01100000'), lines=[
+        "         TM    3(R7),SEGINVAL IS THE SEGMENT AVAILABLE ? (4C)",
+        "         BO    SETCOD1        NO - CC = 1",
+        "         L     R7,0(,R7)      ESA/390 STE: PTO IS BITS 1-25",
+        "         N     R7,=A(X'7FFFFFC0')  (4C, I-251)",
+        "         B     DRDSYPT",
+    ])
+    d.replace('01102000', '01103000', first='01102000', inc=10,
+              limit=next_seq(src('DMKDRD'), '01103000'), lines=[
+        "DRDSYPT  S     R7,=F'12'      PAGSWP IS PAGPFRA-12 (4C)",
+        "         L     R7,0(,R7)      PICK UP SWAPTABLE POINTER",
+    ])
+    decks['DMKDRD'] = d
+
     d = Deck(XA54)
     d.insert('00393000', first='00393100', inc=100,
              limit=next_seq(src('DMKVSJ'), '00393000'), lines=[
