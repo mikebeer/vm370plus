@@ -1,5 +1,19 @@
-VM/370plus  --  overlay kit, 17 October 2026 (build 29)
+VM/370plus  --  overlay kit, 17 October 2026 (build 30)
 ========================================================
+
+NEW IN BUILD 30
+  - MariaDB 10.11 in the Debian guest (9.47), started at boot.  From CMS:
+        MARIADB statement          or   MARIADB (FILE fn [ft [fm]]
+    (19E; every CMS user gets an own account and database).
+  - Our own applications in the Debian guest, on MariaDB and Regina 3.9:
+      MCproject  (project management)  http://10.1.1.2:8080/
+          operator admin@vm370plus.lan, password vm370plus-op1
+      MChelpdesk (helpdesk)            http://10.1.1.2:8081/
+          tenant system, login root, password Helpdesk-Root-Pw1
+    Change these passwords.  A login takes about a minute on the 31-bit
+    guest.  The network to the PC must be on (CTC line in vm370ce.conf).
+  - Debian has perl, curl and Regina 3.9.5 (/usr/local/regina39) now.
+
 
 NEW IN BUILD 29  (fixes from an early user's report)
   - MAINT has the Debian disk at logon (DEDICATE 250 190): LINUX no
