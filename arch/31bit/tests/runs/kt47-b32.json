@@ -1,0 +1,33 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "/q n",
+  "expect": "MDDEB-DONE",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "send": "/ind user cpwatch",
+  "settle": 3
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

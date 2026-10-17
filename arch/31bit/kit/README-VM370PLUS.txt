@@ -1,5 +1,14 @@
-VM/370plus  --  overlay kit, 17 October 2026 (build 31)
+VM/370plus  --  overlay kit, 17 October 2026 (build 32)
 ========================================================
+
+NEW IN BUILD 32
+  - CPWATCH runs again (4c), started by AUTOLOG1 as on CE: from any 3270,
+    DIAL CPWATCH shows its menu, SYSTEM STATUS (PF2), users (PF5/PF6),
+    devices and the CP symbol table.  Rebuilt for VM/370plus.
+  - CP fix I-302: DIAGNOSE 38 (read the CP symbol table) works again --
+    it answered "no table" on every call -- and DIAGNOSE 4 reads real
+    storage above 16 MB.
+
 
 NEW IN BUILD 31
   - TICKET (19E): a helpdesk ticket from CMS.
