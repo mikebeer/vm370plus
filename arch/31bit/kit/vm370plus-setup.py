@@ -14,8 +14,11 @@ Windows, Linux and macOS (Python 3.6 or later, nothing else needed):
 What it does:
   1. finds CE's zip and the newest complete set of kit parts (in the
      directory of this script, the current directory, or where you say);
-  2. checks for Python and Hercules (hercules on the PATH, or tell it
-     where);
+  2. checks for Python, Hercules and a tn3270 emulator, and offers to
+     install what is missing (asking first): Hercules on Linux by building
+     the newest SDL Hyperion with hercules-helper (it is rarely prebuilt),
+     or Homebrew / the distribution's package; on macOS with Homebrew; on
+     Windows it shows where to get it (WC3270 comes with CE);
   3. unpacks CE into a new directory and every kit part over it, and
      joins the split disks (Debian, language), checking their SHA-256;
   4. asks for the settings and writes them into vm370ce.conf: storage
@@ -130,6 +133,133 @@ def hercules():
     return None, None
 
 
+HELPER = 'https://github.com/wrljet/hercules-helper.git'
+HYPERION = 'https://github.com/SDL-Hercules-390/hyperion'
+
+
+def confirm(prompt, yes, default=True):
+    if yes:
+        return default
+    d = 'Y/n' if default else 'y/N'
+    v = input('%s [%s] ' % (prompt, d)).strip().lower()
+    return default if not v else v[:1] == 'y'
+
+
+def run_shown(cmd, cwd=None):
+    say('  $ ' + (cmd if isinstance(cmd, str) else ' '.join(cmd)))
+    return subprocess.call(cmd, cwd=cwd, shell=isinstance(cmd, str))
+
+
+def pkg_manager():
+    """the package manager of this Linux, and how it installs a package"""
+    for pm, cmd in (('apt-get', 'sudo apt-get install -y %s'), ('dnf', 'sudo dnf install -y %s'),
+                    ('zypper', 'sudo zypper install -y %s'), ('pacman', 'sudo pacman -S --noconfirm %s')):
+        if shutil.which(pm):
+            return pm, cmd
+    return None, None
+
+
+def find_built_hercules():
+    """a hercules that hercules-helper built (it installs under ~/herctest)"""
+    home = os.path.expanduser('~')
+    for pat in ('herctest/*/bin/hercules', 'herctest/bin/hercules', 'hercules-build/*/bin/hercules',
+                'herctest/*/*/bin/hercules'):
+        for p in sorted(glob.glob(os.path.join(home, pat))):
+            if os.access(p, os.X_OK):
+                return p
+    return None
+
+
+def install_hercules(yes):
+    """offer to install Hercules; returns the program's path or None.
+    The newest SDL Hyperion is rarely prebuilt for Linux: the dependable
+    way there is to build it with hercules-helper (it installs the build
+    packages itself, asking for sudo).  macOS: Homebrew has 4.9.x bottles.
+    Windows: SDL Hyperion's own releases (or hercules-helper-windows)."""
+    say('\nHercules is needed to run VM/370plus (SDL Hyperion 4.x, or 3.13).')
+    if sys.platform == 'darwin':
+        if shutil.which('brew'):
+            if confirm('Install it with Homebrew (brew install hercules)?', yes):
+                if run_shown(['brew', 'install', 'hercules']) == 0:
+                    return shutil.which('hercules')
+        else:
+            say('  Homebrew is not installed (https://brew.sh); with it: brew install hercules')
+    elif os.name == 'nt':
+        say('  Windows: get the newest SDL Hyperion from %s/releases\n'
+            '  (or build it with https://github.com/wrljet/hercules-helper-windows),\n'
+            '  then run this wizard again, or give the path with --hercules.' % HYPERION)
+        if confirm('Open the SDL Hyperion releases page in your browser?', yes, default=False):
+            import webbrowser
+            webbrowser.open(HYPERION + '/releases')
+        return None
+    else:
+        choices = []
+        if shutil.which('git'):
+            choices.append(('build', 'build the newest SDL Hyperion from source with hercules-helper '
+                            '(about 15 minutes; installs build tools with sudo; not as root)'))
+        if shutil.which('brew'):
+            choices.append(('brew', 'brew install hercules (Homebrew on Linux, prebuilt 4.9.x)'))
+        pm, pcmd = pkg_manager()
+        if pm:
+            choices.append(('pkg', '%s (the distribution\'s package: often older, e.g. 3.13)' % (pcmd % 'hercules')))
+        if not choices:
+            say('  no git, Homebrew or package manager found: install git and run this again')
+            return None
+        for i, (k, t) in enumerate(choices, 1):
+            say('  %d. %s' % (i, t))
+        say('  0. skip (install Hercules yourself)')
+        c = '1' if yes else (input('Your choice [1] ').strip() or '1')
+        if not c.isdigit() or not 0 < int(c) <= len(choices):
+            return None
+        k = choices[int(c) - 1][0]
+        if k == 'brew':
+            if run_shown(['brew', 'install', 'hercules']) == 0:
+                return shutil.which('hercules')
+        elif k == 'pkg':
+            if run_shown(pcmd % 'hercules') == 0:
+                return shutil.which('hercules')
+        else:
+            if os.geteuid() == 0:
+                say('  hercules-helper must not run as root; run the wizard as your own user')
+                return None
+            base = os.path.join(os.path.expanduser('~'), 'hercules-build')
+            os.makedirs(base, exist_ok=True)
+            hh = os.path.join(base, 'hercules-helper')
+            if not os.path.isdir(hh):
+                if run_shown(['git', 'clone', HELPER, hh]):
+                    return None
+            work = os.path.join(base, 'work')
+            os.makedirs(work, exist_ok=True)
+            if run_shown([os.path.join(hh, 'hercules-buildall.sh'), '--flavor=sdl-hyperion', '--auto'], cwd=work):
+                say('  the build failed; its log is in %s' % work)
+                return None
+            p = shutil.which('hercules') or find_built_hercules()
+            if p:
+                say('  built: %s' % p)
+                say('  (hercules-helper writes a setvars script next to the build; source it, or put\n'
+                    '   %s on your PATH, before you start VM/370plus)' % os.path.dirname(p))
+            return p
+    return None
+
+
+def tn3270(yes):
+    """a 3270 emulator: CE brings WC3270 for Windows; elsewhere c3270/x3270"""
+    if os.name == 'nt' or shutil.which('c3270') or shutil.which('x3270'):
+        return
+    say('\nNo tn3270 emulator found (c3270 or x3270).')
+    if sys.platform == 'darwin' and shutil.which('brew'):
+        if confirm('Install c3270 with Homebrew (brew install x3270)?', yes):
+            run_shown(['brew', 'install', 'x3270'])
+        return
+    pm, pcmd = pkg_manager()
+    if pm:
+        pkg = 'c3270' if pm == 'apt-get' else 'x3270'
+        if confirm('Install it (%s)?' % (pcmd % pkg), yes):
+            run_shown(pcmd % pkg)
+    else:
+        say('  install c3270 or x3270 (https://x3270.miraheze.org) to connect to localhost:3270')
+
+
 def unpack(ce, parts, dest):
     os.makedirs(dest, exist_ok=True)
     say('unpacking %s ...' % os.path.basename(ce))
@@ -220,6 +350,8 @@ def main():
                     help='a directory with CE\'s zip and the kit parts (more than one allowed)')
     ap.add_argument('--apply', metavar='DIR', help='send the guest settings of the installation in DIR')
     ap.add_argument('--hercules', help='the hercules program, if it is not on the PATH')
+    ap.add_argument('--no-install', action='store_true',
+                    help='do not offer to install missing prerequisites (Hercules, a tn3270 emulator)')
     o = ap.parse_args()
     a = dict(DEFAULTS)
     if o.answers:
@@ -243,8 +375,16 @@ def main():
         if hv.startswith('3.') and hv != '3.13':
             say('  note: tested with Hercules 4.x and 3.13')
     else:
-        say('Hercules: not found on the PATH -- install SDL Hyperion 4.x (or 3.13)\n'
-            '  before you start VM/370plus; the installation itself does not need it')
+        say('Hercules: not found on the PATH')
+        if o.no_install or o.yes:
+            say('  (install SDL Hyperion 4.x or 3.13 before you start VM/370plus;\n'
+                '   run the wizard without --yes to have it installed)')
+        else:
+            hp = install_hercules(o.yes)
+            if not hp:
+                say('  the installation goes on; install Hercules before you start VM/370plus')
+    if not (o.no_install or o.yes):
+        tn3270(o.yes)
     here = os.path.dirname(os.path.abspath(__file__))
     ce, kit = find_inputs(o.src + [here, os.getcwd(), os.path.join(os.path.expanduser('~'), 'Downloads')])
     if not ce:
@@ -283,5 +423,5 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, EOFError):
         sys.exit('\ncancelled')
