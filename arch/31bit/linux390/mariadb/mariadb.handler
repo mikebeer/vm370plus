@@ -20,8 +20,14 @@ if [ ! -s $F ]; then
   (umask 077; printf '[client]\nuser=%s\npassword=%s\ndatabase=%s\n' "$u" "$pw" "$u" > $F)
   echo "mariadb: database $u made"
 fi
+# a statement with no result (INSERT, CREATE ...) says so: an empty
+# answer file made LXCALL type "INVALID LINE NUMBER"
+T=$(mktemp); trap 'rm -f $T' 0
 if [ $# -gt 0 ]; then
-  $B/mariadb --defaults-extra-file=$F --table -e "$*"
+  $B/mariadb --defaults-extra-file=$F --table -e "$*" > $T 2>&1
 else
-  $B/mariadb --defaults-extra-file=$F --table
+  $B/mariadb --defaults-extra-file=$F --table > $T 2>&1
 fi
+rc=$?
+if [ -s $T ]; then cat $T; elif [ $rc = 0 ]; then echo "mariadb: ok"; fi
+exit $rc

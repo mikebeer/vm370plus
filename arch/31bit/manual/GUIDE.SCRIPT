@@ -60,7 +60,7 @@ machines, the Linux kernel, the Debian system and the network connection
 to the PC.
 :li.:hp2.Chapter 6, Service Machines:ehp2., describes CHATBOT, the spool
 bridge to Linux services (LXCALL, PHONE, MQTT, TELL), RXPIP, NICOF, MQ,
-PGSQL, and the service machines that are planned.
+PGSQL, MARIADB, and the service machines that are planned.
 :li.:hp2.Chapter 7, cREXX on VM/370plus:ehp2., describes the REXX
 compiler and virtual machine built for and on VM/370plus, the languages
 written in cREXX that run on CMS and on Linux, and Turbo CREXX.
@@ -87,6 +87,10 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.17 October 2026, forenoon.:ehp2. :xph.MARIADB:exph. (Chapter
+6)&colon. MariaDB 10.11 in the Debian guest, from CMS through the spool
+bridge; each CMS user gets a database of its own. MariaDB is the
+database of MCproject and MChelpdesk.
 :li.:hp2.17 October 2026, morning (kit build 29).:ehp2. From an early
 user's report&colon. MAINT has the Debian disk at logon and
 :xph.LINUX:exph. attaches the CTC pair and checks the storage (Chapter
@@ -1505,6 +1509,47 @@ Ready;
 :exmp.
 :figcap.PostgreSQL from CMS
 :efig.
+:h2.MARIADB&colon. MariaDB in the Debian guest
+:p.The Debian guest also runs :hp2.MariaDB 10.11:ehp2., cross-built with
+GCC 13 for the 31-bit guest (:xph.linux390/mariadb/mkmariadb.sh:exph.),
+installed under :xph./usr/local/mariadb:exph. with its data in
+:xph./var/lib/mariadb:exph. and started at boot
+(:xph./etc/init.d/mariadb:exph.). It is set up for the 64 MB machine
+(:xph./etc/my.cnf:exph.&colon. 8 MB InnoDB buffer pool, 10 connections,
+local connections only) and runs beside PostgreSQL. It is the database
+of our own applications MCproject and MChelpdesk, whose schemas load
+into it unchanged. In Debian, :xph.mariadb:exph. as root logs in through
+the socket.
+:p.From CMS, :xph.MARIADB:exph. sends SQL over the spool bridge
+(:xph.LXCALL:exph., service :xph.mariadb:exph.); the EXEC is on 19E, so
+it works under :xph.IPL CMS:exph. and :xph.IPL 290:exph. alike. Each CMS
+user gets an account and a database named after the user ID (lower case)
+on first use and reaches only that database. :xph.MARIADB
+statement:exph. runs one statement, :xph.MARIADB (FILE fn [ft
+[fm]]:exph. the statements of a file (file type :xph.SQL:exph. by
+default). A statement with no result answers :xph.mariadb&colon.
+ok:exph.. CMS splits parentheses into words, so :xph.version():exph.
+reaches MariaDB as :xph.version ( ):exph., which it accepts; inside
+quotes nothing changes.
+:fig.
+:xmp.
+mariadb create table parts (no int primary key, name varchar(20))
+mariadb: database cmsuser made
+Ready;
+mariadb insert into parts values (1, 'widget'), (2, 'gadget')
+mariadb: ok
+Ready;
+mariadb select * from parts order by no
++----+--------+
+| no | name   |
++----+--------+
+|  1 | widget |
+|  2 | gadget |
++----+--------+
+Ready;
+:exmp.
+:figcap.MariaDB from CMS
+:efig.
 :h2.Mail&colon. SENDMAIL and GETMAIL
 :p.CMS users have mail addresses :xph.userid@vm370plus.lan:exph.. The
 Debian guest (MAINT) is the mail host&colon. :xph.vmmaild:exph. takes
@@ -2869,6 +2914,8 @@ channel:exph.; :xph.MQTT PUB topic message:exph., :xph.MQTT SUB topic [n
 [secs]]:exph.; :xph.TELL userid [AT LINUX|NET|node] message:exph..
 :h2.PGSQL
 :p.:xph.PGSQL statement:exph., :xph.PGSQL (FILE fn [ft [fm]]:exph..
+:h2.MARIADB
+:p.:xph.MARIADB statement:exph., :xph.MARIADB (FILE fn [ft [fm]]:exph..
 :h2.RXPIP
 :p.:xph.RXPIP AVAIL:exph., :xph.SEARCH term:exph., :xph.SHOW name:exph.,
 :xph.BUILD fn:exph., :xph.RUN fn [args]:exph., :xph.GET name:exph..
