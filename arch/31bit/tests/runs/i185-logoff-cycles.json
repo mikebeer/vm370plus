@@ -1,0 +1,207 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "r 404.4",
+  "settle": 2
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 290 290 rr",
+  "expect": "LINKED|DMK",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "lang",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "regina -v",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "r 404.4",
+  "settle": 2
+ },
+ {
+  "term": "cp logoff",
+  "settle": 8
+ },
+ {
+  "send": "r 404.4",
+  "settle": 2
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 290 290 rr",
+  "expect": "LINKED|DMK",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "lang",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "regina -v",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "r 404.4",
+  "settle": 2
+ },
+ {
+  "term": "cp logoff",
+  "settle": 8
+ },
+ {
+  "send": "r 404.4",
+  "settle": 2
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 290 290 rr",
+  "expect": "LINKED|DMK",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "lang",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "regina -v",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "send": "r 404.4",
+  "settle": 2
+ },
+ {
+  "term": "cp logoff",
+  "settle": 8
+ },
+ {
+  "send": "r 404.4",
+  "settle": 2
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

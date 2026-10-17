@@ -225,7 +225,7 @@ SKIPBLD  LA    R6,SEGPTO+4    POINT TO NXT STE                 XA0034DK
 ./ R 00610600          $ 00610700 100                                           
          SRL   R9,8           ENDING SEG. NUMBER TO LOW R9     XA0034DK         
 ./ R 00611100          $ 00611200 100                                           
-         N     R9,F15         CLEAR ALL BUT SEGMENT NUMBER     XA0034DK         
+         N     R9,F255        SEGMENT NUMBER, 8 BITS (I-185)   XA0034DK         
 ./ R 00618000          $ 00618100 100                                           
 RELRLOOP L     R7,SEGPTO      LOAD PAGE TABLE ADDRESS          XA0034DK         
 ./ R 00619100          $ 00619110 010                                           

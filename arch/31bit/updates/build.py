@@ -7021,8 +7021,12 @@ def dmkbld():
     one('00610600', [
         "         SRL   R9,8           ENDING SEG. NUMBER TO LOW R9",
     ])
+    # I-185: the page number is 16 bits (end page in the low half of R1),
+    # so the 1 MB segment number is its top 8 -- F255 as CE had it.  F15
+    # freed only segments 0-15: every LOGOFF or DEF STOR of a machine over
+    # 16 MB left the page and swap tables of the rest allocated (17 Oct).
     one('00611100', [
-        "         N     R9,F15         CLEAR ALL BUT SEGMENT NUMBER",
+        "         N     R9,F255        SEGMENT NUMBER, 8 BITS (I-185)",
     ])
     one('00618000', [
         "RELRLOOP L     R7,SEGPTO      LOAD PAGE TABLE ADDRESS",
