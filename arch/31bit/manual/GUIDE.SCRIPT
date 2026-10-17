@@ -87,6 +87,11 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.17 October 2026, afternoon (kit build 32).:ehp2. CPWATCH runs
+again and is autologged&colon. :xph.DIAL CPWATCH:exph. (Chapter 2).
+CP&colon. DIAGNOSE 38 reads the symbol table again, DIAGNOSE 4 reads
+storage above 16 MB (I-302). Kit build 31 added :xph.TICKET:exph.
+(Chapter 6).
 :li.:hp2.17 October 2026, midday (kit build 30).:ehp2. MCproject and
 MChelpdesk, our project management and helpdesk applications, run in the
 Debian guest on MariaDB (Chapter 6).
@@ -495,9 +500,13 @@ REXX full-screen package) run under the EC-mode CMS too&colon. CMS turns
 an SVC from BC mode into an EC call, and CP takes a BC-style system mask
 (:xph.SSM =X'FF':exph.) in an EC-mode System/370 machine as the BC mask
 it is.
-:li.CPWATCH is not autologged&colon. it is an S/370 monitor that loops
-under this CP. The two lines in AUTOLOG1's PROFILE EXEC are commented
-out.
+:li.CPWATCH, the system monitor, is autologged by AUTOLOG1 as on CE
+(since kit build 32). From any 3270 terminal, :xph.DIAL CPWATCH:exph.
+shows its menu&colon. PF2 system status, PF3/PF4 terminal and other
+devices, PF5/PF6 users, PF7/PF8 the CP symbol table, PF12 a clock; CLEAR
+releases the screen. It was rebuilt for VM/370plus&colon. CP addresses
+are 31 bits, and CP's DIAGNOSE 38 (read the symbol table) works again
+(I-302).
 :eul.
 :h1.Installing VM/370plus
 :h2.What you need
@@ -679,7 +688,8 @@ shared pages are dropped first (the IPL is done with CLEAR). The
 shared-system models stay in storage until CP is IPLed again.
 :li.CP emulates the System/370 interval timer from the TOD clock, since
 ESA/390 has none; time slices end and virtual interval timers run.
-:li.CPWATCH is not autologged (see Chapter 2).
+:li.CPWATCH is autologged; :xph.DIAL CPWATCH:exph. from a 3270 to watch
+the system (see Chapter 2).
 :eul.
 :h2.Spooling decks from the PC
 :p.Two socket card readers in :xph.vm370ce.conf:exph. take decks from
@@ -2637,7 +2647,8 @@ be in 800-byte format. DISK DUMP/LOAD, TAPE, MOVEFILE and FULIST are not
 yet checked on EDF disks.
 :row.
 :c.CPWATCH
-:c.Loops under this CP; not autologged.
+:c.Runs again since kit build 32 (rebuilt for 31-bit CP addresses;
+DIAGNOSE 38 fixed).
 :row.
 :c.QUERY VIRTUAL STORAGE
 :c.Shows five digits.

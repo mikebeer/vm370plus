@@ -22,7 +22,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**17 October 2026, midday (kit build 30).** MCproject and MChelpdesk, our project management and helpdesk applications, run in the Debian guest on MariaDB (Chapter 6).',
+B(['**17 October 2026, afternoon (kit build 32).** CPWATCH runs again and is autologged: `DIAL CPWATCH` (Chapter 2). CP: DIAGNOSE 38 reads the symbol table again, DIAGNOSE 4 reads storage above 16 MB (I-302). Kit build 31 added `TICKET` (Chapter 6).',
+   '**17 October 2026, midday (kit build 30).** MCproject and MChelpdesk, our project management and helpdesk applications, run in the Debian guest on MariaDB (Chapter 6).',
    '**17 October 2026, forenoon.** `MARIADB` (Chapter 6): MariaDB 10.11 in the Debian guest, from CMS through the spool bridge; each CMS user gets a database of its own. MariaDB is the database of MCproject and MChelpdesk.',
    '**17 October 2026, morning (kit build 29).** From an early user’s report: MAINT has the Debian disk at logon and `LINUX` attaches the CTC pair and checks the storage (Chapter 5); `LANG` under `IPL CMS` explains that the language disk needs the EC-mode CMS and shows the commands (`IPL 290`).',
    '**14 October 2026, midday.** Java and NetRexx on CMS: `JAVA`, `JAVAC` (the Eclipse compiler) and `NETREXX` (Chapter 8). CP: a CMS user can page more than 128 MB without stopping CP (I-290); XL programs no longer print \u201cInvalid character\u201d messages when they look at a file (I-289).',
@@ -125,7 +126,7 @@ B(['The ordinary CMS (`IPL CMS`, `IPL 190`) is unchanged: a System/370 BC-mode C
    'Under the EC-mode CMS (`IPL 290`), minidisks can use IBM’s Enhanced Disk Format (EDF, 4 KB blocks) besides the 800-byte format: a disk up to the size of a full 3380 (518 MB), files with any number of records. `FORMAT vaddr fm (BLKSIZE 4096` makes one; ACCESS tells the formats apart by the label. The DMSEFS nucleus extension does the work and is loaded by the system profile.',
    'New commands on MAINT 19D: `FULIST` (`FL`), a full-screen file list in the manner of FILELIST; `WAKEUP`; `CHAT`; `LINUX`. `GLOBALV`, global variables as in z/VM, is loaded at IPL. Appendix A; Appendix D lists all CP and CMS commands.',
    'Programs written for System/370 BC mode (MECAFF’s EE and FSVIEW, the REXX full-screen package) run under the EC-mode CMS too: CMS turns an SVC from BC mode into an EC call, and CP takes a BC-style system mask (`SSM =X\'FF\'`) in an EC-mode System/370 machine as the BC mask it is.',
-   'CPWATCH is not autologged: it is an S/370 monitor that loops under this CP. The two lines in AUTOLOG1’s PROFILE EXEC are commented out.']);
+   'CPWATCH, the system monitor, is autologged by AUTOLOG1 as on CE (since kit build 32). From any 3270 terminal, `DIAL CPWATCH` shows its menu: PF2 system status, PF3/PF4 terminal and other devices, PF5/PF6 users, PF7/PF8 the CP symbol table, PF12 a clock; CLEAR releases the screen. It was rebuilt for VM/370plus: CP addresses are 31 bits, and CP’s DIAGNOSE 38 (read the symbol table) works again (I-302).']);
 
 // ---------------------------------------------------------------- chapter 3
 H1('Installing VM/370plus');
@@ -184,7 +185,7 @@ NOTE('Because CP keeps its working frames in the low 16 MB, a 64 MB Linux machin
 H2('Rules that matter');
 B(['A user who has IPLed the shared CMS may IPL another system; the shared pages are dropped first (the IPL is done with CLEAR). The shared-system models stay in storage until CP is IPLed again.',
    'CP emulates the System/370 interval timer from the TOD clock, since ESA/390 has none; time slices end and virtual interval timers run.',
-   'CPWATCH is not autologged (see Chapter 2).']);
+   'CPWATCH is autologged; `DIAL CPWATCH` from a 3270 to watch the system (see Chapter 2).']);
 
 H2('Spooling decks from the PC');
 P('Two socket card readers in `vm370ce.conf` take decks from the PC: 010C for text (ASCII) and 020C for binary (EBCDIC). AUTOLOG1 starts both after IPL. `tools/vmspool.py` (Python 3, on Windows, Linux or macOS) sends a file to a user’s virtual reader: `python3 vmspool.py FILE USERID [FN [FT]]`. FN and FT default to the file’s name and extension. On CMS the deck is read with `READCARD fn ft A` (or found in RDRLIST).');
@@ -598,7 +599,7 @@ TABLE(['Area', 'Restriction'], [
   ['CP dump', 'DMKDMP cannot write its dump under ESA/390 (I-201); after an abend the registers must be taken from Hercules.'],
   ['CMS', 'The CMS nucleus is 24-bit; programs above 16 MB use HIGHSTOR and SVC 120.'],
   ['EDF disks', 'Only under `IPL 290` (the 190 CMS sees an EDF disk as unknown). A V-format file can only be extended at its end. Commands that take record numbers (TYPE, COPYFILE FROM/FOR) reach records 1 to 65,535 directly; beyond that only in sequence. LISTFILE shows counts above 99,999 in thousands (`1400K`). The A-disk accessed at IPL must be in 800-byte format. DISK DUMP/LOAD, TAPE, MOVEFILE and FULIST are not yet checked on EDF disks.'],
-  ['CPWATCH', 'Loops under this CP; not autologged.'],
+  ['CPWATCH', 'Runs again since kit build 32 (rebuilt for 31-bit CP addresses; DIAGNOSE 38 fixed).'],
   ['QUERY VIRTUAL STORAGE', 'Shows five digits.'],
   ['Multiprocessing', 'One CPU only.'],
   ['CMS file names', 'Programs cross-compiled for CMS cut a file name longer than eight characters to eight (Smalltalk’s `collections.st` is `COLLECTI ST`).'],
