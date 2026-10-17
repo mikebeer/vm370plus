@@ -87,6 +87,9 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.17 October 2026, midday (kit build 30).:ehp2. MCproject and
+MChelpdesk, our project management and helpdesk applications, run in the
+Debian guest on MariaDB (Chapter 6).
 :li.:hp2.17 October 2026, forenoon.:ehp2. :xph.MARIADB:exph. (Chapter
 6)&colon. MariaDB 10.11 in the Debian guest, from CMS through the spool
 bridge; each CMS user gets a database of its own. MariaDB is the
@@ -1550,6 +1553,29 @@ Ready;
 :exmp.
 :figcap.MariaDB from CMS
 :efig.
+:h2.MCproject and MChelpdesk
+:p.Our own applications run in the Debian guest, unchanged from their
+repositories (mikebeer/mcproject, mikebeer/mchelpdesk)&colon. Regina
+REXX servers on MariaDB. :hp2.MCproject:ehp2., the project management
+system (classical and agile), answers on
+:xph.http&colon.//10.1.1.2&colon.8080/:exph.; :hp2.MChelpdesk:ehp2., the
+helpdesk, on :xph.http&colon.//10.1.1.2&colon.8081/:exph.. Both start at
+boot (:xph./etc/init.d/mcproject:exph.,
+:xph./etc/init.d/mchelpdesk:exph.) and need the network to the PC (the
+CTC line in :xph.vm370ce.conf:exph.). The kit sets them up with the
+MCproject operator :xph.admin@vm370plus.lan:exph. (password
+:xph.vm370plus-op1:exph.) and the MChelpdesk platform administrator
+:xph.root:exph. in tenant :xph.system:exph. (password
+:xph.Helpdesk-Root-Pw1:exph.); change both. They use Regina 3.9.5
+(:xph./usr/local/regina39:exph., beside Debian 7's 3.6), Perl and curl.
+:p.The 31-bit guest is slow for this kind of work&colon. a page takes 15
+to 30 seconds, a login about a minute (the password hash is made
+deliberately costly; both applications let the number of rounds be set,
+:xph.pw_crypt_rounds:exph. and :xph.pw_hash_iterations:exph., and the
+guest uses 10,000). The web front ends are two small programs of our
+own, as Debian 7 has neither systemd nor a configured web server&colon.
+:xph.vminetd:exph. hands each connection to :xph.mcp.rexx --inetd:exph.,
+:xph.vmcgid:exph. runs MChelpdesk as a CGI program.
 :h2.Mail&colon. SENDMAIL and GETMAIL
 :p.CMS users have mail addresses :xph.userid@vm370plus.lan:exph.. The
 Debian guest (MAINT) is the mail host&colon. :xph.vmmaild:exph. takes
