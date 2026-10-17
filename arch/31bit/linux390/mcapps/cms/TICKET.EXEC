@@ -1,0 +1,39 @@
+/* TICKET EXEC -- a ticket in MChelpdesk, from CMS (9.38)           */
+/*   TICKET subject               then type the description,       */
+/*                                an empty line ends it            */
+/*   TICKET subject (FILE fn [ft [fm]]  the description from a file */
+/* The answer names the ticket (T-000123).  TICKET [T-000123] text  */
+/* adds to that ticket.  The subject must not contain "(".          */
+PARSE ARG SUBJ '(' OPT
+SUBJ = STRIP(SUBJ)
+IF SUBJ = '' THEN DO
+  SAY 'TICKET: usage: TICKET subject  or  TICKET subject (FILE fn ft fm'
+  EXIT 24
+END
+PARSE UPPER VAR OPT KW FN FT FM .
+IF KW = 'FILE' THEN DO
+  IF FT = '' THEN FT = 'TICKET'
+  IF FM = '' THEN FM = '*'
+  'EXEC LXCALL TICKET' SUBJ '(FILE' FN FT FM
+  EXIT RC
+END
+SAY 'TICKET: type the description; an empty line ends it.'
+N = 0
+DO FOREVER                  /* read first, queue after: PULL */
+  PARSE PULL L              /* takes the stack before the    */
+  IF STRIP(L) = '' THEN LEAVE   /* console                   */
+  N = N + 1; T.N = L
+END
+IF N = 0 THEN DO
+  N = 1; T.1 = '(no description)'
+END
+DO I = 1 TO N
+  QUEUE T.I
+END
+'SET CMSTYPE HT'; 'ERASE TICKET WORK A'; 'SET CMSTYPE RT'
+'EXECIO' N 'DISKW TICKET WORK A 0 V 80 (FINIS'
+IF RC <> 0 THEN EXIT RC
+'EXEC LXCALL TICKET' SUBJ '(FILE TICKET WORK A'
+R = RC
+'ERASE TICKET WORK A'
+EXIT R

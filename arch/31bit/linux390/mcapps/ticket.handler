@@ -1,0 +1,13 @@
+#!/bin/sh
+# ticket -- vmspoold: a helpdesk ticket from CMS (TICKET EXEC, VM/370plus 9.38)
+#   TICKET subject words      the input lines are the description
+# The request becomes a mail from userid@vm370plus.lan to MChelpdesk's
+# mailin (tenant vm370plus): a new ticket, or, when the subject carries
+# [T-000123], a new article in that ticket of the same user.
+u=$(echo "$VMSPOOL_FROM" | tr A-Z a-z)
+case "$u" in ''|*[!a-z0-9_]*) echo "ticket: bad user: $VMSPOOL_FROM"; exit 4;; esac
+[ $# -gt 0 ] || { echo "ticket: no subject"; exit 24; }
+export HD_CONF=/etc/mchelpdesk/mchelpdesk.conf PATH=/usr/local/regina39/bin:/usr/local/mariadb/bin:$PATH
+{ printf 'From: %s <%s@vm370plus.lan>\nTo: helpdesk@vm370plus.lan\nSubject: %s\n' "$VMSPOOL_FROM" "$u" "$*"
+  printf 'Message-ID: <%s.%s.%s@vm370plus.lan>\nContent-Type: text/plain; charset=utf-8\n\n' "$u" "$(date +%s)" "$$"
+  cat; } | regina /opt/mchelpdesk/bin/mchelpdesk.rexx mailin vm370plus 2>&1
