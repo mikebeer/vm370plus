@@ -336,9 +336,22 @@ WHAT YOU NEED
     Older Hercules 3.0x is untested in ESA/390 mode.
   - A tn3270 emulator (the WC3270 in the CE package is fine).
 
-INSTALL
+INSTALL WITH THE WIZARD  (9.45, build 27)
+  Put VM370CE_V1_R1_2.zip, all kit parts and vm370plus-setup.py in one
+  directory and run there
+        python3 vm370plus-setup.py        (Windows: py vm370plus-setup.py)
+  It checks for Python and Hercules, unpacks CE and every part into a new
+  directory, joins the Debian and language disks (SHA-256 checked), asks
+  for the storage size, the 3270 port and the network link to the Debian
+  guest and writes them into vm370ce.conf.  It also asks for the mail
+  smarthost, the AI model server and the NJE peers; once Debian runs,
+        python3 vm370plus-setup.py --apply <directory>
+  sends those to the guest (through the PC card reader, port 3505).
+  --yes takes the defaults, --answers file.json repeats an installation.
+
+INSTALL BY HAND
   1. Unzip VM370CE_V1_R1_2.zip into a new directory.
-  2. Unzip ALL kit parts (1-19) OVER it, replacing files:
+  2. Unzip ALL kit parts OVER it, replacing files:
      part 1: config, system shadows, tools, README; part 2:
      disks/vm50-4.cckd; part 3: the CMSUSER volume's shadow; part 4:
      Linux files (vm370plus/linux/, the Guide) and the VM50-2 shadow

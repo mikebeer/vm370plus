@@ -142,14 +142,18 @@ TABLE(['Part', 'Contents'], [
   ['7–16', 'the Debian disk, `disks/lnx190.cckd` (a 3390-9), in ten pieces, with `JOINDEB.CMD` and `joindeb.sh` to join them'],
   ['17–19', 'the language disk, `disks/lang.cckd` (a 3380), in three pieces, with `JOINLANG.CMD` and `joinlang.sh`'],
 ], [1000, 8638], 'The installation kit');
+H2('The setup wizard');
+P('The quickest way is the setup wizard, `vm370plus-setup.py`, which comes beside the kit parts and needs nothing but Python 3. Put `VM370CE_V1_R1_2.zip`, all the kit parts and the wizard in one directory, and run it there: `python3 vm370plus-setup.py` (on Windows `py vm370plus-setup.py`). It checks for Python and Hercules, then unpacks the Community Edition and every kit part into a new directory and joins the Debian and language disks, checking their SHA-256. It asks for the storage size (256 MB is the tested size), the 3270 port and whether to turn on the network link to the Debian guest, and writes these into `vm370ce.conf`.');
+P('It also asks for the settings of the Debian guest: the mail domain and smarthost, the AI model server, and the NJE node and its peers. These are kept in `vm370plus-settings.json`. Once VM/370plus and Debian run, `python3 vm370plus-setup.py --apply directory` sends them to the guest through the PC card reader. The guest’s `setup` service writes `mail.conf` and `ask.conf`, runs `njeconf`, and restarts the services. `--yes` takes the defaults, and `--answers file.json` repeats an installation.');
+SCREEN(['python3 vm370plus-setup.py', 'Hercules: /usr/local/bin/hercules (version 4.9.1)', 'CE: ./VM370CE_V1_R1_2.zip', 'kit: build 27, 22 parts', 'Install into which (new) directory [./vm370plus]', 'Real storage for VM/370 in MB ... [256]', '...', 'joining lnx190.cckd from 13 pieces ...', '  lnx190.cckd: SHA-256 ok', 'VM/370plus is installed in ./vm370plus/VM370CE.V1.R1.2'], 'The setup wizard');
 H2('Installation steps');
 N(['Unzip `VM370CE_V1_R1_2.zip` into a new directory.',
-   'Unzip kit parts 1 to 19 over it, replacing files when asked.',
+   'Unzip all kit parts over it, replacing files when asked.',
    'Join the Debian disk. In the Community Edition directory, at a Windows command prompt:',
 ]);
 SCREEN(['JOINDEB.CMD', 'Debian disk joined: disks\\lnx190.cckd'], 'Joining the Debian disk (Windows)');
 P('On Linux or WSL2 use `sh joindeb.sh`, which also checks the result. The file `disks/lnx190.sha256` holds the checksum of the joined file. Keep a copy of `lnx190.cckd`: it is your Linux system disk and Hercules writes to it.');
-P('Join the language disk the same way (kit parts 17 to 19): `JOINLANG.CMD` on Windows or `sh joinlang.sh` on Linux and WSL2 gives `disks/lang.cckd`, the 3380 at address 182 that holds MAINT 19F (see Chapter 8).');
+P('Join the language disk the same way (the last kit parts): `JOINLANG.CMD` on Windows or `sh joinlang.sh` on Linux and WSL2 gives `disks/lang.cckd`, the 3380 at address 182 that holds MAINT 19F (see Chapter 8).');
 SCREEN(['JOINLANG.CMD', 'Language disk joined: disks\\lang.cckd'], 'Joining the language disk (Windows)');
 N(['If you want the Linux network, remove the `#` in front of the line `#0600.2 CTCI 10.1.1.2 10.1.1.1` in `vm370ce.conf`.',
    'Start the system as you start the Community Edition: `vm370ce.cmd` on Windows, `vm370ce.sh` elsewhere.'], true);

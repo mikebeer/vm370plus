@@ -1,0 +1,83 @@
+#!/usr/bin/python3
+"""setup -- vmspoold service (9.45): the guest settings from the setup
+wizard on the PC (vm370plus-setup.py --apply), as KEY=value cards:
+    MAIL_DOMAIN SMARTHOST SMARTUSER SMARTPASS SMARTTLS   -> mail.conf
+    AI_URL AI_MODEL AI_KEY                               -> ask.conf
+    NJE_NODE NJE_PEERS                                   -> njeconf
+Only MAINT and OPERATOR may send it (the wizard sends it as OPERATOR
+through the PC card reader).  Each file is changed in place: the keys
+named are set, everything else is kept."""
+import os, re, subprocess, sys
+
+who = os.environ.get('VMSPOOL_FROM', '').upper()
+if who not in ('OPERATOR', 'MAINT'):
+    print('setup: only OPERATOR or MAINT'); sys.exit(8)
+kv = {}
+for l in sys.stdin.read().splitlines():   # KEY=value, KEY+=more value
+    m = re.match(r'^\s*([A-Z_]+)(\+?)=(.*)$', l)
+    if m:
+        k, more, v = m.group(1), m.group(2), m.group(3).rstrip()
+        kv[k] = kv.get(k, '') + v if more else v.strip()
+
+
+def setconf(path, new):
+    """KEY=value lines of path: set those in new, keep the rest"""
+    try:
+        lines = open(path).read().splitlines()
+    except IOError:
+        lines = []
+    done = set()
+    for i, l in enumerate(lines):
+        m = re.match(r'^([A-Z]+)=', l)
+        if m and m.group(1) in new:
+            lines[i] = '%s=%s' % (m.group(1), new[m.group(1)]); done.add(m.group(1))
+    lines += ['%s=%s' % (k, v) for k, v in new.items() if k not in done]
+    tmp = path + '.new'
+    open(tmp, 'w').write('\n'.join(lines) + '\n')
+    os.chmod(tmp, 0o600)
+    os.rename(tmp, path)
+
+
+def run(*cmd):
+    r = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
+    return r.decode('latin-1', 'replace').strip()
+
+
+rc = 0
+m = {}
+for k, c in (('MAIL_DOMAIN', 'DOMAIN'), ('SMARTHOST', 'SMARTHOST'), ('SMARTUSER', 'SMARTUSER'),
+             ('SMARTPASS', 'SMARTPASS'), ('SMARTTLS', 'SMARTTLS')):
+    if k in kv:
+        m[c] = kv[k]
+if m:
+    setconf('/etc/vmspool.d/mail.conf', m)
+    print('setup: mail.conf: ' + ', '.join('%s=%s' % (k, '***' if k == 'SMARTPASS' and v else v) for k, v in m.items()))
+    print('setup: ' + run('/etc/init.d/vmmaild', 'restart').replace('\n', ' '))
+a = {}
+if 'AI_URL' in kv:
+    u = kv['AI_URL']
+    if u.lower() == 'anthropic':
+        a.update(API='anthropic', URL='https://api.anthropic.com/v1/messages')
+    else:
+        a.update(API='openai', URL=u)
+if kv.get('AI_MODEL'):
+    a['MODEL'] = kv['AI_MODEL']
+if 'AI_KEY' in kv:
+    a['APIKEY'] = kv['AI_KEY']
+if a:
+    setconf('/etc/vmspool.d/ask.conf', a)
+    print('setup: ask.conf: ' + ', '.join('%s=%s' % (k, '***' if k == 'APIKEY' and v else v) for k, v in a.items()))
+node = kv.get('NJE_NODE', '').upper()
+if node:
+    if not re.match(r'^[A-Z0-9@#$]{1,8}$', node):
+        print('setup: bad NJE node name %s' % node); sys.exit(4)
+    peers = kv.get('NJE_PEERS', '').split()
+    if not os.path.exists('/usr/local/nje/bin/njeconf'):
+        print('setup: NJE-II is not installed'); rc = 4
+    else:
+        print('setup: ' + run('/usr/local/nje/bin/njeconf', '/usr/local/nje', node, '10.1.1.2', *peers))
+        print('setup: ' + run('/etc/init.d/nje', 'restart').replace('\n', ' '))
+        if node != 'VM370CE':
+            print('setup: CMS knows its node from SYSTEM NETID on MAINT 190 (VM370CE):')
+            print('       change it there too, or SENDFILE treats %s as another node' % node)
+sys.exit(rc)
