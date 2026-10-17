@@ -87,6 +87,11 @@ context makes clear which they are.
 :p.This edition is kept up to date as VM/370plus grows; each change is
 listed here, newest first.
 :ul.
+:li.:hp2.17 October 2026, morning (kit build 29).:ehp2. From an early
+user's report&colon. MAINT has the Debian disk at logon and
+:xph.LINUX:exph. attaches the CTC pair and checks the storage (Chapter
+5); :xph.LANG:exph. under :xph.IPL CMS:exph. explains that the language
+disk needs the EC-mode CMS and shows the commands (:xph.IPL 290:exph.).
 :li.:hp2.14 October 2026, midday.:ehp2. Java and NetRexx on CMS&colon.
 :xph.JAVA:exph., :xph.JAVAC:exph. (the Eclipse compiler) and
 :xph.NETREXX:exph. (Chapter 8). CP&colon. a CMS user can page more than
@@ -779,6 +784,12 @@ attach 190 to maint as 250
 :exmp.
 :figcap.Attaching a Linux user's devices (operator)
 :efig.
+:p.MAINT needs none of this&colon. its directory entry dedicates the
+Debian disk (:xph.DEDICATE 250 190:exph.), and :xph.LINUX EXEC:exph.
+attaches 600/601 as 620/630 itself for a class B user. For other users
+:xph.LINUX:exph. says which devices to ask the operator for, and it
+reminds a machine smaller than 64 MB to :xph.CP DEFINE STORAGE 64M:exph.
+first.
 :p.Each device must be on its own virtual control unit (620 and 630, not
 620 and 621). The second user's pair 602/603 goes to 622 and 632, which
 gives that machine 10.1.2.2. For a permanent arrangement put

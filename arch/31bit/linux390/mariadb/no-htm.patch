@@ -1,0 +1,11 @@
+--- a/mariadb-10.11.14/storage/innobase/include/transactional_lock_guard.h	2025-07-28 16:12:33.000000000 +0000
++++ b/mariadb-10.11.14/storage/innobase/include/transactional_lock_guard.h	2026-10-17 06:46:01.292811125 +0000
+@@ -19,7 +19,7 @@
+ #pragma once
+ 
+ #if defined __powerpc64__
+-#elif defined __s390__
++#elif defined __s390__ && defined __HTM__ /* VM/370plus: no HTM below zEC12 */
+ #elif defined _MSC_VER && (defined _M_IX86 || defined _M_X64) && !defined(__clang__)
+ #elif defined __GNUC__ && (defined __i386__ || defined __x86_64__)
+ # if __GNUC__ >= 8

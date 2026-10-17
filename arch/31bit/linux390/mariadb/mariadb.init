@@ -1,0 +1,26 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          mariadb
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:     $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: MariaDB 10.11 (VM/370plus)
+### END INIT INFO
+B=/usr/local/mariadb/bin; R=/var/run/mysqld
+ping() { $B/mariadb-admin --connect-timeout=5 ping >/dev/null 2>&1; }
+case "$1" in
+start)
+  echo -n "Starting MariaDB 10.11: "
+  mkdir -p $R && chown mysql $R
+  $B/mariadbd-safe >/dev/null 2>&1 &
+  # a cold InnoDB start pages a lot in 64 MB: allow ten minutes
+  n=0; until ping; do n=$((n+1)); [ $n -gt 600 ] && { echo failed.; exit 1; }; sleep 1; done
+  echo mariadb. ;;
+stop)
+  echo -n "Stopping MariaDB 10.11: "
+  $B/mariadb-admin shutdown >/dev/null 2>&1; echo mariadb. ;;
+restart) $0 stop; $0 start ;;
+status) ping && echo running || { echo stopped; exit 3; } ;;
+*) echo "usage: $0 start|stop|restart|status"; exit 1 ;;
+esac

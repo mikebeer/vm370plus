@@ -22,7 +22,8 @@ H3('Conventions');
 P('Commands are shown in `monospaced type`. In command descriptions, uppercase letters are typed as shown and lowercase words stand for values you supply. Examples of terminal sessions are shown in framed figures; lines you type are not marked separately because the context makes clear which they are.');
 H3('Summary of changes');
 P('This edition is kept up to date as VM/370plus grows; each change is listed here, newest first.');
-B(['**14 October 2026, midday.** Java and NetRexx on CMS: `JAVA`, `JAVAC` (the Eclipse compiler) and `NETREXX` (Chapter 8). CP: a CMS user can page more than 128 MB without stopping CP (I-290); XL programs no longer print \u201cInvalid character\u201d messages when they look at a file (I-289).',
+B(['**17 October 2026, morning (kit build 29).** From an early user’s report: MAINT has the Debian disk at logon and `LINUX` attaches the CTC pair and checks the storage (Chapter 5); `LANG` under `IPL CMS` explains that the language disk needs the EC-mode CMS and shows the commands (`IPL 290`).',
+   '**14 October 2026, midday.** Java and NetRexx on CMS: `JAVA`, `JAVAC` (the Eclipse compiler) and `NETREXX` (Chapter 8). CP: a CMS user can page more than 128 MB without stopping CP (I-290); XL programs no longer print \u201cInvalid character\u201d messages when they look at a file (I-289).',
    '**14 October 2026, forenoon (kit build 15).** A Linux guest whose terminal drops is disconnected and keeps running, as under z/VM (I-288); before, CP stopped it and logged it off after 15 minutes. CMS users keep VM/370\u2019s rule.',
    '**14 October 2026, morning (kit build 14).** The Debian disk is a full 3390-9 again (6.8 GB, 5.8 GB free) and is shipped with its free blocks zeroed (245 MB). CP: a Linux guest with a CTC link (the 3088 to the PC, or a virtual CTCA) now leaves the dispatch queue when it is idle, so two Linux guests share the machine; a virtual CTCA accepts guest buffers above 16 MB. Linux-to-Linux virtual CTCAs do not connect yet (I-287).',
    '**14 October 2026, night.** `PGSQL` (Chapter 6): PostgreSQL 16 in the Debian guest, from CMS through the spool bridge; each CMS user gets a database of its own.',
@@ -214,6 +215,7 @@ TABLE(['Resource', 'Virtual address', 'How it is provided'], [
 ], [2000, 2400, 5238], 'Resources of a Linux virtual machine');
 P('The operator attaches the devices:');
 SCREEN(['attach 600 to maint as 620', 'attach 601 to maint as 630', 'attach 190 to maint as 250'], 'Attaching a Linux user’s devices (operator)');
+P('MAINT needs none of this: its directory entry dedicates the Debian disk (`DEDICATE 250 190`), and `LINUX EXEC` attaches 600/601 as 620/630 itself for a class B user. For other users `LINUX` says which devices to ask the operator for, and it reminds a machine smaller than 64 MB to `CP DEFINE STORAGE 64M` first.');
 P('Each device must be on its own virtual control unit (620 and 630, not 620 and 621). The second user’s pair 602/603 goes to 622 and 632, which gives that machine 10.1.2.2. For a permanent arrangement put `DEDICATE` statements in the user’s directory entry.');
 H2('Starting Linux from its disk: IPL LINUX');
 P('The Debian disk carries its own kernel and IPL records, so Linux IPLs straight from it. With 64 MB of storage and the devices attached (the disk at 250), one CP command is enough, from CMS or from CP:');

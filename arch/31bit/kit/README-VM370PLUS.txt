@@ -1,5 +1,19 @@
-VM/370plus  --  overlay kit, 17 October 2026 (build 28)
+VM/370plus  --  overlay kit, 17 October 2026 (build 29)
 ========================================================
+
+NEW IN BUILD 29  (fixes from an early user's report)
+  - MAINT has the Debian disk at logon (DEDICATE 250 190): LINUX no
+    longer stops with DEV 250 DOES NOT EXIST.
+  - LINUX EXEC attaches what Debian needs: the Debian disk 190 as 250 and
+    the CTC pair 600/601 as 620/630 (class B users such as MAINT; others
+    are told what to ask the operator for), and says when the machine has
+    less than 64 MB:  cp def stor 64m, then linux.
+  - LANG under the 190 CMS (IPL CMS) explained: the language disk is in
+    the EDF format, which only the EC-mode CMS reads.  LANG now says so
+    and shows the four commands (cp def stor 256m, cp link maint 290 290
+    rr, ipl 290, lang).
+  - The CTC line in vm370ce.conf is still commented out in the kit (the
+    PC side needs setting up first); the setup wizard switches it on.
 
 NEW IN BUILD 28
   - ZORK (9.13e): Dungeon, the MIT mainframe adventure, on the language
