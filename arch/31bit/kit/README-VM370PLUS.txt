@@ -1,5 +1,17 @@
-VM/370plus  --  overlay kit, 17 October 2026 (build 30)
+VM/370plus  --  overlay kit, 17 October 2026 (build 31)
 ========================================================
+
+NEW IN BUILD 31
+  - TICKET (19E): a helpdesk ticket from CMS.
+        TICKET subject              then the description, an empty line
+                                    ends it
+        TICKET subject (FILE fn ft fm
+    It reaches MChelpdesk (tenant vm370plus) as a mail from
+    userid@vm370plus.lan; the answer names the ticket (VM3-000001).
+    TICKET [VM3-000001] text adds to that ticket.  Tenant administrator:
+    vm370plus / maint, password VM370plus-Maint-1 (change it).
+  - The workers of MCproject and MChelpdesk run every 5 minutes (cron).
+
 
 NEW IN BUILD 30
   - MariaDB 10.11 in the Debian guest (9.47), started at boot.  From CMS:
