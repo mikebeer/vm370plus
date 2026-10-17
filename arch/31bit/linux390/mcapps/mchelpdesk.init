@@ -1,0 +1,23 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          mchelpdesk
+# Required-Start:    $local_fs $network mariadb
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: MChelpdesk on VM/370plus (port 8081)
+### END INIT INFO
+P=/var/run/mchelpdesk.pid
+case "$1" in
+start)
+  echo -n "Starting MChelpdesk: "
+  export HD_CONF=/etc/mchelpdesk/mchelpdesk.conf \
+    PATH=/usr/local/regina39/bin:/usr/local/mariadb/bin:/usr/local/bin:/usr/bin:/bin
+  /sbin/start-stop-daemon --start --background --make-pidfile --pidfile $P --exec /usr/bin/python3 -- \
+    /usr/local/sbin/vmcgid 8081 www-data /opt/mchelpdesk/bin/mchelpdesk.rexx /usr/local/regina39/bin/regina
+  echo mchelpdesk. ;;
+stop)
+  echo -n "Stopping MChelpdesk: "; /sbin/start-stop-daemon --stop --pidfile $P --oknodo >/dev/null; rm -f $P; echo mchelpdesk. ;;
+restart) $0 stop; $0 start ;;
+*) echo "usage: $0 start|stop|restart"; exit 1 ;;
+esac

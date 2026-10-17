@@ -1,0 +1,56 @@
+#!/usr/bin/python3
+# vmcgid -- VM/370plus: a minimal HTTP server for ONE CGI program, in the
+# Debian guest (wheezy's Python 3.2; no Apache or nginx needed).  Every
+# request path goes to the program as PATH_INFO, as a web server with
+# "ScriptAlias / program/" would pass it.
+#   vmcgid PORT USER PROGRAM [INTERPRETER]
+# MChelpdesk: vmcgid 8081 www-data /opt/mchelpdesk/bin/mchelpdesk.rexx \
+#               /usr/local/regina39/bin/regina
+import os, pwd, signal, socketserver, subprocess, sys, http.server
+port, user, prog = int(sys.argv[1]), sys.argv[2], sys.argv[3]
+interp = sys.argv[4:5]
+
+class H(http.server.BaseHTTPRequestHandler):
+    def run(self):
+        path, _, query = self.path.partition('?')
+        n = int(self.headers.get('Content-Length') or 0)
+        body = self.rfile.read(n) if n > 0 else b''
+        env = dict(os.environ)
+        env.update(GATEWAY_INTERFACE='CGI/1.1', SERVER_SOFTWARE='vmcgid',
+                   SERVER_PROTOCOL='HTTP/1.0', SERVER_NAME=self.headers.get('Host', 'localhost').split(':')[0],
+                   SERVER_PORT=str(port), REQUEST_METHOD=self.command, SCRIPT_NAME='',
+                   PATH_INFO=path, QUERY_STRING=query, REQUEST_URI=self.path,
+                   REMOTE_ADDR=self.client_address[0],
+                   CONTENT_TYPE=self.headers.get('Content-Type', ''), CONTENT_LENGTH=str(len(body)))
+        for k, v in self.headers.items():
+            k = 'HTTP_' + k.upper().replace('-', '_')
+            if k not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
+                env[k] = v
+        p = subprocess.Popen(interp + [prog], stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
+        out, _ = p.communicate(body)
+        head, sep, rest = out.partition(b'\r\n\r\n')
+        if not sep:
+            head, sep, rest = out.partition(b'\n\n')
+        status, hdrs = '200 OK', []
+        for l in head.decode('latin-1').splitlines():
+            k, _, v = l.partition(':')
+            if k.lower() == 'status':
+                status = v.strip()
+            elif k:
+                hdrs.append((k, v.strip()))
+        self.wfile.write(('HTTP/1.0 %s\r\n' % status).encode('latin-1'))
+        for k, v in hdrs:
+            self.wfile.write(('%s: %s\r\n' % (k, v)).encode('latin-1'))
+        self.wfile.write(('Content-Length: %d\r\nConnection: close\r\n\r\n' % len(rest)).encode('latin-1'))
+        self.wfile.write(rest)
+    do_GET = do_POST = do_PUT = do_DELETE = do_PATCH = do_HEAD = run
+    def log_message(self, *a):
+        pass
+
+class S(socketserver.ForkingMixIn, http.server.HTTPServer):
+    allow_reuse_address = True
+
+srv = S(('', port), H)
+pw = pwd.getpwnam(user)
+os.setgid(pw.pw_gid); os.setuid(pw.pw_uid)
+srv.serve_forever()
