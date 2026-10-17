@@ -29,8 +29,9 @@ Wheezy's libcrypt has no yescrypt, so `mcp-crypto` falls back to SHA-512
 crypt; with its 400,000 rounds one login took about 10 minutes (10,000
 rounds take 15 s). MCproject now has `pw_crypt_rounds` (mikebeer/mcproject
 ab8973b, 17 Oct); the guest uses 10000: operator login from the PC in
-74 s. `mcp-install` runs under umask 077, so `server/dist` must be made
-readable for the `mcp` user (`chmod 755 /opt/mcproject/server/dist`).
+74 s. `mcp-install` used to leave `server/dist` 0700 (its umask 077); fixed
+upstream in 886ec7d -- with older checkouts, `chmod 755
+/opt/mcproject/server/dist`.
 
 ## MChelpdesk (verified 17 Oct, mc1)
 
