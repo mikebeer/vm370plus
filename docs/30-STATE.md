@@ -854,3 +854,14 @@ CMSUSER TELL pcuser AT pcnje and SENDFILE cms exec a TO pcuser AT pcnje
 arrived on the PC (CMS EXEC, 728 lines); the PC's TELL came as CP MSG; its
 NETDATA file was RECEIVEd as NJETEST DATA A1; Debian halted, 150 s, no
 DMKDMP908I (I-299); SHUTDOWN clean. 22 parts.
+
+## Kit b27 (17 October 2026, 01:45)
+
+9.45 the setup wizard: vm370plus-setup.py (beside the parts in dist/ and in
+vm370plus/tools/). Installs CE + kit into a new directory (disks joined,
+SHA-256 checked), writes MAINSIZE, CNSLPORT and the CTC line into
+vm370ce.conf, keeps the guest settings in vm370plus-settings.json; --apply
+sends them to the Debian service setup (mail.conf, ask.conf, njeconf).
+Verified: a wizard install from CE + the b27 parts (both SHA-256 ok);
+fresh CE + b27 (kt42): RSCS autologged, TELL/NJEGATE/SENDFILE present;
+the apply path on dev (wiz2). The Debian disk's NJE logs are clean. 22 parts.

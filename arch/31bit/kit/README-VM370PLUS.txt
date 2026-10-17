@@ -1,5 +1,11 @@
-VM/370plus  --  overlay kit, 16 October 2026 (build 26)
+VM/370plus  --  overlay kit, 17 October 2026 (build 27)
 ========================================================
+
+NEW IN BUILD 27
+  - The setup wizard (9.45): vm370plus-setup.py, beside the kit parts and
+    in vm370plus/tools/.  See INSTALL WITH THE WIZARD below.  The Debian
+    guest has the spool-bridge service setup that takes its settings.
+
 
 NEW IN BUILD 26
   - NJE (9.13b): VM/370plus is NJE node VM370CE.  NJE-II in the Debian
