@@ -1,0 +1,27 @@
+#!/bin/sh
+# mariadb -- vmspoold: MariaDB from CMS (MARIADB EXEC, VM/370plus 9.47)
+#   MARIADB statement ...      run one SQL statement
+#   MARIADB (FILE fn SQL       run the statements of a file (the input lines)
+# Every CMS user has a MariaDB account and a database of the same name
+# (lower case), made on first use; its password is in
+# /etc/mariadb-cms/<user>.cnf (0600), so a user reaches only its own
+# database.  root reaches the server through the socket (unix_socket).
+B=/usr/local/mariadb/bin
+u=$(echo "$VMSPOOL_FROM" | tr A-Z a-z)
+case "$u" in ''|*[!a-z0-9_]*) echo "mariadb: bad user: $VMSPOOL_FROM"; exit 4;; esac
+C=/etc/mariadb-cms; F=$C/$u.cnf
+if [ ! -s $F ]; then
+  mkdir -p $C && chmod 700 $C
+  pw=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
+  $B/mariadb -e "CREATE DATABASE IF NOT EXISTS \`$u\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE USER IF NOT EXISTS '$u'@'localhost' IDENTIFIED BY '$pw';
+    ALTER USER '$u'@'localhost' IDENTIFIED BY '$pw';
+    GRANT ALL ON \`$u\`.* TO '$u'@'localhost'" || exit 8
+  (umask 077; printf '[client]\nuser=%s\npassword=%s\ndatabase=%s\n' "$u" "$pw" "$u" > $F)
+  echo "mariadb: database $u made"
+fi
+if [ $# -gt 0 ]; then
+  $B/mariadb --defaults-extra-file=$F --table -e "$*"
+else
+  $B/mariadb --defaults-extra-file=$F --table
+fi

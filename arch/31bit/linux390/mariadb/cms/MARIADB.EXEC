@@ -1,0 +1,47 @@
+/* MARIADB EXEC -- MariaDB in the Debian guest, from CMS (9.47)   */
+/*   MARIADB statement          run one SQL statement              */
+/*   MARIADB (FILE fn [ft [fm]] run the statements of a file (SQL) */
+/* Your account and database have your user ID as name (made on   */
+/* first use).  The statement goes as the input of the service    */
+/* (LXCALL's own options start with "(", which SQL is full of).   */
+PARSE ARG LINE
+IF LEFT(STRIP(LINE), 1) = '(' THEN DO
+  PARSE VAR LINE '(' OPT
+  PARSE UPPER VAR OPT KW FN FT FM .
+  IF KW = 'FILE' & FT = '' THEN OPT = 'FILE' FN 'SQL *'
+  'EXEC LXCALL MARIADB (' OPT
+  EXIT RC
+END
+IF STRIP(LINE) = '' THEN DO
+  SAY 'MARIADB: usage: MARIADB statement'
+  SAY '        or:    MARIADB (FILE fn [ft [fm]]'
+  EXIT 24
+END
+'SET CMSTYPE HT'; 'ERASE MARIADB WORK A'; 'SET CMSTYPE RT'
+/* the bridge carries 80-column cards: cut the statement at blanks    */
+/* outside quotes ('...' and "..."), so no literal changes        */
+LINE = STRIP(LINE)
+IF RIGHT(LINE, 1) <> ';' THEN LINE = LINE';'
+N = 0; Q = ''; LAST = 0; START = 1
+DO I = 1 TO LENGTH(LINE)
+  C = SUBSTR(LINE, I, 1)
+  IF Q = '' THEN DO
+    IF C = "'" | C = '"' THEN Q = C
+    ELSE IF C = ' ' THEN LAST = I
+  END
+  ELSE IF C = Q THEN Q = ''
+  IF I - START >= 72 & LAST > START THEN DO
+    N = N + 1; L.N = SUBSTR(LINE, START, LAST - START)
+    START = LAST + 1
+  END
+END
+N = N + 1; L.N = SUBSTR(LINE, START)
+DO I = 1 TO N
+  QUEUE L.I
+END
+'EXECIO' N 'DISKW MARIADB WORK A 0 V 80 (FINIS'
+IF RC <> 0 THEN EXIT RC
+'EXEC LXCALL MARIADB (FILE MARIADB WORK A'
+R = RC
+'ERASE MARIADB WORK A'
+EXIT R

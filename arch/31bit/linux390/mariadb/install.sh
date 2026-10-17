@@ -15,6 +15,7 @@ if [ ! -d $D/mysql ]; then
     --basedir=/usr/local/mariadb --datadir=$D --user=mysql --skip-test-db >/dev/null
 fi
 install -m 755 mariadb.init /etc/init.d/mariadb
+[ -d /etc/vmspool.d ] && install -m 755 mariadb.handler /etc/vmspool.d/mariadb
 update-rc.d mariadb defaults >/dev/null
 for p in mariadb mariadb-admin mariadb-dump mysql mysqladmin mysqldump; do
   ln -sf /usr/local/mariadb/bin/$p /usr/local/bin/$p; done
