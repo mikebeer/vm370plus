@@ -1,0 +1,37 @@
+ID CMSUSER NAME D58A ASSEMBLE
+D58A     CSECT                                                                  
+         USING *,12                                                             
+         STM   14,12,12(13)                                                     
+         LR    12,15                                                            
+         LA    0,CCW1                                                           
+         LA    1,X'009'                                                         
+DIAG     DC    X'83010058'        DIAG 0,1,X'58'                                
+         BC    2,DIAG             BUSY: AGAIN                                   
+         ST    0,RC                                                             
+TIOL     TIO   0(1)                                                             
+         BC    2,TIOL                                                           
+         STCK  T0                 WAIT ABOUT 6 SECONDS                          
+LOOP     STCK  T1                                                               
+         LM    2,3,T0                                                           
+         LM    4,5,T1                                                           
+         SR    4,2                                                              
+         C     4,=F'6'                                                                                  
+         BL    LOOP                                                             
+         LM    14,12,12(13)                                                     
+         SR    15,15                                                            
+         BR    14                                                               
+         DS    0D                                                               
+CCW1     CCW   X'29',DATA,X'20',DLEN  ERASE/WRITE                               
+         ORG   CCW1+5                                                           
+         DC    X'80'                                                            
+         ORG                                                                    
+DATA     DC    X'C3',X'114040'                                                  
+         DC    C'D58A: HELLO FROM DIAGNOSE 58'                                  
+         DC    X'11C150'                                                        
+         DC    C'SECOND LINE'                                                   
+DLEN     EQU   *-DATA                                                           
+RC       DS    F                                                                
+T0       DS    D                                                                
+T1       DS    D                                                                
+         LTORG                                                                  
+         END                                                                    
