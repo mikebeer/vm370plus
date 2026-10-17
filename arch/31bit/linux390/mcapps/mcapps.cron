@@ -1,0 +1,8 @@
+# /etc/cron.d/vm370plus-mcapps -- the background workers of MChelpdesk and
+# MCproject in the VM/370plus Debian guest.  Every 5 minutes, not every
+# minute as upstream suggests: each run starts Regina on a large program,
+# 10-15 s of CPU on the 31-bit guest.  flock keeps runs from overlapping.
+PATH=/usr/local/regina39/bin:/usr/local/mariadb/bin:/usr/local/bin:/usr/bin:/bin
+*/5 * * * *  www-data  HD_CONF=/etc/mchelpdesk/mchelpdesk.conf flock -n /run/lock/mchelpdesk-worker.lock regina /opt/mchelpdesk/bin/mchelpdesk.rexx worker >> /var/log/mchelpdesk/worker.log 2>&1
+2-59/5 * * * *  mcp  MCP_CONF=/etc/mcp/mcp.conf flock -n /run/lock/mcp-worker.lock /opt/mcproject/server/bin/mcp-worker --once >> /var/log/mcp/worker.log 2>&1
+10 0 * * *   mcp  MCP_CONF=/etc/mcp/mcp.conf flock -n /run/lock/mcp-daily.lock /opt/mcproject/server/bin/mcp-worker --daily >> /var/log/mcp/worker.log 2>&1

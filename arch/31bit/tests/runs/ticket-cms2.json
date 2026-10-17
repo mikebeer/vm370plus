@@ -1,0 +1,199 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/purge maint rdr all",
+  "settle": 3
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/mcp/ticket.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 8
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "readcard ticket exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "access 19e f",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "copyfile ticket exec a = = f2 (replace olddate",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "release f",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "erase ticket exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "ipl cms",
+  "expect": "VM Community|DMS|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "linux",
+  "expect": "login:",
+  "timeout": 1500,
+  "cont": true
+ },
+ {
+  "term": "",
+  "settle": 60
+ },
+ {
+  "term": "#cp disc",
+  "expect": "DISCONNECT",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/q n",
+  "expect": "MDB-READY",
+  "timeout": 3000,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser",
+  "expect": "LOGON AT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ticket [VM3-000001] it prints again",
+  "expect": "empty line ends",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "Thank you, after START 00E it prints.",
+  "settle": 3
+ },
+ {
+  "term": "",
+  "expect": "ticket|TICKET|Ready\\(",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "ticket Reader 00C question",
+  "expect": "empty line ends",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "How do I send a deck to my reader from the PC?",
+  "settle": 3
+ },
+ {
+  "term": "",
+  "expect": "ticket|TICKET|Ready\\(",
+  "timeout": 900,
+  "cont": true
+ },
+ {
+  "term": "cp msg * MDB-END",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/q n",
+  "expect": "MDDEB-DONE",
+  "timeout": 1500,
+  "cont": true
+ },
+ {
+  "send": "/q n",
+  "settle": 30
+ },
+ {
+  "send": "/force maint",
+  "settle": 10
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]
