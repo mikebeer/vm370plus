@@ -1,0 +1,60 @@
+./ I 00043600          $ 43700 100                    03/20/84 08:32:15
+               IF  CLC,SYMNAME,=C'DMKPGTDM',EQ,THEN            S00011   00043700
+                   MVC  CPAPGTDM,SYMADDR                       S00011   00043800
+               IF  END                                         S00011   00043900
+./ I 00177000          $ 177100 100                   03/20/84 08:32:15
+         L     R1,CPAPGTDM                                     S00011   00177100
+         ST    R1,CPTPGTDM                                     S00011   00177200
+         LA    R1,4(,R1)                                       S00011   00177300
+         ST    R1,CPTPGTDK                                     S00011   00177400
+         LA    R1,4(,R1)                                       S00011   00177500
+         ST    R1,CPTPGTPC                                     S00011   00177600
+         SPACE 1                                               S00011   00177700
+./ R 00179000          $ 179490 490                   03/20/84 08:32:15
+         OI    CPTPGTPC,X'80'           INDICATE END           S00011   00179490
+./ R 00278600          $ 278620 20                    03/20/84 08:32:15
+TEMPFULL DS    CL17'Page/Spool    99%'                        *MARTEN01 00278620
+         ORG   STORCOL+16*L'SCRLINE                            S00011   00278640
+TEMPMAX  DS    CL17' of 9999999 pages'                         S00011   00278660
+         SPACE 1                                               S00011   00278680
+         ORG   STORCOL+17*L'SCRLINE                            S00011   00278740
+PAGMHPCT DS    CL17'MH Pref Page  99%'                         S00011   00278760
+         ORG   STORCOL+18*L'SCRLINE                            S00011   00278780
+PAGMHCT  DS    CL17' of 9999999 pages'                         S00011   00278800
+         ORG   STORCOL+19*L'SCRLINE                            S00011   00278700
+PAGFHCT  DS    CL17'FH  9999999 pages'                         S00011   00278720
+./ R 00654360          $ 654390 30                    03/20/84 08:32:15
+         M     R0,=F'200'                                     *MARTEN01 00654390
+./ R 00654720 00655000 $ 654740 20                    03/20/84 08:32:15
+         CALL  DECIT                                          *MARTEN01 00654740
+         STCM  R1,B'1111',TEMPFULL+L'TEMPFULL-1-4             *MARTEN01 00654760
+         MVI   TEMPFULL+L'TEMPFULL-1,C'%'                     *MARTEN01 00654780
+            SPACE 1                                            S00011   00654800
+            MVC   TEMPMAX,=CL(L'TEMPMAX)' of 9999999 pages'   SS00011   00654820
+            L     R1,CPTPGTTM                                  S00011   00654840
+            CALL  DECIT                                        S00011   00654860
+            MVC   TEMPMAX+L'TEMPMAX-7-6(7),28-7(R13)           S00011   00654880
+            SPACE 1                                            S00011   00654920
+            ICM R1,15,CPTPGTDM                                 S00011   00654940
+            IF NZ,THEN                                         S00011   00654960
+               MVC   PAGFHCT,=CL(L'PAGFHCT)'FH  9999999 pages' S00011   00654980
+               CALL  DECIT                                     S00011   00655000
+               MVC   PAGFHCT+L'PAGFHCT-7-6(7),28-7(R13)        S00011   00655020
+            IF END                                             S00011   00655060
+            SPACE 1                                            S00011   00655080
+            IF CLC,CPTPGTDK,=F'0',NE,THEN                      S00011   00655100
+               MVC PAGMHPCT,=CL(L'PAGMHPCT)'MH Pref Page  99%' S00011   00655120
+               L     R1,CPTPGTPC                               S00011   00655140
+               M     R0,=F'200'                                S00011   00655160
+               D     R0,CPTPGTDK                               S00011   00655180
+               LA    R1,1(R1)   round.                         S00011   00655200
+               SRA   R1,1                                      S00011   00655220
+               CALL  DECIT                                     S00011   00655240
+               STCM  R1,B'1111',PAGMHPCT+L'PAGMHPCT-1-4        S00011   00655260
+               MVI   PAGMHPCT+L'PAGMHPCT-1,C'%'                S00011   00655280
+               SPACE 1                                         S00011   00655300
+               MVC   PAGMHCT,=CL(L'PAGMHCT)' of 9999999 pages' S00011   00655320
+               L     R1,CPTPGTDK                               S00011   00655340
+               CALL  DECIT                                     S00011   00655360
+               MVC   PAGMHCT+L'PAGMHCT-7-6(7),28-7(R13)        S00011   00655380
+            IF END                                             S00011   00655420

@@ -1,0 +1,26 @@
+./ R 00071000 00072000
+         L     R6,ADEVICES                                              00071000
+         USING DEVSECT,R6                                               00072000
+./ I 00073000
+            IF CLI,DEVTYPE,DEVCONS,EQ,THEN                              00073010
+               LH  R2,=H'-1'                                            00073020
+               DIAG R2,R3,X'24'         DEVICE TYPE AND FEATURES.       00073030
+               SPACE 1                                                  00073040
+               STH  R2,DEVADDR          REAL CONSOLE ADDRESS.           00073050
+               LR   R0,R2                                               00073060
+               SRDL R0,4                                                00073070
+               SRL  R1,4                                                00073080
+               SRDL R0,4                                                00073090
+               SRL  R1,4                                                00073100
+               SRDL R0,4                                                00073110
+               SRL  R1,12                                               00073120
+               STCM R1,7,DEVCADDR                                       00073130
+               TR   DEVCADDR,HEXTABS                                    00073140
+               SPACE 1                                                  00073150
+            IF END                                                      00073160
+            SPACE 2                                                     00073170
+./ R 00091000
+            SPACE 3                                                     00090100
+            LA  R6,DEVNEXT                                              00091000
+./ R 00093000
+         DROP  R6                                                       00093000

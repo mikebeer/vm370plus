@@ -1,0 +1,218 @@
+         TITLE '** 3420 TAPE SENSE COMMAND ***'
+         MACRO
+&NAME    TSB   &SBS,&BYTE,&BIT,&MASK=1,&TEXT
+         LCLB  &B(8)
+         LCLA  &W1,&W2
+&W1      SETA  &BIT+1
+         LCLC  &LAB,&VAL
+&B(&W1)  SETB  1
+&VAL     SETC  '&SYSNDX'
+&LAB     SETC  'SEN'.'&VAL'.'A'
+         TM    &SBS+&BYTE,B'&B(1)&B(2)&B(3)&B(4)&B(5)&B(6)&B(7)&B(8)'
+         BC    15-&MASK,&LAB
+         DMSERR TEXT=&TEXT,LET=I,NUM=100
+&LAB     EQU   *
+         MEND
+*
+         MACRO
+&NAME    TRC   &CODE,&TEXT,&MASK=8,&REG=15,&NUM=0,&GOTO=?
+         LCLC  &LAB,&VAR
+&VAR     SETC  '&SYSNDX'
+&LAB     SETC  'SEN'.'&VAR'.'B'
+         C     &REG,=F'&CODE'
+         BC    15-&MASK,&LAB
+         DMSERR TEXT=&TEXT,LET=E,NUM=&NUM
+         AIF   ('&GOTO' EQ '?').ELSE
+         B     &GOTO
+.ELSE    ANOP
+&LAB     EQU   *
+         MEND
+*
+         EJECT
+TAPSENSE START 0
+***********************************************************************
+*                                                                     *
+*        TAPE SENSING PROGRAM                                         *
+*                                                                     *
+*        THIS PROGRAM WILL RETURN INFORMATION ABOUT A 3420 TAPE       *
+*        DRIVE.                                                       *
+*                                                                     *
+*        HENRY NUSSBACHER    1/10/83                                  *
+*                                                                     *
+*                                                                     *
+*                                                                     *
+*                                                                     *
+*        (C) WEIZMANN INSTITUTE OF SCIENCE                            *
+***********************************************************************
+         PRINT NOGEN
+         SAVE  (14,12),,*          SAVE CALLER'S REGISTERS
+         USING TAPSENSE,R15        ESTABLISH ADDRESSABILITY
+         CNOP  0,4                 ALLIGN ON FULLWORD BOUNDARY
+         BAL   R15,*+76            BRANCH AROUND SAVE AREA
+         DROP  R15                 DROP TEMP BASE REGISTER
+         USING SAVEAREA,R13,R12    ESTABLISH NEW BASE REGISTERS
+SAVEAREA DC    18F'-1'             REGISTER SAVE AREA
+         ST    R15,8(,R13)         CHAIN FOWARD SAVE AREA
+         ST    R13,4(,R15)         CHAIN BACKWARD SAVE AREA
+         LR    R13,R15             LOAD NEW BASE REGISTER
+         LA    R12,4095(,R13)      LOAD SECOND BASE REGISTER
+         LA    R12,1(,R12)         ADD 1 TO MAKE AN EVEN 8K
+         LA    R1,8(,R1)           POINT TO TAPE UNIT
+         CLI   0(R1),X'FF'         MAKE SURE HE SAYS SOMETHING
+         BE    NOTHING
+         LM    R7,R9,=A(CUUTAB,12,CUUEND)  LOAD UP SCAN REGISTERS
+SCANLOOP EQU   *
+         CLC   0(8,R7),0(R1)         DO THEY MATCH
+         BE    DONE
+         BXLE  R7,R8,SCANLOOP      KEEP TRYING
+NOTHING  DMSERR  TEXT='Format is TAPSENSE vcuu',LET=E,NUM=21
+         LA    R15,21
+         B     EXIT
+DONE     EQU   *
+         L     R0,8(,R7)           GET THE UNIT ADDRESS INTO R5
+         LA    R1,SENCCW           GET ADDRESS OF SENSE CCW
+         DIAG  R0,R1,X'20'         ISSUE GENERAL TAPE I/O
+         BC    CC0,CN3
+         TRC 13,'Permanent I/O Error',GOTO=ERROR,NUM=120
+         TRC 5,'Device is busy or has interrupt pending',GOTO=ERROR,   C
+               NUM=121
+         TRC 3,'Wrong length record detected',GOTO=ERROR,NUM=122
+         TRC 2,'UNIT exception bit in device status byte',GOTO=ERROR,  C
+               NUM=123
+         TRC 1,'Device is not attached',GOTO=ERROR,NUM=124
+         TRC 0,'Bad return code',MASK=7,GOTO=ERROR,NUM=125
+*
+CN3      TM    SBYTE+6,B'00010000'     BIT3 OFF INDICATES 1600
+         BZ    D3
+         TM    SBYTE+6,B'00001000'     BIT4 OFF INDICATES 800
+         BZ    D2
+         MVC   DEN,=CL4'6250'
+         B     P1
+D3       MVC   DEN,=CL4'1600'
+         B     P1
+D2       MVC   DEN,=CL4'800'
+P1       DMSERR TEXTA=DENSITY,LET=I,NUM=100
+*
+         MVC   MD,SBYTE+6
+         NI    MD,X'0F'
+         TR    MD,MT
+         DMSERR TEXTA=MODEL,NUM=100,LET=I
+* Sense byte 0  (Unit checks)
+         TSB SBYTE,0,0,'Command reject'
+         TSB SBYTE,0,1,'Intervention required/not ready'
+         TSB SBYTE,0,2,'Bus out check'
+         TSB SBYTE,0,3,'Equipment check'
+         TSB SBYTE,0,4,'Data check'
+         TSB SBYTE,0,5,'Data overrun'
+         TSB SBYTE,0,6,'Word count zero'
+         TSB SBYTE,0,7,'Data converter check'
+* Sense byte 1
+         TSB SBYTE,1,0,'Noise on tape'
+         TSB SBYTE,1,1,'Tape unit selected is READY and not busy'
+         TSB SBYTE,1,2,'Tape unit selected is NOT READY'
+         TSB SBYTE,1,3,'7-track'
+         TSB SBYTE,1,4,'Tape positioned at load point'
+         TSB SBYTE,1,5,'Write status/ring present in tape'
+         TSB SBYTE,1,6,'File protect/no ring present'
+         TSB SBYTE,1,7,'Not capable - NRZI problems'
+* Sense byte 3  (Data and Equipment checks)
+         TSB SBYTE,3,0,'R/W Vertical Redundancy Check'
+         TSB SBYTE,3,1,'Multiple track error/Longitudinal Redun. Check'
+         TSB SBYTE,3,2,'Skew error'
+         TSB SBYTE,3,3,'End data check/Cyclic Redundancy Check'
+         TSB SBYTE,3,4,'Envelope check/Skew register VRC'
+         TSB SBYTE,3,5,'Phase encoded mode'
+         TSB SBYTE,3,6,'Tape is going backwards'
+         TSB SBYTE,3,7,'C Compare - 7Track NRZI tape'
+* Sense byte 4
+         TSB SBYTE,4,0,'Hardware error'
+         TSB SBYTE,4,1,'Unit dropped ready'
+         TSB SBYTE,4,2,'Tape indicate (end of tape mark)'
+         TSB SBYTE,4,3,'Write trigger VRC'
+         TSB SBYTE,4,4,'Microprogram detected error on 3803-1'
+         TSB SBYTE,4,6,'Tape unit check'
+* Sense byte 5
+         TSB SBYTE,5,2,'Write tape mark check'
+         TSB SBYTE,5,3,'ID burst check'
+         TSB SBYTE,5,4,'Start read check'
+         TSB SBYTE,5,5,'Partial record - early IBG'
+         TSB SBYTE,5,6,'Postamble error'
+         TSB SBYTE,5,6,'Tape unit check'
+* Sense byte 6  (Tape unit information)
+         TSB SBYTE,6,0,'7-track tape unit'
+         TSB SBYTE,6,1,'Write current failure'
+         TSB SBYTE,6,2,'Dual density drive'
+         TSB SBYTE,6,3,'3420 not set to 1600 BPI'
+* Sense byte 7   (Drop READY reason)
+         TSB SBYTE,7,0,'Lamp failure'
+         TSB SBYTE,7,1,'Tape bottomed in the left column'
+         TSB SBYTE,7,2,'Tape bottomed in the right column'
+         TSB SBYTE,7,3,'Tape unit not ready because of RESET'
+         TSB SBYTE,7,4,'Data security erase'
+         TSB SBYTE,7,5,'Erase head failure'
+         TSB SBYTE,7,6,'Air bearing pressure is too low'
+         TSB SBYTE,7,7,'Load failure'
+* Sense byte 8   (Microprogram detected errors)
+         TSB SBYTE,8,0,'IBG detected'
+         TSB SBYTE,8,3,'Early begin read back check'
+         TSB SBYTE,8,4,'Control burst check'
+         TSB SBYTE,8,5,'Slow begin read back check'
+         TSB SBYTE,8,6,'Slow end read back check'
+         TSB SBYTE,8,7,'Velocity retry/restart'
+* Sense byte 9
+         TSB SBYTE,9,0,'6250 BPI correction'
+         TSB SBYTE,9,1,'Velocity change during write'
+         TSB SBYTE,9,2,'Channel buffer check'
+         TSB SBYTE,9,3,'CRC error'
+         TSB SBYTE,9,4,'6250 BPI r/w capability'
+         TSB SBYTE,9,7,'Tape unit is in reserved status'
+* Sense byte 10
+         TSB SBYTE,10,0,'Command status reject'
+         TSB SBYTE,10,2,'Control status reject'
+         TSB SBYTE,10,3,'Tape/record mark cannot be spaced over'
+         TSB SBYTE,10,4,'Dynamic reversal check'
+         TSB SBYTE,10,5,'Tach start failure'
+         TSB SBYTE,10,7,'Velocity check'
+* Sense byte 18
+         TSB SBYTE,18,0,'Voltage out of range or cooling air failure'
+* Sense byte 21 (Thread and load diagnostics)
+         TSB SBYTE,21,0,'Load Button Depressed'
+         TSB SBYTE,21,1,'Left Reel Turning'
+         TSB SBYTE,21,2,'Right Reel Turning'
+         TSB SBYTE,21,3,'Tape Present'
+         TSB SBYTE,21,4,'Reels Loaded'
+         TSB SBYTE,21,5,'Load/Rewind'
+         TSB SBYTE,21,6,'Load Complete'
+         TSB SBYTE,21,7,'Load Check'
+*
+         LA    R15,0
+         B     EXIT
+ERROR    LA    R15,20
+EXIT     L     R13,4(,R13)             * GET CALLER'S SAVE AREA PTR
+         RETURN (14,12),RC=(15)
+*
+CC0      EQU   8
+CC1      EQU   4
+CC2      EQU   2
+CC3      EQU   1
+CUUTAB   DS   0D
+         DC   CL8'180',X'00000180'
+         DC   CL8'181',X'00000181'
+         DC   CL8'182',X'00000182'
+         DC   CL8'183',X'00000183'
+         DC   CL8'184',X'00000184'
+CUUEND   EQU  *-12
+SBYTE    DC    3D'0'
+SENCCW   CCW   4,SBYTE,SILI,24
+MODEL    DC    AL1(LENMD)
+         DC    C'Tape Unit Model is 3420-'
+MD       DC    C'?'
+LENMD    EQU   *-MODEL-1
+DENSITY  DC    AL1(LENDEN)
+         DC    C'Density at '
+DEN      DC    CL4'????'
+LENDEN   EQU   *-DENSITY-1
+MT       DC    3C'?',C'357',5C'?',C'468',2C'?',240C'?'
+         EQUATES
+         REGEQU
+         END

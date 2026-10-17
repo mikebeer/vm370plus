@@ -22,6 +22,7 @@ if abbrev('READER', opt, 1) = 0 then do
     say 'LINUX: options are DISK (the default) or READER'
     exit 24
   end
+  if devices() <> 0 then exit 28
   say 'LINUX: IPL LINUX (the Debian disk at 250, ESA/390)'
   'CP IPL LINUX'
   exit rc
@@ -33,13 +34,15 @@ if rc <> 0 then do
   parm = 'DEFAULT'
   'STATE DEFAULT LXPARM *'
   if rc <> 0 then do
-    say 'LINUX: no LXPARM file found (LINK MAINT 19D 19D RR, ACCESS 19D U)'
+    say 'LINUX: no LXPARM file found'
+    say 'LINUX: (LINK MAINT 19D 19D RR, ACCESS 19D U)'
     exit 28
   end
 end
 'STATE LINUX48 KERNEL2 *'
 if rc <> 0 then do
-  say 'LINUX: LINUX48 KERNEL2 not found (LINK MAINT 19D 19D RR, ACCESS 19D U)'
+  say 'LINUX: LINUX48 KERNEL2 not found'
+  say 'LINUX: (LINK MAINT 19D 19D RR, ACCESS 19D U)'
   exit 28
 end
 say 'LINUX: punching the kernel and' parm 'LXPARM to your reader ...'
@@ -56,3 +59,57 @@ if rc <> 0 then exit rc
 say 'LINUX: IPL 00C as an ESA/390 machine'
 'CP SET ESA ON'
 'CP IPL 00C'
+
+/* the disk at 250, the CTC pair 620/630, 64 MB: what is missing is  */
+/* attached if this user may (class B, e.g. MAINT: the Debian disk   */
+/* is real 190, the pair to the PC 600/601), or explained            */
+devices: procedure
+u = userid()
+if \ there('250') then do
+  call quiet 'CP ATTACH 190 TO' u 'AS 250'
+  if \ there('250') then do
+    say 'LINUX: no disk at 250.  The Debian disk is the real 190; the'
+    say 'LINUX: operator (or MAINT) attaches it:'
+    say 'LINUX:    ATTACH 190 TO' u 'AS 250'
+    return 1
+  end
+  say 'LINUX: the Debian disk (190) attached as 250'
+end
+if \ there('620') then do
+  call quiet 'CP ATTACH 600 TO' u 'AS 620'
+  call quiet 'CP ATTACH 601 TO' u 'AS 630'
+  if there('620') then
+    say 'LINUX: the CTC pair 600/601 attached as 620/630'
+  else do
+    say 'LINUX: no network (CTC 620/630): Debian starts without'
+    say 'LINUX: it.  For ssh, NJE and mail from the PC, remove the #'
+    say 'LINUX: in front of 0600.2 CTCI in vm370ce.conf (Hercules'
+    say 'LINUX: then needs a TUN device)'
+  end
+end
+'EXECIO * CP (STRING QUERY VIRTUAL STORAGE'
+parse pull . '=' stor .
+stor = strip(translate(stor, ' ', 'K'))
+if datatype(stor, 'W') then if stor < 65536 then do
+  say 'LINUX: Debian needs 64 MB of storage.  Then IPL it from CP:'
+  say 'LINUX:    CP DEFINE STORAGE 64M'
+  say 'LINUX:    CP IPL LINUX'
+  return 1
+end
+return 0
+
+there: procedure
+arg cuu
+'EXECIO * CP (STRING QUERY VIRTUAL' cuu
+ok = 0
+do queued(); parse pull l
+  if word(l, 2) = cuu & word(l, 3) <> 'DOES' then ok = 1
+end
+return ok
+
+quiet: procedure
+parse arg cmd
+'SET CMSTYPE HT'
+cmd
+'SET CMSTYPE RT'
+return

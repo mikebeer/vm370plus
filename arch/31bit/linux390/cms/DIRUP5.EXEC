@@ -1,0 +1,31 @@
+/* DIRUP5 EXEC -- MAINT gets the Debian disk at logon: DEDICATE 250  */
+/* 190 (early user report, 17 Oct: CP IPL LINUX said DEV 250 DOES   */
+/* NOT EXIST -- the disk had to be attached by hand).  Run again,   */
+/* it changes nothing.                                              */
+'EXECIO * DISKR USER DIRECT A (FINIS STEM D.'
+if rc <> 0 then exit rc
+n = 0; inm = 0; done = 0; have = 0
+do i = 1 to d.0
+  w1 = word(d.i, 1)
+  if w1 = 'USER' then inm = (word(d.i, 2) = 'MAINT')
+  if inm & w1 = 'DEDICATE' & word(d.i, 2) = '250' then have = 1
+end
+if have then do; say 'DIRUP5: MAINT has DEDICATE 250 190'; exit 0; end
+inm = 0; put = 0
+do i = 1 to d.0
+  n = n + 1; o.n = d.i
+  if word(d.i, 1) = 'USER' then inm = (word(d.i, 2) = 'MAINT')
+  if inm & \ put & word(d.i, 1) = 'SPOOL' & word(d.i, 2) = '00E' then do
+    n = n + 1; put = 1
+    o.n = left(' DEDICATE 250 190', 80)   /* after the unit records */
+  end
+end
+if \ put then do; say 'DIRUP5: no SPOOL 00E line for MAINT'; exit 8; end
+'COPYFILE USER DIRECT A USERB250 DIRECT A (REPLACE'
+'ERASE USER DIRECT A'
+do i = 1 to n; queue o.i; end
+'EXECIO' n 'DISKW USER DIRECT A 0 F 80 (FINIS'
+if rc <> 0 then exit rc
+'DIRECT USER DIRECT A'
+say 'DIRUP5: RC' rc
+exit rc

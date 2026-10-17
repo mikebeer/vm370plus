@@ -1,0 +1,66 @@
+.fo off
+
+DISKPRY - A command to allow one to snoop around on an EDF format CMS
+          minidisk. Can be used to learn how disks are organized, or
+          to diagnose what is wrong with a minidisk. Can be used to
+          rewrite actual disk blocks and create a disk file from
+          data in disk blocks.
+
+
+Format:   DISKPRY fm
+
+    Note: "fm" is the filemode for an ACCESSed disk. This disk must be
+           EDF format.
+
+Operation: DISKPRY will type the location or value for various interesting
+           things for the disk, such as the location of the ADT entry,
+           the location of the directory, etc.
+
+           Next you are asked if you want to have the directory entries
+           typed at the terminal. This will include the file origin
+           pointer(1st block number) for each file, and the number of
+           pointer levels for the file.
+
+           Next you will prompted for a command:
+
+           Command:(READ|WRITE|MAP|EXIT|FOP|SCAN|SAVE|CMS|COPY)
+
+           Where:    READ  - Read a disk block. You will br prompted
+                             for the number of the block to be read
+                             into the disk block buffer.
+
+                     WRITE - Rewrite last block read from disk block
+                             buffer.
+
+                     MAP   - List disk directory.
+
+                     EXIT  - Leave DISKPRY, return to CMS.
+
+                     FOP   - Return the file origin pointer for a
+                             specified file.
+
+                     SCAN  - Scan all blocks on the minidisk for
+                             a specified string. Can be used to locate
+                             data blocks of files that have been ERASEd.
+                             It is possible to scan for fullword binary
+                             values, or character strings.
+
+                     SAVE  - Record the data currently in the disk block
+                             buffer in the file "DISKPRY SAVEFILE A".
+                             Can be used to recreate an ERASEd file.
+
+                     CMS   - Enter CMS SUBSET.
+
+                     COPY  - Copy input minidisk block-by-block to
+                             another RW ACCESSed minidisk. Output
+                             minidisk will become an exact copy of the
+                             input minidisk. Bad input blocks will be
+                             skipped. Can be used to recover a minidisk
+                             from a bad HDA.
+
+    Note:  "WRITE" will rewrite the last block read. This command
+           should be used with caution.
+
+           "COPY" will rewrite the output minidisk entirely. Use
+           also with caution.
+

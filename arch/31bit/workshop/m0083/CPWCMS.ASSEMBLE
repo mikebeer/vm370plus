@@ -1,0 +1,1426 @@
+VMCF     TITLE 'CPWCMS - CPWATCH CMS INTERFACE'                         00010000
+*********************************************************************** 00020000
+*                                                                       00030000
+*  PROGRAM NAME:  CPWCMS                                                00040000
+*                                                                       00050000
+*  PROGRAM FUNCTION:  COMMUNICATE WITH CPWATCH MONITOR USING VMCF       00060000
+*                                                                       00070000
+*  PROGRAMMED BY:  GARY GEORGE                    DATE: 31OCT84         00080000
+*                                                                       00090000
+*  STATUS: DEVELOPMENT                            DATE:                 00100000
+*                                                                       00110000
+*  INSTALLATION: WORKERS' COMPENSATION BOARD OF ALBERTA                 00120000
+*                                                                       00130000
+*  ENVIRONMENT:                                                         00140000
+*        VM/SP CMS 2.1.                                                 00150000
+*        SHOULD RUN ON ALL VM WITH FULL SCREEN DIAGNOSE.                00160000
+*                                                                       00170000
+*  ATTRIBUTES:                                                          00180000
+*        TRANSIENT AREA ROUTINE, CMS/ALL, NUCLEUS PROTECT KEY.          00190000
+*        TRAPS I/O NEW, EXT NEW PSW, AND CMS ABEND ROUTINE.             00200000
+*        DOES FULL-SCREEN DIAGNOSE I/O; ENABLES AND DISABLES VMCF.      00210000
+*                                                                       00220000
+*  PROGRAM USE:                                                         00230000
+*                                                                       00240000
+*  OPERATION:                                                           00250000
+*                                                                       00260000
+*  FILES:                                                               00270000
+*                                                                       00280000
+*  MACRO LIBRARIES:                                                     00290000
+*        CMSLIB, OSMACRO, DMKMAC, CPWMAC.                               00300000
+*                                                                       00310000
+*  COPY CODE:                                                           00320000
+*        NUCON                                                          00330000
+*        VMCBLOKS                                                       00340000
+*                                                                       00350000
+*  CALLS TO OTHER ROUTINES:                                             00360000
+*                                                                       00370000
+*  DATA AREAS:                                                          00380000
+*                                                                       00390000
+*  REGISTER USAGE:                                                      00400000
+*        R1 - A(PARAMETER LIST)                                         00410000
+*        R10 - SUBROUTINE BASE REGISTER                                 00420000
+*        R11, R12 - MAIN LINE BASE REGISTERS.                           00430000
+*        R13 - SAVE AREAS.                                              00440000
+*        R14, R15 - PROGRAM LINKAGE.                                    00450000
+*                                                                       00460000
+*  MAINTAINENCE / REGENERATION REQUIREMENTS:                            00470000
+*        VMFASM CPWCMS CPWUTL                                           00480000
+*        LOAD CPWCMS (ORIGIN TRANS CLEAR                                00490000
+*        GENMOD CPWCMS MODULE A2 (ALL SYSTEM                            00500000
+*              AND COPY TO Y-DISK.                                      00510000
+*                                                                       00520000
+*  MODIFICATION HISTORY:                                                00530000
+*                                                                       00540000
+*********************************************************************** 00550000
+         PRINT OFF,NOGEN                                                00560000
+         MACRO                                                          00570000
+&NAME    ENTER &TYPE=CSECT,&BASE=10,&TRACE=                             00580000
+.* PERFORM HOUSEKEEPING AND SET UP SAVEAREA.                            00590000
+.* WARNING: NON-REENTRANT CODE IS GENERATED.                            00600000
+         GBLB  &NTXTRCE       ENTER/EXIT TRACE                          00610000
+         GBLC  &NTXROUT       ROUTINE NAME BEING ENTERED.               00620000
+         GBLC  &NTXSECT       CSECT ROUTINE IS ACTIVE IN.               00630000
+.*                                                                      00640000
+&NTXROUT SETC  '&NAME '                                                 00650000
+.*                                                                      00660000
+         AIF (T'&TRACE EQ 'O').NOCHGTR                                  00670000
+&NTXTRCE SETB  ('&TRACE' EQ 'YES')                                      00680000
+.NOCHGTR ANOP                                                           00690000
+.*                                                                      00700000
+         AIF ('&TYPE' EQ 'CSECT').CSECT                                 00710000
+         AIF ('&TYPE' EQ 'INLINE').INLINE                               00720000
+               MNOTE 8,'&NAME ENTER TYPE=&TYPE - TYPE MUST BE ''INLINE'+00730000
+               ' OR ''CSECT''. CSECT ASSUMED'                           00740000
+.CSECT   ANOP                                                           00750000
+&NAME    CSECT                                                          00760000
+&NTXSECT SETC  '&NAME'                                                  00770000
+         AGO   .TYJOIN                                                  00780000
+.INLINE  ANOP                                                           00790000
+&NTXSECT SETC  '&SYSECT'                                                00800000
+         DS    0D                                                       00810000
+&NAME    EQU   *,4,C'I'                                                 00820000
+.TYJOIN  ANOP                                                           00830000
+.*                                                                      00840000
+         USING &NAME,&BASE                                              00850000
+         STM   14,12,12(R13)                                            00860000
+         B     16(15)                                                   00870000
+            DC    0D'0',CL8'&NAME'                                      00880000
+         LR    &BASE,15    GET ADDRESSABLE.                             00890000
+         NOPR  0                                                        00900000
+         BAL   15,96(,&BASE)                                            00910000
+            DC    18F'0' SAVE AREA                                      00920000
+         ST    13,4(,15)                                                00930000
+         ST    15,8(,13)                                                00940000
+         LR    13,15                                                    00950000
+         AIF (NOT &NTXTRCE).NOTR                                        00960000
+               STM    0,1,20(13)                                        00970000
+               WRTERM 'ENTER &NTXROUT '                                 00980000
+               WAITT                                                    00990000
+               LM    0,1,20(13)                                         01000000
+.NOTR    ANOP                                                           01010000
+         MEND                                                           01020000
+         MACRO                                                          01030000
+&NAME    EXIT  &R0R1=NO,&RC=0                                           01040000
+         GBLB  &NTXTRCE       ENTER/EXIT TRACE                          01050000
+         GBLC  &NTXROUT       ROUTINE NAME BEING ENTERED.               01060000
+         GBLC  &NTXSECT       CSECT ROUTINE IS ACTIVE IN.               01070000
+.*                                                                      01080000
+.*             BACK UP ONE SAVEAREA.                                    01090000
+&NAME    L     13,4(,13)                                                01100000
+.*             SET R0, R1 IF REQUESTED.                                 01110000
+         AIF   ('&R0R1' EQ 'NO').NOR0R1                                 01120000
+         STM   0,1,20(13)                                               01130000
+.NOR0R1  AIF   ('&RC' EQ '(15)').NOLA15                                 01140000
+         LA    15,&RC                                                   01150000
+.*             SAVE RETURN CODE                                         01160000
+.NOLA15  ST    15,16(,13)                                               01170000
+.*             OPTIONAL TRACE ENTRIES.                                  01180000
+         AIF (NOT &NTXTRCE).NOTR                                        01190000
+               LR 3,15                                                  01200000
+               LINEDIT TEXT='EXIT &NTXROUT ........',                  +01210000
+               SUB=(HEX,(R3))                                           01220000
+               WAITT                                                    01230000
+.NOTR    ANOP                                                           01240000
+.*             RESTORE (PERHAPS ALTERED) REGISTERS.                     01250000
+         LM    14,12,12(13)                                             01260000
+.*             SET CONDITION CODE - AS A CONVENIENCE.                   01270000
+         LTR   15,15                                                    01280000
+.*             RETURN.                                                  01290000
+         BR    14                                                       01300000
+         MEND                                                           01310000
+         MACRO                                                          01320000
+&NAME    ICALL &ROUTINE                                                 01330000
+.* GENERATE A CALL USING A-CONS RATHER THAN V-CONS.                     01340000
+&NAME    L     15,=A(&ROUTINE)                                          01350000
+         BALR  14,15                                                    01360000
+         MEND                                                           01370000
+         PRINT ON                                                       01380000
+CPWCMS   START X'E000'                                                  01390000
+CPWCMS   ENTER BASE=R11                                                 01400000
+         LA    R12,2048                                                 01410000
+         LA    R12,2048(R12,R11)                                        01420000
+         USING CPWCMS,R11,R12                                           01430000
+         SPACE 1                                                        01440000
+         CLI   8(R1),X'FF'                                              01450000
+         BE    NOTOK                                                    01460000
+            MVC CURRSCRN,8(R1)                                          01470000
+NOTOK    EQU   *                                                        01480000
+ LINEDIT TEXT='CP SET RUN OFF',DOT=NO,DISP=CPCOMM                       01490000
+ LINEDIT TEXT='CP SPOOL PRINT *',DOT=NO,DISP=CPCOMM                     01500000
+         C     R11,=A(X'E000')          RUNNING IN TRANSIENT AREA ?     01510000
+         BH    GETNUC         BR NO, PROBABLY NOT SYSTEM PROT KEY.      01520000
+            SSM =AL1(ENABLE)  WE RUN ENABLED, MOSTLY.                   01530000
+            B   GOTNUC                                                  01540000
+GETNUC   EQU   *              RUNNING IN USER AREA; PROBABLY NOT SYSTEM 01550000
+            DMSKEY NUCLEUS                                              01560000
+GOTNUC   EQU   *                                                        01570000
+         SPACE 1                                                        01580000
+         MVI   WORK,0                                                   01590000
+         SPACE 1                                                        01600000
+         ICALL GETM                                                     01610000
+         L     R9,SCR                                                   01620000
+         USING SCRATCH,R9                                               01630000
+         SPACE 1                                                        01640000
+         ICALL CONSTYPE                                                 01650000
+         BNZ   DISCONN        BR IF WE'RE DISCONNECTED.                 01660000
+         SPACE 1                                                        01670000
+         ICALL HOOK           TRAP I/O AND EXTERNAL INTERRUPTS.         01680000
+         SPACE 1                                                        01690000
+         ICALL OPCON                                                    01700000
+         LTR   R15,R15                                                  01710000
+         BNZ   REST                                                     01720000
+         SPACE 1                                                        01730000
+         ICALL OPVMCF                                                   01740000
+         LTR   R15,R15                                                  01750000
+         BNZ   REST                                                     01760000
+         SPACE 1                                                        01770000
+*           LINEDIT TEXT='RETCD ..... CSW .... SENSE ....',            +01780000
+               SUB=(DEC,(R3),HEX4A,CSWSAVE,HEX4A,SNSDATA),RENT=NO       01790000
+         SPACE 1                                                        01800000
+WAITIT   EQU   *                                                        01810000
+         ICALL WAITER                                                   01820000
+         SPACE 1                                                        01830000
+         TM    WORK,ATTN                                                01840000
+         BZ    NOTATTN                                                  01850000
+            NI  WORK,255-ATTN WE (WILL HAVE) PROCESSED THIS ONE         01860000
+            ICALL RS          READ THE SCREEN.                          01870000
+NOTATTN  EQU   *                                                        01880000
+         SPACE 1                                                        01890000
+         TM    WORK,NEWSCR                                              01900000
+         BZ    NOTVMCF                                                  01910000
+            NI   WORK,255-NEWSCR                                        01920000
+            ICALL WS                                                    01930000
+NOTVMCF  EQU   *                                                        01940000
+         TM    WORK,QUIT                                                01950000
+         BZ    WAITIT                                                   01960000
+         SPACE 1                                                        01970000
+REST     EQU   *                                                        01980000
+DISCONN  EQU   *                                                        01990000
+         ICALL CLVMCF                                                   02000000
+         ICALL CLCON                                                    02010000
+         ICALL RESTORE        RECONNECT CMS TO HARDWARE.                02020000
+         SPACE 1                                                        02030000
+         ICALL FREEM                                                    02040000
+         SPACE 1                                                        02050000
+         C     R11,=A(X'E000')          RUNNING IN TRANSIENT AREA ?     02060000
+         BNH   NOTNUC         BR IF YES, DON'T NEED TO RESET.           02070000
+            DMSKEY RESET                                                02080000
+NOTNUC   EQU   *                                                        02090000
+         SPACE 1                                                        02100000
+         EXIT  RC=(15)                                                  02110000
+         EJECT                                                          02120000
+*********************************************************************** 02130000
+*        HOOK: TRAP NEEDED INTERRUPTS                                   02140000
+*********************************************************************** 02150000
+HOOK     ENTER                                                          02160000
+         SPACE 1                                                        02170000
+         USING NUCON,R0                                                 02180000
+         SPACE 1                                                        02190000
+         SSM   =AL1(DISABLE)                                            02200000
+         SPACE 1                                                        02210000
+         OC    CMSION,CMSION  HAVE THEY ALREADY BEEN GRABBED ?          02220000
+         BNZ   HOOKX          BR IF YES                                 02230000
+         SPACE 1                                                        02240000
+         MVC   CMSION,IONPSW                                            02250000
+         MVC   CMSEXTN,EXTNPSW                                          02260000
+         MVC   CMSPGMN,PGMNPSW                                          02270000
+         MVC   CMSKX,AKILLEX                                            02280000
+         SPACE 1                                                        02290000
+         MVC   IONPSW,MYION                                             02300000
+         MVC   EXTNPSW,MYEXTN                                           02310000
+         MVC   PGMNPSW,MYPGMN                                           02320000
+         MVC   AKILLEX,=A(MYKX)                                         02330000
+         SPACE 1                                                        02340000
+HOOKX    EQU   *                                                        02350000
+         SSM   =AL1(ENABLE)                                             02360000
+         SPACE 1                                                        02370000
+         DROP R0                                                        02380000
+         SPACE 1                                                        02390000
+         EXIT                                                           02400000
+         EJECT                                                          02410000
+*********************************************************************** 02420000
+*        CONSTYPE: IDENTIFY CONSOLE DEVICE.                             02430000
+*********************************************************************** 02440000
+CONSTYPE ENTER                                                          02450000
+         L     R3,=F'-1'                                                02460000
+         DIAG  R3,R4,X'24'    DEVICE TYPE AND FEATURES.                 02470000
+         BNZ   CONSERR        NOT CONNECTED.                            02480000
+         SPACE 1                                                        02490000
+         STH   R3,CONSADDR                                              02500000
+         SPACE 1                                                        02510000
+         EXIT  RC=0                                                     02520000
+         SPACE 3                                                        02530000
+CONSERR  EXIT RC=8                                                      02540000
+         EJECT                                                          02550000
+*********************************************************************** 02560000
+*              GETM: GET MAJOR STORAGE.                                 02570000
+*********************************************************************** 02580000
+GETM     ENTER                                                          02590000
+         LM    R1,R2,SCR      GET MAJOR STORAGE.                        02600000
+         LTR   R1,R1                                                    02610000
+         BNZ   GET100                                                   02620000
+            LA  R0,7(,R2)                                               02630000
+            SRL R0,3          DWORDS                                    02640000
+            DMSFREE DWORDS=(0)                                          02650000
+            SLL R0,3          BYTES                                     02660000
+            LR  R2,R0                                                   02670000
+            STM  R1,R2,SCR                                              02680000
+GET100   EQU   *                                                        02690000
+         SPACE 1                                                        02700000
+         LR    R9,R1                                                    02710000
+         MVI   BLANKS,C' '                                              02720000
+         MVC   BLANKS+1(L'BLANKS-1),BLANKS                              02730000
+         SPACE 1                                                        02740000
+* LR R2,R1                                                              02750000
+* LINEDIT TEXT='STORAGE AT ........',SUB=(HEX,(R2))                     02760000
+         EXIT  RC=0                                                     02770000
+         SPACE 3                                                        02780000
+*********************************************************************** 02790000
+*              FREEM: RELEASE MAJOR STORAGE.                            02800000
+*********************************************************************** 02810000
+FREEM    ENTER                                                          02820000
+         SPACE 1                                                        02830000
+         LM    R1,R2,SCR      RELEASE MAJOR STORAGE.N BUILD BUFFER      02840000
+         LTR   R1,R1                                                    02850000
+         BZ    FRE100                                                   02860000
+            LR  R0,R2                                                   02870000
+            SRL R0,3          DWORDS                                    02880000
+            DMSFRET DWORDS=(0),LOC=(1)                                  02890000
+            SLL R0,3          BYTES                                     02900000
+            SR  R1,R1         NOTE WE NO LONGER HAVE IT.                02910000
+            STM  R1,R2,SCR    SAVE  IT                                  02920000
+FRE100   EQU   *                                                        02930000
+         EXIT  RC=0                                                     02940000
+         EJECT                                                          02950000
+*********************************************************************** 02960000
+*              OPCON: OPEN CONSOLE OPERATIONS                           02970000
+*********************************************************************** 02980000
+OPCON    ENTER                                                          02990000
+         SPACE 1                                                        03000000
+         L     R1,SCR         MAJOR STORAGE                             03010000
+         A     R1,=A(SBUFF-SCRATCH)                                     03020000
+         ST    R1,SBUFFA                                                03030000
+         XC    SBUFFL,SBUFFL  SHOW AS EMPTY.                            03040000
+         SPACE 1                                                        03050000
+         OI    CONSFLAG,CLRPLS+UNFORMAT REQUEST CLEAR.                  03060000
+         SPACE 1                                                        03070000
+         L     R2,SBUFFA                                                03080000
+         L     R3,1920                                                  03090000
+         ST    R3,SBUFFL                                                03100000
+         SR    R4,R4                                                    03110000
+         SR    R5,R5                                                    03120000
+         ICM   R5,8,=X'5C'                                              03130000
+         MVCL R2,R4                                                     03140000
+         SPACE 1                                                        03150000
+         MVC   ERRMSG,BLANKS CLEAR OUT ERROR MESSAGE BUFFER.            03160000
+         MVI   ERRMSG,0      DATA LENGTH.                               03170000
+OPC900   EQU   *                                                        03180000
+         EXIT RC=0                                                      03190000
+         EJECT                                                          03200000
+*********************************************************************** 03210000
+*        CLCON: TERMINATE CONSOLE OPERATIONS.                           03220000
+*********************************************************************** 03230000
+CLCON    ENTER                                                          03240000
+         SPACE 1                                                        03250000
+         XC    SBUFFA,SBUFFA                                            03260000
+         XC    SBUFFL,SBUFFL                                            03270000
+         SPACE 1                                                        03280000
+         CLI   ERRMSG,0      WAS A LINE MESSAGE QUEUED UP ?             03290000
+         BZ    CLC300                                                   03300000
+            LA  R2,ERRMSG+1                                             03310000
+            SR  R3,R3                                                   03320000
+            IC  R3,ERRMSG                                               03330000
+            WRTERM (R2),(R3)                                            03340000
+CLC300      EQU *                                                       03350000
+         EXIT  RC=0                                                     03360000
+         EJECT                                                          03370000
+*********************************************************************** 03380000
+*        OPVMCF: INITIATE VMCF OPERATIONS.                              03390000
+*********************************************************************** 03400000
+OPVMCF   ENTER                                                          03410000
+         L     R1,SCR                                                   03420000
+         A     R1,=A(DBUFF-SCRATCH)                                     03430000
+         ST    R1,DBUFFA                                                03440000
+         SPACE 1                                                        03450000
+         L     R2,DBUFFA                                                03460000
+         L     R3,1920                                                  03470000
+         ST    R3,DBUFFL                                                03480000
+         SR    R4,R4                                                    03490000
+         SR    R5,R5                                                    03500000
+         ICM   R5,8,=X'5C'                                              03510000
+         MVCL  R2,R4                                                    03520000
+         SPACE 1                                                        03530000
+         ICALL AUTVMCF                                                  03540000
+         BNZ   OPV400                                                   03550000
+            SPACE 1                                                     03560000
+            LA    R1,CURRSCRN                                           03570000
+            ICALL CMD                                                   03580000
+OPV400   EQU   *                                                        03590000
+         SPACE 1                                                        03600000
+         EXIT  RC=(15)                                                  03610000
+         SPACE 3                                                        03620000
+* ********************************************************************* 03630000
+* AUTVMCF: AUTHORIZE.                                                   03640000
+* ********************************************************************* 03650000
+AUTVMCF  ENTER                                                          03660000
+         VMCF  AUTHORIZE,SPECIFIC,PARM=VMCP,                           +03670000
+               USERID=SERVER,                                          +03680000
+               FLDA=VMCIH                                               03690000
+         BZ    AUT500                                                   03700000
+         SPACE 2                                                        03710000
+*              RETURN CODE                                              03720000
+         CH    R15,=H'1'      INVALID BUFFER ADDRESS OR LENGTH.         03730000
+         BE    AUTPERR                  PROTOCOL ERROR                  03740000
+         CH    R15,=H'2'      INVALID SUBFUNCTION CODE ? ? ?            03750000
+         BE    AUTPERR                  PROTOCOL ERROR                  03760000
+         CH    R15,=H'5'      TARGET MACHINE NOT AVAILABLE.             03770000
+         BE    AUTNSRV                  SERVER NOT AVAILABLE.           03780000
+         CH    R15,=H'6'      PROTECTION VIOLATION.                     03790000
+         BE    AUTPERR                  PROTOCOL ERROR                  03800000
+         CH    R15,=H'15'     PAGING I/O ERROR (HARDWARE).              03810000
+         BE    AUTNSRV                  SERVER NOT AVAILABLE.           03820000
+         B     AUTPERR                                                  03830000
+         SPACE 2                                                        03840000
+AUTPERR  EQU   *              SOME MANNER OF PROTOCOL ERROR.            03850000
+         LR    R3,R15                                                   03860000
+         LA    R4,ERRMSG                                                03870000
+         LINEDIT TEXT='PROTOCOL ERROR, AUTHORIZE RETURN CODE .......', +03880000
+               SUB=(DEC,(R3)),                                         +03890000
+               RENT=NO,DISP=NONE,BUFFA=(R4)                             03900000
+         OI    WORK,QUIT      SHUT DOWN.                                03910000
+         LA    R15,16                                                   03920000
+         B     AUT900                                                   03930000
+         SPACE 2                                                        03940000
+AUTNSRV  EQU   *              SERVER IS NOT AVAILABLE.                  03950000
+         LR    R3,R15                                                   03960000
+         LA    R4,ERRMSG                                                03970000
+         LINEDIT TEXT='SERVER MACHINE ........ NOT AVAILABLE, AUTHORIZE+03980000
+                RETURN CODE ....',                                     +03990000
+               SUB=(CHAR8A,SERVER,DEC,(R3)),                           +04000000
+               RENT=NO,DISP=NONE,BUFFA=(R4)                             04010000
+         OI    WORK,QUIT      SHUT DOWN.                                04020000
+         LA    R15,8                                                    04030000
+         B     AUT900                                                   04040000
+         SPACE 2                                                        04050000
+AUT500   EQU   *              OPEN SUCCESSFUL                           04060000
+         SPACE 2                                                        04070000
+         VMCF  CREG0,ON                                                 04080000
+         SPACE 1                                                        04090000
+         OI    WORK,VMCFAUT   NOTE THAT WE ARE NOW AUTHORIZED.          04100000
+         SR    R15,R15                                                  04110000
+         SPACE 1                                                        04120000
+AUT900   EQU   *                                                        04130000
+         EXIT  RC=(15)                                                  04140000
+         EJECT                                                          04150000
+*********************************************************************** 04160000
+*        CLVMCF: TERMINATE VMCF OPERATIONS.                             04170000
+*********************************************************************** 04180000
+CLVMCF   ENTER                                                          04190000
+         SPACE 1                                                        04200000
+         ICALL UNAUT                                                    04210000
+         SPACE 1                                                        04220000
+         XC    DBUFFA,DBUFFA                                            04230000
+         XC    DBUFFL,DBUFFL                                            04240000
+         SPACE 1                                                        04250000
+         EXIT  RC=0                                                     04260000
+         SPACE 3                                                        04270000
+*********************************************************************** 04280000
+* UNAUT: ISSUE VMCF UNAUTHORIZE.                                        04290000
+*********************************************************************** 04300000
+UNAUT    ENTER                                                          04310000
+         VMCF  UNAUTHORIZE,PARM=VMCP                                    04320000
+         VMCF  CREG0,OFF                                                04330000
+         SPACE 1                                                        04340000
+         NI    WORK,255-VMCFAUT                                         04350000
+         EXIT RC=0                                                      04360000
+         EJECT                                                          04370000
+*********************************************************************** 04380000
+*        WAITER: WAIT FOR WORK.                                         04390000
+*********************************************************************** 04400000
+* THIS IS THE ONLY POINT A WAIT STATE PSW WILL BE LOADED.               04410000
+* IT IS NON-REENTRANT AND MUST BE CALLED FROM THE MAIN LINE.            04420000
+*********************************************************************** 04430000
+WAITER   ENTER                                                          04440000
+         SPACE 1                                                        04450000
+*        CHECK FOR SOME WORK TO DO AHEAD OF DISABLING - CAN SAVE        04460000
+*        TWO PRIVOPS IF WE CATCH IT HERE.                               04470000
+WAITCHK  TM    WORK,SOME                                                04480000
+         BNZ   WAITXIT        THERE IS SOME WORK !                      04490000
+         SPACE 1                                                        04500000
+*        DISABLE BEFORE FINAL CHECK FOR WORK.                           04510000
+         SSM   =AL1(DISABLE)                                            04520000
+         SPACE 1                                                        04530000
+*        NOW - IF NO WORK TO DO, LOAD ENABLED WAIT PSW.                 04540000
+         TM    WORK,SOME                                                04550000
+         BNZ   WAITENA        FOUND SOME. MUST ENABLE.                  04560000
+         SPACE 1                                                        04570000
+*        SO SLEEP FOR A WHILE.                                          04580000
+         LPSW  WAITPSW                                                  04590000
+WAITPSW  DC    0D'0',AL1(ENABLE,WAIT,0,0),A(WAITEND)                    04600000
+WAITEND  EQU   *                                                        04610000
+         SPACE 1                                                        04620000
+*        AT THIS POINT, THERE SHOULD BE WORK TO DO; PSW IS ENABLED.     04630000
+*        LET'S GO BACK AND CHECK.                                       04640000
+         B     WAITCHK                                                  04650000
+         SPACE 1                                                        04660000
+WAITENA  EQU   *              WE ARE DISABLED BUT HAVE WORK TO DO.      04670000
+         SSM   =AL1(ENABLE)                                             04680000
+*        B     WAITXIT                                                  04690000
+         SPACE 1                                                        04700000
+WAITXIT  EQU   *                                                        04710000
+         EXIT                                                           04720000
+         EJECT                                                          04730000
+* ********************************************************************* 04740000
+* HOLDIT: GO INTO HOLD STATUS.                                          04750000
+* ********************************************************************* 04760000
+HOLDIT   ENTER                                                          04770000
+         XI    WORK,HOLD                                                04780000
+         SPACE 1                                                        04790000
+         TM    WORK,HOLD                                                04800000
+         BZ    HOL450                                                   04810000
+*              ENTER HOLD STATUS.                                       04820000
+            ICALL UNAUT       UNAUTHORIZE.                              04830000
+            SPACE 1                                                     04840000
+            NI  WORK,255-NEWSCR         IF ONE SNEAKED IN, WE DON'T WAN 04850000
+            SPACE 1                                                     04860000
+            LA  R0,L'WCCHLD                                             04870000
+            LA  R1,WCCHLD     AND FREE UP THE KEYBOARD.                 04880000
+            ICALL WRITEU                                                04890000
+            B  HOL490                                                   04900000
+HOL450   EQU   *                                                        04910000
+*              TERMINATE HOLD STATUS.                                   04920000
+            ICALL OPVMCF      AUTHORIZE AND ISSUE INITIAL SENDX         04930000
+*           B   HOL490                                                  04940000
+HOL490   EQU   *                                                        04950000
+         SPACE 1                                                        04960000
+         EXIT RC=(15)                                                   04970000
+         EJECT                                                          04980000
+* ********************************************************************* 04990000
+*              RS: READ FROM THE SCREEN, AND ACT UPON IT.               05000000
+* ********************************************************************* 05010000
+RS       ENTER                                                          05020000
+         SPACE 1                                                        05030000
+         LA  R0,L'INAREA                                                05040000
+         LA  R1,INAREA                                                  05050000
+         MVC INAREA,BLANKS                                              05060000
+         ICALL READMOD                                                  05070000
+         SPACE 1                                                        05080000
+         BZ    RS100                                                    05090000
+         CH R15,=H'4'        LOST FORMAT ?                              05100000
+            ICALL WS                                                    05110000
+            B   RS900                                                   05120000
+RS100    EQU   *                                                        05130000
+         SPACE 1                                                        05140000
+*              HAVE READ IN THE DATA.                                   05150000
+*        R0 = NUMBER OF BYTES READ, R1 -> AID DESCRIPTOR.               05160000
+         CLC   =CL8'QUIT',8(R1)         TERMINATING ?                   05170000
+         BNE   RS150                                                    05180000
+            OI  WORK,QUIT                                               05190000
+            B   RS500         LOCAL FUNCTION                            05200000
+RS150    EQU   *                                                        05210000
+         SPACE 1                                                        05220000
+         CLC   =CL8'HOLD',8(R1)         HOLD ?                          05230000
+         BNE   RS160                                                    05240000
+            ICALL HOLDIT      DO IT.                                    05250000
+            B   RS500         LOCAL FUNCTION                            05260000
+RS160    EQU   *                                                        05270000
+         SPACE 1                                                        05280000
+         CLC   =CL8' ',8(R1)       NO-OP ?                              05290000
+         BE    RS500                                                    05300000
+         CLC   =CL8'IGNORE',8(R1)       NO-OP ?                         05310000
+         BE    RS500                                                    05320000
+*        B     RS300          REMOTE FUNCTION ASSUMED.                  05330000
+         SPACE 1                                                        05340000
+RS300    EQU   *              REMOTE FUNCTION: SEND TO CPWATCH.         05350000
+         LA    R1,8(,R1)      STEP TO FUNCTION.                         05360000
+         ICALL CMD                                                      05370000
+         BZ    RS380                                                    05380000
+RS380    EQU   *                                                        05390000
+RS500    EQU   *                                                        05400000
+         SPACE 1                                                        05410000
+RS900    EQU   *                                                        05420000
+         EXIT RC=(15)                                                   05430000
+         SPACE 1                                                        05440000
+RSPARM   DS    5D                                                       05450000
+         EJECT                                                          05460000
+* ********************************************************************* 05470000
+*        CMD: SEND A COMMAND TO THE SERVER.                             05480000
+* ********************************************************************* 05490000
+* ENTRY: R1-> COMMAND (8 CHARS)                                         05500000
+* ********************************************************************* 05510000
+CMD      ENTER                                                          05520000
+         MVC   CMDCMD,0(R1)                                             05530000
+         LM    R0,R1,=A(L'CMDDATA,CMDDATA)                              05540000
+         ICALL VMCSX                                                    05550000
+         EXIT  RC=(15)                                                  05560000
+         SPACE 1                                                        05570000
+         DC    0D'0',8C'>'                                              05580000
+CMDBEG   DS    0D                                                       05590000
+IDENTITY DC    CL8' '                                                   05600000
+PASSWORD DC    CL8' '                                                   05610000
+CMDCMD   DC    CL8'SYS'                                                 05620000
+CMDDATA  EQU   CMDBEG,*-CMDBEG                                          05630000
+         DC    8C'<'                                                    05640000
+         EJECT                                                          05650000
+* ********************************************************************* 05660000
+*              VMCSX: PERFORM VMCF SENDX FUNCTION.                      05670000
+* ********************************************************************* 05680000
+* ENTER: R0 = LENGTH, R1 = DATA ADDR. DESTINATION IS "SERVER"           05690000
+* ********************************************************************* 05700000
+VMCSX    ENTER                                                          05710000
+         LR    R2,R0          LENGTH                                    05720000
+         LR    R3,R1          ADDRESS.                                  05730000
+         LA    R4,3           MAX RETRY COUNTER.                        05740000
+VMC100   EQU   *                                                        05750000
+         TM    WORK,VMCFAUT   ARE WE AUTHORIZED ?                       05760000
+         BO    VMC110                                                   05770000
+            ICALL AUTVMCF                                               05780000
+VMC110   EQU   *                                                        05790000
+         SPACE 1                                                        05800000
+         VMCF SENDX,PARM=VMCSXP,USERID=SERVER,USEWORD=CPWCMSLV,        +05810000
+               MSGID=3,FLDA=(R3),LENA=(R2)                              05820000
+         BZ    VMC900         FINE.                                     05830000
+         LR R3,R15                                                      05840000
+         LA    R4,ERRMSG                                                05850000
+         LINEDIT TEXT='SENDX RETCODE .....',SUB=(DEC,(R3)),            +05860000
+               BUFFA=(R4),DISP=NONE,RENT=NO                             05870000
+         LR R15,R3                                                      05880000
+         SPACE 1                                                        05890000
+*              RETURN CODE                                              05900000
+         CH    R15,=H'1'      INVALID BUFFER ADDRESS OR LENGTH.         05910000
+         BE    VMCPERR                  PROTOCOL ERROR                  05920000
+         CH    R15,=H'2'      INVALID SUBFUNCTION CODE ? ? ?            05930000
+         BE    VMCPERR                  PROTOCOL ERROR                  05940000
+         CH    R15,=H'4'      SOURCE MACHINE NOT AUTHORIZED.            05950000
+         BE    VMCPERR                  PROTOCOL ERROR                  05960000
+         CH    R15,=H'5'      TARGET MACHINE NOT AVAILABLE.             05970000
+         BE    VMCNSRV                  SERVER NOT AVAILABLE.           05980000
+         CH    R15,=H'7'      SENDX DATA TOO LARGE                      05990000
+         BE    VMCPERR                  PROTOCOL ERROR                  06000000
+         CH    R15,=H'8'      DUPLICATE MESSAGE NUMBER.                 06010000
+         CH    R15,=H'9'      TARGET VIRTUAL MACHINE IN QUIESCE STATUS. 06020000
+         BE    VMCNSRV                  SERVER NOT AVAILABLE.           06030000
+         CH    R15,=H'10'     MESSAGE LIMIT (50) EXCEEDED.              06040000
+         BE    VMCPERR                  PROTOCOL ERROR                  06050000
+         CH    R15,=H'15'     PAGING I/O ERROR (HARDWARE).              06060000
+         BE    VMCNSRV                  SERVER NOT AVAILABLE.           06070000
+         CH    R15,=H'18'     TARGET NOT AUTHORIZED FOR PRIORITY MESSAG 06080000
+         BE    VMCPERR                  PROTOCOL ERROR                  06090000
+         B     VMCPERR                                                  06100000
+         SPACE 2                                                        06110000
+VMCRTRY  EQU   *              ATTEMPT RETRY.                            06120000
+         BCT   R4,VMCPERR     HAVE WE USED UP OUR RETRIES ?             06130000
+         SPACE 1                                                        06140000
+         VMCF CANCEL,PARM=VMCSXP,USERID=SERVER,                        +06150000
+               MSGID=3                                                  06160000
+         B     VMC100         AND GO RETRY.                             06170000
+         SPACE 2                                                        06180000
+VMCPERR  EQU   *              SOME MANNER OF PROTOCOL ERROR.            06190000
+         LR    R3,R15                                                   06200000
+         LA    R4,ERRMSG                                                06210000
+         LINEDIT TEXT='PROTOCOL ERROR, SENDX RETURN CODE .......',     +06220000
+               SUB=(DEC,(R3)),                                         +06230000
+               RENT=NO,DISP=NONE,BUFFA=(R4)                             06240000
+         OI    WORK,QUIT      SHUT DOWN.                                06250000
+         LA    R15,16                                                   06260000
+         B     VMC900                                                   06270000
+         SPACE 2                                                        06280000
+VMCNSRV  EQU   *              SERVER IS NOT AVAILABLE.                  06290000
+         LR    R3,R15                                                   06300000
+         LA    R4,ERRMSG                                                06310000
+         LINEDIT TEXT='SERVER MACHINE ........ NOT AVAILABLE, SENDX    +06320000
+               RETURN CODE ....',                                      +06330000
+               SUB=(CHAR8A,SERVER,DEC,(R3)),                           +06340000
+               RENT=NO,DISP=NONE,BUFFA=(R4)                             06350000
+         OI    WORK,QUIT      SHUT DOWN.                                06360000
+         LA    R15,8                                                    06370000
+         B     VMC900                                                   06380000
+         SPACE 2                                                        06390000
+VMCOK    EQU   *              SENDX SUCCESSFUL                          06400000
+         SR    R15,R15                                                  06410000
+         B     VMC900                                                   06420000
+         SPACE 2                                                        06430000
+VMC900   EQU   *                                                        06440000
+         SPACE 2                                                        06450000
+         EXIT RC=(15)                                                   06460000
+         SPACE 1                                                        06470000
+VMCSXP   DS    5D                                                       06480000
+         EJECT                                                          06490000
+* ********************************************************************* 06500000
+*              WS: WRITE THE SCREEN IN "DBUFF".                         06510000
+* ********************************************************************* 06520000
+WS       ENTER                                                          06530000
+         L     R2,SBUFFA      SCREEN BUFFER AREA                        06540000
+         L     R3,SBUFFM      MAX BYTES.                                06550000
+         SPACE 1                                                        06560000
+         MVC   0(L'WSPU,R2),WSPU                                        06570000
+         LA    R0,L'WSPU                                                06580000
+         L     R15,=A(WRITEU)  PRESUME UPDATE                           06590000
+         SPACE 1                                                        06600000
+         TM    CONSFLAG,CLRPLS+UNFORMAT BUT IS IT UNFORMATTED ?         06610000
+         BZ    WS190          NO - FINE.                                06620000
+            MVC 0(L'WSP,R2),WSP                                         06630000
+            LA  R0,L'WSP      DO WRITE ERASE                            06640000
+            L   R15,=A(WRITER)                                          06650000
+WS190    EQU   *                                                        06660000
+         SPACE 1                                                        06670000
+         ST    R0,SBUFFL                                                06680000
+         AR    R2,R0          NEW BEGIN                                 06690000
+         SR    R3,R0          NEW MAX AVAILABLE                         06700000
+         SPACE 1                                                        06710000
+         L     R4,DBUFFA      DATA BUFFER                               06720000
+         L     R5,DBUFFL      PICK UP ACTUAL DATA LENGTH.               06730000
+         AR    R5,R4          END + 1                                   06740000
+         LA    R4,10(,R4)     DROP COMMAND AREA.                        06750000
+         SR    R5,R4          CORRECTED LENGTH.                         06760000
+         AR    R0,R5          SBUFFL LENGTH.                            06770000
+         ST    R0,SBUFFL                                                06780000
+         ICM   R5,8,=X'5C'    PAD WITH SOMETHING VISIBLE.               06790000
+         MVCL  R2,R4                                                    06800000
+         SPACE 1                                                        06810000
+         L     R1,SBUFFA                                                06820000
+         L     R0,SBUFFL                                                06830000
+         BALR  R14,R15        DO WRITE OR WRITE/ERASE                   06840000
+         SPACE 1                                                        06850000
+         EXIT  RC=(15)                                                  06860000
+         SPACE 1                                                        06870000
+WSP      DC    X'C21140401D40131140C91D60'                              06880000
+WSPU     DC    X'C211404A'                                              06890000
+         SPACE 6                                                        06900000
+*********************************************************************** 06910000
+*        WRITER: ISSUE WRITE/ERASE                                      06920000
+*********************************************************************** 06930000
+* ENTER: R1 -> DATA, R0 = LENGTH.                                       06940000
+* EXIT: R0, R15 - AS SET BY DIAGIO.                                     06950000
+*********************************************************************** 06960000
+WRITER   ENTER                                                          06970000
+         SPACE                                                          06980000
+*              UPDATE CCW                                               06990000
+         STCM  R1,B'0111',WRFS+1                                        07000000
+         MVI   WRFS+5,WRTERA                                            07010000
+         TM    CONSFLAG,USEALT          WRITE/ERASE ALTERNATE ?         07020000
+         BZ    WRI100         NO - SKIP                                 07030000
+            MVI WRFS+5,WRTERALT                                         07040000
+WRI100   EQU   *                                                        07050000
+         TM    CONSFLAG,TRAPPA1         TAKE PA1 AS DATA ?              07060000
+         BZ    WRI110         NO - SKIP                                 07070000
+            OI  WRFS+5,WRTPA1                                           07080000
+WRI110   EQU   *                                                        07090000
+         STCM  R0,B'0011',WRFS+6                                        07100000
+         SPACE 1                                                        07110000
+         TM    CONSFLAG,CLRPLS          DO WE CLEAR FIRST ?             07120000
+         BZ    WRI130                                                   07130000
+            NI  CONSFLAG,255-CLRPLS                                     07140000
+            LA  R1,CLEAR                                                07150000
+            ICALL DIAGIO                                                07160000
+WRI130   EQU   *                                                        07170000
+         SPACE 1                                                        07180000
+*              AND DO I/O.                                              07190000
+         NI    CONSFLAG,255-UNFORMAT    WE'LL BE FORMATTED IF THIS WORK 07200000
+         LA    R1,WRFS                                                  07210000
+         ICALL DIAGIO                                                   07220000
+         SPACE 1                                                        07230000
+         EXIT R0R1=YES,RC=(15)                                          07240000
+         EJECT                                                          07250000
+*********************************************************************** 07260000
+*        WRITEU: ISSUE WRITE/UPDATE                                     07270000
+*********************************************************************** 07280000
+* ENTER: R1 -> DATA, R0 = LENGTH.                                       07290000
+* EXIT: R0, R15 - AS SET BY DIAGIO.                                     07300000
+*********************************************************************** 07310000
+WRITEU   ENTER                                                          07320000
+         SPACE                                                          07330000
+*              UPDATE CCW                                               07340000
+         STCM  R1,B'0111',WRFS+1                                        07350000
+         MVI   WRFS+5,WRTUPD                                            07360000
+         STCM  R0,B'0011',WRFS+6                                        07370000
+         SPACE 1                                                        07380000
+*              AND DO I/O.                                              07390000
+         LA    R1,WRFS                                                  07400000
+         ICALL DIAGIO                                                   07410000
+         SPACE 1                                                        07420000
+         EXIT R0R1=YES,RC=(15)                                          07430000
+         EJECT                                                          07440000
+*********************************************************************** 07450000
+*        READMOD: ISSUE READ MODIFIED                                   07460000
+*********************************************************************** 07470000
+* ENTER: R1 -> DATA AREA, R0 = MAXIMUM LENGTH.                          07480000
+* EXIT: R15 = 0: SUCCESSFUL, R0 = ACTUAL BYTES READ.                    07490000
+*                            R1 -> PFKEY DESCRIPTOR.                    07500000
+*       R15 ¬= 0: UNSUCCESSFUL, R15/R0 AS SET BY DIAGIO.                07510000
+*********************************************************************** 07520000
+READMOD  ENTER                                                          07530000
+         SPACE                                                          07540000
+*              UPDATE CCW                                               07550000
+         STCM  R1,B'0111',RDFS+1                                        07560000
+         MVI   RDFS+5,RDMOD                                             07570000
+         STCM  R0,B'0011',RDFS+6                                        07580000
+         SPACE 1                                                        07590000
+*              AND DO I/O.                                              07600000
+         LA    R1,RDFS                                                  07610000
+         ICALL DIAGIO                                                   07620000
+         LTR   R15,R15                                                  07630000
+         BNZ   RDM100         IF IN ERROR, SKIP                         07640000
+            LNR R0,R0         REVERSE SUBTRACTION                       07650000
+            AH  R0,RDFS+6     TO GET ACTUAL BYTES READ                  07660000
+            SPACE 1                                                     07670000
+            SR  R2,R2         FIND AID ENTRY.                           07680000
+            IC  R2,INAREA GET AID                                       07690000
+            IC  R2,AIDTAB(R2) GET ENTRY NUMBER.                         07700000
+            MH  R2,=Y(L'AIDN) CALCULATE ENTRY OFFSET                    07710000
+            LA  R1,AIDN(R2)   ENTRY LOCATION                            07720000
+            SPACE 1                                                     07730000
+            C    R1,=A(KENTER)   ENTER KEY - USE DATA ?                 07740000
+            BNE  RDM040                                                 07750000
+               MVC 8(8,R1),INAREA+6                                     07760000
+               TR 8(8,R1),UPTAB                                         07770000
+               B   RDM080                                               07780000
+RDM040      EQU *                                                       07790000
+            C   R1,=A(KCLEAR) WAS IT THE CLEAR KEY                      07800000
+            BE   RDM050       THEN PRESUME WE'RE UNFORMATTED.           07810000
+            C   R1,=A(KNOAID)   NOAID, FORCED READ ?                    07820000
+            BE   RDM050                                                 07830000
+            C   R1,=A(KJUNK)    UNKNOWN KEY ?                           07840000
+            BE  RDM050                                                  07850000
+            B   RDM080                                                  07860000
+RDM050         OI  CONSFLAG,UNFORMAT    NOTE AS UNFORMATTED.            07870000
+RDM080      EQU *                                                       07880000
+         SPACE 1                                                        07890000
+         TM    CONSFLAG,UNFORMAT       ARE WE STILL FORMATTED ?         07900000
+         BO    RDM090         NO, DON'T WORRY                           07910000
+            LR  R2,R0                                                   07920000
+            LR  R3,R1                                                   07930000
+            LA  R0,L'EIA                                                07940000
+            LA  R1,EIA        ERASE INPUT AREA.                         07950000
+            ICALL WRITEU                                                07960000
+            LR  R1,R3                                                   07970000
+            LR  R0,R2                                                   07980000
+RDM090   EQU   *                                                        07990000
+         SPACE 1                                                        08000000
+RDM100   EQU   *                                                        08010000
+         SPACE 1                                                        08020000
+         EXIT R0R1=YES,RC=(15)                                          08030000
+         EJECT                                                          08040000
+*********************************************************************** 08050000
+* DIAGIO: ISSUE DIAG 58 TO WRITE TO SCREEN                              08060000
+*********************************************************************** 08070000
+* ENTER: R1 -> CCW CHAIN.                                               08080000
+* EXIT:  RC = 0: COMPLETE WITH NO ERRORS. RESIDUAL COUNT IN R0.         08090000
+*        RC = 4: LOST SCREEN FORMAT TO CP.                              08100000
+*        RC = 8: CSWSTAT2 IN R0, OR UC, 2 BYTES OF SENSE DATA IN R0     08110000
+*        RC = 12: CC=3, DISCONNECTED, OR NO CONSOLE DEVICE FOUND.       08120000
+*********************************************************************** 08130000
+DIAGIO   ENTER                                                          08140000
+         USING NUCON,R0                                                 08150000
+         XC    CSWSAVE,CSWSAVE                                          08160000
+         XC    SNSDATA,SNSDATA                                          08170000
+         SPACE 1                                                        08180000
+         SPACE 1                                                        08190000
+DIAGRTRY LH    R2,CONSADDR    CONSOLE ADDRESS.                          08200000
+         SSM   =AL1(DISABLE)  WE WILL DO ALL WORK UNINTERRUPTABLE.      08210000
+         SR    R0,R0          RESIDUAL COUNT -OR- CSW/SENSE             08220000
+         DIAG  R1,R2,X'58'    ISSUE DIAGNOSE                            08230000
+*NOTE THAT THERE ARE ONLY 2 CC'S AVAILABLE: 0 = NO ERROR,               08240000
+*                                           1 = ERROR.                  08250000
+*CSW IS NOT STORED ON ERROR, MUST DO TIO TO GET IT.                     08260000
+         BZ    DIAG0                                                    08270000
+         BNZ   DIAG1                                                    08280000
+         SPACE 1                                                        08290000
+*              CC = 0 ON DIAGNOSE                                       08300000
+DIAG0    EQU   *                                                        08310000
+DIAG0TIO TIO   0(R2)          CLEAR OUT INTERRUPT.                      08320000
+         BC    B'1000',DIAGR0 COMPLETE.                                 08330000
+         BC    B'0100',DIAG0T1                                          08340000
+         BC    B'0010',DIAG0TIO         BYTE MULTIPLEXOR - TRY AGAIN.   08350000
+         BC    B'0001',DIAGR12          CC = 3; DEAD.                   08360000
+DIAG0T1  EQU   *              CSW STORED ON TIO.                        08370000
+*LA  R4,=CL08'D 38.10'                                                  08380000
+*LA  R5,8                                                               08390000
+*DIAG R4,R5,8                                                           08400000
+         CLI   CSW+5,0        ANY CSWSTAT2 BITS ?                       08410000
+         BZ    DIAG0T2        NO, SKIP.                                 08420000
+            MVC CSWSAVE,CSW+4 RETURN THEM.                              08430000
+            TM   CSW+4,UC     UNIT CHECK TOO ?                          08440000
+            BO   DIAG1UC      YES,  DO SENSE AS WELL.                   08450000
+            B    DIAGR8       NO, RETURN RETCODE 8.                     08460000
+DIAG0T2  EQU   *                                                        08470000
+         CLI   CSW+4,ATTN+CE+DE+UC      LOST FORMAT TO CP ?             08480000
+         BE    DIAGR4         SAY SO.                                   08490000
+         TM    CSW+4,ATTN     ATTN INTERRUPT ?                          08500000
+         BZ    DIAG0T3        NO, SKIP.                                 08510000
+            OI  WORK,ATTN     ATTN - FLAG IT.                           08520000
+DIAG0T3  EQU   *                                                        08530000
+         TM    CSW+4,CE       CHANNEL END ?                             08540000
+         BZ    DIAG0T4        NO, SKIP.                                 08550000
+            LH  R0,CSW+6      PICK UP RESIDUAL BYTES                    08560000
+DIAG0T4  EQU   *                                                        08570000
+         TM    CSW+4,UC                                                 08580000
+         BO    DIAG1UC        GO ISSUE SENSE                            08590000
+         B     DIAG0TIO       OTHERWISE LOOP.                           08600000
+         SPACE 3                                                        08610000
+*              CC = 1 ON DIAGNOSE                                       08620000
+DIAG1    EQU   *             "ERROR" - CSW PENDING.                     08630000
+         TIO   0(R2)          STORE THE CSW.                            08640000
+         CLI   CSW+4,ATTN+CE+DE+UC  LOST FORMAT TO CP ?                 08650000
+         BE    DIAGR4         SAY SO                                    08660000
+         CLI   CSW+5,0    ANY CSWSTAT2 ?                                08670000
+         BZ    DIAG1A                                                   08680000
+            MVC CSWSAVE,CSW+4    RETURN CSWSTAT.                        08690000
+            TM  CSW+4,UC  UNIT CHECK AS WELL ?                          08700000
+            BO  DIAG1UC       YES, DO SENSE.                            08710000
+            B   DIAGR8 NO, RETURN RETCODE 8                             08720000
+DIAG1A   EQU   *                                                        08730000
+         TM    CSW+4,ATTN                                               08740000
+         BZ    DIAG1B                                                   08750000
+            OI  WORK,ATTN                                               08760000
+            B   DIAGRTRY                                                08770000
+DIAG1B   EQU   *                                                        08780000
+         TM    CSW+4,UC       DO WE HAVE A UNIT CHECK ?                 08790000
+         BZ    DIAG1C         NO, CONTINUE                              08800000
+DIAG1UC     EQU   *           DO SENSE                                  08810000
+            MVC CAW,=A(SNSCCW)                                          08820000
+            SIO 0(R2)                                                   08830000
+            BNZ DIAGR12       CC ON SENSE ? ? ?                         08840000
+            TIO 0(R2)                                                   08850000
+            BC  B'0110',*-4   TIOBUSY LOOP                              08860000
+            BC  B'0001',DIAGR12         DIED.                           08870000
+            B   DIAGR8                                                  08880000
+DIAG1C   EQU   *              NOT ATTN, NOT UC, NOT LOST FORMAT, NO CSW 08890000
+         TIO   0(R2)                                                    08900000
+         BC    B'0010',*-4    LOOP ON CHANNEL BUSY.                     08910000
+         BC    B'0001',DIAGR12          DEV DIED.                       08920000
+         BC    B'0100',DIAG1  ANALYSE CSW STATUS.                       08930000
+         BC    B'1000',DIAGRTRY         RE-ISSUE DIAGNOSE.              08940000
+         SPACE 3                                                        08950000
+*              CC = 2 ON DIAGNOSE                                       08960000
+DIAG2    EQU   *                                                        08970000
+         B     DIAGRTRY       GO AND TRY AGAIN (MPXR CHANNEL)           08980000
+         SPACE 3                                                        08990000
+*              CC = 3 ON DIAGNOSE                                       09000000
+DIAG3    EQU   *                                                        09010000
+DIAGR12  EQU   *              DEVICE DEAD.                              09020000
+         LA    R15,12                                                   09030000
+         B     DIAGRET                                                  09040000
+DIAGR8   EQU   *              UC, OR CSWSTAT2.                          09050000
+         LA    R15,8                                                    09060000
+         ICM   R0,B'1100',CSWSAVE                                       09070000
+         ICM   R0,B'0011',SNSDATA                                       09080000
+         B     DIAGRET                                                  09090000
+DIAGR4   EQU   *              LOST FORMAT.                              09100000
+         LA    R15,4                                                    09110000
+         OI    CONSFLAG,UNFORMAT                                        09120000
+         B     DIAGRET                                                  09130000
+DIAGR0   EQU   *              COMPLETE AND SUCCESSFUL                   09140000
+         SR    R15,R15        RC = 0                                    09150000
+*        B     DIAGRET                                                  09160000
+         SPACE 3                                                        09170000
+DIAGRET  EQU   *                                                        09180000
+         SSM   =AL1(ENABLE)   RE-ENABLE INTERRUPTS.                     09190000
+         SPACE 1                                                        09200000
+         EXIT  R0R1=YES,RC=(15)                                         09210000
+         EJECT                                                          09220000
+*********************************************************************** 09230000
+*        RESTORE: GIVE CMS CONTROL OF INTERRUPTS AGAIN.                 09240000
+*********************************************************************** 09250000
+RESTORE  ENTER                                                          09260000
+         SPACE 1                                                        09270000
+         SSM   =AL1(DISABLE)                                            09280000
+         SPACE 1                                                        09290000
+         BAL   R8,RSTPSW                                                09300000
+         SPACE 1                                                        09310000
+         SSM   =AL1(ENABLE)                                             09320000
+         SPACE 1                                                        09330000
+         EXIT                                                           09340000
+         SPACE 3                                                        09350000
+CPWCMS   CSECT                                                          09360000
+RSTPSW   DS    0H             RESTORE STUFF. CALLED BY BAL R8,RSTPSW.  +09370000
+                              MUST BE DISABLED FIRST.                   09380000
+         SPACE 1                                                        09390000
+*              TURN OFF CMS.                                            09400000
+         VMCF  UNAUTHORIZE,PARM=VMCP                                    09410000
+         VMCF  CREG0,OFF                                                09420000
+         SPACE 1                                                        09430000
+         USING NUCON,R0                                                 09440000
+         SPACE 1                                                        09450000
+         OC    CMSION,CMSION  DID WE GRAB CONTROL AT ALL ?              09460000
+         BZ    RSTSKP         BR IF NO, DON'T FOOL AROUND.              09470000
+         MVC   IONPSW,CMSION                                            09480000
+         MVC   EXTNPSW,CMSEXTN                                          09490000
+         MVC   PGMNPSW,CMSPGMN                                          09500000
+         MVC   AKILLEX,CMSKX                                            09510000
+         SPACE 1                                                        09520000
+         XC    LOWDWRD,LOWDWRD                                          09530000
+         SPACE 1                                                        09540000
+         XC    CMSION,CMSION  MARK IT AS FREE                           09550000
+         XC    CMSEXTN,CMSEXTN                                          09560000
+         XC    CMSPGMN,CMSPGMN                                          09570000
+         XC    CMSKX,CMSKX                                              09580000
+         SPACE 1                                                        09590000
+RSTSKP  EQU   *                                                         09600000
+         BR    R8                                                       09610000
+         SPACE 6                                                        09620000
+*********************************************************************** 09630000
+*        MYKX: CLEAN UP IN CASE OF ABEND                                09640000
+*********************************************************************** 09650000
+* ENTERED BY: L R15,AKILLEX, BALR R14,R15                               09660000
+*********************************************************************** 09670000
+CPWCMS   CSECT                                                          09680000
+         DS    0D                                                       09690000
+         DC    CL8'KILLEX'                                              09700000
+         USING MYKX,R15                                                 09710000
+MYKX     STM   R0,R15,KXSAVE                                            09720000
+         LM    R11,R12,BASER                                            09730000
+         DROP  R15                                                      09740000
+         MVC   KXSAVE+4*R15(4),CMSKX                                    09750000
+         SPACE 1                                                        09760000
+         BAL   R8,RSTPSW                                                09770000
+         SPACE 1                                                        09780000
+         LM    R0,R15,KXSAVE                                            09790000
+         BR    R15            COMPLETE ABEND.                           09800000
+         SPACE 3                                                        09810000
+KXSAVE   DS    16F                                                      09820000
+         EJECT                                                          09830000
+*********************************************************************** 09840000
+*        I/O INTERRUPT HANDLER.                                         09850000
+*********************************************************************** 09860000
+CPWCMS   CSECT                                                          09870000
+         USING NUCON,R0                                                 09880000
+MYIOE    EQU   *                                                        09890000
+         ST    R15,LOWDWRD                                              09900000
+         SPACE 1                                                        09910000
+         BALR  R15,0                                                    09920000
+         USING *,R15                                                    09930000
+         SPACE 1                                                        09940000
+         STM   R0,R14,IOSAVE                                            09950000
+         MVC   IOSAVE+4*R15(4),LOWDWRD                                  09960000
+         LM    R11,R12,BASER                                            09970000
+         DROP R15                                                       09980000
+         SPACE 1                                                        09990000
+         CLC   CONSADDR,IOOPSW+2        IS IT A CONSOLE INTERRUPT ?     10000000
+         BNE   IOPASS         LET CMS HANDLE IT.                        10010000
+         SPACE 1                                                        10020000
+         CLI   CSW+4,ATTN+CE+DE+UC      LOST FORMAT ?                   10030000
+         BNE   IONLFMT        BR NO.                                    10040000
+            OI    CONSFLAG,UNFORMAT                                     10050000
+IONLFMT  EQU   *                                                        10060000
+         TM    CSW+4,ATTN     ATTENTION HIT ?                           10070000
+         BZ    IOPASS         NO, LET CMS HANDLE IT.                    10080000
+         SPACE 1                                                        10090000
+         OI    WORK,ATTN     POST AS WORK TO DO.                        10100000
+         SPACE 1                                                        10110000
+         L     R3,=A(WAITPSW)                                           10120000
+         CLC   IOOPSW+5(3),5(R3)         OUR WAIT PSW ?                 10130000
+         BNE   IOIGN                                                    10140000
+            NI    IOOPSW+1,255-WAIT      TURN OFF WAIT BIT.             10150000
+         SPACE 1                                                        10160000
+         B     IOIGN       AND RETURN.                                  10170000
+         SPACE 3                                                        10180000
+IOPASS   EQU   *              GIVE THIS INTERRUPT TO CMS.               10190000
+         MVC   LOWDWRD,CMSION                                           10200000
+         LM    R0,R15,IOSAVE                                            10210000
+         LPSW  LOWDWRD                                                  10220000
+         SPACE 3                                                        10230000
+IOIGN    EQU   *              IGNORE THIS INTERRUPT.                    10240000
+         LM    R0,R15,IOSAVE                                            10250000
+         LPSW  IOOPSW                                                   10260000
+         SPACE 3                                                        10270000
+IOSAVE   DS    16F            REGS FOR I/O INTERRUPT.                   10280000
+         DROP  R0                                                       10290000
+         EJECT                                                          10300000
+*********************************************************************** 10310000
+*        EXTERNAL INTERRUPT HANDLER                                     10320000
+*********************************************************************** 10330000
+CPWCMS   CSECT                                                          10340000
+         USING NUCON,R0                                                 10350000
+MYEXTE   EQU   *                                                        10360000
+         ST    R15,LOWDWRD                                              10370000
+         SPACE 1                                                        10380000
+         BALR  R15,0                                                    10390000
+         USING *,R15                                                    10400000
+         SPACE 1                                                        10410000
+         STM   R0,R14,EXTSAVE                                           10420000
+         MVC   EXTSAVE+4*R15(4),LOWDWRD                                 10430000
+         LM    R11,R12,BASER                                            10440000
+         DROP R15                                                       10450000
+         SPACE 1                                                        10460000
+         CLC   =AL2(VMCXCODE),EXTOPSW+2       VMCF INTERRUPT ?          10470000
+         BE    EXTVMCF        NO - LET CMS HANDLE IT.                   10480000
+ B EXTPASS                                                              10490000
+         TM    EXTOPSW+3,X'40'          INTERRUPT KEY ?                 10500000
+         BZ    EXTPASS        BR NO.                                    10510000
+            OI  WORK,QUIT                                               10520000
+            B   EXTWAKE                                                 10530000
+         SPACE 1                                                        10540000
+EXTVMCF  EQU   *                                                        10550000
+         LA    R8,VMCIH       INTERRUPT HEADER                          10560000
+         USING VMCMHDR,R8                                               10570000
+         CLC   =AL2(VMCPSEND),VMCMFUNC   SEND ?                         10580000
+         BE    EXTSEND                                                  10590000
+         CLC   =AL2(VMCPIDEN),VMCMFUNC  IDENTIFY ?                      10600000
+         BE    EXTIDNT                                                  10610000
+         B     EXTIGN         IGNORE ALL OTHERS.                        10620000
+         SPACE 2                                                        10630000
+EXTIDNT  EQU   *              'IDENTIFY' INTERRUPT: REJECTION.          10640000
+         OI    WORK,QUIT      THAT'S ALL, FOLKS.                        10650000
+         SPACE 1                                                        10660000
+         CLC   VMCMMID,=A(256)          SHUTDOWN MESSAGE.               10670000
+         BE    EXTSHUT                                                  10680000
+         CLC   VMCMMID,=A(260)          INVALID PASSWORD MESSAGE.       10690000
+         BE    EXTPSWD                                                  10700000
+         CLC   VMCMMID,=A(264)          INVALID PROTOCOL LEVEL          10710000
+         BE    EXTPROT                                                  10720000
+*        B     EXTUNKN                                                  10730000
+EXTUNKN  EQU   *              UNKNOWN MESSAGE ID.                       10740000
+         LA    R4,ERRMSG                                                10750000
+         LINEDIT TEXT='SERVER ........ REJECTED WITH UNKNOWN MESSAGE ID+10760000
+                ........., USERWORD ''........''',                     +10770000
+               SUB=(CHAR8A,VMCMUSER,DECA,VMCMMID,CHAR8A,VMCMUSE),      +10780000
+               RENT=NO,DISP=NONE,BUFFA=(R4)                             10790000
+         B     EXTWAKE                                                  10800000
+EXTPROT  EQU   *              DIFFERENT PROTOCOL LEVEL                  10810000
+         SR    R2,R2                                                    10820000
+         IC    R2,CPWCMSLV+6                                            10830000
+         SR    R3,R3                                                    10840000
+         IC    R3,CPWCMSLV+7                                            10850000
+         SR    R4,R4                                                    10860000
+         IC    R4,VMCMUSE+6                                             10870000
+         SR    R5,R5                                                    10880000
+         IC    R5,VMCMUSE+7                                             10890000
+         LA    R6,ERRMSG                                                10900000
+         LINEDIT TEXT='WRONG PROTOCOL LEVEL FOR ''........''.          +10910000
+               MY LEVEL ''...... ....:....'', HIS ''...... ....:....', +10920000
+               SUB=(CHAR8A,VMCMUSER,CHAR8A,CPWCMSLV,DEC,(R2),DEC,(R3), +10930000
+               CHAR8A,VMCMUSE,DEC,(R4),DEC,(R5)),                      +10940000
+               RENT=NO,DISP=NONE,BUFFA=(R6)                             10950000
+         B     EXTWAKE                                                  10960000
+EXTPSWD  EQU   *              SERVER REJECTED PASSWORD.                 10970000
+         LA    R4,ERRMSG                                                10980000
+         LINEDIT TEXT='SERVER ........ REJECTED PASSWORD',             +10990000
+               SUB=(CHAR8A,VMCMUSER),                                  +11000000
+               RENT=NO,DISP=NONE,BUFFA=(R4)                             11010000
+         B     EXTWAKE                                                  11020000
+EXTSHUT  EQU   *              CPWATCH IS SHUTTING DOWN.                 11030000
+         LA    R4,ERRMSG                                                11040000
+         LINEDIT TEXT='SERVER ........ IS SHUTTING DOWN',              +11050000
+               SUB=(CHAR8A,VMCMUSER),RENT=NO,DISP=NONE,BUFFA=(R4)       11060000
+         B     EXTWAKE                                                  11070000
+         SPACE 3                                                        11080000
+EXTSEND  EQU   *              VMCF 'SEND' INTERRUPT                     11090000
+         TM    VMCMSTAT,VMCRESP          IS IT A FINAL RESPONSE (MINE)  11100000
+         BO    EXTIGN                                                   11110000
+         SPACE 1                                                        11120000
+         MVC   CURRSCRN,VMCMUSE (HE SENDS SCREEN NAME BACK)             11130000
+         L     R2,DBUFFA      GET ADDRESS, LENGTH OF DESTINATION.       11140000
+         L     R3,DBUFFM      MAX LENGTH.                               11150000
+         L     R4,VMCMMID                                               11160000
+         VMCF  RECEIVE,USERID=SERVER,                                  +11170000
+               MSGID=(R4),FLDA=(R2),LENA=(R3)                           11180000
+         LTR   R15,R15                                                  11190000
+         BZ    RECOK                                                    11200000
+         SPACE 1                                                        11210000
+RECERR   EQU   *                                                        11220000
+         CH    R15,=AL2(VMC01)     INVALID BUFFER ADDRESS OR LENGTH.    11230000
+         BE    RECFERR                                                  11240000
+         CH    R15,=AL2(VMC02)     INVALID SUBFUNCTION CODE ? ? ?       11250000
+         BE    RECFERR                                                  11260000
+         CH    R15,=AL2(VMC03)     PROTOCOL VIOLATION.                  11270000
+         BE    RECFERR                                                  11280000
+         CH    R15,=AL2(VMC04)     SOURCE MACHINE NOT AUTHORIZED.       11290000
+         BE    RECFERR                                                  11300000
+         CH    R15,=AL2(VMC05)     TARGET MACHINE NOT AVAILABLE.        11310000
+         BE    RECFERR                                                  11320000
+         CH    R15,=AL2(VMC06)     PROTECTION VIOLATION.                11330000
+         BE    RECFERR                                                  11340000
+         CH    R15,=AL2(VMC12)     MESSAGE NOT FOUND.                   11350000
+         BE    EXTIGN                   FINE, WE'LL GET ANOTHER.        11360000
+         CH    R15,=AL2(VMC13)     SYNCHRONIZATION ERROR.               11370000
+         BE    EXTIGN                   NOW, THIS SHOULDNT HAPPEN ..    11380000
+         CH    R15,=AL2(VMC15)     PAGING I/O ERROR (HARDWARE).         11390000
+         BE    EXTIGN                   IT'LL PROBABLY KILL ONE OR OTHE 11400000
+         CH    R15,=AL2(VMC16)     INCORRECT LENGTH - NO ROOM.          11410000
+         BE    RECFERR                                                  11420000
+         CH    R15,=AL2(VMC17)     DESTRUCTIVE OVERLAP ?                11430000
+         BE    RECFERR                                                  11440000
+         B     RECFERR                                                  11450000
+         SPACE 2                                                        11460000
+RECFERR  EQU   *              FATAL ERROR ON RECEIVE.                   11470000
+         LA    R4,ERRMSG                                                11480000
+         LINEDIT TEXT='VMCF RECEIVE RETCODE ..... ',                   +11490000
+               SUB=(DEC,(R5)),                                         +11500000
+               BUFFA=(R4),DISP=NONE,RENT=NO                             11510000
+         OI    WORK,QUIT                                                11520000
+         B     EXTIGN                                                   11530000
+         SPACE 1                                                        11540000
+RECOK    EQU   *                                                        11550000
+         MVC   DBUFFL,VMCMLENA                                          11560000
+         OI    WORK,NEWSCR                                              11570000
+         DROP  R8                                                       11580000
+         SPACE 1                                                        11590000
+EXTWAKE  L     R3,=A(WAITPSW)                                           11600000
+         CLC   EXTOPSW+5(3),5(R3) OUR WAIT PSW ?                        11610000
+         BNE   EXTIGN         BR NO, NOT WAITING.                       11620000
+         SPACE 1                                                        11630000
+            NI    EXTOPSW+1,255-WAIT      WAKE HIM UP.                  11640000
+         SPACE 1                                                        11650000
+         B     EXTIGN                                                   11660000
+         SPACE 3                                                        11670000
+EXTPASS  EQU   *              GIVE THIS INTERRUPT TO CMS.               11680000
+         MVC   LOWDWRD,CMSEXTN                                          11690000
+         LM    R0,R15,EXTSAVE                                           11700000
+         LPSW  LOWDWRD                                                  11710000
+         SPACE 3                                                        11720000
+EXTIGN   EQU   *              IGNORE THIS INTERRUPT.                    11730000
+         LM    R0,R15,EXTSAVE                                           11740000
+         LPSW  EXTOPSW                                                  11750000
+         SPACE 3                                                        11760000
+EXTSAVE  DS    16F                                                      11770000
+         EJECT                                                          11780000
+**********************************************************************  11790000
+*        PROG CHECK INTERRUPT HANDLER                                   11800000
+*********************************************************************** 11810000
+CPWCMS   CSECT                                                          11820000
+         USING NUCON,R0                                                 11830000
+MYPGME   EQU   *                                                        11840000
+         ST    R15,LOWDWRD                                              11850000
+         SPACE 1                                                        11860000
+         BALR  R15,0                                                    11870000
+         USING *,R15                                                    11880000
+         SPACE 1                                                        11890000
+         STM   R0,R14,PGMSAVE                                           11900000
+         MVC   PGMSAVE+4*R15(4),LOWDWRD                                 11910000
+         LM    R11,R12,BASER                                            11920000
+         DROP R15                                                       11930000
+         SPACE 3                                                        11940000
+*              RESTORE HOOKS.                                           11950000
+         BAL   R8,RSTPSW                                                11960000
+         SPACE 3                                                        11970000
+         LM    R0,R15,PGMSAVE                                           11980000
+         LPSW  PGMNPSW                                                  11990000
+         SPACE 3                                                        12000000
+PGMSAVE  DS    16F                                                      12010000
+BASER    DC    A(CPWCMS,CPWCMS+4096) FOR EXTERNAL, IO HANDLER.          12020000
+         DROP  R0                                                       12030000
+         EJECT                                                          12040000
+*********************************************************************** 12050000
+*              CONSTANTS                                                12060000
+*********************************************************************** 12070000
+CPWCMS   CSECT                                                          12080000
+         DS    0D                                                       12090000
+MYION    DC    AL1(DISABLE),XL3'0',A(MYIOE)  I/O NEW PSW                12100000
+MYEXTN   DC    AL1(DISABLE),XL3'0',A(MYEXTE) EXT NEW PSW                12110000
+MYPGMN   DC    AL1(DISABLE),XL3'0',A(MYPGME) PGM NEW PSW                12120000
+         SPACE 1                                                        12130000
+         DS    0D                                                       12140000
+MORE     DC    X'19',AL3(BLANK),AL1(SILI+CC,X'80'),AL2(1)               12150000
+CLEAR    DC    X'19',AL3(BLANK),AL1(SILI,X'FF'),AL2(1)                  12160000
+         SPACE 1                                                        12170000
+*              FULL SCREEN WRITE CCW. MODIFIED BEFORE USE.              12180000
+         DS    0D                                                       12190000
+WRFS     DC    X'29',AL3(*-*),AL1(SILI,WRTERA),AL2(*-*)                 12200000
+*        CONTROL (WRFS+5) DEFINITIONS.                                  12210000
+WRTERA   EQU   X'80'          WRITE ERASE                               12220000
+WRTERALT EQU   X'C0'          WRITE ERASE ALTERNATE FLAGS               12230000
+WRTUPD   EQU   X'00'          WRITE UPDATE.                             12240000
+WRTPA1   EQU   X'10'      PASS PA1 AS DATA (OR'D INTO WRTERA, WRTERALT) 12250000
+WSFFLAG  EQU   X'20'          WRITE STRUCTURED FIELD.                   12260000
+         SPACE 1                                                        12270000
+*              FULL SCREEN READ CCW. MODIFIED BEFORE USE.               12280000
+         DS    0D                                                       12290000
+RDFS     DC    X'2A',AL3(*-*),AL1(SILI,RDMOD),AL2(*-*)                  12300000
+*        CONTROL (RDFS+5) DEFINITIONS                                   12310000
+RDBUFF   EQU   X'00'          READ FULL BUFFER.                         12320000
+RDMOD    EQU   X'80'          READ MODIFIED.                            12330000
+         SPACE 1                                                        12340000
+SNSCCW   CCW   SENSE,SNSDATA,SILI,L'SNSDATA                             12350000
+         SPACE 1                                                        12360000
+         LTORG                                                          12370000
+         SPACE 2                                                        12380000
+UPTAB    DC    256AL1(*-UPTAB)                                          12390000
+         ORG   UPTAB+C'A'-C' '          LOWERCASE A                     12400000
+         DC    C'ABCDEFGHI'                                             12410000
+         ORG   UPTAB+C'J'-C' '                                          12420000
+         DC    C'JKLMNOPQR'                                             12430000
+         ORG   UPTAB+C'S'-C' '                                          12440000
+         DC    C'STUVWXYZ'                                              12450000
+         ORG   ,                                                        12460000
+         SPACE 2                                                        12470000
+AIDTAB   DC    256AL1((KJUNK-AIDN)/L'AIDN)                              12480000
+         ORG   AIDTAB+C'-'                                              12490000
+         DC    AL1((KNOAID-AIDN)/L'AIDN)                                12500000
+         ORG   AIDTAB+X'7D'                                             12510000
+         DC    AL1((KENTER-AIDN)/L'AIDN)                                12520000
+         ORG   AIDTAB+X'6D'                                             12530000
+         DC    AL1((KCLEAR-AIDN)/L'AIDN)                                12540000
+         ORG   AIDTAB+C'='                                              12550000
+         DC    AL1((KLPEN-AIDN)/L'AIDN)                                 12560000
+         ORG   AIDTAB+C'%'                                              12570000
+         DC    AL1((KPA1-AIDN)/L'AIDN)                                  12580000
+         ORG   AIDTAB+C'>'                                              12590000
+         DC    AL1((KPA2-AIDN)/L'AIDN)                                  12600000
+         ORG   AIDTAB+C','                                              12610000
+         DC    AL1((KPA3-AIDN)/L'AIDN)                                  12620000
+         ORG   AIDTAB+C'1'                                              12630000
+         DC    AL1((KPF1-AIDN)/L'AIDN)                                  12640000
+         ORG   AIDTAB+C'2'                                              12650000
+         DC    AL1((KPF2-AIDN)/L'AIDN)                                  12660000
+         ORG   AIDTAB+C'3'                                              12670000
+         DC    AL1((KPF3-AIDN)/L'AIDN)                                  12680000
+         ORG   AIDTAB+C'4'                                              12690000
+         DC    AL1((KPF4-AIDN)/L'AIDN)                                  12700000
+         ORG   AIDTAB+C'5'                                              12710000
+         DC    AL1((KPF5-AIDN)/L'AIDN)                                  12720000
+         ORG   AIDTAB+C'6'                                              12730000
+         DC    AL1((KPF6-AIDN)/L'AIDN)                                  12740000
+         ORG   AIDTAB+C'7'                                              12750000
+         DC    AL1((KPF7-AIDN)/L'AIDN)                                  12760000
+         ORG   AIDTAB+C'8'                                              12770000
+         DC    AL1((KPF8-AIDN)/L'AIDN)                                  12780000
+         ORG   AIDTAB+C'9'                                              12790000
+         DC    AL1((KPF9-AIDN)/L'AIDN)                                  12800000
+         ORG   AIDTAB+C':'                                              12810000
+         DC    AL1((KPF10-AIDN)/L'AIDN)                                 12820000
+         ORG   AIDTAB+C'#'                                              12830000
+         DC    AL1((KPF11-AIDN)/L'AIDN)                                 12840000
+         ORG   AIDTAB+C'@'                                              12850000
+         DC    AL1((KPF12-AIDN)/L'AIDN)                                 12860000
+         ORG   AIDTAB+C'A'                                              12870000
+         DC    AL1((KPF13-AIDN)/L'AIDN)                                 12880000
+         ORG   AIDTAB+C'B'                                              12890000
+         DC    AL1((KPF14-AIDN)/L'AIDN)                                 12900000
+         ORG   AIDTAB+C'C'                                              12910000
+         DC    AL1((KPF15-AIDN)/L'AIDN)                                 12920000
+         ORG   AIDTAB+C'D'                                              12930000
+         DC    AL1((KPF16-AIDN)/L'AIDN)                                 12940000
+         ORG   AIDTAB+C'E'                                              12950000
+         DC    AL1((KPF17-AIDN)/L'AIDN)                                 12960000
+         ORG   AIDTAB+C'F'                                              12970000
+         DC    AL1((KPF18-AIDN)/L'AIDN)                                 12980000
+         ORG   AIDTAB+C'G'                                              12990000
+         DC    AL1((KPF19-AIDN)/L'AIDN)                                 13000000
+         ORG   AIDTAB+C'H'                                              13010000
+         DC    AL1((KPF20-AIDN)/L'AIDN)                                 13020000
+         ORG   AIDTAB+C'I'                                              13030000
+         DC    AL1((KPF21-AIDN)/L'AIDN)                                 13040000
+         ORG   AIDTAB+C'¢'                                              13050000
+         DC    AL1((KPF22-AIDN)/L'AIDN)                                 13060000
+         ORG   AIDTAB+C'.'                                              13070000
+         DC    AL1((KPF23-AIDN)/L'AIDN)                                 13080000
+         ORG   AIDTAB+C'<'                                              13090000
+         DC    AL1((KPF24-AIDN)/L'AIDN)                                 13100000
+         ORG                                                            13110000
+AIDN     DS    0CL16                                                    13120000
+KJUNK    DC    CL8'JUNK',CL8'IGNORE'                                    13130000
+KNOAID   DC    CL8'NOAID',CL8'IGNORE'                                   13140000
+KLPEN    DC    CL8'LPEN',CL8'IGNORE'                                    13150000
+KENTER   DC    CL8'ENTER',CL8' ' ... FILLED IN LATER ...                13160000
+KCLEAR   DC    CL8'CLEAR',CL8'IGNORE'                                   13170000
+KPA1     DC    CL8'PA1',CL8'CP'                                         13180000
+KPA2     DC    CL8'PA2',CL8'CMS'                                        13190000
+KPA3     DC    CL8'PA3',CL8'IGNORE'                                     13200000
+KPF1     DC    CL8'PF1',CL8'HELP'                                       13210000
+KPF2     DC    CL8'PF2',CL8'HOLD'                                       13220000
+KPF3     DC    CL8'PF3',CL8'QUIT'                                       13230000
+KPF4     DC    CL8'PF4',CL8'SYS'                                        13240000
+KPF5     DC    CL8'PF5',CL8'DEV'                                        13250000
+KPF6     DC    CL8'PF6',CL8'ACT'                                        13260000
+KPF7     DC    CL8'PF7',CL8'BACKWARD'                                   13270000
+KPF8     DC    CL8'PF8',CL8'FORWARD'                                    13280000
+KPF9     DC    CL8'PF9',CL8'ALL'                                        13290000
+KPF10    DC    CL8'PF10',CL8'LEFT'                                      13300000
+KPF11    DC    CL8'PF11',CL8'RIGHT'                                     13310000
+KPF12    DC    CL8'PF12',CL8'CLOCK'                                     13320000
+KPF13    EQU   KPF1                                                     13330000
+KPF14    EQU   KPF2                                                     13340000
+KPF15    EQU   KPF3                                                     13350000
+KPF16    EQU   KPF4                                                     13360000
+KPF17    EQU   KPF5                                                     13370000
+KPF18    EQU   KPF6                                                     13380000
+KPF19    EQU   KPF7                                                     13390000
+KPF20    EQU   KPF8                                                     13400000
+KPF21    EQU   KPF9                                                     13410000
+KPF22    EQU   KPF10                                                    13420000
+KPF23    EQU   KPF11                                                    13430000
+KPF24    EQU   KPF12                                                    13440000
+         EJECT                                                          13450000
+*********************************************************************** 13460000
+*              STORAGE                                                  13470000
+*********************************************************************** 13480000
+CMSION   DC    D'0'           SAVE AREA FOR CMS' I/O NEW PSW            13490000
+CMSEXTN  DC    D'0'           SAVE AREA FOR CMS' EXTERNAL NEW PSW       13500000
+CMSPGMN  DC    D'0'           SAVE AREA FOR CMS' PROGRAM CHECK NEW PSW  13510000
+CMSKX    DC    F'0'           SAVE AREA FOR CMS' KILLEX ROUTINE.        13520000
+         SPACE 1                                                        13530000
+WORK     DC    AL1(0)         ACTIVITY FLAGS.                           13540000
+*ATTN    EQU   X'80'          ATTN INTERRUPT RECEIVED.                  13550000
+NEWSCR   EQU   X'40'          NEW SCREEN FOR WRITING.                   13560000
+*WAIT    EQU   X'20'          HAVE ENTERED WAIT STATE.                  13570000
+VMCFAUT  EQU   X'04'          WE HAVE ENABLED FOR VMCF.                 13580000
+HOLD     EQU   X'02'          HOLD PRESENT SCREEN.                      13590000
+QUIT     EQU   X'01'          TERMINATE REQUESTED BY SOMEONE.           13600000
+*SOME     EQU   ATTN+NEWSCR+QUIT         SOME WORK IS AVAILABLE.        13610000
+         SPACE 1                                                        13620000
+CONSADDR DS    H              VIRTUAL ADDRESS OF VIRTUAL CONSOLE.       13630000
+CONSFLAG DC    AL1(UNFORMAT)  CONSOLE STATUS FLAG.                      13640000
+CLRPLS   EQU   X'80'          DO CLEAR BEFORE WRITE.                    13650000
+UNFORMAT EQU   X'40'          BELIEVED TO BE UNFORMATTED.               13660000
+USEALT   EQU   X'20'          USER WRITE/ERASE ALTERNATE.               13670000
+TRAPPA1  EQU   X'10'          HOOK PA1 INTERRUPTS.                      13680000
+RDBREQ   EQU   X'01'          A READ-FULL-BUFFER IS REQUIRED.           13690000
+         SPACE 1                                                        13700000
+CSWSAVE  DC    XL2'0'         CSWSTAT 1 AND 2                           13710000
+SNSDATA  DC    XL2'0'         SENSE BYTES 1 AND 2                       13720000
+         SPACE 1                                                        13730000
+MYSCR    DC    X'C21140401D40131140C91D60'                              13740000
+FREEKB   DC    X'C21140401D4013124040'                                  13750000
+WCCHLDB  DC    X'C21140D31DE8',C'(HOLD)',X'1D60'                        13760000
+WCCHLD   EQU   WCCHLDB,*-WCCHLDB                                        13770000
+EIA      DC    X'C1114040124040' ERASE INPUT BUT DONT FREEKB            13780000
+BLANK    DC    C' '           ONE BLANK.                                13790000
+         SPACE 3                                                        13800000
+DBUFFA   DC    A(0)           POINTER TO DBUFF                          13810000
+DBUFFM   DC    A(L'DBUFF)     MAX DATA BUFFER LENGTH                    13820000
+DBUFFL   DC    A(0)           ACTUAL DATA BUFFER LENGTH                 13830000
+SBUFFA   DC    A(0)           POINTER TO SBUFF                          13840000
+SBUFFM   DC    A(L'SBUFF)     MAX SCREEN BUFFER LENGTH                  13850000
+SBUFFL   DC    A(0)           ACTUAL SCREEN BUFFER LENGTH               13860000
+         SPACE 1                                                        13870000
+SCR      DC    A(0,SCRATCHL)  MAJOR GETMAIN SPACE.                      13880000
+         SPACE 3                                                        13890000
+         PRINT OFF            COPY VMCBLOKS                             13900000
+         COPY  VMCBLOKS                                                 13910000
+         PRINT ON,NOGEN                                                 13920000
+CPWCMS   CSECT                                                          13930000
+CURRSCRN DC    CL8'SYS'       CURRENT SCREEN NAME.                      13940000
+SERVER   DC    CL8'CPWATCH'                                             13950000
+CPWCMSLV DC    0CL8' ',CL6'CPWCMS',AL1(0,0)                             13960000
+         ENTRY VMCP,VMCIH                                               13970000
+         DS    0D                                                       13980000
+VMCP     DS    CL(VMCPLEN)                                              13990000
+         SPACE 1                                                        14000000
+         DS    0D                                                       14010000
+VMCIH    DS    CL(VMCMLEN)              VMCF INTERRUPT AREA.            14020000
+         EJECT                                                          14030000
+*********************************************************************** 14040000
+*        SCRATCH STORAGE                                                14050000
+*********************************************************************** 14060000
+SCRATCH  DSECT                                                          14070000
+BLANKS   DC    CL131' '                                                 14080000
+INAREA   DC    CL80' '                                                  14090000
+ERRMSG   DC    CL131' '                                                 14100000
+DBUFF    DS    CL1920                                                   14110000
+SBUFF    DS    CL2048                                                   14120000
+SCRATCHL EQU   *-SCRATCH                                                14130000
+         EJECT                                                          14140000
+*********************************************************************** 14150000
+*              EQUATES                                                  14160000
+*********************************************************************** 14170000
+         REGEQU                                                         14180000
+ENABLE   EQU   X'FD'                                                    14190000
+DISABLE  EQU   X'00'                                                    14200000
+         EQUATES                                                        14210000
+         EJECT                                                          14220000
+         NUCON                                                          14230000
+LOWDWRD  EQU   NUCRSV3        DOUBLEWORD IN PAGE 0 FOR INTERRUPT HANDLE 14240000
+SOME     EQU   ATTN+NEWSCR+QUIT         SOME WORK IS AVAILABLE.         14250000
+         END                                                            14260000

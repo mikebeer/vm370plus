@@ -1,0 +1,54 @@
+*COPY SPASSEM
+***********************************************************************
+*               COMINCO STRUCTURED PROGRAMMING MACROS                 *
+* FORM:                                                               *
+*     DO   UNTIL,PREDICATE     DO   UNTIL,TEST                        *
+*          DO GROUP                 TEST CALCULATIONS                 *
+*     DO END                   DO   PREDICATE,BEGIN                   *
+*                                   DO GROUP                          *
+*                              DO END                                 *
+*                                                                     *
+*     DO WHILE,PREDICATE       DO WHILE,TEST                          *
+*          DO GROUP                 TEST CALCULATIONS                 *
+*     DO END                   DO PREDICATE,BEGIN                     *
+*                                   DO GROUP                          *
+*                              DO END                                 *
+*                                                                     *
+*     IF PREDICATE,THEN        IF TEST                                *
+*          THEN CLAUSE              TEST CALCULATIONS                 *
+*     IF ELSE                  IF PREDICATE,THEN                      *
+*          ELSE CLAUSE              THEN CLAUSE                       *
+*     IF END                   IF ELSE                                *
+*                                   ELSE CLAUSE                       *
+*                              IF END                                 *
+*     NOTE THAT THE 'IF ELSE' AND ELSE CLAUSE ARE OPTIONAL.           *
+* WHERE PREDICATE CAN BE:                                             *
+*          OPERATION,OPERAND1,OPERAND2,MASK                           *
+*          OPERATION,OPERAND1,MASK2,OPERAND3,MASK  (CLM ONLY)         *
+*          OPERATION,OPERAND1,MASK                 (LTR,TIO ONLY)     *
+*                                                                     *
+*          NOT,PREDICATE                                              *
+*          PREDICATE,AND,PREDICATE                                    *
+*          PREDICATE,OR,PREDICATE                                     *
+*          <NOT,>(PREDICATE),AND|OR,PREDICATE - 1 LEVEL OF BRACKETS.  *
+*     WHERE 'MASK' MAY BE: NUMBER 0-15, X'0'-X'F', B'0000'-B'1111'    *
+*          M,Z,P,L,E,H,LT,LE,EQ,NE,GE,GT,O,NO,NZ                      *
+*     IF OPERAND1 IS A RECOGNIZABLE GPR (R0-R15), AND OPERAND2 IS     *
+*          RECOGNIZABLE, OPERATION MAY BE OMITTED AND THE APPROPRIATE *
+*          COMPARE WILL BE GENERATED (LTR,CR,C,CH).                   *
+*     IF OPERAND1 AND OPERAND2 ARE RECOGNISABLE AS TYPE 'C' OR 'X',   *
+*          OPERATION MAY BE OMITTED AND A CLC WILL BE GENERATED.      *
+* SERVICE ROUTINES:                                                   *
+*     SPOPTION <  GEN><,NEST  >                                       *
+*              <NOGEN><,NONEST>                                       *
+*          - 'GEN' TURNS ON 'PRINT GEN' WITHIN STRUCTURED MACROS TO   *
+*               PRODUCE THE CODE GENERATED.  NOT PERMISSIBLE IN DOS.  *
+*               (DOS, DOS/VS DO NOT SUPPORT PUSH/POP INSTRUCTIONS.)   *
+*          - 'NEST' GENERATES AN MNOTE IN EACH MACRO SHOWING THE      *
+*               MACRO NESTING LEVEL REACHED BY THAT MACRO.            *
+*     SPENDCHK - CHECKS UNCLOSED FIGURES, AND LISTS MISCELLANEOUS     *
+*          STATISTICS.  PLACE JUST BEFORE THE ASSEMBLER 'END'.        *
+*  PROGRAMMED BY:  G. D. GEORGE, FEB, 1977.                           *
+***********************************************************************
+         EJECT
+//

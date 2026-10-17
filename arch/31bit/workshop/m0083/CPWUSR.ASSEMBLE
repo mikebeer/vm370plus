@@ -1,0 +1,745 @@
+CPW      TITLE '                                        CPWATCH'        00001000
+         COPY  CPWPRM                                                   00002000
+USR      MODULE PRINT=YES                                               00003000
+         EJECT                                                          00004000
+*********************************************************************** 00005000
+*              DISPLAY USER STUFF.                                    * 00006000
+*********************************************************************** 00007000
+         SPACE 1                                                        00008000
+USRDCP   PROC  BEGIN                                                    00009000
+         SPACE 1                                                        00010000
+*              FIND BEGIN OF USER CHAIN.                                00011000
+         STORAGE                                                        00012000
+AFRSTUSR DS    F              A(MY VMBLOK)                              00013000
+USRCT    DS    F              # LOGGED ON USERS                         00014000
+         SPACE 1                                                        00015000
+USRINC   DS    F              COUNT OF USERS FOUND, THIS LOOP.          00016000
+         PROC                                                           00017000
+USRSTART MVC   AFRSTUSR,=A(RUNUSER-PSA)                                 00018000
+         L     R0,AASYSLC                                               00019000
+         A     R0,=A(DMKSYSNM-DMKSYSDT)                                 00020000
+         ST    R0,USRCT                                                 00021000
+         OI    USRCT,X'80'                                              00022000
+         LA    R1,AFRSTUSR                                              00023000
+         SR    R0,R0                                                    00024000
+         SVC   SVCDCP                                                   00025000
+         SPACE 1                                                        00026000
+         L     R1,ACPWSECT                                              00027000
+         USING CPWSECT,R1                                               00028000
+         ZAP   CPACTV,=P'0'                                             00029000
+         ZAP   CPINACT,=P'0'                                            00030000
+         ZAP   CPSLEEP,=P'0'                                            00031000
+         SPACE 1                                                        00032000
+         ZAP CPQ1,=P'0'                                                 00033000
+         ZAP   CPQ2,=P'0'                                               00034000
+         ZAP   CPQ3,=P'0'                                               00035000
+         ZAP   CPEL,=P'0'                                               00036000
+         DROP  R1                                                       00037000
+         SPACE 3                                                        00038000
+         MVC   USRINC,ZEROS                                             00039000
+         L     R10,AFRSTUSR                                             00040000
+         DO UNTIL,C,R10,AFRSTUSR,EQ                                     00041000
+USRDCPL     DCPLIST VMBLOK,(USRDNXT,VMPNT),(USRDID,VMUSER),(,VMUSER+4),+00042000
+               (USRDACNT,VMACNT),(,VMACNT+4),(USRDPRI,VMUPRIOR-2),     +00043000
+               (USRNETID,VMTRMID-2),                                   +00044000
+               (USRSTAT,VMRSTAT),(,VMPSTAT),(,VMQLEVEL),               +00045000
+               (USRPGR,VMPGREAD),(USRPGW,VMPGWRIT),                    +00046000
+               (USRIOC,VMIOCNT),(USRPDR,VMPDRUM),                      +00047000
+               (USRPAG,VMPAGES),(USRWSP,VMWSPROJ),                     +00048000
+               (USRVTIM,VMVTIME),(,VMVTIME+4),                         +00049000
+               (USRTTIM,VMTTIME),(,VMTTIME+4),                         +00050000
+               (USRDCON,VMTERM)                                         00051000
+            DCP USRDCPL,BASE=(R10),ERROR=USRSTART                       00052000
+            SPACE 1                                                     00053000
+*              FIND HIS SLOT.                                           00054000
+            LA  R8,AUSRTAB-(USRNEXT-USRSECT)                            00055000
+            L   R9,AUSRTAB                                              00056000
+            USING USRSECT,R9                                            00057000
+            DO WHILE,R9,NZ,AND,CLC,USRID,USRDID,LT                      00058000
+               LR  R8,R9      SAVE OLD ONE.                             00059000
+               L   R9,USRNEXT                                           00060000
+            DO END                                                      00061000
+            SPACE 1                                                     00062000
+            IF R9,Z,OR,CLC,USRID,USRDID,NE,THEN  MAKE ONE FOR HIM.      00063000
+*              GET ONE FROM AVAIL                                       00064000
+               L   R9,AUSRFREE                                          00065000
+               IF R9,NZ,THEN                                            00066000
+                  MVC AUSRFREE,USRNEXT     DROP OFF CHAIN.              00067000
+               IF ELSE                                                  00068000
+                  LA  R0,USRSECTL                                       00069000
+                  SVC SVCGETM                                           00070000
+                  LR  R9,R1                                             00071000
+               IF END                                                   00072000
+               SPACE 1                                                  00073000
+*              FLAG AS A NEW ENTRY.                                     00074000
+               MVC USRBA,HEXFS                                          00075000
+               SPACE 1                                                  00076000
+*              CHAIN IT IN.                                             00077000
+               MVC USRNEXT,USRNEXT-USRSECT(R8)                          00078000
+               ST  R9,USRNEXT-USRSECT(,R8)                              00079000
+            IF END                                                      00080000
+         SPACE 3                                                        00081000
+*---------------------------------------------------------------------- 00082000
+*              INITIALIZE A USER ENTRY.                                 00083000
+*---------------------------------------------------------------------- 00084000
+            IF C,R10,USRBA,NE,THEN HE'S LOGGED OFF AND ON AGAIN,        00085000
+*                             OR IT'S A NEW ENTRY.                      00086000
+               XC  USRDAT(USRDATL),USRDAT   CLEAR USER DATA AREA        00087000
+               MVC USRID,USRDID                                         00088000
+               MVC USRACNT,USRDACNT                                     00089000
+               MVC USROTTIM,USRTTIM     SET NEW=OLD SUPVR TIME.         00090000
+               MVC USROVTIM,USRVTIM     SET NEW=OLD VIRTUAL TIME.       00091000
+               L   R1,USRPGR                                            00092000
+               A   R1,USRPGW                                            00093000
+               ST  R1,USRTURNS          CUM PAGES TURNED                00094000
+               MVC USRSIOS,USRIOC       CUM SIOS                        00095000
+               ST  R10,USRBA                                            00096000
+*              ZAP COUNTER.                                             00097000
+*              ETC.                                                     00098000
+               MVI USRFLAGS,USRACTV                                     00099000
+               SPACE 2                                                  00100000
+            IF ELSE HE'S AN OLD ENTRY.                                  00101000
+               OI  USRFLAGS,USR2TIM (AT LEAST SECOND TIME THROUGH).     00102000
+            IF END                                                      00103000
+               SPACE 3                                                  00104000
+*---------------------------------------------------------------------- 00105000
+*              C O U N T   H I M                                        00106000
+*---------------------------------------------------------------------- 00107000
+            L   R2,ACPWSECT          COUNT HIM.                         00108000
+            USING CPWSECT,R2                                            00109000
+            IF TM,USRFLAGS,USRFND,O,THEN HE'S THROUGH AGAIN             00110000
+               WTO 'SECOND TIME THROUGH'                                00111000
+            IF ELSE                                                     00112000
+               IF TM,VMRSTAT-VMRSTAT+USRSTATS,VMLOGON+VMLOGOFF,Z,THEN   00113000
+                  IF TM,VMOSTAT-VMRSTAT+USRSTATS,VMSLEEP,O,THEN         00114000
+                     AP  CPSLEEP,=P'1'                                  00115000
+                  IF ELSE                                               00116000
+                     IF CLC,USRTTIM(8),USROTTIM,EQ,AND,                +00117000
+               CLC,USRVTIM(8),USROVTIM,EQ,THEN                          00118000
+                        AP  CPACTV,=P'1'                                00119000
+                     IF ELSE                                            00120000
+                        AP  CPINACT,=P'1'                               00121000
+                     IF END                                             00122000
+                  IF END                                                00123000
+               IF END                                                   00124000
+               IF TM,VMDSTAT-VMRSTAT+USRSTATS,VMELIG+VMINQ,NZ,THEN      00125000
+                  IF TM,VMDSTAT-VMRSTAT+USRSTATS,VMINQ,O,THEN           00126000
+         AIF   (&BSEP).BSEP1                                            00127000
+                     IF TM,VMQLEVEL-VMRSTAT+USRSTATS,VMQ1,Z,THEN        00128000
+                        AP CPQ2,=P'1'                                   00129000
+                     IF ELSE                                            00130000
+                        AP CPQ1,=P'1'                                   00131000
+                     IF END                                             00132000
+         AGO   .BSEP1B                                                  00133000
+.BSEP1   ANOP                                                           00134000
+                     IF TM,VMQLEVEL-VMRSTAT+USRSTATS,VMQ1+VMQ3,Z,THEN   00135000
+                        AP CPQ2,=P'1'                                   00136000
+                     IF ELSE                                            00137000
+                        IF TM,VMQLEVEL-VMRSTAT+USRSTAT,VMQ1,O,THEN      00138000
+                           AP CPQ1,=P'1'                                00139000
+                        IF ELSE                                         00140000
+                           AP CPQ3,=P'1'                                00141000
+                        IF END                                          00142000
+                     IF END                                             00143000
+.BSEP1B  ANOP                                                           00144000
+                  IF ELSE HE MUST BE ELIGIBLE.                          00145000
+                     AP  CPEL,=P'1'                                     00146000
+                  IF END                                                00147000
+               IF END                                                   00148000
+            IF END                                                      00149000
+            DROP R2                                                     00150000
+            SPACE 3                                                     00151000
+*---------------------------------------------------------------------- 00152000
+*              PROCESS USER                                             00153000
+*---------------------------------------------------------------------- 00154000
+            OI  USRFLAGS,USRFND      FLAG AS FOUND (FOR CLEANUP).       00155000
+            SPACE 1                                                     00156000
+            MVC USRACNT,USRDACNT        CHARGE CODE.                    00157000
+            SPACE 1                                                     00158000
+            ICM R2,B'1111',USRDCON                                      00159000
+            ST  R2,USRTERM                                              00160000
+            IF Z,THEN                                                   00161000
+               MVC USRCADDR,=CL4' '                                     00162000
+               SPACE 1                                                  00163000
+            IF ELSE                                                     00164000
+               S   R2,AARIODV    OFFSET ON RDEVBLOK TABLE.              00165000
+               SRDL R2,32                                               00166000
+               D   R2,=A(RDEVSIZE*8)                                    00167000
+               MH  R3,=Y(RDVSECTL) OFFSET INTO MY RDEV TABLE            00168000
+               A   R3,ARDVTAB    ADDR IN MY TABLE.                      00169000
+               USING RDVSECT,R3                                         00170000
+               SPACE 1                                                  00171000
+               IF CLC,RDVTYPC(2),=AL1(CLASTERM,TYPBSC),EQ,THEN          00172000
+*                 REMOTE 327X. USE NETWORK ID.                          00173000
+                  LH  R1,USRNETID+2                                     00174000
+                  CALL HEXIT                                            00175000
+                  STCM R1,B'1111',USRCADDR                              00176000
+                  SPACE 1                                               00177000
+               IF ELSE USE DEVICE ADDRESS.                              00178000
+                  MVI USRCADDR,C' '                                     00179000
+                  MVC USRCADDR+1(L'USRCADDR-1),RDVCADDR                 00180000
+               IF END                                                   00181000
+               DROP R3                                                  00182000
+            IF END                                                      00183000
+            SPACE 1                                                     00184000
+*           IS HE AN ACTIVE USER ?                                      00185000
+            IF CLC,USRTTIM(8),USROTTIM,EQ,AND,                         +00186000
+               CLC,USRVTIM(8),USROVTIM,EQ,AND,                         +00187000
+               TM,USRFLAGS,USR2TIM,O,THEN                               00188000
+               NI  USRFLAGS,255-USRACTV                                 00189000
+               XC  USRTPCT,USRTPCT                                      00190000
+               XC  USRVPCT,USRVPCT                                      00191000
+               SPACE 1                                                  00192000
+            IF ELSE                                                     00193000
+               OI  USRFLAGS,USRACTV                                     00194000
+               SPACE 1                                                  00195000
+*              SUPERVISOR TIME.                                         00196000
+               LM  R0,R1,USROTTIM SUPVR TIME IS POSITIVE AND DECREASING 00197000
+         DSUB  R0,USRTTIM                                               00198000
+               SPACE 1                                                  00199000
+               SRDL R0,12     CONVERT TO MICROSECONDS.                  00200000
+               SPACE 1                                                  00201000
+               IF C,R0,SNAPINT,LT,AND,                                 +00202000
+               CLC,SNAPINT,ZEROS,NZ,THEN                                00203000
+                  D   R0,SNAPINT MICROSECONDS/MILLISECONDS = % * 10     00204000
+               IF ELSE      (IT WOULD HAVE OVERFLOWED).                 00205000
+                  L  R1,=F'-1'                                          00206000
+               IF END                                                   00207000
+               ST  R1,USRTPCT                                           00208000
+               SPACE 1                                                  00209000
+*              VIRTUAL TIME.                                            00210000
+               LM  R0,R1,USRVTIM VIRTUAL TIME IS POSITIVE INCREASING.   00211000
+         DSUB  R0,USROVTIM                                              00212000
+               SPACE 1                                                  00213000
+               SRDL R0,12     CONVERT TO MICROSECONDS.                  00214000
+               SPACE 1                                                  00215000
+               IF C,R0,SNAPINT,LT,AND,                                 +00216000
+               CLC,SNAPINT,ZEROS,NZ,THEN                                00217000
+                  D   R0,SNAPINT MICROSECONDS/MILLISECONDS = % * 10     00218000
+               IF ELSE      (IT WOULD HAVE OVERFLOWED).                 00219000
+                  L  R1,=F'-1'                                          00220000
+               IF END                                                   00221000
+            IF END                                                      00222000
+            ST  R1,USRVPCT                                              00223000
+            SPACE 1                                                     00224000
+            MVC USROTTIM,USRTTIM                                        00225000
+            MVC USROVTIM,USRVTIM                                        00226000
+            SPACE 1                                                     00227000
+            MVC USRSTATS,USRSTAT                                        00228000
+            SPACE 1                                                     00229000
+*           PRIORITY                                                    00230000
+            MVC USRPRIOR,USRDPRI+2                                      00231000
+            SPACE 3                                                     00232000
+*              PAGE TURNS                                               00233000
+            L   R1,USRPGR                                               00234000
+            A   R1,USRPGW     NEW CUM TURNS                             00235000
+            L   R0,USRTURNS                                             00236000
+            ST  R1,USRTURNS                                             00237000
+            SR  R1,R0         NEW DIFFERENCE                            00238000
+            ST  R1,USRTURND                                             00239000
+            SPACE 3                                                     00240000
+*              START I/O (NON-SPOOLED)                                  00241000
+            L   R1,USRIOC                                               00242000
+            S   R1,USRSIOS                                              00243000
+            MVC USRSIOS,USRIOC                                          00244000
+            ST  R1,USRSIOD                                              00245000
+            SPACE 3                                                     00246000
+*              PAGES RESIDENT                                           00247000
+            MVC USRRPAG,USRPAG                                          00248000
+            SPACE 3                                                     00249000
+*              PAGES NON-RESIDENT                                       00250000
+            LH  R1,USRPDR                                               00251000
+            AH  R1,USRPDR+2                                             00252000
+            STH R1,USRAPAG                                              00253000
+            SPACE 3                                                     00254000
+*              PROJ WORKING SET.                                        00255000
+            MVC USRWS,USRWSP                                            00256000
+            SPACE 3                                                     00257000
+*              SELECT NEXT USER.                                        00258000
+            IF TM,USRSTATS,VMLOGON+VMLOGOFF,Z,THEN HE'S REAL.           00259000
+               L   R0,USRINC     COUNT HIM.                             00260000
+               AH  R0,=H'1'                                             00261000
+               ST  R0,USRINC                                            00262000
+            IF END                                                      00263000
+            IF CLI,USRDNXT,0,NE,OR,                                    +00264000
+               CLC,USRDNXT,ZEROS,EQ,OR,CLC,USRDNXT,CORESIZE,GT,OR,     +00265000
+               CLC,USRINC,USRCT,GT,THEN                                 00266000
+               SPACE 1                                                  00267000
+               WTO 'VMBLOK CHAIN FAILURE'                               00268000
+               SPACE 1                                                  00269000
+               AP  USERFAIL,=P'1'       CHAIN HAS FAILED.  COUNT IT.    00270000
+               B   USRSTART   AND RESTART                               00271000
+            IF ELSE                                                     00272000
+               L   R10,USRDNXT          JUST CONTINUE W/ NEXT ONE.      00273000
+            IF END                                                      00274000
+            SPACE 3                                                     00275000
+         DO END                                                         00276000
+         DROP  R9                                                       00277000
+         SPACE 1                                                        00278000
+*        DROP ANY DEAD ENTRIES.                                         00279000
+         LA    R8,AUSRTAB-(USRNEXT-USRSECT)                             00280000
+         L   R9,AUSRTAB                                                 00281000
+         USING USRSECT,R9                                               00282000
+         DO WHILE,R9,NZ                                                 00283000
+            IF TM,USRFLAGS,USRFND,O,THEN HE'S STILL THERE..             00284000
+               NI  USRFLAGS,255-USRFND  CLEAR FOR NEXT TRIP AROUND.     00285000
+               LR  R8,R9                                                00286000
+               L   R9,USRNEXT           TRY NEXT ONE.                   00287000
+            IF ELSE           HE'S GONE - DROP HIM.                     00288000
+*              DECHAIN ENTRY.                                           00289000
+               LR  R7,R9      SAVE HIS ADDR.                            00290000
+               L   R9,USRNEXT                                           00291000
+               ST  R9,USRNEXT-USRSECT(,R8)                              00292000
+               SPACE 1                                                  00293000
+*              CLEAR IT.                                                00294000
+               MVC 0(USRSECTL,R7),HEXFS                                 00295000
+               SPACE 1                                                  00296000
+*              ENCHAIN ENTRY AT BEGINNING OF FREE LIST.                 00297000
+               MVC USRNEXT-USRSECT(,R7),AUSRFREE                        00298000
+               ST   R7,AUSRFREE                                         00299000
+            IF END                                                      00300000
+         DO END                                                         00301000
+         DROP R9                                                        00302000
+         PROC  END                                                      00303000
+         EJECT                                                          00304000
+*---------------------------------------------------------------------- 00305000
+*              ALL USER DISPLAY.                                        00306000
+*---------------------------------------------------------------------- 00307000
+*  REGISTERS                                                            00308000
+*        R10 - PANEL BASE                                               00309000
+*        R9 - DISPLAY BASE                                              00310000
+*        R8 - SLOT COUNTER                                              00311000
+*        R7 - USER TABLE ENTRY BASE                                     00312000
+*        R6 - SLOT BASE                                                 00313000
+*---------------------------------------------------------------------- 00314000
+*              ALL USER DISPLAY PAGE STRUCTURE.                         00315000
+*---------------------------------------------------------------------- 00316000
+         SPACE 1                                                        00317000
+ALLSECT  DSECT                                                          00318000
+ALLUSRID DS    CL8                                                      00319000
+         DS    C                                                        00320000
+ALLSTAT  DS    C                                                        00321000
+ALLCONAD DS    CL4                                                      00322000
+         DS    C                                                        00323000
+ALLFAV   DS    0C             FAVOR INDICATOR                           00324000
+ALLPRIO  DS    CL3                                                      00325000
+ALLRES   DS    C                                                        00326000
+         AIF   (NOT &COMINCO).NOCHG                                     00327000
+         DS    C                                                        00328000
+ALLCHG   DS    CL6                                                      00329000
+.NOCHG   ANOP                                                           00330000
+ALLPAD   DS    CL1                                                      00331000
+ALLLEN   EQU   *-ALLSECT                                                00332000
+         SPACE 1                                                        00333000
+ALLREP   EQU   (80+L'ALLPAD)/(ALLLEN)                                   00334000
+         SPACE 1                                                        00335000
+ALLUSR   PROC  BEGIN                                                    00336000
+         DATA                                                           00337000
+ALLTIT   DC    C'CPWATCH ALL USERS'                                     00338000
+ALLOFS   EQU   (80-L'ALLTIT)/2                                          00339000
+ALLBEG   EQU   SCRLINE3                                                 00340000
+ALLEND   EQU   SCREEND                                                  00341000
+ALLLINES EQU   (ALLEND-ALLBEG)/80      TOTAL LINES ON SCR.              00342000
+         SPACE 1                                                        00343000
+         PROC                                                           00344000
+         L     R9,=V(DSPALL)                                            00345000
+         USING DSPSECT,R9                                               00346000
+         SR    R10,R10        START W/NEW PAGE.                         00347000
+         USING SCRSECT,R10                                              00348000
+         SPACE 1                                                        00349000
+         IF CP,LISTNRS,=P'0',GT,THEN                                    00350000
+            OI  DSPFLAGS,DSPNEW                                         00351000
+            SPACE 1                                                     00352000
+*              USER LOOP INITIALIZE                                     00353000
+            LA  R8,ALLREP*ALLLINES FORCE FAIL OF SCREEN SPACE TEST.     00354000
+            SPACE 1                                                     00355000
+            L     R7,AUSRTAB  BEGIN OF USERTABLE.                       00356000
+            USING USRSECT,R7                                            00357000
+            SPACE 1                                                     00358000
+*           USER LOOP                                                   00359000
+            DO WHILE,R7,NZ                                              00360000
+               LA  R8,1(,R8)  NEXT SLOT.                                00361000
+               SPACE 1                                                  00362000
+*              NEW PAGE ?                                               00363000
+               IF C,R8,=A(ALLREP*ALLLINES),GE,THEN                      00364000
+                  LR  R0,R10                                            00365000
+                  LR  R1,R9                                             00366000
+                  CALL NEWSCR                                           00367000
+                  LR  R10,R0                                            00368000
+                  MVC SCREEN+ALLOFS(L'ALLTIT),ALLTIT                    00369000
+                  SR  R8,R8                                             00370000
+               IF END                                                   00371000
+               SPACE 1                                                  00372000
+*                             SLOT AS COLUMN/ROW, FROM ZERO.            00373000
+               SR  R14,R14                                              00374000
+               LR  R15,R8                                               00375000
+               D   R14,=A(ALLLINES) (COL IN R15, LINE IN R14)           00376000
+               SPACE 1                                                  00377000
+*                             CALCULATE LOCATION OF COL HEADINGS,      +00378000
+                              AND INSERT IF NECESSARY.                  00379000
+               MH  R14,=Y(L'SCRLINE)     BYTE OFFSET FOR LINE.          00380000
+               MH  R15,=Y(ALLLEN)        BYTE OFFSET FOR COLUMN.        00381000
+               LA  R6,SCRLINE2(R15)      LOCATION OF COL. HEADINGS.     00382000
+               USING ALLSECT,R6                                         00383000
+               IF LTR,R14,R14,Z,THEN STARTING NEW COLUMN.               00384000
+                  MVC ALLUSRID,=CL8'USERID'                             00385000
+                  MVI ALLSTAT,C'S'                                      00386000
+                  MVC ALLCONAD,=CL4' CON'                               00387000
+                  MVC ALLPRIO,=CL4'PRIO'                                00388000
+                  AIF (NOT &COMINCO).NOCHG2                             00389000
+                  MVC ALLCHG,=CL6'CHARGE'                               00390000
+                  SPACE 1                                               00391000
+.NOCHG2           ANOP                                                  00392000
+                  IF R15,NZ,THEN STARTING SECOND OR SUCC. COL.          00393000
+                     LA  R4,SCRLINE2-((L'ALLPAD+1)/2)(R15) BEGIN        00394000
+                     LA  R2,L'SCRLINE  INCREMENT                        00395000
+                     LA  R3,ALLEND                                      00396000
+ALLMVIL              MVI 0(R4),C'|'  SEPARATOR                          00397000
+                     BXLE R4,R2,ALLMVIL                                 00398000
+                  IF END                                                00399000
+               IF END                                                   00400000
+               SPACE 1                                                  00401000
+*                             NOW CALCULATE ACTUAL SLOT FOR USER LINE.  00402000
+               LA  R6,SCRLINE3(R14)                                     00403000
+               AR  R6,R15                                               00404000
+*                             NOTE R14, R15 ARE FREE NOW.               00405000
+               SPACE 1                                                  00406000
+*              NOW BUILD USER LINE.                                     00407000
+               MVC ALLUSRID,USRID                                       00408000
+               SPACE 1                                                  00409000
+               IF TM,USRSTATS+2,VMSLEEP,O,THEN (VMOSTAT)                00410000
+                  MVI ALLSTAT,C'S'                                      00411000
+               IF ELSE                                                  00412000
+                  IF TM,USRFLAGS,USRACTV,O,THEN                         00413000
+                     MVI ALLSTAT,C'A'                                   00414000
+                  IF ELSE                                               00415000
+                     MVI ALLSTAT,C'I'                                   00416000
+                  IF END                                                00417000
+               IF END                                                   00418000
+               SPACE 1                                                  00419000
+               MVC ALLCONAD,USRCADDR                                    00420000
+               SPACE 1                                                  00421000
+               SR  R1,R1                                                00422000
+               IC  R1,USRPRIOR                                          00423000
+               CALL DECIT                                               00424000
+               STCM R1,B'0011',ALLPRIO+1                                00425000
+               IF TM,USRSTATS+VMQLEVEL-VMRSTAT,VMAEX+VMAEXP,NZ,THEN     00426000
+                  IF TM,USRSTATS+VMQLEVEL-VMRSTAT,VMAEXP,O,THEN         00427000
+                     MVI ALLFAV,C'%'                                    00428000
+                  IF ELSE                                               00429000
+                     MVI ALLFAV,C'F'                                    00430000
+                  IF END                                                00431000
+               IF ELSE                                                  00432000
+                  MVI ALLFAV,C' '                                       00433000
+               IF END                                                   00434000
+               SPACE 1                                                  00435000
+               IF TM,USRSTATS+VMPSTAT-VMRSTAT,VMRPAGE,O,THEN            00436000
+                  MVI ALLRES,C'R'                                       00437000
+               IF ELSE                                                  00438000
+                  MVI ALLRES,C' '                                       00439000
+               IF END                                                   00440000
+               AIF (NOT &COMINCO).NOCHG3                                00441000
+               SPACE 1                                                  00442000
+               IF CLC,USRACNT,USRID,NE,THEN                             00443000
+                  MVC ALLCHG,USRACNT+2                                  00444000
+               IF END                                                   00445000
+.NOCHG3        ANOP                                                     00446000
+               SPACE 1                                                  00447000
+*              NEXT USER, PLEASE.                                       00448000
+               SPACE 1                                                  00449000
+               L   R7,USRNEXT                                           00450000
+            DO END                                                      00451000
+            SPACE 1                                                     00452000
+            LR  R1,R9                                                   00453000
+            LR  R0,R10                                                  00454000
+            CALL LASTSCR                                                00455000
+            SPACE 1                                                     00456000
+         IF END                                                         00457000
+         SPACE 1                                                        00458000
+         PROC END                                                       00459000
+         EJECT                                                          00460000
+*---------------------------------------------------------------------- 00461000
+*              ACTIVE USERS DISPLAY.                                    00462000
+*---------------------------------------------------------------------- 00463000
+*              ACTIVE USERS DISPLAY STRUCTURE.                          00464000
+*---------------------------------------------------------------------- 00465000
+         SPACE 1                                                        00466000
+ACTSECT  DSECT                                                          00467000
+ACTUSRID DS    CL8                                                      00468000
+         DS    C                                                        00469000
+ACTCONAD DS    CL4                                                      00470000
+ACTVT    DS    CL6            VIRT  CPU, %                              00471000
+ACTOT    DS    CL6            TOTAL CPU, %                              00472000
+         DS    C                                                        00473000
+ACTQ     DS    CL1            QUEUE / EL                                00474000
+         DS    C                                                        00475000
+ACTFAV   DS    CL1            FAVOURED ?                                00476000
+         DS    C                                                        00477000
+ACTRUN   DS    CL4            RUNNING (VIRTUAL) STATUS                  00478000
+         DS    C                                                        00479000
+ACTDISP  DS    CL4            DISPATCHING STATUS.                       00480000
+         DS    C                                                        00481000
+ACTSIO   DS    CL5            SIO/S, NON-SPOOLED                        00482000
+ACTPGR   DS    CL5            PAGE TURNS/SEC                            00483000
+ACTRESK  DS    CL7            K REAL CORE OCCUPIED.                     00484000
+ACTRES   DS    CL1            RESERVED PAGES ?                          00485000
+ACTPWS   DS    CL7            K PROJ WORKING SET.                       00486000
+         DS    CL2                                                      00487000
+ACTNEXT  EQU   *                                                        00488000
+ACTLEN   EQU   ACTNEXT-ACTSECT                                          00489000
+ACTREP   EQU   (80/ACTLEN)                                              00490000
+ACTNXTLN EQU   ACTSECT+80                                               00491000
+         EJECT                                                          00492000
+         SPACE 1                                                        00493000
+ACTUSR   PROC  BEGIN                                                    00494000
+         SPACE 1                                                        00495000
+         DATA                                                           00496000
+ACTTIT   DC    C'CPWATCH ACTIVE USERS'                                  00497000
+ACTOFS   EQU   (80-L'ACTTIT)/2                                          00498000
+ACTBEG   EQU   SCRLINE2                                                 00499000
+ACTEND   EQU   SCREEND                                                  00500000
+         SPACE 1                                                        00501000
+         PROC                                                           00502000
+         L     R9,=V(DSPACT)                                            00503000
+         USING DSPSECT,R9                                               00504000
+         SR    R10,R10                                                  00505000
+         SPACE 1                                                        00506000
+         IF CP,LISTNRS,=P'0',GT,THEN                                    00507000
+            OI    DSPFLAGS,DSPNEW                                       00508000
+            SPACE 1                                                     00509000
+*              BUILD LIST OF ACTIVE USERS.                              00510000
+            L   R6,AUSRTAB                                              00511000
+            USING USRSECT,R6                                            00512000
+            DO WHILE,R6,NZ                                              00513000
+               IF TM,USRFLAGS,USRACTV,O,THEN                            00514000
+                  IF R10,Z,OR,R8,R7,GE,THEN                             00515000
+                     LR  R1,R9                                          00516000
+                     LR  R0,R10                                         00517000
+                     CALL NEWSCR                                        00518000
+                     LR  R10,R0                                         00519000
+                     USING SCRSECT,R10                                  00520000
+                     SPACE 1                                            00521000
+                     MVC SCREEN+ACTOFS(L'ACTTIT),ACTTIT                 00522000
+                     SPACE 1                                            00523000
+                     LA  R8,ACTBEG                                      00524000
+                     USING ACTSECT,R8                                   00525000
+                     LA  R7,ACTEND                                      00526000
+                     SPACE 1                                            00527000
+                     MVC ACTUSRID,=CL8'USERID'                          00528000
+                     MVC ACTCONAD,=CL4' CON'                            00529000
+                     MVC ACTVT,=CL(L'ACTVT)'  VRT%'                     00530000
+                     MVC ACTOT,=CL(L'ACTOT)'  TOT%'                     00531000
+                     MVI ACTQ,C'Q'                                      00532000
+                     MVI ACTFAV,C'F'                                    00533000
+                     MVC ACTRUN,=CL4'RUN'                               00534000
+                     MVC ACTDISP,=CL4'DISP'                             00535000
+                     MVC ACTSIO,=CL5' SIOS'                             00536000
+                     MVC ACTPGR,=CL5' PGRT'                             00537000
+                     MVC ACTRESK,=CL7'   CORE'                          00538000
+                     MVC ACTPWS,=CL7'  PR.WS'                           00539000
+                     SPACE 1                                            00540000
+                     LA  R8,ACTNXTLN                                    00541000
+                  IF END                                                00542000
+                  SPACE 1                                               00543000
+*                 INITIALIZE HIS ENTRY.                                 00544000
+                  MVC ACTUSRID,USRID                                    00545000
+                  MVC ACTCONAD,USRCADDR                                 00546000
+                  SPACE 1                                               00547000
+                  IF TM,USRSTATS+1,VMELIG,O,THEN (VMDSTAT)              00548000
+                     MVI ACTQ,C'E'                                      00549000
+                  IF ELSE                                               00550000
+                     IF TM,USRSTATS+1,VMINQ,O,THEN                      00551000
+                        MVI ACTQ,C'2'                                   00552000
+                        IF TM,USRSTATS+8,VMQ1,O,THEN (VMQLEVEL)         00553000
+                           MVI ACTQ,C'1'                                00554000
+                        IF END                                          00555000
+         AIF   (NOT &BSEP).NBSEP1                                       00556000
+                        IF TM,USRSTATS+8,VMQ3,O,THEN                    00557000
+                           MVI ACTQ,C'3'                                00558000
+                        IF END                                          00559000
+.NBSEP1  ANOP                                                           00560000
+                     IF END                                             00561000
+                  IF END                                                00562000
+                  IF TM,USRSTATS+VMQLEVEL-VMRSTAT,VMAEX+VMAEXP,NZ,THEN  00563000
+                     IF TM,USRSTATS+VMQLEVEL-VMRSTAT,VMAEXP,O,THEN      00564000
+                        MVI ACTFAV,C'%'                                 00565000
+                     IF ELSE                                            00566000
+                        MVI ACTFAV,C'F'                                 00567000
+                     IF END                                             00568000
+                  IF ELSE                                               00569000
+                     MVI ACTFAV,C' '                                    00570000
+                  IF END                                                00571000
+                  SPACE 1                                               00572000
+*                 VIRTUAL PERCENTAGE                                    00573000
+                  IF CLC,USRVPCT,HEXFS,NE,THEN                          00574000
+                     L   R1,USRVPCT (PCT OF VIRT  CPU)                  00575000
+                     IF R1,NZ,THEN                                      00576000
+                        CALL DECIT1D                                    00577000
+                        MVC ACTVT,28-L'ACTVT(R13)                       00578000
+                     IF END                                             00579000
+                  IF ELSE                                               00580000
+                     MVC ACTVT,=CL5'*****'                              00581000
+                  IF END                                                00582000
+                  SPACE 1                                               00583000
+*                 TOTAL PERCENTAGE                                      00584000
+                  IF CLC,USRTPCT,HEXFS,NE,AND,CLC,USRVPCT,HEXFS,NE,THEN 00585000
+                     L   R1,USRTPCT (PCT OF CPU, SUPERVISOR)            00586000
+                     A   R1,USRVPCT                                     00587000
+                     IF R1,NZ,THEN                                      00588000
+                        CALL DECIT1D                                    00589000
+                        MVC ACTOT,28-L'ACTOT(R13)                       00590000
+                     IF END                                             00591000
+                  IF ELSE                                               00592000
+                     MVC ACTOT,=CL5'*****'                              00593000
+                  IF END                                                00594000
+                  EJECT                                                 00595000
+*                 RUNNING STATUS. (INTERNAL TO VIRTUAL MACHINE)         00596000
+                  IF TM,VMDSTAT-VMRSTAT+USRSTATS,VMRUN,O,THEN           00597000
+                     MVC ACTRUN,=CL4'RUN'                               00598000
+                  IF END                                                00599000
+                  IF TM,USRSTATS,VMIOWAIT,O,THEN                        00600000
+                     MVC ACTRUN,=CL4'SIO'                               00601000
+                  IF END                                                00602000
+                  IF TM,USRSTATS,VMPSWAIT,O,THEN                        00603000
+                     MVC ACTRUN,=CL4'WAIT'                              00604000
+                  IF END                                                00605000
+                  IF TM,USRSTATS+1,VMTIO,O,THEN                         00606000
+                     MVC ACTRUN,=CL4'TIOB'                              00607000
+                  IF END                                                00608000
+                  SPACE 6                                               00609000
+*                 DISPATCHING STATUS (SPECIFIC TO CP)                   00610000
+                  IF TM,USRSTATS+1,VMDSP,O,THEN (VMDSTAT)               00611000
+                     MVC ACTDISP,=CL4'DISP'                             00612000
+                  IF END                                                00613000
+                  IF TM,VMQLEVEL-VMRSTAT+USRSTATS,VMCOMP,O,THEN         00614000
+                     MVC ACTDISP,=CL4'CMPB'                             00615000
+                  IF END                                                00616000
+                  IF TM,USRSTATS,VMEXWAIT,O,AND,                       +00617000
+               TM,USRSTATS+1,VMRUN,Z,THEN                               00618000
+                     MVC ACTDISP,=CL4'PRIV'                             00619000
+                  IF END                                                00620000
+                  IF TM,USRSTATS,VMPGWAIT,O,THEN  (VMRSTAT)             00621000
+                     MVC ACTDISP,=CL4'PGWT'                             00622000
+                  IF END                                                00623000
+                  IF TM,USRSTATS,VMIOWAIT,O,THEN                        00624000
+                     MVC ACTDISP,=CL4'IOWT'                             00625000
+                  IF END                                                00626000
+*                 IF TM,USRSTATS,VMPSWAIT,O,THEN                        00627000
+*                    IF TM,USRSTATS,VMIDLE,O,THEN                       00628000
+*                       MVC ACTDISP,=CL4'IDLE'                          00629000
+*                    IF ELSE                                            00630000
+*                       MVC ACTDISP,=CL4'PSWT'                          00631000
+*                    IF END                                             00632000
+*                 IF END                                                00633000
+                  IF TM,USRSTATS+2,VMSLEEP,O,THEN                       00634000
+                     MVC ACTDISP,=CL4'SL'                               00635000
+                  IF END                                                00636000
+                  SPACE 1                                               00637000
+*                     START I/O COUNT.                                  00638000
+                  L   R1,USRSIOD                                        00639000
+                  M   R0,=F'10000' MILLISECONDS, *10                    00640000
+                  IF CLC,SNAPINT,=F'0',NZ,THEN                          00641000
+                      D   R0,SNAPINT                                    00642000
+                  IF ELSE                                               00643000
+                      SR  R1,R1                                         00644000
+                  IF END                                                00645000
+                  IF R1,NZ,THEN                                         00646000
+                     CALL DECIT1D                                       00647000
+                     MVC ACTSIO,28-L'ACTSIO(R13)                        00648000
+                  IF END                                                00649000
+                  SPACE 3                                               00650000
+*                     PAGE RATE                                         00651000
+                  L   R1,USRTURND                                       00652000
+                  M   R0,=F'10000' MILLISECONDS, *10                    00653000
+                  IF CLC,SNAPINT,=F'0',NZ,THEN                          00654000
+                      D   R0,SNAPINT                                    00655000
+                  IF ELSE                                               00656000
+                      SR  R1,R1                                         00657000
+                  IF END                                                00658000
+                  IF R1,NZ,THEN                                         00659000
+                     CALL DECIT1D                                       00660000
+                     MVC ACTPGR,28-L'ACTPGR(R13)                        00661000
+                  IF END                                                00662000
+                  SPACE 1                                               00663000
+*                 K OF CORE OCCUPIED.                                   00664000
+                  LH  R1,USRRPAG        PAGES.                          00665000
+                  IF R1,NZ,THEN                                         00666000
+                     SLA R1,2    *4 = LK                                00667000
+                     CALL DECIT                                         00668000
+                     MVC ACTRESK,28-L'ACTRESK+1(R13)                    00669000
+                     MVI ACTRESK+L'ACTRESK-1,C'K'                       00670000
+                  IF END                                                00671000
+                  IF TM,USRSTATS+VMPSTAT-VMRSTAT,VMRPAGE,O,THEN         00672000
+                     MVI ACTRES,C'R'                                    00673000
+                  IF ELSE                                               00674000
+                     MVI ACTRES,C' '                                    00675000
+                  IF END                                                00676000
+                  SPACE 1                                               00677000
+*                 K PROJECTED WORKING SET.                              00678000
+                  LH  R1,USRWS                                          00679000
+                  IF R1,NZ,THEN                                         00680000
+                     SLA R1,2                                           00681000
+                     CALL DECIT                                         00682000
+                     MVC ACTPWS,28-L'ACTRESK+1(R13)                     00683000
+                     MVI ACTPWS+L'ACTPWS-1,C'K'                         00684000
+                  IF END                                                00685000
+                  SPACE 3                                               00686000
+                  LA  R8,ACTNXTLN                                       00687000
+               IF END                                                   00688000
+               SPACE 1                                                  00689000
+*              NOW GET THE NEXT ONE.                                    00690000
+               L   R6,USRNEXT                                           00691000
+            DO END                                                      00692000
+            SPACE 1                                                     00693000
+            LR  R1,R9                                                   00694000
+            LR  R0,R10                                                  00695000
+            CALL LASTSCR                                                00696000
+         IF END                                                         00697000
+         SPACE 1                                                        00698000
+         PROC  END                                                      00699000
+         SPENDCHK                                                       00700000
+         EJECT                                                          00701000
+*********************************************************************** 00702000
+*              BUILD USER TABLE.                                      * 00703000
+*********************************************************************** 00704000
+*        BUILDS LINKED LIST OF AVAILABLE USER TABLE ENTRIES.            00705000
+         SPACE 1                                                        00706000
+USRBLD   PROC  BEGIN                                                    00707000
+         XC    AUSRTAB,AUSRTAB          NO ACTIVE ENTRIES YET.          00708000
+         SPACE 1                                                        00709000
+         LA    R3,&USRTABS                                              00710000
+         M     R2,=A(USRSECTL)                                          00711000
+         LA    R3,4095(,R3)   FORCE UP TO PAGE BOUNDARY.                00712000
+         N     R3,FM04096                                               00713000
+         LR    R0,R3          LENGTH FOR GETMAIN.                       00714000
+         D     R2,=A(USRSECTL)          ACTUAL NUMBER OF ENTRIES.       00715000
+         SPACE 1                                                        00716000
+         SVC   SVCGETM+SVCPAGE                                          00717000
+         SPACE 1                                                        00718000
+         LA    R2,AUSRFREE-(USRNEXT-USRSECT)                            00719000
+         USING USRSECT,R2                                               00720000
+         LR    R4,R1          NEXT ITEM IS THE FIRST.                   00721000
+USRBLDLP EQU   *                                                        00722000
+         ST    R4,USRNEXT     CHAIN FROM PRECEDING ITEM.                00723000
+         LR    R2,R4          SWITCH TO CURRENT ITEM.                   00724000
+         MVC   USRSECT(USRSECTL),HEXFS                                  00725000
+         LA    R4,USRSECT+USRSECTL      START SEQ ALLOC.                00726000
+         BCT   R3,USRBLDLP                                              00727000
+         SPACE 1                                                        00728000
+         XC    USRNEXT,USRNEXT          NO ONE FOLLOWS.                 00729000
+         SPACE 1                                                        00730000
+         PROC END                                                       00731000
+         EJECT                                                          00732000
+         SPENDCHK                                                       00733000
+         EJECT                                                          00734000
+*********************************************************************** 00735000
+*              V M / 3 7 0   D S E C T S.                             * 00736000
+*********************************************************************** 00737000
+         SPACE 1                                                        00738000
+         PSA                                                            00739000
+         COPY  RBLOKS                                                   00740000
+         COPY DEVTYPES                                                  00741000
+         COPY  VMBLOK                                                   00742000
+         SYSLOCS                                                        00743000
+         SPACE 12                                                       00744000
+         END                                                            00745000

@@ -1,0 +1,35 @@
+         MACRO
+&NAME    WTO   &LINE,&LEN
+         LCLA  &LENGTH
+         AIF   (T'&NAME EQ 'O').NONAME
+&NAME    DS    0H
+.NONAME  ANOP
+         AIF   (T'&LINE EQ 'O' AND T'&LEN EQ 'O').SVC
+         AIF   ('&LINE'(1,1) NE '''').ADDR
+.*             LITERAL.
+&LENGTH  SETA  K'&LINE-2
+         AIF   (T'&LEN EQ 'O').LENGD
+&LENGTH  SETA  &LEN
+.LENGD   ANOP
+         LA    R1,=CL(&LENGTH)&LINE
+         LA    R0,&LENGTH
+         AGO   .SVC
+.*             ADDRESS SPECIFIED
+.ADDR    AIF   ('&LINE'(1,1) EQ '(').REG1
+.*             SYMBOL GIVEN AS FIRST OPR.
+         LA    R1,&LINE
+         AIF   (T'&LEN NE 'O').LENG1
+         LA    R0,L'&LINE
+         AGO   .SVC
+.*
+.REG1    AIF   ('&LINE' EQ '(R1)' OR '&LINE' EQ '(0)').LENG1
+         LR    R1,&LINE
+.*       AGO   .LENG1
+.LENG1   AIF   ('&LEN'(1,1) EQ '(').REG2
+         LA    R0,&LEN
+         AGO   .SVC
+.REG2    AIF   ('&LEN' EQ '(R0)' OR '&LEN' EQ '(0)').SVC
+         LR    R0,&LEN
+.SVC     SVC   SVCWTO
+         MEND
+//

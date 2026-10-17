@@ -1,0 +1,4 @@
+./ I 00161000          $ 166000 5000                  10/16/84 07:16:37
+SVCWTOQ  EQU   SVCWTO+1       QUEUE A WRITE TO CONSOLE.                 00166000
+./ R 00771000          $ 775990 4990                  10/16/84 07:16:37
+ADEVICES DC    A(CONSOLE)     A(DEVICE LIST)                            00771000

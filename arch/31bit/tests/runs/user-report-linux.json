@@ -1,0 +1,235 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/purge maint rdr all",
+  "settle": 3
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/fix1/dirup5.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 8
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/fix1/linux.deck ascii trunc eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 8
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "term": "ipl cms",
+  "expect": "VM Community|DMS|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "readcard dirup5 exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "readcard linux exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "dirup5",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "access 19d e",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "copyfile linux exec a = = e (replace olddate",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "release e",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "erase dirup5 exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "erase linux exec a",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "lang",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "q v 250",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "linux",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "ipl cms",
+  "expect": "VM Community|DMS|Ready",
+  "timeout": 120,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "q v 620",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "linux",
+  "expect": "login:",
+  "timeout": 1500,
+  "cont": true
+ },
+ {
+  "term": "",
+  "settle": 60
+ },
+ {
+  "term": "#cp disc",
+  "expect": "DISCONNECT",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "send": "/q n",
+  "expect": "MDDEB-DONE",
+  "timeout": 1500,
+  "cont": true
+ },
+ {
+  "send": "/q n",
+  "settle": 30
+ },
+ {
+  "send": "/force maint",
+  "settle": 10
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

@@ -1,0 +1,18 @@
+         MACRO
+         SPENDCHK
+         GBLC  &SPLSTK(255)     LABEL STACK
+         GBLA  &SPNSTK,&SPMSTK,&SPNNEST,&SPMNEST,&SPNFIG
+         LCLA  &I
+         MNOTE *,'MAX NEST LEVEL &SPMNEST,MAX LABEL STACK &SPMSTK.'
+&I       SETA  &SYSNDX
+         MNOTE *,'TOTAL FIGURES &SPNFIG, TOTAL MACRO CALLS &I.'
+         AIF   (&SPNSTK EQ 0).C10
+         MNOTE 8,'&SPNSTK - REMAINING LABELS IN STACK.'
+&I       SETA  &SPNSTK
+.LP      AIF   (&I EQ 0).C10
+         MNOTE *,'&SPLSTK(&I)'
+&I       SETA  &I-1
+         AGO   .LP
+.C10     MEXIT
+         MEND
+//

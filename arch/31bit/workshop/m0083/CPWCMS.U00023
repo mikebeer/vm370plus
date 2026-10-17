@@ -1,0 +1,29 @@
+./ R 05400000          $ 5400990 990                  02/27/85 14:38:14
+RS500    EQU   *              NO-OP FUNCTION - FREE KEYBOARD.  U00023   05400000
+         LA  R0,L'FREEKB                                       U00023   05401980
+         LA  R1,FREEKB                                         U00023   05402970
+         ICALL WRITEU                                          U00023   05403960
+./ I 09040000          $ 9045000 5000                 02/27/85 14:38:14
+         SPACE 2                                               U00023
+./ I 09090000          $ 9095000 5000                 02/27/85 14:38:14
+         SPACE 2                                               U00023
+./ I 09120000          $ 9121000 1000                 02/27/85 14:38:14
+         SPACE 1                                               U00023   09121000
+         TM    0(R1),X'01'          WAS IT A WRITE OR A READ ? U00023   09122000
+         BO    DIAGR4W              BR IF WRITE - NO PROB      U00023   09123000
+            LM   R2,R3,=A(REQ,L'REQ)  READ - CALL ON CMS       U00023   09124000
+            DIAG R2,R3,X'8'       TO PICK UP LINE-BY-LINE DATA U00023   09125000
+DIAGR4W  EQU   *                                               U00023   09126000
+./ I 09130000          $ 9135000 5000                 02/27/85 14:38:14
+         SPACE 2                                               U00023
+./ I 09210000          $ 9213000 3000                 02/27/85 14:38:14
+         SPACE 3                                               U00023
+REQ      DC    C'REQ'     GENERATE FAKE ATTN INTERR FOR CMS.   U00023   09215000
+./ I 10020000          $ 10021000 1000                02/27/85 14:38:14
+         TM    CSW+4,ATTN     ALL NON-ATTN INTERR TO CMS.      U00023   10022000
+         BZ    IOPASS                                          U00023   10024000
+         SPACE 1                                               U00023
+         TM    CONSFLAG,UNFORMAT AND UNFORMATTED CONS ATTN     U00023   10026000
+         BO    IOPASS            INTERRUPTS TOO.               U00023   10028000
+         SPACE 1                                               U00023
+./ D 10070000 10080000                                02/27/85 14:38:14

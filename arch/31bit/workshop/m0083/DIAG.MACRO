@@ -1,0 +1,5 @@
+         MACRO                                                          00001000
+&LBL     DIAG  &R1,&R2,&CODE                                            00002000
+&LBL     DC    0H'0',X'83',AL.4(&R1,&R2),Y(&CODE)                       00003000
+         MEND                                                           00004000
+//

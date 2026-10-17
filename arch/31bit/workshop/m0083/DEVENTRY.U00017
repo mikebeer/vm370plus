@@ -1,0 +1,12 @@
+./ R 00030000          $ 32990 2990                   10/09/84 14:51:05
+.* 9OCT84 NEW DEVTAB FORMAT.                                            00032990
+         LCLC  &CURSECT,&LA,&NEXT                                       00035980
+./ I 00040000          $ 42000 2000                   10/09/84 14:51:05
+&NEXT    SETC  'DEVSECTN-DEVADDR+D&ADDR'                                00042000
+         AIF ('&ADDR' NE 'FFFF').NOTEND                                 00044000
+&NEXT    SETC  '0'                                                      00046000
+.NOTEND  ANOP                                                           00048000
+./ I 00050000          $ 55000 5000                   10/09/84 14:51:05
+         DC    A(&NEXT)       POINTER.                                  00055000
+./ R 00100000          $ 104990 4990                  10/09/84 14:51:05
+         DC    XL(DEVSECTN-DEVADDR-(*-D&ADDR))'0'                       00100000

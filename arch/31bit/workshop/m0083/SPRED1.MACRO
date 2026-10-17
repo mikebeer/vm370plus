@@ -1,0 +1,66 @@
+         MACRO
+         SPRED1 &MSK,&T=*,&F=
+         LCLC  &IMSK
+         AIF   (T'&MSK EQ 'N').B10      NEGATE IT.
+.*       TRANSLATE MASK IF NECESSARY.
+&IMSK    SETC  '&MSK'
+         AIF   ('&MSK' NE 'EQ' AND '&MSK' NE 'Z' AND '&MSK' NE 'E').A20
+&IMSK    SETC  'E'
+         AGO   .A60
+.A20     AIF   ('&MSK' NE 'LT' AND '&MSK' NE 'L' AND '&MSK' NE 'M').A22
+&IMSK    SETC  'L'
+         AGO   .A60
+.A22     AIF   ('&MSK' NE 'GT' AND '&MSK' NE 'H' AND '&MSK' NE 'P').A26
+&IMSK    SETC  'H'
+         AGO   .A60
+.A26     AIF ('&MSK' NE 'LE' AND '&MSK' NE 'NH' AND '&MSK' NE 'NP').A28
+&IMSK    SETC  'NH'
+         AGO   .A60
+.A28     AIF ('&MSK' NE 'GE' AND '&MSK' NE 'NL' AND '&MSK' NE 'NM').A30
+&IMSK    SETC  'NL'
+         AGO   .A60
+.A30     AIF   ('&MSK' NE 'NE' AND '&MSK' NE 'NZ').A32
+&IMSK    SETC  'NE'
+         AGO   .A60
+.A32     AIF   ('&MSK' NE 'NO' AND '&MSK' NE 'O').E10
+.A60     ANOP
+.*
+.B10     AIF   ('&F' NE '*').C10
+.*             FALL THROUGH FOR FALSE.
+         AIF   (T'&MSK NE 'N').B30
+         BC    &MSK,&T
+         MEXIT
+.B30     ANOP
+         B&IMSK &T
+         MEXIT
+.*
+.*       FALL THROUGH FOR TRUE.
+.C10     AIF   ('&T' NE '*').D10
+         AIF   (T'&MSK NE 'N').C30
+         BC    15-&MSK,&F
+         AGO .C40
+.*             MNEMONIC MASK.
+.C30     ANOP
+         AIF   ('&IMSK'(1,1) NE 'N').C35
+&IMSK    SETC  '&IMSK'(2,1)
+         AGO   .C37
+.C35     ANOP
+&IMSK    SETC  'N&IMSK'
+.C37     B&IMSK   &F
+.C40     ANOP
+         MEXIT
+.*
+.*             BOTH NON-*
+.D10     ANOP
+         AIF   (T'&MSK NE 'N').D30
+         BC    &MSK,&T
+         AGO   .D40
+.D30     ANOP
+         B&IMSK &T
+.D40     ANOP
+         B     &F
+         MEXIT
+.E10     MNOTE 8,'&MSK,T=&T,F=&F - INVALID BRANCH MASK GENERATED.'
+         MEXIT
+         MEND
+//

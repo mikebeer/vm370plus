@@ -1,17 +1,26 @@
-/* LANG EXEC -- access the VM/370plus language disk (MAINT 19F)        */
-/*   LANG [fm]   links MAINT 19F read-only (if not linked) and accesses */
-/*               it as fm (default L): GCC 13 C/C++ (CC), COBOL, COBX,  */
-/*               PL/I (PLIC), Python, SQLite/SQL, Pascal (PCPAS), APL,  */
-/*               xBase, Smalltalk.  Needs IPL 290 and 256M storage.     */
+/* LANG EXEC -- access the VM/370plus language disk (MAINT 19F)     */
+/*   LANG [fm]   links MAINT 19F R/O (if not linked) and accesses */
+/*               it as fm (default L): GCC 13 C/C++, COBOL, COBX, */
+/*               PL/I, Python, SQLite/SQL, Pascal, APL,          */
+/*               xBase, Smalltalk.  Needs IPL 290 and 256M.      */
 ARG FM .
 IF FM = '' THEN FM = 'L'
 'SET CMSTYPE HT'
 'CP LINK MAINT 19F 19F RR'
 'SET CMSTYPE RT'
 'ACCESS 19F' FM
+IF RC = 100 THEN DO   /* DMSACC112S: EDF under the BC-mode CMS */
+  SAY 'LANG: the language disk is in the EDF format, which only the'
+  SAY 'LANG: EC-mode CMS reads.  Use it like this:'
+  SAY 'LANG:    CP DEFINE STORAGE 256M'
+  SAY 'LANG:    CP LINK MAINT 290 290 RR'
+  SAY 'LANG:    IPL 290'
+  SAY 'LANG:    LANG'
+  EXIT 100
+END
 IF RC <> 0 THEN EXIT RC
 SAY 'LANG: language disk 19F is' FM '-- HELP: LANG README'
-/* 9.39: Regina resident above 16 MB (XLRES), so REGINA EXECs may nest */
+/* 9.39: Regina resident above 16 MB (XLRES): REGINA EXECs nest */
 'SET CMSTYPE HT'
 'STATE REGINA XIMAGE' FM
 IF RC = 0 THEN 'XLRES LOAD REGINA'

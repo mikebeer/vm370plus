@@ -1,0 +1,93 @@
+./ I 00011000          $ 11050 50                     12/03/84 14:56:43
+         SPACE 3                                                        00011040
+*              BUILD PFKEY PANEL.                                       00011080
+         SPACE 3                                                        00011120
+         MVC   P03+8(16),=CL16'KEY     ACTION'                          00011160
+         SPACE 1                                                        00011200
+         LM    R2,R5,=A(P05+8,P24+L'P24+8,AIDBEGIN,AIDEND)              00011240
+         EXTRN AIDBEGIN,AIDEND                                          00011280
+         SPACE 1                                                        00011320
+         DO WHILE,CR,R2,R3,LT,AND,CR,R4,R5,LT                           00011360
+            IF CLC,8(8,R4),=CL8' ',NE,AND,                             +00011400
+               CLC,8(8,R4),=CL8'CP',NE,THEN                             00011440
+               MVC 0(16,R2),0(R4)                                       00011480
+               LA  R2,L'P03(,R2)                                        00011520
+            IF END                                                      00011560
+            SPACE 1                                                     00011720
+            LA  R4,16(,R4)                                              00011760
+         DO END                                                         00011800
+         SPACE 3                                                        00011840
+./ D 00013000                                         12/03/84 14:56:43
+./ R 00608990          $ 609180 190                   12/03/84 14:56:43
+DSPBEGIN DSPENTRY HELP,SCRHELP,,FLAGS=DSPNC                    U00018   00609180
+DSPFKEY  DSPENTRY PFKEYS,SCRPFK,,FLAGS=DSPNC                            00609370
+         SPACE 1                                               U00020   00609560
+./ R 00625000 00654000 $ 625890 890                   12/03/84 14:56:43
+         ENTRY SCRHELP                                                  00625890
+SCRHELP  DC    A(0,0)              NO OTHER CHAINS.            U00020   00626780
+HELP     DS    CL1920                                                   00627670
+         ORG   HELP                                                     00628560
+M1       DC    CL80' '        FILLED IN LATER.                 U00020   00629450
+M2       DC    CL80' COMMAND       ACTION'                     U00020   00630340
+M3       DC    CL80' '                                         U00020   00631230
+M4       DC    CL80' HELP       Display this screen'           U00020   00632120
+M5       DC    CL80' PFKEYS     Display PFkey settings'        U00020   00633010
+M6       DC    CL80' QUIT       Release terminal to VM/370'    U00020   00633900
+M7       DC    CL80' '                                                  00634790
+M8       DC    CL80' BACKWARD   Go to preceding display'       U00020   00635680
+M9       DC    CL80' FORWARD    Go to next display'            U00020   00636570
+M10      DC    CL80' LEFT       Go to following page, if any, in displa+00637460
+               y set'                                          U00020   00638350
+M11      DC    CL80' RIGHT      Go to preceding page, if any, in displa+00639240
+               y set'                                          U00020   00640130
+M12      DC    CL80' '                                         U00020   00641020
+M13      DC    CL80' SYS        System summary page'           U00020   00641910
+M14      DC    CL80' TERM       Terminal activity'             U00020   00642800
+M15      DC    CL80' DEV        I/O device activity'                    00643690
+M16      DC    CL80' ALL        All logged on Virtual Machines'        +00644580
+               *                                               U00020   00645470
+M17      DC    CL80' ACT        Active Virtual Machines'       U00020   00646360
+M18      DC    CL80' SYM        VM Symbol Table, in Name order'        +00647250
+                                *                              U00020   00648140
+M19      DC    CL80' SYMX       VM Symbol Table, in Address order'     +00649030
+                                *                              U00020   00649920
+M20      DC    CL80' CLOCK      Digital Clock Screen'          U00020   00650810
+M21      DC    CL80' '                                         U00020   00651700
+M22      DC    CL80' '                                                  00652590
+M23      DC    CL80' '                                         U00020   00653480
+./ R 00659000          $ 659190 190                   12/03/84 14:56:43
+         ORG   M1+20                                           U00020   00659190
+         DC    C'CPWATCH &V..&M MENU'                          U00020   00659380
+         ORG   M1+L'M1-25                                      U00020   00659570
+./ I 00661000          $ 661030 30                    12/03/84 14:56:43
+         EJECT                                                 U00020   00661030
+*              PFKEY DISPLAY: FILLED IN AT STARTUP TIME.       U00020   00661060
+         ENTRY SCRPFK                                          U00020   00661090
+         DS    0D                                              U00020   00661120
+SCRPFK   DC    A(0,0)                                          U00020   00661150
+SCRPFKS  DS    CL1920                                          U00020   00661180
+         ORG   SCRPFKS                                         U00020   00661210
+P01      DC    CL80'                    CPWATCH PFKEY USAGE'   U00020   00661240
+P02      DC    CL80' '                                         U00020   00661270
+P03      DC    CL80' '                                         U00020   00661300
+P04      DC    CL80' '                                         U00020   00661330
+P05      DC    CL80' '                                         U00020   00661360
+P06      DC    CL80' '                                         U00020   00661390
+P07      DC    CL80' '                                         U00020   00661420
+P08      DC    CL80' '                                         U00020   00661450
+P09      DC    CL80' '                                         U00020   00661480
+P10      DC    CL80' '                                         U00020   00661510
+P11      DC    CL80' '                                         U00020   00661540
+P12      DC    CL80' '                                         U00020   00661570
+P13      DC    CL80' '                                         U00020   00661600
+P14      DC    CL80' '                                         U00020   00661630
+P15      DC    CL80' '                                         U00020   00661660
+P16      DC    CL80' '                                         U00020   00661690
+P17      DC    CL80' '                                         U00020   00661720
+P18      DC    CL80' '                                         U00020   00661750
+P19      DC    CL80' '                                         U00020   00661780
+P20      DC    CL80' '                                         U00020   00661810
+P21      DC    CL80' '                                         U00020   00661840
+P22      DC    CL80' '                                         U00020   00661870
+P23      DC    CL80' '                                         U00020   00661900
+P24      DC    CL80' '                                         U00020   00661930

@@ -1,0 +1,34 @@
+./ I 00002000          $ 2100 100                     12/17/81 13:42:04
+***************************************************************MARTEN01
+*  THIS MODULE HAS CODE SUPPLIED BY:                           MARTEN01
+*              MARTEN KEMP                                     MARTEN01
+*              DATA MANAGEMENT DESIGN                          MARTEN01
+*              2750 S. SHOSHONE ST., STE 35                    MARTEN01
+*              ENGLEWOOD CO 80110                              MARTEN01
+***************************************************************MARTEN01
+./ I 00043000          $ 43100 100                    12/17/81 13:42:04
+         IF  CLC,SYMNAME,=C'DMKPGTTU',EQ,THEN                 *MARTEN01 00043100
+             MVC  CPAPGTTU,SYMADDR                            *MARTEN01 00043200
+         IF  END                                              *MARTEN01 00043300
+         IF  CLC,SYMNAME,=C'DMKPGTTM',EQ,THEN                 *MARTEN01 00043400
+             MVC  CPAPGTTM,SYMADDR                            *MARTEN01 00043500
+         IF END                                               *MARTEN01 00043600
+./ I 00176000          $ 176300 300                   12/17/81 13:42:04
+         MVC   CPTPGTTU,CPAPGTTU                              *MARTEN01 00176300
+         MVC   CPTPGTTM,CPAPGTTM                              *MARTEN01 00176600
+./ R 00179000          $ 179000 1000                  12/17/81 13:42:04
+         OI    CPTPGTTM,X'80'           INDICATE END          *MARTEN01 00179000
+./ I 00278000          $ 278300 300                   12/17/81 13:42:04
+         ORG   STORCOL+15*L'SCRLINE                           *MARTEN01 00278300
+TEMPFULL DS    CL17'PAGE/SPOOL  99.9%'                        *MARTEN01 00278600
+./ I 00654000          $ 654090 90                    12/17/81 13:42:04
+         SPACE 1                                              *MARTEN01 00654090
+         MVC   TEMPFULL,=CL(L'TEMPFULL)'Page/Spool'           *MARTEN01 00654180
+         L     R1,CPTPGTTU                                    *MARTEN01 00654270
+         M     R0,=F'2000'                                    *MARTEN01 00654360
+         D     R0,CPTPGTTM                                    *MARTEN01 00654450
+         LA    R1,1(R1)                                       *MARTEN01 00654540
+         SRA   R1,1                                           *MARTEN01 00654630
+         CALL  DECIT1D                                        *MARTEN01 00654720
+         STCM  R1,B'1111',TEMPFULL+L'TEMPFULL-1-4             *MARTEN01 00654810
+         MVI   TEMPFULL+L'TEMPFULL-1,C'%'                     *MARTEN01 00654900

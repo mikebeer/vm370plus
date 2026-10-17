@@ -1,0 +1,173 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "/purge cmsuser rdr all",
+  "settle": 3
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/vmarc/m0058.deck ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 10
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/vmarc/m0080.deck ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 10
+ },
+ {
+  "send": "devinit 000c /home/claude/scratch/vmarc/m0083.deck ebcdic eof",
+  "expect": "HHCPN098I|initialized",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "send": "/start 00c",
+  "settle": 10
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon cmsuser cmsuser noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/attach 180 to cmsuser as 180",
+  "settle": 3
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp link maint 290 290 rr",
+  "expect": "LINKED|DMK",
+  "timeout": 20,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "format 180 x (blksize 4096",
+  "settle": 8
+ },
+ {
+  "term": "yes",
+  "settle": 8
+ },
+ {
+  "term": "vmarcx",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "readcard m0058 vmarc x",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "readcard m0080 vmarc x",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "readcard m0083 vmarc x",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "listfile * vmarc x (label",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "vmarc",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "vmarc unpk m0058 vmarc x = = x",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "vmarc unpk m0080 vmarc x = = x",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "vmarc unpk m0083 vmarc x = = x",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "term": "listfile * * x",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/detach 180 cmsuser",
+  "settle": 3
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

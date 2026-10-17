@@ -1,0 +1,19 @@
+./ R 00001000          $ 1000 500                     08/19/81 08:55:35
+*COPY CPWPRM                                                            00001000
+         PUSH  PRINT                                                    00001500
+./ R 00005000 00005000 $ 00005000 100
+*               *        C P W A T C H   3 . 4        *               * 00005000
+./ I 00008000          $ 00008100 100
+*               *        PLACED IN THE PUBLIC         *               * 00008100
+*               *        DOMAIN THROUGH THE           *               * 00008200
+*               *        SERVICES OF U OF W           *               * 00008300
+./ R 00025000          $ 25000 1000                   08/19/81 08:55:35
+         GBLB  &BSEP,&EDGAR,&COMINCO,&SP,&PP,&SEP                       00025000
+./ R 00028000          $ 28000 1000                   08/19/81 08:55:35
+&M       SETC  '4'            MODIFICATION LEVEL.                       00028000
+./ R 00034000          $ 34000 200                    08/19/81 08:55:35
+&SP      SETB  1              VM/SP (5664-167) INSTALLED.               00034000
+&BSEP    SETB  0    BASIC SYSTEMS EXTENSIONS (5748-XX8) INSTALLED       00034100
+&SEP     SETB  0                                                        00034200
+&PP      SETB  (&SP OR &SEP OR &BSEP) ANY PROGRAM PRODUCT VM.           00034300
+         SPACE 1                                                        00034400

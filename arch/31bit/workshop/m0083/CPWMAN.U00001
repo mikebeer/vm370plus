@@ -1,0 +1,15 @@
+./ R 00001000
+MAN      TITLE '                                        CPWATCH'        00001000
+./ R 00176000 00178000
+*              FIND SYSLOCS.                                            00175100
+         MVC   AASYSLC,=A(ASYSLC-PSA)                                   00175200
+         OI    AASYSLC,X'80'                                            00175300
+         SR    R0,R0                                                    00175400
+         LA    R1,AASYSLC                                               00175500
+         SVC   SVCDCP                                                   00175600
+         SPACE 1                                                        00175700
+*              AND END OF FIXED CORE.                                   00176000
+         MVC   HIFIXED,=A(APAGCP-PSA)                                   00177000
+         OI    HIFIXED,X'80'                                            00178000
+./ R 00180000
+         LA    R1,HIFIXED                                               00180000

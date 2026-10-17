@@ -1,0 +1,12 @@
+         MACRO                                                          00001000
+&NAME    CALL  &ROUT,&PLIST,&LOCAL=NO                                   00002000
+         AIF   (T'&PLIST EQ 'O').NOPL
+         LA    R1,&PLIST
+.NOPL    AIF   ('&LOCAL' EQ 'YES').LA
+&NAME    L     15,=V(&ROUT)                                             00003000
+         AGO   .BAL
+.LA      ANOP
+&NAME    L     15,=A(&ROUT)
+.BAL     BAL   14,20(,15)                                               00004000
+         MEND                                                           00005000
+//

@@ -1,0 +1,80 @@
+./ * PREVENT PRINTER BEING TAKEN OFF HOLD. EXTRA DIAGNOSTICS LEFT.
+./ R 00015000
+PRINTER  DEVENTRY 00E,TYPE=DEVPRT,IFLAG=DEVCONN+DEVHOLD+DEVREADY        00015000
+./ I 00068000
+         USING CPWSUP,R0                                                00068100
+./ I 00069000
+         L     R13,F04096                                               00069100
+         USING CPWSUP,R0,R13                                            00069200
+         SPACE 1                                                        00069300
+./ I 00078000
+         DROP  R13                                                      00078100
+         SPACE 1                                                        00078200
+./ I 00090000
+         USING CPWSUP,R0                                                00090100
+./ I 00106000
+         USING CPWSUP,R0                                                00106100
+./ R 00108000
+         L     R13,F04096                                               00108000
+         SPACE 1                                                        00108100
+./ I 00109000
+         AGO   .NOIOTR                                                  00109010
+* FOR TESTING: LOG CSW ON ALL INTERRUPTS.                               00109020
+         BAL   R1,IOMS                                                  00109030
+IOMSBG   DC    C'MSGNOH * I/O INTERRUPT DEV '                           00109040
+IOADR    DC    C'XXX '                                                  00109050
+         DC    C'CSW '                                                  00109060
+IOCSW    DC    C'XXXX '                                                 00109070
+IOMSLN   EQU   *-IOMSBG                                                 00109080
+IOMS     UNPK  IOADR,IOOLD+2(3)                                         00109090
+         TR    IOADR,HEXTAB                                             00109100
+         MVI   IOADR+L'IOADR-1,C' '                                     00109110
+         UNPK  IOCSW,CPCSW+4(3)                                         00109120
+         TR    IOCSW,HEXTAB                                             00109130
+         MVI   IOCSW+L'IOCSW-1,C' '                                     00109140
+         LA    R0,IOMSLN                                                00109150
+         DIAG  R1,R0,8                                                  00109160
+.NOIOTR  ANOP                                                           00109170
+./ I 00127000
+               SPACE 1                                                  00127100
+./ I 00191000
+         DROP  R13                                                      00191100
+./ R 00225000
+         L     R13,F04096                                               00225000
+./ I 00643000
+               SPACE 1                                                  00643010
+               AGO   .NOSIOLG                                           00643020
+* FOR TESTS: LOG ALL SIO'S, USING MSGNOH.                               00643030
+*        (THIS PRESUMES THAT ROUTINE HAS AUTHORITY TO USE MSGNOH.       00643040
+*         IF NOT, USE CONVENTIONAL MESSAGES)                            00643050
+               BAL R1,SIOXX                                             00643060
+MSGNOH         DC    C'MSGNOH * SIO '                                   00643070
+MSGADDR        DC    C'XXX'                                             00643080
+               DC    C' CC '                                            00643090
+MSGCC          DC    C'X'                                               00643100
+               SPACE 1                                                  00643110
+MSGCSWS        DC             C' CSW '                                  00643120
+MSGCSWV        DC             C'XXXX '                                  00643130
+MSGNOHLN       EQU   *-MSGNOH                                           00643140
+SIOXX          LR    R0,R1                                              00643150
+               SRL R0,28                                                00643160
+               N     R0,=F'3'                                           00643170
+               O   R0,=F'240'                                           00643180
+               STC R0,MSGCC                                             00643190
+               MVC MSGADDR,DEVCADDR                                     00643200
+               SPACE 1                                                  00643210
+               MVC MSGCSWS,BLANKL                                       00643220
+               MVC MSGCSWV,BLANKL                                       00643230
+               SPM R1                                                   00643240
+               BC  B'1011',MSGNOCSW                                     00643250
+                  MVC MSGCSWS,=C' CSW '                                 00643260
+                  UNPK MSGCSWV,CPCSW+4(3)                               00643270
+                  TR MSGCSWV,HEXTAB                                     00643280
+                  MVI MSGCSWV+L'MSGCSWV-1,C' '                          00643290
+MSGNOCSW       EQU  *                                                   00643300
+               SPACE 1                                                  00643310
+               LA  R0,MSGNOHLN                                          00643320
+               DIAG R1,R0,8                                             00643330
+               SPACE 1                                                  00643340
+               SPM  R1        RESTORE CC.                               00643350
+.NOSIOLG       ANOP                                                     00643360

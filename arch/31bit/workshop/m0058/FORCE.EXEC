@@ -1,0 +1,115 @@
+&TRACE OFF
+***********************************************************************
+*   Syntax:                                                           *
+*   FORCE ALL    EXCEPT userid1 userid2 ... useridn                   *
+*         userid                                                      *
+*                                                                     *
+*   EXTERNAL REFERENCES                                               *
+*   NONE                                                              *
+*                                                                     *
+*                                    Henry Nussbacher - July 1983     *
+*                                                                     *
+*               (c) Weizmann Institute of Science                     *
+***********************************************************************
+&BUFFER *
+* THIS WILL READ IN THE WHOLE FILE FOR THE LOOK-A-SIDE BUFFER
+&CALL -END_OF_FILE
+&IF  &N LT 1       &GOTO -EXPLAIN
+&IF .&1 NE .ALL    &GOTO -FORCE_SINGLE_USER
+&IF .&2 NE .EXCEPT &GOTO -EXPLAIN
+&IF .&3 EQ .       &GOTO -EXPLAIN
+&TYPE Do you really wish to FORCE all users off the system?
+&READ VAR &REPLY
+&IF .&REPLY NE .YES &EXIT
+***********************************************************************
+*   USE THE NEXT LINE TO SPECIFY THE VM OPERATOR USERID, SO THAT      *
+*   HE/SHE DOES NOT NEED TO BE SPECIFIED IN THE 'EXCEPT' LIST         *
+***********************************************************************
+&OPERATOR = VMOP
+***********************************************************************
+*   COMMENT OUT THE FOLLOWING LINE IF YOU DO NOT WISH TO DISABLE      *
+*   ALL TERMINALS.  THOSE USERS AS SPECIFIED IN THE 'EXCEPT' LIST     *
+*   WILL HAVE THEIR TERMINALS RE-ENABLED.                             *
+***********************************************************************
+CP DISABLE ALL
+EXECIO * CP (STRING Q N
+SENTRIES
+* FIND OUT HOW MANY LINES OF 'Q N' TO PROCESS
+&NUMBER_OF_LINES = &RC
+&LINES = 1
+* INITIALIZE THE NUMBER OF USERS TO PROCESS
+&COUNT = 0
+-Q_N_LOOP
+***********************************************************************
+*    &USER WILL BE OUR ARRAY OF USERS CURRENTLY LOGGED ON.            *
+*    &DEVICE WILL BE AN ARRAY OF THE DEVICE ADDRESS LOGGED ON.        *
+***********************************************************************
+    &IF &LINES GT &NUMBER_OF_LINES &GOTO -BEGIN_PROCESSING
+    &LINES = &LINES + 1
+    &READ STRING  &LINE_OF_Q_N
+    &COUNT = &COUNT + 1
+    * MAXIMUM 4 USERS PER LINE OF 'Q N'
+    &USER&COUNT  =  &SUBSTR OF &LINE_OF_Q_N  1 8
+    &DEVICE&COUNT = &SUBSTR OF &LINE_OF_Q_N 12 3
+    &COUNT = &COUNT + 1
+    &USER&COUNT   = &SUBSTR OF &LINE_OF_Q_N 17 8
+    &DEVICE&COUNT = &SUBSTR OF &LINE_OF_Q_N 28 3
+    &COUNT = &COUNT + 1
+    &USER&COUNT   = &SUBSTR OF &LINE_OF_Q_N 33 8
+    &DEVICE&COUNT = &SUBSTR OF &LINE_OF_Q_N 44 3
+    &COUNT = &COUNT + 1
+    &USER&COUNT   = &SUBSTR OF &LINE_OF_Q_N 49 8
+    &DEVICE&COUNT = &SUBSTR OF &LINE_OF_Q_N 60 3
+&GOTO -Q_N_LOOP
+-BEGIN_PROCESSING
+&NUM = 1
+&EXCEPTIONS = &N - 2
+&LOOP -END &COUNT
+***********************************************************************
+*   BEGIN FORCING USERS OFF.                                          *
+***********************************************************************
+    &INNER_COUNT = 3
+    &IF .&USER&NUM = . &EXIT
+    &LOOP -LOOP_2 &EXCEPTIONS
+          &IF .&USER&NUM EQ .&&INNER_COUNT &GOTO -EXCEPTION
+          &IF .&USER&NUM EQ .&OPERATOR     &GOTO -EXCEPTION
+          &INNER_COUNT = &INNER_COUNT + 1
+    -LOOP_2
+&TYPE Forcing &USER&NUM
+CP FORCE &USER&NUM
+&GOTO -INCREMENT
+-EXCEPTION
+&IF .&DEVICE&NUM = .DSC &GOTO -INCREMENT
+&TYPE Re-enabling terminal &DEVICE&NUM for user &USER&NUM
+CP ENABLE &DEVICE&NUM
+-INCREMENT
+&NUM = &NUM + 1
+-END
+CP Q N
+&EXIT
+***********************************************************************
+-FORCE_SINGLE_USER
+CP FORCE &1
+&EXIT &RC
+***********************************************************************
+-EXPLAIN
+&BEGTYPE -BEG_END
+Syntax is:
+          FORCE ALL    EXCEPT userid1 userid2 ... useridn
+                userid
+
+FORCE userid will invoke the standard CP command to log a user off the
+system.  FORCE ALL will log all users off the system except for those
+listed after the word EXCEPT.  In addition, the VM operator can be
+defined in this EXEC to be bypassed all the time.  Another option
+within this EXEC is to issue a DISABLE ALL when a FORCE ALL is done.
+Those users as specified in the exception list will not have their
+terminals disabled.
+-BEG_END
+&EXIT 4
+-END_OF_FILE
+***********************************************************************
+*  TRICK TO IMPROVE EXEC-2 PERFORMANCE.  READ EXEC-2 REFERENCE MANUAL *
+*  PAGE 12, UNDER THE &BUFFER DESCRIPTION.                            *
+***********************************************************************
+&RETURN

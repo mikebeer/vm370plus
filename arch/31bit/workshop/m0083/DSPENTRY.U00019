@@ -1,0 +1,13 @@
+./ R 00020000          $ 22990 2990                   10/26/84 07:10:23
+&NAME    DSPENTRY &CNAME,&CCW,&NEXT,&FLAGS=0                   U00019   00022990
+.* NEW DSPSECT LAYOUT. GDG 22OCT84.                            U00019   00025980
+./ I 00030000          $ 35000 5000                   10/26/84 07:10:23
+         DS    0D                                              U00019   00035000
+./ R 00110000          $ 114990 4990                  10/26/84 07:10:23
+         DC    A(0)           BEGIN MODEL-2 SCREEN CHAIN.      U00019   00110000
+./ R 00200000          $ 200990 990                   10/26/84 07:10:23
+         DC    CL8'&CNAME'    CHARACTER STRING NAME.           U00019   00200990
+         DC    D'0'           STCK TIME, IF USED.              U00019   00201980
+         DC    A(*-*)         DEVICE INDEPENDENT DATA STRUCTUREU00019   00202970
+         DC    F'0'           SPARE.                           U00019   00203960
+@&SYSNDX DS    0D             FOLLOWING.                       U00019   00204950

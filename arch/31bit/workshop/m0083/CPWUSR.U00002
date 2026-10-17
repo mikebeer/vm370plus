@@ -1,0 +1,13 @@
+./ R 00001000
+USR      TITLE '                                        CPWATCH'        00001000
+./ R 00161000 00162000
+            SPACE 1                                                     00160100
+            IF LTR,R2,R2,Z,OR,C,R2,HIFIXED,GE,THEN                      00161000
+*              NOT A REAL DEVICE.  NOT CONN, OR VM PASSTHROUGH.         00162100
+               IF LTR,R2,R2,NZ,THEN                                     00162200
+                  MVC USRCADDR,=CL4'VMPT'                               00162300
+               IF ELSE                                                  00162400
+                  MVC USRCADDR,=CL4' '                                  00162500
+               IF END                                                   00162600
+./ R 00164000
+            IF ELSE    IT'S A REAL DEVICE.                              00164000

@@ -1,0 +1,133 @@
+./ R 00012000 00013000 $ 12990 990                    10/16/84 08:34:33
+         ENTRY CONSOLE                                                  00012990
+./ D 00024000                                         10/16/84 08:34:33
+./ I 00025000          $ 25200 200                    10/16/84 08:34:33
+         SPACE 1                                                        00025200
+CHANGATE DC    16XL1'0'       FLAG FOR CHANNEL BUSY.                    00025400
+         SPACE 1                                                        00025600
+NOW      DS    D                                                        00025800
+./ D 00027000 00028000                                10/16/84 08:34:33
+./ I 00033000          $ 33200 200                    10/16/84 08:34:33
+GRAFHLD  CCW   WRITE,WCCHLD,SILI+CC,LWCCHLD                             00033200
+         CCW   SENSE,0,SILI+SKIP,1                                      00033400
+WCCHLD   DC    X'C21140D31DE8',C'(HOLD)',X'1D60'                        00033600
+LWCCHLD  EQU   *-WCCHLD                                                 00033800
+./ R 00111000          $ 111490 490                   10/16/84 08:34:33
+         L     R5,ADEVICES                                              00111490
+./ R 00120000          $ 120490 490                   10/16/84 08:34:33
+            L   R5,DEVNEXT              NEXT ONE.                       00120490
+./ I 00125000          $ 125100 100                   10/16/84 08:34:33
+            IF TM,DEVSTAT1,CE,O,THEN                                    00125100
+               SR    R2,R2       FIND CHANNEL GATE.                     00125200
+               IC    R2,DEVADDR                                         00125300
+               LA    R2,CHANGATE(R2)                                    00125400
+               NI    0(R2),255-BUSY AND MARK IT AS FREE.                00125500
+               SPACE 1                                                  00125600
+               XC  DEVSTAMP,DEVSTAMP                                    00125700
+            IF END                                                      00125800
+./ D 00159000                                         10/16/84 08:34:33
+./ R 00330000          $ 330190 190                   10/16/84 08:34:33
+         IF CLI,SVCSPSW+3,SVCWTOQ,NE,THEN NOT QUEUE ONLY REQUEST        00330190
+            SVC   SVCDISP                 SO DISPATCH IT.               00330380
+         IF END                                                         00330570
+./ R 00573000          $ 573010 10                    10/16/84 08:34:33
+         SPACE 1                                                        00573010
+*              FIRST CLEAR ANY OUTSTANDING, HUNG I/O.                   00573020
+         STCK  NOW                                                      00573030
+         L     R11,ADEVICES                                             00573040
+         USING DEVSECT,R11                                              00573050
+         DO WHILE,CLC,DEVADDR,HEXFS,NE                                  00573060
+            OC  DEVSTAMP,DEVSTAMP       SIO OUTSTANDING ?               00573070
+            IF NZ,AND,                                                 +00573080
+               CLI,DEVTYPE,DEVGRAF,EQ,THEN                              00573090
+               L   R4,NOW               HIGH ORDER OF STCK NOW.         00573100
+               S   R4,DEVSTAMP          (APPROX) SECONDS SINCE SIO.     00573110
+               IF  C,R4,=F'5',NL,THEN   KILL ANYTHING OVER 5 SEC.       00573120
+                  LH  R3,DEVADDR                                        00573130
+                  SPACE 1                                               00573140
+                  HIO 0(R3)         STOP HIM.                           00573150
+                  TIO 0(R3)      CLEAR INTERRUPT                        00573160
+                  SPACE 1                                               00573170
+                  BAL   R1,HIO                                          00573180
+                  DC    C'DEVICE '                                      00573190
+HIODEV            DC    C'***'                                          00573200
+                  DC    C' HALTED '                                     00573210
+HIO               BALR  R0,0                                            00573220
+                  SR    R0,R1                                           00573230
+                  BCTR  R0,0                                            00573240
+                  N     R0,=F'255'                                      00573250
+                  MVC HIODEV,DEVCADDR                                   00573260
+                  SVC   SVCWTOQ         QUEUE THE WRITE.                00573270
+                  SPACE 1                                               00573280
+*              THIS ONE'S COMPLETE.                                     00573290
+                  SR    R2,R2       FIND CHANNEL GATE.                  00573300
+                  IC    R2,DEVADDR                                      00573310
+                  LA    R2,CHANGATE(R2)                                 00573320
+                  NI    0(R2),255-BUSY AND MARK IT AS FREE.             00573330
+                  SPACE 1                                               00573340
+                  XC  DEVSTAMP,DEVSTAMP                                 00573350
+                  SPACE 1                                               00573360
+*                 FAKE A 'CLEAR' KEY TO FORCE RESET.                    00573370
+                  MVI DEVFLAGS,DEVCONN+DEVRDCP (READ COMPLETE)          00573380
+                  MVI DEVAID,CLR       (AND CLEAR KEY)                  00573390
+               IF END                                                   00573400
+            IF END                                                      00573410
+            SPACE 1                                                     00573420
+            L   R11,DEVNEXT                                             00573430
+         DO END                                                         00573440
+         DROP R11                                                       00573450
+         SPACE 3                                                        00573460
+*              NOW DISPATCH NECESSARY.                                  00573470
+         L   R11,ADEVICES                                               00573480
+./ R 00591000          $ 591090 90                    10/16/84 08:34:33
+            SR    R2,R2       FIND CHANNEL GATE.                        00591090
+            IC    R2,DEVADDR                                            00591180
+            LA    R2,CHANGATE(R2)                                       00591270
+            IF TM,0(R2),BUSY,Z,AND,     CHANNEL FREE                   +00591360
+               TM,DEVFLAGS,DEVREADY,O,AND, DEVICE READY                +00591450
+./ R 00632000          $ 632090 90                    10/16/84 08:34:33
+                        IF TM,DEVFLAGS,DEVHOLD,Z,THEN                   00632090
+                           LA  R2,GRAFWRTE                              00632180
+                        IF ELSE                                         00632270
+                           LA  R2,GRAFHLD                               00632360
+                        IF END                                          00632450
+./ I 00647000          $ 647100 100                   10/16/84 08:34:33
+               SR    R2,R2       FIND CHANNEL GATE.                     00647100
+               IC    R2,DEVADDR                                         00647200
+               LA    R2,CHANGATE(R2)                                    00647300
+               OI  0(R2),BUSY           AND MARK AS BUSY.               00647400
+               SPACE 1                                                  00647500
+               STCK DEVSTAMP            TIMESTAMP START.                00647600
+               SPACE 1                                                  00647700
+./ R 00680000 00686000 $ 680390 390                   10/16/84 08:34:33
+* SINCE WE HAVE TURNED ALL CHANNELS INTO SELECTOR CHANNELS BY GATING    00680000
+* ON CHANNEL END, THIS SHOULD NOT HAPPEN. IF IT DOES, WE HAVE A LOGIC   00681000
+* FAILURE.
+               BAL   R1,SIO2MSG                                         00683520
+               DC    C'SIO CC=2 RECEIVED ON DEVICE '                    00683710
+SIO2DEV        DC    C'XXX'                                             00683900
+               DC    C' '                                               00684090
+SIO2MSG        BALR  R0,0                                               00684280
+               SR    R0,R1                                              00684470
+               BCTR  R0,0                                               00684660
+               N     R0,=F'255'                                         00684850
+               MVC SIO2DEV,DEVCADDR                                     00685040
+               SVC   SVCWTOQ  QUEUE THE WRITE.                          00685230
+               SPACE 1                                                  00685420
+               B   SIOEND  AND RETRY SIO NEXT PASS.                     00685610
+./ R 00697000          $ 697490 490                   10/16/84 08:34:33
+            L   R11,DEVNEXT                                             00697490
+./ R 00867000 00868000 $ 867590 590                   10/16/84 08:34:33
+         MVC RSTADR,DEVCADDR                                            00867590
+         LM  R3,R4,=A(RSTCMD,L'RSTCMD)                                  00868180
+./ D 00871000 00874000                                10/16/84 08:34:33
+./ R 00922000          $ 922190 190                   10/16/84 08:34:33
+         IF TM,DEVFLAGS,DEVHOLD,O,THEN                                  00922190
+            OI  DEVFLAGS,DEVWRQ                                         00922380
+         IF ELSE                                                        00922760
+./ R 00942000 00949000 $ 942990 990                   10/16/84 08:34:33
+RSTCMDB  EQU   *                                                        00942990
+         DC    C'RESET  '                                               00943980
+RSTADR   DC    C'XXX'                                                   00944970
+RSTCMD   EQU   RSTCMDB,*-RSTCMDB                                        00945960
+         SPACE 2                                                        00946950

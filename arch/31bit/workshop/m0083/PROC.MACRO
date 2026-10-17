@@ -1,0 +1,92 @@
+         MACRO                                                          00001000
+&NAME    PROC  &TYPE,&INITIAL=NO,&RETURN=                               00002000
+         GBLC  &PROCN,&SECTP,&SECTD                                     00003000
+         AIF   (T'&TYPE NE 'O').BEGIN                                   00004000
+&SECTP   CSECT
+         MEXIT                                                          00006000
+.BEGIN   AIF   ('&TYPE' NE 'BEGIN').ENTRY                               00007000
+         AIF   ('&PROCN' EQ '').BEGOK1                                  00008000
+         MNOTE 4,'PROCEDURE &PROCN NOT CLOSED. PROC END GENERATED.'     00009000
+         PROC  END                                                      00010000
+.BEGOK1  ANOP                                                           00011000
+         SPACE 1                                                        00012000
+&PROCN   SETC  '&NAME'                                                  00013000
+&SECTP   CSECT
+         ENTRY &PROCN
+&PROCN   DS    0D             PROCEDURE CSECT                           00014000
+&SECTD   CSECT
+&PROCN.D DS    0D             STATIC STORAGE                            00015000
+         DC    C'**',CL8'&PROCN.D',C'**'
+&PROCN.S DSECT DYNAMIC STORAGE.                                         00016000
+         DS    18F            SAVE AREA.                                00017000
+&SECTP   CSECT                                                          00018000
+         AIF   ('&INITIAL' NE 'YES').PROP1                              00019000
+.*       INITIAL ENTRY IS NOT PROPER.                                   00020000
+&PROCN.B BALR  15,0                                                     00021000
+         BCTR  15,0                                                     00022000
+         BCTR  15,0                                                     00023000
+         B     20(,15)                                                  00024000
+         NOPR  0                                                        00025000
+         AGO   .NONAME                                                  00026000
+.PROP1   ANOP  PROPER ENTRY.                                            00027000
+         DC    C'**'                                                    00028000
+         DC    CL8'&NAME'                                               00029000
+         DC    C'**'                                                    00030000
+.NONAME  ANOP                                                           00031000
+         DC    A(&PROCN.D)                                              00032000
+         DC    A(&PROCN.L)                                              00033000
+         AIF   ('&INITIAL' EQ 'YES').NOSTM                              00034000
+&PROCN.B STM   14,12,12(13)                                             00035000
+.NOSTM   ANOP                                                           00036000
+         LR    11,15                                                    00037000
+         USING &PROCN,11                                                00038000
+         USING CPWSUP,0                                                 00039000
+         L     12,12(,11)     A(DATA CSECT)                             00040000
+         AIF   ('&INITIAL' EQ 'YES').NOSTA                              00041000
+         LR    15,13                                                    00042000
+         L     13,4(,15)      ALREADY DEFINED SAVE AREA.                00043000
+         ST    15,8(,13)      BACKCHAIN.                                00044000
+         MVC   0(4,13),0(15)  FIRST UNAVAILABLE BYTE.                   00045000
+.NOSTA   ANOP                                                           00046000
+         USING &PROCN.D,12                                              00047000
+         USING &PROCN.S,13                                              00048000
+         AIF   ('&INITIAL' EQ 'YES').NOSTB                              00049000
+         LR    15,13          CALCULATE BEGIN NEXT SAVE AREA.           00050000
+         A     15,&PROCN+16   NEXT DYNAMIC STORAGE.                     00051000
+         ST    15,4(,13)                                                00052000
+         XC    0(12,15),0(15) NO FORCHAIN.                              00053000
+.NOSTB   ANOP                                                           00054000
+         MEXIT                                                          00055000
+.ENTRY   AIF   ('&TYPE' NE 'ENTRY').END                                 00056000
+         MEXIT                                                          00057000
+.END     AIF   ('&TYPE' NE 'END').UNKN                                  00058000
+&SECTP   CSECT                                                          00059000
+&NAME    MVI   0(13),X'80'    FLAG SAVEAREA AS CLOSED.                  00060000
+         L     13,8(,13)                                                00061000
+         AIF   (T'&RETURN EQ 'O').ENN                                   00062000
+         AIF   ('&RETURN' NE '(0)').EN1                                 00063000
+         ST    0,20(,13)                                                00064000
+         AGO   .ENN                                                     00065000
+.EN1     AIF   ('&RETURN' NE '(0,1)').EN2                               00066000
+         STM   0,1,20(13)                                               00067000
+         AGO   .ENN                                                     00068000
+.EN2     AIF   ('&RETURN' NE '(1)').EN3                                 00069000
+         ST    1,24(,13)                                                00070000
+         AGO   .ENN                                                     00071000
+.EN3     MNOTE 4,'INVALID RETURN SPECIFICATION &RETURN'                 00072000
+.ENN     LM    14,12,12(13)                                             00073000
+         BR    14                                                       00074000
+         USING *,2,3,4,5,6,7,8,9,10,11,12,13,14,15                      00075000
+         DROP  2,3,4,5,6,7,8,9,10,11,12,13,14,15                        00076000
+&SECTD   CSECT                                                          00077000
+         LTORG JUST IN CASE.                                            00078000
+&PROCN.S DSECT                DYNAMIC STORAGE CSECT                     00079000
+         DS    0D                                                       00080000
+&PROCN.L EQU   *-&PROCN.S                                               00081000
+&SECTP   CSECT                                                          00082000
+&PROCN   SETC  ''                                                       00083000
+         SPACE 3                                                        00084000
+         MEXIT                                                          00085000
+.UNKN    MNOTE 4,'UNKNOWN PROC TYPE &TYPE IGNORED.'                     00086000
+         MEND                                                           00087000
+//

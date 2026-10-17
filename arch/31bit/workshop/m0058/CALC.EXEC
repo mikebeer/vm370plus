@@ -1,0 +1,205 @@
+&TRACE OFF
+************************************************************************
+*                                                                      *
+* THIS EXEC WILL CALCULATE THE VALUE OF THE FORMULA PASSED VIA IT'S    *
+* COMMAND STRING AND DISPLAY THE RESULT. OPERATORS ALLOWED INCLUDE:    *
+* *,+,-,/,** AND PARENTHESIS.  EVALUATION IS PERFORMED AS PER RULES OF *
+* MATHEMATICS. UNARY +,- ARE ONLY ALLOWED AT THE START OF AN EXPRESS-  *
+* ION OR SUB-EXPRESSION.                                               *
+*                                                                      *
+* ERROR RETURNS:   999 - SYNTAX ERROR                                  *
+*                  998 - EXPONENT LESS THEN 0                          *
+*                  997 - DIVISION BY 0                                 *
+*                10013 - NUMERIC OVERFLOW (FROM EXEC2)                 *
+*                                                                      *
+* IF THIS EXEC IS CALLED WITH THE FIRST FIVE CHARACTERS OF &ARGSTRING  *
+* SET TO 'XEDIT' THEN THE VARIOUS MESSAGES WILL BE DISPLAYED VIA:      *
+* '&SUBCOMMAND XEDIT MSG'; ALSO THE REUTRN CODE WILL ALWAYES BE 0.     *
+*                                                                      *
+*                                                                      *
+* WRITTEN BY YOSSIE SILVERMAN, W.I.C.C, LAST UPDATE 23/7/83            *
+*                                                                      *
+******* YSTART
+* UPDATED BY YAACOV BEN-ISRAEL 14/8/83:                                *
+*          CHANGED TO WORK WITH HEXADECIMAL NUMBERS WHICH ARE ENTERED  *
+*          AS XHHHHHHH WHERE X IS ENTERED AS IT IS AND H STANDS FOR    *
+*          HEXADECIMAL DIGIT.                                          *
+*                                                                      *
+*          THERE IS ALSO AN OPTION TO GET A HEXADECIMAL ANSWER WHEN    *
+*          THE FIRST THREE CHARACTER WHEN CALLING THE COMMAND ARE 'HEX'*
+*          (OR IF THE FIRST FIVE CHRACTERS ARE XEDIT THE CHARACTERS    *
+*           6-8 ARE SCANED FOR 'HEX')                                  *
+****** YEND
+*                                                                      *
+************************************************************************
+&BUFFER *
+&WRITE = EXEC2
+&SAVEARGS = &LEFT OF &ARGSTRING 5
+&IF .&SAVEARGS ¬= .XEDIT &SKIP 2
+&WRITE = XEDIT
+&ARGSTRING = &SUBSTR OF &ARGSTRING 6
+****** YSTART
+&HEXRES = NO
+&SAVEARGS = &LEFT OF &ARGSTRING 3
+&IF .&SAVEARGS NE .HEX &SKIP 2
+&HEXRES = YES
+&ARGSTRING = &PIECE OF &ARGSTRING 4 *
+******* YEND
+&SAVEARGS = &ARGSTRING
+&ARGSTRING = &CONCAT OF &ARGSTRING )
+&SP = 1
+&P = 0
+&CH = (
+&CALL -EXPRESION
+&NUM1 = -POP OF
+****** YSTART
+&IF &HEXRES = NO &GOTO -DECRES
+&SIGN = PLUS
+&IF &NUM1 >= 0 &SKIP 2
+&SIGN = MINUS
+&NUM1 = -&NUM1
+&T = &DIV OF &NUM1 16
+&NUM1 = 1 + &NUM1 - &MULT OF &T 16
+&NUM1 = &PIECE OF 0123456789ABCDEF &NUM1 1
+&XNUM1 = &CONCAT OF &NUM1 &XNUM1
+&IF &T = 0 &SKIP 2
+&NUM1 = &T
+&SKIP -6
+&IF .&SIGN = MINUS &XNUM1 = &CONCAT OF - &XNUM1
+&NUM1 = &CONCAT OF X &XNUM1
+-DECRES
+***** YEND **(NOT FINISHED)
+&CALL -&WRITE &SAVEARGS = &NUM1
+&EXIT
+-SUBFACT
+&IF &CH ¬= ( &SKIP 8
+&CALL -FIND ( - + NUM
+&P = &P + 1
+&CALL -EXPRESION
+&IF &CH ¬= ) &CALL -EXIT 999 SYNTAX ERROR - EXPECTED ')'.
+&P = &P - 1
+&IF &P ¬= 0 &SKIP 3
+&IF .&ARGSTRING = . &RETURN
+&CALL -EXIT 999 SYNTAX ERROR - TOO MANY ')'.
+&CALL -PUSH &CH
+&CALL -FIND ) + - / * **
+&RETURN
+-FACTOR
+&CALL -SUBFACT
+-WHILE_CH='**' &IF &CH ¬= ** &RETURN
+&CALL -FIND ( NUM
+&CALL -SUBFACT
+&NUM1 = -POP OF
+&NUM2 = -POP OF
+&IF &NUM1 < 0 &CALL -EXIT 998 EXPONENT LESS THEN 0.
+&NUM1 = &NUM1 - 1
+&IF &NUM1 >= 0 &SKIP 2
+&NUM2 = 1
+&SKIP 3
+&T = &NUM2
+&LOOP 1 &NUM1
+&NUM2 = &MULT OF &NUM2 &T
+&CALL -PUSH &NUM2
+&GOTO -WHILE_CH='**'
+&RETURN
+-TERM
+&CALL -FACTOR
+-WHILE_(CH='*')_OR_(CH='/') &IF &CH ¬= * &IF &CH ¬= / &RETURN
+&ARGS &CH
+&CALL -FIND ( NUM
+&CALL -FACTOR
+&NUM1 = -POP OF
+&NUM2 = -POP OF
+&IF &1 ¬= * &SKIP 2
+&NUM1 = &MULT OF &NUM2 &NUM1
+&SKIP 2
+&IF &NUM1 = 0 &CALL -EXIT 997 DIVIDE BY 0 ATTEMPTED.
+&NUM1 = &DIV OF &NUM2 &NUM1
+&CALL -PUSH &NUM1
+&GOTO -WHILE_(CH='*')_OR_(CH='/')
+-EXPRESION
+&IF &CH ¬= + &IF &CH ¬= - &SKIP 2
+&CALL -PUSH 0
+&SKIP 2
+&CALL -TERM
+-WHILE_(CH='+')_OR_(CH='-') &IF &CH ¬= + &IF &CH ¬= - &RETURN
+&ARGS &CH
+&CALL -FIND ( NUM
+&CALL -TERM
+&NUM1 = -POP OF
+&NUM2 = -POP OF
+&IF &1 = - &SKIP 2
+&NUM1 = &NUM2 + &NUM1
+&SKIP 1
+&NUM1 = &NUM2 - &NUM1
+&CALL -PUSH &NUM1
+&GOTO -WHILE_(CH='+')_OR_(CH='-')
+*
+*  -FIND IS INTERNAL ROUTINE THAT LOOKS FOR A CHARACTER,CHARACTERS,NUMBER
+*   WHAT EVER COMES FIRST AS THE FIRST NONBLANK CHARACTER OF ARGSTRING.
+*
+*   IT RETURNS IT INTO &CH
+*
+*
+-FIND
+&IF .&ARGSTRING = . &CALL -EXIT 999 SYNTAX ERROR - PREMATURE EOLN.
+&CH = &LEFT OF &ARGSTRING 1
+&ARGSTRING = &SUBSTR OF &ARGSTRING 2
+&IF &CH = &BLANK &GOTO -FIND
+***** YSTART
+&IF &CH NE X &SKIP 3
+&HEXNUM = YES
+&CH = NUM
+&GOTO -FTEST
+****** YEND
+&T = &DATATYPE OF &CH
+&IF &T ¬= NUM &SKIP 3
+&NUM1 = &CH
+&CH = NUM
+&SKIP 5
+&IF &CH ¬= * &SKIP 4
+&T = &LEFT OF &ARGSTRING 1
+&IF &T ¬= * &SKIP 2
+&CH = **
+&ARGSTRING = &SUBSTR OF &ARGSTRING 2
+-FTEST &T = &POSITION OF &CH &1 &2 &3 &4 &5 &6 &7 &8 &9 &10 &11 &12 &13 &14 &15
+&IF &T = 0 &CALL -EXIT 999 SYNTAX ERROR - ILLEGAL SYMBOL: &CH
+&IF &CH ¬= NUM &RETURN
+***** YSTART
+&IF .&HEXNUM NE .YES &GOTO -DECIMAL
+&NUM1 = 00
+&CH = &LEFT OF &ARGSTRING 1
+&T = -1 + &LOCATION OF &CH 0123456789ABCDEF
+&IF &T = -1 &IF /&NUM1 = /00 &CALL -EXIT 007 BAD HEXADECIMAL DIGIT:&CH
+&IF &T = -1 &SKIP 3
+&NUM1 = &T + &MULT OF &NUM1 16
+&ARGSTRING = &PIECE OF &ARGSTRING 2
+&SKIP -6
+&CH = &NUM1
+&HEXNUM =
+&RETURN
+-DECIMAL
+****** YEND
+&CH = &LEFT OF &ARGSTRING 1
+&T = &DATATYPE OF &CH
+&IF &T ¬= NUM &SKIP 3
+&NUM1 = &CH + &MULT OF &NUM1 10
+&ARGSTRING = &SUBSTR OF &ARGSTRING 2
+&SKIP -5
+&CH = &NUM1
+&RETURN
+-PUSH &STACK&SP = &1
+&SP = &SP + 1
+&RETURN
+-POP &SP = &SP - 1
+&RETURN &STACK&SP
+-EXIT &ERR = &CONCAT OF 00 &1
+&ERR = &RIGHT OF &ERR 3
+&ERR = &CONCAT OF WISCAL &ERR E
+&CALL -&WRITE &ERR &2 &3 &4 &5 &6 &7 &8 &9 &10 &11
+&IF &WRITE = XEDIT &1 = 0
+&EXIT &1
+-EXEC2 &TYPE &1 &2 &3 &4 &5 &6 &7 &8 &9 &10 &11
+&RETURN
+-XEDIT &SUBCOMMAND XEDIT MSG &1 &2 &3 &4 &5 &6 &7 &8 &9 &10 &11
+&RETURN

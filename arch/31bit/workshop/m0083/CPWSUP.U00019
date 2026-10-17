@@ -1,0 +1,358 @@
+./ R 00016000 00023000 $ 16990 990                    10/31/84 14:25:22
+         DEVENTRY 100                                          U00019   00016990
+         DEVENTRY 101                                          U00019   00017980
+         DEVENTRY 102                                          U00019   00018970
+         DEVENTRY 103                                          U00019   00019960
+         DEVENTRY 104                                          U00019   00020950
+         DEVENTRY 105                                          U00019   00021940
+         DEVENTRY 106                                          U00019   00022930
+         DEVENTRY 107                                          U00019   00023920
+./ R 00089000 00090000 $ 89190 190                    10/31/84 14:25:22
+         DC    0D'0',CL8'*EXTSAV*'                             U00019   00089190
+EXTSAV   DS    16F                                             U00019   00089380
+         ENTRY EXTSAV                                          U00019   00089570
+EXTINTER CSECT                                                 U00019   00089760
+./ R 00091000 00094000 $ 91190 190                    10/31/84 14:25:22
+         STM   R0,R15,EXTSAV                                   U00019   00091190
+         BALR  R12,0                                           U00019   00091380
+         USING *,R12                                           U00019   00091570
+         L     R12,=A(EXTINTER)                                U00019   00091760
+         USING EXTINTER,R12                                    U00019   00091950
+         SPACE 1                                               U00019   00092140
+         CLC   =AL2(VMCXCODE),EXTOPSW+2     VMCF INTERRUPT ?   U00019   00092330
+         BE    EXTVMCB        YES, GO TO SEPARATE HANDLER.     U00019   00092520
+            SPACE 1                                            U00019   00092710
+*              ORDINARY EXTERNAL: JUST WAKE UP.                U00019   00092900
+            NI    EXTOPSW+1,255-WAIT                           U00019   00093090
+            LM    R0,R15,EXTSAV                                U00019   00093280
+            LPSW  EXTOPSW                                      U00019   00093470
+./ I 00095000          $ 95007 7                      10/31/84 14:25:22
+EXTVMCB  EQU   *              ENTRY: VMCF INTERRUPT.           U00019   00095007
+         LA    R11,VMCDMHDR   INTERRUPT HEADER                 U00019   00095014
+         USING VMCMHDR,R11                                     U00019   00095021
+         SPACE 2                                               U00019   00095028
+         ICM   R9,15,AVMCU    FIND THE RECORD FOR THIS USER.   U00019   00095035
+EXTUL1   BZ    EXTULNF        NOT FOUND.                       U00019   00095042
+         USING VMUSECT,R9                                      U00019   00095049
+         CLC   VMCMUSER,VMUNAME         IS THIS HIM ?          U00019   00095056
+         BE    EXTULFD                                         U00019   00095063
+            ICM  R9,15,VMUFPNT CHAIN.                          U00019   00095070
+            B   EXTUL1        AND CONTINUE                     U00019   00095077
+EXTULNF  EQU   *              USER DOES NOT EXIST YET.         U00019   00095084
+         LA    R0,VMUSECTL    BYTES.                           U00019   00095091
+         SVC   SVCGETM                                         U00019   00095098
+         XC    0(VMUSECTL,R1),0(R1)                            U00019   00095105
+         IF CLC,AVMCU,=F'0',EQ,THEN     IS IT FIRST            U00019   00095112
+            ST  R1,AVMCU      YES, BEGIN CHAIN.                U00019   00095119
+         IF ELSE                                               U00019   00095126
+            L   R9,AVMCU                                       U00019   00095133
+            DO WHILE,CLC,VMUFPNT,=F'0',NE                      U00019   00095140
+               L   R9,VMUFPNT                                  U00019   00095147
+            DO END                                             U00019   00095154
+            ST  R1,VMUFPNT                                     U00019   00095161
+         IF END                                                U00019   00095168
+         SPACE 1                                               U00019   00095175
+         LR    R9,R1                                           U00019   00095182
+         MVC   VMUNAME,VMCMUSER         MAKE IT HIS.           U00019   00095189
+         MVC   VMUSTAT,=A(VMUMET) FIRST TIME THROUGH.          U00019   00095196
+         MVC   VMUDSP,=V(DSPSYS)                               U00019   00095203
+         SPACE 2                                               U00019   00095210
+EXTULFD  EQU   *              FOUND USER.                      U00019   00095217
+         SPACE 1                                               U00019   00095224
+         IF TM,VMCMSTAT,VMCMRESP,O,THEN                        U00019   00095231
+*           FINAL RESPONSE TO OUR LAST SEND.                   U00019   00095238
+            L  R2,VMCSOS       OUTSTANDING VMCF MESSAGES.      U00019   00095245
+            BCTR R2,0         ARE ONE LESS                     U00019   00095252
+            ST   R2,VMCSOS                                     U00019   00095259
+            SPACE 1                                            U00019   00095266
+            IF C,R2,=A(VMCSMAX-1),EQ,THEN                      U00019   00095273
+               SVC SVCDISP    SEND OFF WHOEVER'S WAITING.      U00019   00095280
+            IF END                                             U00019   00095287
+            SPACE 1                                            U00019   00095294
+*              CHECK FOR DATA TRANSFER ERROR CODE.             U00019   00095301
+            SR  R1,R1                                          U00019   00095308
+            IC  R1,VMCMEFLG   DATA TRANSFER ERROR ?            U00019   00095315
+            IF LTR,R1,R1,Z,OR,                                         +00095322
+               C,R1,=A(VMC15),EQ,OR,                                   +00095329
+               C,R1,=A(VMC16),EQ,OR,                                   +00095336
+               C,R1,=A(VMC19),EQ,THEN LISTENING FOR NEXT.      U00019   00095343
+               MVC  VMUSTAT,=A(VMULSTN) HE IS LISTENING FOR NEXU00019   00095350
+               IF LTR,R1,R1,NZ,THEN AN ERROR STATE.            U00019   00095357
+*                 SHOULD BUILD MESSAGE HERE-CODE 15, 16, 19.   U00019   00095364
+               IF END                                          U00019   00095371
+            SPACE 1                                            U00019   00095378
+            IF ELSE           HAS QUIT, OR FATAL ERROR.        U00019   00095385
+               MVC VMUSTAT,=A(VMUNOT)   MARK AS DEAD.          U00019   00095392
+               IF C,R1,=A(VMC05),NE,THEN HAS DIED HORRIBLY.    U00019   00095399
+*                 SHOULD BUILD MESSAGE HERE- CODE 1, 6, 7, 17. U00019   00095406
+               IF END                                          U00019   00095413
+               SP  LISTNRS,=P'1'                               U00019   00095420
+            IF END                                             U00019   00095427
+            SPACE 3                                            U00019   00095434
+         IF ELSE              WE HAVE RECEIVED A REQUEST.      U00019   00095441
+            IF CLC,VMCMFUNC,=AL2(VMCPSENX),EQ,THEN             U00019   00095448
+               MVC   VMUIDNT,VMCIDNT                           U00019   00095455
+               MVC   VMUPSWD,VMCPSWD                           U00019   00095462
+               SPACE 1                                         U00019   00095469
+               L     R0,VMUPAG                                 U00019   00095476
+               L     R1,VMUDSP                                 U00019   00095483
+               LA    R2,VMCCMD                                 U00019   00095490
+               L     R15,=A(CMDLU)                             U00019   00095497
+               BALR  R14,R15                                   U00019   00095504
+               ST    R1,VMUDSP                                 U00019   00095511
+               ST    R0,VMUPAG                                 U00019   00095518
+               SPACE 1                                         U00019   00095525
+               L  R1,VMUSTAT                                   U00019   00095532
+               IF C,R1,=A(VMUMET),EQ,OR,                               +00095539
+               C,R1,=A(VMUNOT),EQ,THEN    NEW CHAP             U00019   00095546
+                  MVC VMUSTAT,=A(VMUMET)  (FOR NOW).           U00019   00095553
+                  SPACE 3                                      U00019   00095560
+* =============== HOOK FOR VERIFYING PASSWORD. =============== U00019   00095567
+* AS INSTALLED, IDENTITY/PASSWORD MUST BE BLANKS (THEY WILL BE)U00019   00095574
+* YOU CAN CHANGE THIS CODE TO YOUR HEART'S CONTENT.            U00019
+                  IF CLC,VMUIDNT,=CL8' ',NE,OR,                 U00019 +00095581
+               CLC,VMUPSWD,=CL8' ',NE,THEN                     U00019   00095588
+                     SPACE 1                                   U00019
+*    INVALID PASSWORD ACTION 1: DISABLE THE USERID.            U00019
+                     MVC VMUSTAT,=A(VMUNOT) MARK HIM DEAD.     U00019   00095609
+                     SPACE 1                                   U00019
+*     INVALID PASSWORD ACTION 2: TELL HIM TO GO AWAY, POLITELY.U00019
+                     VMCF IDENTIFY,USERID=VMUNAME,PARM=VMCDPARM,       +00095595
+               MSGID=VMUIPSWD,USEWORD='PASSWORD'               U00019   00095602
+                  IF END                                       U00019   00095616
+* =============== END PASSWORD VERIFICATION HOOK. ============ U00019   00095623
+                  SPACE 3                                      U00019   00095630
+*                 VERIFY CPWCMS PROTOCOL LEVEL.                U00019   00095637
+                  IF CLC,VMCMUSE,CPWCMSLV,NE,THEN              U00019   00095644
+                     VMCF IDENTIFY,USERID=VMUNAME,PARM=VMCDPARM,       +00095651
+               MSGID=VMUIPROT,USEWORD=CPWCMSLV                 U00019   00095658
+                     MVC VMUSTAT,=A(VMUNOT) MARK HIM DEAD.     U00019   00095665
+                  IF END                                       U00019   00095672
+                  SPACE 3                                      U00019   00095679
+                  IF CLC,VMUSTAT,=A(VMUMET),EQ,THEN PERMITTED  U00019   00095686
+                     AP LISTNRS,=P'1'                          U00019   00095693
+                     IF CP,LISTNRS,=P'1',EQ,THEN               U00019   00095700
+                        NI EXTOPSW+1,255-WAIT ALLOW SCREEN BUILU00019   00095707
+                        MVC VMUSTAT,=A(VMULSTN)                U00019   00095714
+                     IF ELSE                                   U00019   00095721
+                        MVC VMUSTAT,=A(VMUSNDNW) SEND IMMEDIATEU00019   00095728
+                     IF END                                    U00019   00095735
+                  IF END                                       U00019   00095742
+               SPACE 1                                         U00019   00095749
+               IF ELSE        HE'S ALREADY IN SESSION.         U00019   00095756
+                  MVC VMUSTAT,=A(VMUSNDNW) SEND IMMEDIATE.     U00019   00095763
+               IF END                                          U00019   00095770
+               SPACE 1                                         U00019   00095777
+               IF CLC,VMUSTAT,=A(VMUSNDNW),EQ,THEN             U00019   00095784
+                  SVC SVCDISP SEND IT OFF                      U00019   00095791
+               IF END                                          U00019   00095798
+            IF END                                             U00019   00095805
+         IF END                                                U00019   00095812
+         SPACE 3                                               U00019   00095819
+*              RETURN TO INTERRUPTED ROUTINE.                  U00019   00095826
+EXTXIT   EQU   *                                               U00019   00095833
+         LM    R0,R15,EXTSAV                                   U00019   00095840
+         LPSW  EXTOPSW                                         U00019   00095847
+         DROP  R0,R11,R12                                      U00019   00095854
+         SPACE 6                                               U00019   00095861
+         ENTRY VMCDMHDR,VMCIH                                  U00019   00095868
+VMCIH    DC    A(VMCDMHDR,VMCL)         DESCRIPTION OF HEADER. U00019   00095875
+VMCDMHDR DC    0D'0',XL(VMCL)'0'   VMCF INTERRUPT HEADER+SX DATU00019   00095882
+         SPACE 1                                               U00019   00095889
+VMCDPARM DC    0D'0',XL(VMCPLEN)'0'     VMCF REQUEST PARAMETER.U00019   00095896
+         SPACE 2                                               U00019   00095903
+CPWCMSLV DC    CL6'CPWCMS',AL1(0,0)     PROTOCOL AND LEVEL.    U00019   00095910
+         SPACE 2                                               U00019   00095917
+./ I 00096000          $ 96010 10                     10/31/84 14:25:22
+CPWSUP   CSECT RESTORE OLD CSECT.                              U00019   00096010
+         EJECT                                                 U00019   00096020
+*--------------------------------------------------------------U00019   00096030
+* ENTER: R0 = PAGE NO WITHIN CURRENT DISPLAY.                  U00019   00096040
+*        R1 -> CURRENT DISPLAY *DSPSECT*                       U00019   00096050
+*        R2 -> COMMAND.                                        U00019   00096060
+* EXIT:  R0 = NEW PAGE NUMBER.                                 U00019   00096070
+*        R1 -> NEW DISPLAY *DSPSECT*                           U00019   00096080
+* NON-REENTRANT; MUST RUN UNINTERRUPTABLE.                     U00019   00096090
+*--------------------------------------------------------------U00019   00096100
+         USING CPWSUP,R0                                       U00019   00096110
+CMDLU    STM   R0,R15,CMDLUSAV  LOOK UP A COMMAND.             U00019   00096120
+         LA    R3,CMDS                                         U00019   00096130
+         LA    R4,CMDEND                                       U00019   00096140
+CMDLP    CR    R3,R4                                           U00019   00096150
+         BE    CMDLPN                                          U00019   00096160
+         CLC   0(8,R2),0(R3)                                   U00019   00096170
+         BE    CMDLPN                                          U00019   00096180
+            LA  R3,L'CMDS(,R3)                                 U00019   00096190
+            B   CMDLP                                          U00019   00096200
+CMDLPN   L     R3,8(,R3)                                       U00019   00096210
+         BR    R3             GO TO ROUTINE.                   U00019   00096220
+         SPACE 1                                               U00019   00096230
+CMDDSP   EQU   *              NOT A COMMAND - MUST BE A DISPLAYU00019   00096240
+         L     R3,ADSPLAY     FIND DSPSECTS.                   U00019   00096250
+         DO UNTIL,C,R3,ADSPLAY,EQ,OR,                                  +00096260
+               CLC,0(8,R2),DSPNAME-DSPSECT(R3),EQ              U00019   00096270
+            L   R3,DSPNEXT-DSPSECT(,R3)                        U00019   00096280
+         DO END                                                U00019   00096290
+         IF CR,R1,R3,NE,THEN NEW DISPLAY.                      U00019   00096300
+            SR    R0,R0          BEGINNING PAGE.               U00019   00096310
+            LR    R1,R3          NEW DSPSECT                   U00019   00096320
+         IF END                                                U00019   00096330
+         B     CMDX                                            U00019   00096340
+         SPACE 1                                               U00019   00096350
+CMDLEFT  EQU   *              GO LEFT (PREVIOUS) THROUGH DISPLAU00019   00096360
+         BCTR  R0,0                                            U00019   00096370
+         IF R0,M,THEN                                          U00019   00096380
+            SR  R0,R0                                          U00019   00096390
+         IF END                                                U00019   00096400
+         B     CMDX                                            U00019   00096410
+         SPACE 1                                               U00019   00096420
+CMDRIGHT EQU   *              GO RIGHT (NEXT) THROUGH DISPLAY PU00019   00096430
+         LA    R4,1                                            U00019   00096440
+         AR    R0,R4                                           U00019   00096450
+         ZAP   CMDDWD,DSPSCRC-DSPSECT(L'DSPSCRC,R1) PICK UP NO U00019   00096460
+         CVB   R4,CMDDWD                                       U00019   00096470
+         BCTR  R4,0           MAX OFFSET FROM 0                U00019   00096480
+         IF CR,R0,R4,GT,THEN                                   U00019   00096490
+            LR  R0,R4                                          U00019   00096500
+         IF END                                                U00019   00096510
+         B     CMDX                                            U00019   00096520
+         SPACE 1                                               U00019   00096530
+CMDFWD   EQU   *              GO FORWARD (NEXT) THROUGH MAJOR DU00019   00096540
+         L     R1,DSPNEXT-DSPSECT(,R1) GET NEXT DSPSECT        U00019   00096550
+         SR    R0,R0          AND LOOK AT BEGINNING PAGE.      U00019   00096560
+         B     CMDX                                            U00019   00096570
+         SPACE 1                                               U00019   00096580
+CMDBACK  EQU   *              GO BACKWARD (PREVIOUS) THROUGH MAU00019   00096590
+         L     R3,ADSPLAY                                      U00019   00096600
+         DO UNTIL,CR,R1,R3,EQ                                  U00019   00096610
+            LR  R4,R3                                          U00019   00096620
+            L   R3,DSPNEXT-DSPSECT(,R3)                        U00019   00096630
+         DO END                                                U00019   00096640
+         LR    R1,R4          GET PREVIOUS DISPLAY SECTION     U00019   00096650
+         SR    R0,R0          AND LOOK AT BEGINNING PAGE.      U00019   00096660
+         B     CMDX                                            U00019   00096670
+         SPACE 1                                               U00019   00096680
+CMDX     EQU   *                                               U00019   00096690
+         STM   R0,R1,CMDLUSAV                                  U00019   00096700
+         LM    R0,R15,CMDLUSAV                                 U00019   00096710
+         BR    R14            RETURN TO CALLER                 U00019   00096720
+CMDLUSAV DS    16F                                             U00019   00096730
+         SPACE 1                                               U00019   00096740
+CMDDWD   DS    D                                               U00019   00096750
+         DS    0F                                              U00019   00096760
+CMDS     DS    0CL12          TABLE OF LOCAL COMMANDS.         U00019   00096770
+         DC    CL8'LEFT',AL4(CMDLEFT)                          U00019   00096780
+         DC    CL8'RIGHT',AL4(CMDRIGHT)                        U00019   00096790
+         DC    CL8'BACKWARD',AL4(CMDBACK)                      U00019   00096800
+         DC    CL8'FORWARD',AL4(CMDFWD)                        U00019   00096810
+CMDEND   DC    2F'-1',AL4(CMDDSP)                              U00019   00096820
+CPWSUP   CSECT                                                 U00019   00096830
+./ R 00573010 00573090 $ 573011 1                     10/31/84 14:25:22
+         SPACE 1                                               U00019   00573011
+*              FIRST, SEND OUT ANY VMCF COMMUNICATIONS.        U00019   00573012
+         L R9,AVMCU                                            U00019   00573013
+         USING VMUSECT,R9                                      U00019   00573014
+         DO WHILE,LTR,R9,R9,NZ,AND,CLC,VMCSOS,=A(VMCSMAX),LT   U00019   00573015
+            IF CLC,VMUSTAT,=A(VMUSNDNW),EQ,THEN                U00019   00573016
+               L   R0,VMUPAG                                   U00019   00573017
+               L   R1,VMUDSP                                   U00019   00573018
+               BAL R10,SVCDSPLU         FIND THE SCREEN.       U00019   00573019
+               SPACE 1                                         U00019   00573020
+               LR    R3,R1                                     U00019   00573021
+               USING DSPSECT,R3                                U00019   00573022
+               USING SCRSECT,R2                                U00019   00573023
+               IF R3,NZ,AND,R2,NZ,THEN                         U00019   00573024
+                  VMCF  SEND,USERID=VMUNAME,PARM=SVCDPARM,             +00573025
+               MSGID=VMUSDATA,USEWORD=DSPNAME,                         +00573026
+               FLDA=SCREEN                                     U00019   00573027
+               DROP R2,R3                                      U00019   00573028
+                 IF R15,Z,THEN                                 U00019   00573029
+                    MVC  VMUSTAT,=A(VMUINCP) XACTION INCOMPLETEU00019   00573030
+                    SPACE 1                                    U00019   00573031
+                    L    R1,VMCSOS   OUTSTANDING VMCF MESSAGES U00019   00573032
+                    A    R1,=F'1'   ARE ONE MORE               U00019   00573033
+                    ST   R1,VMCSOS                             U00019   00573034
+                    SPACE 1                                    U00019   00573035
+                 IF ELSE                                       U00019   00573036
+                    C R15,=A(VMC01) INVALID BUFFER ADDRESS     U00019   00573037
+                    BE DSNLSER                                 U00019   00573038
+                    C R15,=A(VMC02) INVALID SUBFUNCTION        U00019   00573039
+                    BE DSNLSER                                 U00019   00573040
+                    C R15,=A(VMC04) SOURCE NOT AUTHORIZED      U00019   00573041
+                    BE DSNLSER                                 U00019   00573042
+                    C R15,=A(VMC05) TARGET NOT AVAILABLE.      U00019   00573043
+                    BE DSNLS                                   U00019   00573044
+                    C R15,=A(VMC08) DUPLICATE MESSAGE          U00019   00573045
+                    BE DSINC                                   U00019   00573046
+                    C R15,=A(VMC09) TARGET QUIESCED.           U00019   00573047
+                    BE DSNLS                                   U00019   00573048
+                    C R15,=A(VMC10) MESSAGE LIMIT EXCEEDED.    U00019   00573049
+                    BE DSSND                                   U00019   00573050
+                    C R15,=A(VMC15) PAGING FAILURE             U00019   00573051
+                    BE DSLSN                                   U00019   00573052
+                    C R15,=A(VMC18) USER NOT AUTHORIZED PRTY   U00019   00573053
+                    BE DSNLSER                                 U00019   00573054
+                    B  DSNLSER                                 U00019   00573055
+                    SPACE 1                                    U00019   00573056
+DSLSN               EQU * LISTENING - RETRY LATER              U00019   00573057
+                    MVC VMUSTAT,=A(VMULSTN)                    U00019   00573058
+                        B  DSJOIN                              U00019   00573059
+                    SPACE 1                                    U00019   00573060
+DSINC               EQU   *  LAST ONE INCOMPLETE.              U00019   00573061
+*                   SHOULD BUILD ERROR MESSAGE HERE            U00019   00573062
+                    MVC VMUSTAT,=A(VMUSNDNW)                   U00019   00573063
+                        B  DSJOIN                              U00019   00573064
+                    SPACE 1                                    U00019   00573065
+DSSND               EQU   *  MUST STILL SEND IMMEDIATELY       U00019   00573066
+*                   SHOULD BUILD ERROR MESSAGE HERE            U00019   00573067
+                    MVC VMUSTAT,=A(VMUSNDNW)                   U00019   00573068
+                        B  DSJOIN                              U00019   00573069
+                    SPACE 1                                    U00019   00573070
+DSNLSER             EQU   *  CPWATCH ERROR.                    U00019   00573071
+*                   SHOULD BUILD ERROR MESSAGE HERE.           U00019   00573072
+*                      B  DSNLS                                U00019   00573073
+                    SPACE 1                                    U00019   00573074
+DSNLS               EQU   *  NOT LISTENING.                    U00019   00573075
+                    MVC  VMUSTAT,=A(VMUNOT) DEAD               U00019   00573076
+                    SP  LISTNRS,=P'1'                          U00019   00573077
+*                      B   DSJOIN                              U00019   00573078
+                    SPACE 1                                    U00019   00573079
+DSJOIN              EQU *                                      U00019   00573080
+                 IF END                                        U00019   00573081
+              IF END                                           U00019   00573082
+           IF END                                              U00019   00573083
+           SPACE 1                                             U00019   00573084
+           L   R9,VMUFPNT                                      U00019   00573085
+         DO END                                                U00019   00573086
+         DROP R9                                               U00019   00573087
+         SPACE 2                                               U00019   00573088
+*     PHYSICAL DEVICES. FIRST CLEAR ANY OUTSTANDING, HUNG I/O  U00019   00573089
+         STCK  NOW                                             U00019   00573090
+         L     R11,ADEVICES                                    U00019   00573091
+         USING DEVSECT,R11                                     U00019   00573092
+         DO WHILE,CLC,DEVADDR,HEXFS,NE                         U00019   00573093
+            OC  DEVSTAMP,DEVSTAMP       SIO OUTSTANDING ?      U00019   00573094
+            IF NZ,AND,                                                 +00573095
+               CLI,DEVTYPE,DEVGRAF,EQ,THEN                     U00019   00573096
+./ I 00701000          $ 701300 300                   10/31/84 14:25:22
+         SPACE 3                                               U00019   00701300
+SVCDPARM DS    5D                                              U00019   00701600
+./ I 00702000          $ 702050 50                    10/31/84 14:25:22
+*--------------------------------------------------------------U00019   00702050
+*              SVCDSPLU: DISPLAY LOOKUP.                       U00019   00702100
+*--------------------------------------------------------------U00019   00702150
+* ENTERED BY: BAL R10,SVCDSPLU                                 U00019   00702200
+*             R1 -> DSPSECT, R0 = PAGE NO                      U00019   00702250
+* EXIT:       R2 -> PAGE.                                      U00019   00702300
+*--------------------------------------------------------------U00019   00702350
+SVCDSPLU EQU   *                                               U00019   00702400
+         L     R2,DSPFSCR-DSPSECT(,R1)                         U00019   00702450
+         DO WHILE,R2,NZ,AND,R0,NZ                              U00019   00702500
+            L     R2,SCRNEXT-SCRSECT(,R2)                      U00019   00702550
+            BCTR R0,0                                          U00019   00702600
+         DO END                                                U00019   00702650
+         IF R2,Z,THEN                                          U00019   00702700
+            L   R2,DSPFSCR-DSPSECT(,R1)                        U00019   00702750
+         IF END                                                U00019   00702800
+         BR    R10                                             U00019   00702850
+         EJECT                                                 U00019   00702900

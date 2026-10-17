@@ -1,0 +1,498 @@
+CPW      TITLE '                                        CPWATCH'        00001000
+         COPY  CPWPRM                                                   00002000
+DEV      MODULE PRINT=YES                                               00003000
+         EJECT                                                          00004000
+*********************************************************************** 00005000
+*              FETCH REAL DEVICE I/O COUNTS.                          * 00006000
+*********************************************************************** 00007000
+         SPACE 1                                                        00008000
+*  FUNCTION:                                                            00009000
+*             EXAMINE ALL RDEVBLOK'S, UPDATING CPWATCH'S EQUIVALENT SDV 00010000
+         SPACE 1                                                        00011000
+*  REGISTER USAGE:                                                      00012000
+*        R4: RDEVBLOK GLOBAL BASE                                       00013000
+*        R5: RDEVBLOK LOCAL BASE                                        00014000
+*        R6: RDVSECT GLOBAL BASE                                        00015000
+*        R7: RDVSECT LOCAL BASE                                         00016000
+*        R8: RDVSECT LAST ENTRY + 1                                     00017000
+*        R9: SVCDCPL BASE                                               00018000
+*        R10: SVCDCPL ENDPOINT (LAST ENTRY+1-LENGTH NEEDED FOR 1 RDVBL  00019000
+         SPACE 1                                                        00020000
+*                                                                       00021000
+RDVDCPSC DSECT                DCP FOR EACH DEVICE.                      00022000
+RDVDSTAT DS    F              STATUS, ETC                               00023000
+RDVDIOCT DS    F              IO COUNTS                                 00024000
+RDVDUSER DS    F              A(DEDICATED USER VMBLOK)                  00025000
+RDVDSER  DS    2F                                                       00026000
+RDVDCPND EQU   *                                                        00027000
+RDVDCPLN EQU   RDVDCPND-RDVDCPSC                                        00028000
+         SPACE 1                                                        00029000
+DEVDCP   PROC  BEGIN                                                    00030000
+         SPACE 1                                                        00031000
+*              CLEAR CHANNEL COUNTS FOR ACCUMULATION                    00032000
+         L     R2,ACPWSECT                                              00033000
+         USING CPWSECT,R2                                               00034000
+         XC    CPCHF(16*4),CPCHF                                        00035000
+         DROP R2                                                        00036000
+         SPACE 1                                                        00037000
+         L     R4,AARIODV     BEGIN CP TABLE                            00038000
+         L     R6,ARDVTAB     BEGIN MY TABLE                            00039000
+         L     R8,RIODC       # OF DEVICES                              00040000
+         MH    R8,=Y(RDVSECTL)         NO BYTES MY TABLE                00041000
+         AR    R8,R6          END + 1 BYTE, MY TABLE.                   00042000
+         SPACE 1                                                        00043000
+         DO WHILE,CR,R6,R8,LT IE FILL MY TABLE                          00044000
+            LR  R5,R4         INNER RDEVBLOK BASE                       00045000
+            LR  R7,R6         INNER SDVSECT BASE                        00046000
+            L   R9,AEXDIAG    BUILD IN DIAG AREA                        00047000
+            LA  R9,4(,R9)     START OF DATA AREA.                       00048000
+            LA  R10,1023*4-RDVDCPLN(,R9)                                00049000
+            SPACE 1                                                     00050000
+            DO WHILE,CR,R7,R8,LT,AND,CR,R9,R10,LT                       00051000
+               SPACE 1                                                  00052000
+               USING RDVDCPSC,R9        BUILD PLIST HERE.               00053000
+               USING RDEVBLOK,R5                                        00054000
+               LA  R1,RDEVSTAT                                          00055000
+               ST  R1,RDVDSTAT                                          00056000
+               SPACE 1                                                  00057000
+               LA  R1,RDEVIOCT                                          00058000
+               ST  R1,RDVDIOCT                                          00059000
+               SPACE 1                                                  00060000
+               LA  R1,RDEVUSER                                          00061000
+               ST  R1,RDVDUSER                                          00062000
+               SPACE 1                                                  00063000
+               LA  R1,RDEVSER                                           00064000
+               ST  R1,RDVDSER                                           00065000
+               LA  R1,RDEVSER+4                                         00066000
+               ST  R1,RDVDSER+4                                         00067000
+               SPACE 1                                                  00068000
+               LA  R5,RDEVBLOK+RDEVSIZE*8                               00069000
+               LA  R7,RDVSECTL(,R7)                                     00070000
+               LA  R9,RDVDCPND                                          00071000
+            DO END                                                      00072000
+            DROP R5,R9                                                  00073000
+            SPACE 3                                                     00074000
+*              DO DIAG 4                                                00075000
+            L   R1,AEXDIAG                                              00076000
+            LA  R2,4(,R1)                                               00077000
+            LR  R4,R2                                                   00078000
+            LR  R3,R9                                                   00079000
+            SR  R3,R2         NO OF BYTES                               00080000
+            SRA R3,2          COUNT OF FULLWORDS.                       00081000
+            EX  0,0(,R1)                                                00082000
+            SPACE 3                                                     00083000
+*              MOVE DATA FOUND INTO RDV TABLE.                          00084000
+            LR  R7,R6         RE-INITIALIZE THE LOOP.                   00085000
+            L   R9,AEXDIAG                                              00086000
+            LA  R9,4(,R9)                                               00087000
+*                             R10 STILL SET FROM LAST LOOP,            +00088000
+               R5 IS NOT USED IN THIS LOOP. (SAVE FOR END)              00089000
+            SPACE 1                                                     00090000
+            DO WHILE,CR,R7,R8,LT,AND,CR,R9,R10,LT                       00091000
+               USING RDVSECT,R7                                         00092000
+               USING RDVDCPSC,R9                                        00093000
+               SPACE 1                                                  00094000
+               MVC RDVSTAT(4),RDVDSTAT (+ RDEVFLAG,RDEVTYPC,RDEVTYPE)   00095000
+               SPACE 1                                                  00096000
+               MVC RDVSER,RDVDSER                                       00097000
+               SPACE 1                                                  00098000
+               L   R1,RDVDIOCT          CURRENT CUM SIOS                00099000
+               S   R1,RDVSIOT - LAST CUM SIOS                           00100000
+               ST  R1,RDVSIOD - CURRENT DIFFERENCE                      00101000
+               MVC RDVSIOT,RDVDIOCT     CURRENT CUM. SIO.               00102000
+               SPACE 3                                                  00103000
+*              ACCUMULATE FOR CHANNEL                                   00104000
+               LH  R1,RDVADDR                                           00105000
+               SRA R1,8       SAVE CHANNEL                              00106000
+               N   R1,=F'15'  ENSURE RIGHT SIZE.                        00107000
+               SLL R1,2       CONVERT TO FULLWORD OFFSET                00108000
+               LA  R1,CPCHF-CPWSECT(R1) INTO DSECT                      00109000
+               AL  R1,ACPWSECT          ACTUAL WORD                     00110000
+               L   R0,0(,R1)                                            00111000
+               AL  R0,RDVSIOD           ADD IN CURRENT DIFFERENCE.      00112000
+               ST  R0,0(,R1)                                            00113000
+               SPACE 3                                                  00114000
+               MVC RDVUSER,RDVDUSER                                     00115000
+               SPACE 2                                                  00116000
+               LA  R7,RDVNEXT                                           00117000
+               LA  R9,RDVDCPND                                          00118000
+            DO END                                                      00119000
+            DROP R7,R9                                                  00120000
+            SPACE 3                                                     00121000
+            LR  R4,R5         NEXT SET OF RDEVBLOK'S                    00122000
+            LR  R6,R7         NEXT SET OF RDVSECT'S                     00123000
+         DO END                                                         00124000
+DEVDCPND EQU   *                                                        00125000
+         SPACE 1                                                        00126000
+         PROC  END                                                      00127000
+         EJECT                                                          00128000
+*********************************************************************** 00129000
+*              TERMINAL PAGE.                                         * 00130000
+*********************************************************************** 00131000
+* REGISTERS                                                             00132000
+*        R10 - PANEL BASE.                                              00133000
+*        R9 - DISPLAY BASE                                              00134000
+*        R8 - DISPLAY SLOT COUNTER.                                     00135000
+*        R7 - DISPLAY SLOT ADDRESS                                      00136000
+*        R6 - DEVICE TABLE BASE                                         00137000
+*        R5 - DEVICE TABLE ENTRY COUNTER.                               00138000
+*********************************************************************** 00139000
+         SPACE 1                                                        00140000
+TRMSECT  DSECT                                                          00141000
+TRMADD   DS    CL3                                                      00142000
+         DS    C                                                        00143000
+TRMST    DS    C                                                        00144000
+TRMSIO   DS    ZL6                                                      00145000
+TRMPAD   DS    CL2            SEPARATE COLUMNS.                         00146000
+TRMLN    EQU   *-TRMSECT                                                00147000
+         SPACE 2                                                        00148000
+TRMREP   EQU   (L'SCRLINE+L'TRMPAD)/TRMLN                               00149000
+TRMSTART EQU   SCRLINE3       STARTING ON LINE 3                        00150000
+TRMEND   EQU   SCREEND                                                  00151000
+TRMLINES EQU   (TRMEND-TRMSTART)/L'SCRLINE                              00152000
+TRMNEW   EQU   TRMSTART+(TRMREP*TRMLN)  NEED NEW PAGE NOW               00153000
+         SPACE 3                                                        00154000
+TRMPAGE  PROC  BEGIN                                                    00155000
+         STORAGE                                                        00156000
+TRMWRK   DS    D                                                        00157000
+         DATA                                                           00158000
+TRMTIT   DC    C'CPWATCH TERMINAL STATUS'                               00159000
+TRMOFS   EQU   (L'SCRLINE-L'TRMTIT)/2                                   00160000
+         SPACE 1                                                        00161000
+         PROC                                                           00162000
+         L     R9,=V(DSPTRM)                                            00163000
+         USING DSPSECT,R9                                               00164000
+         SPACE 1                                                        00165000
+         IF CP,LISTNRS,=P'0',GT,THEN                                    00166000
+            OI  DSPFLAGS,DSPNEW                                         00167000
+            SPACE 1                                                     00168000
+*           INITIALIZE DEVICE LOOP                                      00169000
+            SR  R10,R10       FIRST PAGE                                00170000
+            USING SCRSECT,R10                                           00171000
+            SPACE 1                                                     00172000
+            LA  R8,TRMREP*TRMLINES      FORCE PAGE OVERFLOW.            00173000
+            SR  R7,R7                                                   00174000
+            USING TRMSECT,R7                                            00175000
+            SPACE 1                                                     00176000
+            L   R6,ARDVTAB                                              00177000
+            USING RDVSECT,R6                                            00178000
+            SPACE 1                                                     00179000
+            L   R5,RIODC                                                00180000
+            SPACE 3                                                     00181000
+            DO WHILE,R5,NZ                                              00182000
+               IF TM,RDVTYPC,CLASTERM+CLASGRAF,NZ,AND,                 +00183000
+               TM,RDVSTAT,RDEVDISA,Z,THEN  (ON LINE)                    00184000
+                  LA  R8,1(,R8)                                         00185000
+                  IF C,R8,=A(TRMREP*TRMLINES),GE,THEN                   00186000
+                     LR  R0,R10                                         00187000
+                     LR  R1,R9                                          00188000
+                     CALL NEWSCR                                        00189000
+                     LR  R10,R0                                         00190000
+                     MVC SCREEN+TRMOFS(L'TRMTIT),TRMTIT                 00191000
+                     SR  R8,R8      BEGIN WITH FIRST SLOT.              00192000
+                  IF END                                                00193000
+                  SR  R14,R14         CALC ROW/COL. R14- ROW            00194000
+                  LR  R15,R8            COL                             00195000
+                  D   R14,=A(TRMLINES)                                  00196000
+                  MH  R14,=Y(L'SCRLINE) ROW OFFSET.                     00197000
+                  MH  R15,=Y(TRMLN)     COLUMN OFFSET                   00198000
+                  IF R14,NZ,THEN STARTING A NEW COLUMN.                 00199000
+                      LA  R7,SCRLINE2(R15) COL HDR ADDR                 00200000
+                      MVC TRMADD,=CL(L'TRMADD)'ADR' TITLE LINE.         00201000
+                      MVC TRMSIO,=CL(L'TRMSIO)' SIO/S'                  00202000
+                      SPACE 1                                           00203000
+                      IF R15,NZ,THEN STARTING SECOND OR FURTHER COL.    00204000
+*                         SO SET UP SEPARATOR LINE.                     00205000
+                          LA  R4,SCRLINE2-((L'TRMPAD+1)/2)(R15) BEGIN   00206000
+                          LA  R2,L'SCRLINE INCREMENT                    00207000
+                          LA  R3,TRMEND    END                          00208000
+TRMMVIL                   MVI 0(R4),C'|' SEPARATOR                      00209000
+                          BXLE R4,R2,TRMMVIL                            00210000
+                      IF END                                            00211000
+                  IF END                                                00212000
+                  LA  R7,SCRLINE3(R15)                                  00213000
+                  AR  R7,R14                                            00214000
+*                             REAL ADDR OF SLOT IN R7 NOW.              00215000
+                  SPACE 3                                               00216000
+*                 NOW BUILD LINE.                                       00217000
+                  MVC TRMADD,RDVCADDR                                   00218000
+                  SPACE 1                                               00219000
+                  IF TM,RDVSTAT,RDEVDED,O,THEN HE'S DEDICATED.          00220000
+                     MVI TRMST,C'A'                                     00221000
+                  IF ELSE                                               00222000
+                     IF TM,RDVTYPE,TYPBSC,O,THEN REM CL, CMS.           00223000
+                        MVI TRMST,C'C'                                  00224000
+                     IF ELSE                                            00225000
+                        MVI TRMST,C' '                                  00226000
+                     IF END                                             00227000
+                  IF END                                                00228000
+                  SPACE 1                                               00229000
+                  L   R1,RDVSIOD                                        00230000
+*           EDITING ROUTINE.  NOTE THAT  SNAP INTERVAL IS IN MILLISEC,  00231000
+*           OUTPUT TENTHS PER SECOND.                                   00232000
+                 IF R1,NZ,THEN                                          00233000
+                    M  R0,=F'20000' 1000 FOR MSEC, 10 FOR DECIMAL PT,  +00234000
+                                AND 2 FOR ROUNDING.                     00235000
+                    D   R0,SNAPINT                                      00236000
+                    A   R1,=F'1'                                        00237000
+                    SRL R1,1                                            00238000
+                    CALL DECIT1D                                        00239000
+                    MVC TRMSIO,28-L'TRMSIO(R13)                         00240000
+                 IF END                                                 00241000
+                 SPACE 3                                                00242000
+               IF END                                                   00243000
+               SPACE 1                                                  00244000
+               BCTR R5,0      NEXT DEVICE.                              00245000
+               LA  R6,RDVNEXT                                           00246000
+            DO END                                                      00247000
+            DROP R6                                                     00248000
+            SPACE 1                                                     00249000
+            LR  R1,R9                                                   00250000
+            LR  R0,R10                                                  00251000
+            CALL LASTSCR                                                00252000
+            DROP R10                                                    00253000
+         IF END                                                         00254000
+         PROC  END                                                      00255000
+         EJECT                                                          00256000
+*********************************************************************** 00257000
+*              REAL DEVICE PAGE.                                      * 00258000
+*********************************************************************** 00259000
+*  REGISTERS                                                            00260000
+*        R10 - PANEL BASE                                               00261000
+*        R9 - DISPLAY BASE                                              00262000
+*        R8 - SLOT COUNTER                                              00263000
+*        R7 - SLOT BASE                                                 00264000
+*        R6 - REAL DEVICE ENTRY BASE                                    00265000
+*        R5 - REAL DEVICE COUNTER.                                      00266000
+*********************************************************************** 00267000
+         SPACE 1                                                        00268000
+SDVSECT  DSECT                                                          00269000
+SDVADD   DS    CL3                                                      00270000
+SDVSIO   DS    ZL6                                                      00271000
+         DS    CL1' '                                                   00272000
+SDVCP    DS    CL2'CP'                                                  00273000
+         DS    CL1' '                                                   00274000
+SDVSER   DS    CL6                                                      00275000
+         ORG   SDVCP                                                    00276000
+SDVUSRID DS    CL8                                                      00277000
+         ORG                                                            00278000
+SDVPAD   DS    CL1            SPACE BETWEEN COLUMNS.                    00279000
+SDVLN    EQU   *-SDVSECT                                                00280000
+         SPACE 1                                                        00281000
+SDVREP   EQU   (L'SCRLINE+L'SDVPAD)/SDVLN       NO OF COLUMNS.          00282000
+SDVSTART EQU   SCRLINE3 STARTING ON LINE 3                              00283000
+SDVEND   EQU   SCREEND                                                  00284000
+SDVLINES EQU   (SDVEND-SDVSTART)/L'SCRLINE NO OF ROWS.                  00285000
+         SPACE 3                                                        00286000
+SDVPAGE  PROC  BEGIN                                                    00287000
+         STORAGE                                                        00288000
+SDVWRK   DS    D                                                        00289000
+         DATA                                                           00290000
+SDVTIT   DC    C'CPWATCH REAL DEVICE STATUS'                            00291000
+SDVOFS   EQU   (L'SCRLINE-L'SDVTIT)/2                                   00292000
+         SPACE 1                                                        00293000
+         PROC                                                           00294000
+         L     R9,=V(DSPSDV)                                            00295000
+         USING DSPSECT,R9                                               00296000
+         SPACE 1                                                        00297000
+         IF CP,LISTNRS,=P'0',GT,THEN                                    00298000
+            OI  DSPFLAGS,DSPNEW                                         00299000
+            SPACE 1                                                     00300000
+*           INITIALIZE DEVICE LOOP                                      00301000
+            SR  R10,R10       FIRST PAGE                                00302000
+            USING SCRSECT,R10                                           00303000
+            LA  R8,SDVREP*SDVLINES FOSCE NEW PAGE.                      00304000
+            SPACE 1                                                     00305000
+            L   R6,ARDVTAB                                              00306000
+            USING RDVSECT,R6                                            00307000
+            SPACE 1                                                     00308000
+            L   R5,RIODC                                                00309000
+            SPACE 3                                                     00310000
+            DO WHILE,R5,NZ                                              00311000
+               IF TM,RDVTYPC,CLASTERM+CLASGRAF,Z,AND,                  +00312000
+               TM,RDVSTAT,RDEVDISA,Z,THEN  (ON LINE)                    00313000
+                  LA  R8,1(,R8)         NEXT SLOT.                      00314000
+                  IF C,R8,=A(SDVREP*SDVLINES),GE,THEN NEW PAGE REQ'D ?  00315000
+                     LR  R0,R10                                         00316000
+                     LR  R1,R9                                          00317000
+                     CALL NEWSCR                                        00318000
+                     LR  R10,R0                                         00319000
+                     SR  R8,R8                                          00320000
+                     MVC SCREEN+SDVOFS(L'SDVTIT),SDVTIT                 00321000
+                  IF END                                                00322000
+                  SPACE 1                                               00323000
+                  LR  R15,R8                                            00324000
+                  SR  R14,R14                                           00325000
+                  D   R14,=A(SDVLINES)                                  00326000
+*                             R14 - ROW#, R15 - COL#                    00327000
+                  MH  R14,=Y(L'SCRLINE)  ROW OFFSET                     00328000
+                  MH  R15,=Y(SDVLN)      COL OFFSET                     00329000
+                  SPACE 1                                               00330000
+                  IF R14,Z,THEN STARTING A NEW COLUMN.                  00331000
+                      LA  R1,SCRLINE2(R15)                              00332000
+                      USING SDVSECT,R1                                  00333000
+                      MVC SDVADD,=CL(L'SDVADD)'ADR' TITLE LINE.         00334000
+                      MVC SDVSER,=CL(L'SDVSER)'SERIAL'                  00335000
+                      MVC SDVSIO,=CL(L'SDVSIO)' SIO/S'                  00336000
+                      DROP R1                                           00337000
+                      SPACE 1                                           00338000
+                      IF R15,NZ,THEN STARTING SECOND OR FURTHER COL.    00339000
+*                         SO SET UP SEPARATOR LINE.                     00340000
+                          LA  R4,SCRLINE2-((L'SDVPAD+1)/2)(R15)         00341000
+                          LA  R2,L'SCRLINE INCREMENT                    00342000
+                          LA  R3,SDVEND    END                          00343000
+SDVMVIL                   MVI 0(R4),C'|' SEPARATOR                      00344000
+                          BXLE R4,R2,SDVMVIL                            00345000
+                      IF END                                            00346000
+                  IF END                                                00347000
+                  SPACE 1                                               00348000
+                  LA  R7,SDVSTART(R15)                                  00349000
+                  AR  R7,R14                                            00350000
+                  USING SDVSECT,R7      REAL SLOT ADDRESS.              00351000
+                  SPACE 3                                               00352000
+*                 NOW BUILD LINE.                                       00353000
+                  MVC SDVADD,RDVCADDR                                   00354000
+                  SPACE 1                                               00355000
+*        NOTE THE FOLLOWING TEST SHOULD READ                            00356000
+*        'IF TM,RDEVTYPC,CLASDASD+CLASFBA,NZ,AND, ...'                  00357000
+*        BUT IS EXPRESSED THIS WAY SO THE SAME SOURCE WILL              00358000
+*        ASSEMBLE AND WORK UNDER BOTH RELEASE 5 AND 6 OF VM.            00359000
+                  IF TM,RDVTYPC,                                       +00360000
+               CLASTERM+CLASGRAF+CLASURI+CLASURO+CLASTAPE+CLASSPEC,Z,  +00361000
+               AND,TM,RDVFLAG,RDEVSYS+RDEVOWN,NZ,THEN                   00362000
+                     MVC SDVSER,RDVSER                                  00363000
+                     IF TM,RDVFLAG,RDEVOWN,O,THEN                       00364000
+                        MVC SDVCP,=CL(L'SDVCP)'CP'                      00365000
+                     IF END                                             00366000
+                  IF END                                                00367000
+                  SPACE 3                                               00368000
+*              USER ID ?                                                00369000
+                  IF TM,RDVSTAT,RDEVDED,O,THEN DEDICATED.               00370000
+                     L   R1,AUSRTAB                                     00371000
+                     USING USRSECT,R1                                   00372000
+                     DO WHILE,R1,NZ,AND,CLC,USRBA,RDVUSER,NE            00373000
+                        L  R1,USRNEXT                                   00374000
+                     DO END                                             00375000
+                     IF R1,NZ,AND,CLC,USRBA,RDVUSER,EQ,THEN             00376000
+                        MVC SDVUSRID,USRID                              00377000
+                     IF END                                             00378000
+                     DROP R1                                            00379000
+                  IF END                                                00380000
+                  SPACE 3                                               00381000
+                  L   R1,RDVSIOD                                        00382000
+*           EDITING ROUTINE.  NOTE THAT  SNAP INTERVAL IS IN MILLISEC,  00383000
+*           OUTPUT TENTHS PER SECOND.                                   00384000
+                  IF R1,NZ,THEN                                         00385000
+                     M  R0,=F'20000' 1000 FOR MSEC, 10 FOR DECIMAL PT, +00386000
+                                 AND 2 FOR ROUNDING.                    00387000
+                     D   R0,SNAPINT                                     00388000
+                     A   R1,=F'1'                                       00389000
+                     SRL R1,1                                           00390000
+                     CALL DECIT1D                                       00391000
+                     MVC SDVSIO,28-L'SDVSIO(R13)                        00392000
+                  IF END                                                00393000
+                  SPACE 3                                               00394000
+               IF END                                                   00395000
+               SPACE 1                                                  00396000
+               BCTR R5,0      NEXT DEVICE.                              00397000
+               LA  R6,RDVNEXT                                           00398000
+            DO END                                                      00399000
+            DROP R6                                                     00400000
+            SPACE 1                                                     00401000
+            LR  R1,R9                                                   00402000
+            LR  R0,R10                                                  00403000
+            CALL LASTSCR                                                00404000
+            DROP R10                                                    00405000
+         IF END                                                         00406000
+         PROC  END                                                      00407000
+         EJECT                                                          00408000
+*********************************************************************** 00409000
+*              BUILD RDEVBLOK TABLE.                                  * 00410000
+*********************************************************************** 00411000
+         SPACE 1                                                        00412000
+RDVBLD  PROC  BEGIN                                                     00413000
+         SPACE 1                                                        00414000
+*              GET COUNT OF RDEVBLOKS.                                  00415000
+         MVC   RIODC,=A(ARIODC-PSA)     HALFWORD COUNT OF RDVBLOKS      00416000
+         OI    RIODC,X'80'                                              00417000
+         SR    R0,R0          ZERO BASE                                 00418000
+         LA  R1,RIODC                                                   00419000
+         SVC   SVCDCP         A(RIODC) IN REAL CORE.                    00420000
+         OI    RIODC,X'80'                                              00421000
+         SR    R0,R0                                                    00422000
+         LA    R1,RIODC                                                 00423000
+         SVC   SVCDCP         NOW RIODC.                                00424000
+         LH    R0,RIODC       CONVERT DEVICE COUNT TO FULLWORD.         00425000
+         ST    R0,RIODC                                                 00426000
+         SPACE 1                                                        00427000
+*              GET ADDR OF FIRST RDEVBLOK                               00428000
+         MVC   AARIODV,=A(ARIODV-PSA)   BEGIN RDEVBLOKS                 00429000
+         OI    AARIODV,X'80'                                            00430000
+         SR    R0,R0                                                    00431000
+         LA    R1,AARIODV                                               00432000
+         SVC   SVCDCP         A(FIRST RDEVBLOK IN REAL CORE)            00433000
+         SPACE 1                                                        00434000
+*              GET CORE FOR MY TABLE OF ANALOGS TO RDEVBLOKS.           00435000
+         L     R0,RIODC       DEVICE COUNT.                             00436000
+         MH    R0,=Y(RDVSECTL)    TOTAL STORAGE NEEDED.                 00437000
+         SVC   SVCGETM+SVCPAGE                                          00438000
+         ST    R1,ARDVTAB                                               00439000
+         SPACE 1                                                        00440000
+*              INITIALIZE MY TABLE.                                     00441000
+         L     R6,RIODC                                                 00442000
+         L     R7,ARDVTAB    BEGIN MY TABLE.                            00443000
+         USING RDVSECT,R7                                               00444000
+         L     R8,AARIODV     BEGIN RDEVBLOKS.                          00445000
+         DO WHILE,R6,NZ                                                 00446000
+            XC 0(RDVSECTL,R7),0(R7)  CLEAR ENTIRE ENTRY.                00447000
+            SPACE 1                                                     00448000
+RDVBQ       DCPLIST RDEVBLOK,                                          +00449000
+               (RDA,RDEVADD),(RCUA,RDEVCUA),(RDIOC,RDEVIOCT),          +00450000
+               (RDST,RDEVSTAT),(RDVM,RDEVUSER)                          00451000
+            DCP RDVBQ,BASE=(R8)                                         00452000
+            OC RDVADDR,RDA    SAVE REAL ADDRESS.                        00453000
+            MVC RDVSIOT,RDIOC INITIAL I/O COUNT.                        00454000
+            MVC RDVSTAT(4),RDST                                         00455000
+            MVC RDVUSER,RDVM                                            00456000
+            SPACE 1                                                     00457000
+RDVCQ       DCPLIST RCUBLOK,                                           +00458000
+               (RDCUA,RCUADD),(RDCUS,RCUSTAT),(RDCHA,RCUCHA)            00459000
+            L  R0,RCUA        A(RCUBLOK)                                00460000
+            DCP RDVCQ                                                   00461000
+            OC RDVADDR,RDCUA                                            00462000
+            SPACE 1                                                     00463000
+*              IS IT A SUBORDINATE CONTROL UNIT ?                       00464000
+            IF TM,RCUTYPE-RCUSTAT+RDCUS,RCUSUB,O,THEN                   00465000
+               L  R0,RDCHA     A(MAIN RCUBLOK)                          00466000
+               DCP RDVCQ                                                00467000
+            IF END                                                      00468000
+            SPACE 1                                                     00469000
+RDVCHQ      DCPLIST RCHBLOK,(RDCH,RCHADD)                               00470000
+            L   R0,RDCHA      A(RCHBLOK)                                00471000
+            DCP RDVCHQ                                                  00472000
+            OC  RDVADDR,RDCH                                            00473000
+            SPACE 1                                                     00474000
+         STORAGE                                                        00475000
+RDVCWRK  DS    CL4                                                      00476000
+         PROC                                                           00477000
+            UNPK RDVCWRK,RDVADDR(3)                                     00478000
+            TR  RDVCWRK,HEXTAB                                          00479000
+            MVC RDVCADDR,RDVCWRK                                        00480000
+            SPACE 1                                                     00481000
+            BCTR R6,0   COUNT ENTRY.                                    00482000
+            LA  R7,RDVNEXT                                              00483000
+            LA  R8,RDEVSIZE*8(,R8)                                      00484000
+         DO END                                                         00485000
+         DROP R7                                                        00486000
+         SPACE 1                                                        00487000
+         PROC  END                                                      00488000
+         EJECT                                                          00489000
+*********************************************************************** 00490000
+*              V M / 3 7 0   D S E C T S.                             * 00491000
+*********************************************************************** 00492000
+         SPACE 1                                                        00493000
+         PSA                                                            00494000
+         COPY  RBLOKS                                                   00495000
+         COPY  DEVTYPES                                                 00496000
+         SPACE 12                                                       00497000
+         END                                                            00498000

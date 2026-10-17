@@ -1,0 +1,132 @@
+         TITLE '*** 3370 FBA SENSE COMMAND ***'
+         MACRO
+&NAME    TSB   &SBS,&BYTE,&BIT,&MASK=1,&TEXT
+         LCLB  &B(8)
+         LCLA  &W1,&W2
+&W1      SETA  &BIT+1
+         LCLC  &LAB,&VAL
+&B(&W1)  SETB  1
+&VAL     SETC  '&SYSNDX'
+&LAB     SETC  'SEN'.'&VAL'.'A'
+         TM    &SBS+&BYTE,B'&B(1)&B(2)&B(3)&B(4)&B(5)&B(6)&B(7)&B(8)'
+         BC    15-&MASK,&LAB
+         DMSERR TEXT=&TEXT,LET=I,NUM=100
+&LAB     EQU   *
+         MEND
+*
+         MACRO
+&NAME    TRC   &CODE,&TEXT,&MASK=8,&REG=15,&NUM=0,&GOTO=?
+         LCLC  &LAB,&VAR
+&VAR     SETC  '&SYSNDX'
+&LAB     SETC  'SEN'.'&VAR'.'B'
+         C     &REG,=F'&CODE'
+         BC    15-&MASK,&LAB
+         DMSERR TEXT=&TEXT,LET=E,NUM=&NUM
+         AIF   ('&GOTO' EQ '?').ELSE
+         B     &GOTO
+.ELSE    ANOP
+&LAB     EQU   *
+         MEND
+*
+         EJECT
+FBASENSE START 0
+***********************************************************************
+*                                                                     *
+*        FBA (3370) SENSING PROGRAM                                   *
+*                                                                     *
+*        THIS PROGRAM WILL RETURN INFORMATION ABOUT A 3370 DISK       *
+*        DRIVE.                                                       *
+*                                                                     *
+*        HENRY NUSSBACHER    1/11/83                                  *
+*                                                                     *
+*                                                                     *
+*                                                                     *
+*                                                                     *
+*        (C) WEIZMANN INSTITUTE OF SCIENCE                            *
+***********************************************************************
+         PRINT NOGEN
+         SAVE  (14,12),,*          SAVE CALLER'S REGISTERS
+         USING FBASENSE,R15        ESTABLISH ADDRESSABILITY
+         CNOP  0,4                 ALLIGN ON FULLWORD BOUNDARY
+         BAL   R15,*+76            BRANCH AROUND SAVE AREA
+         DROP  R15                 DROP TEMP BASE REGISTER
+         USING SAVEAREA,R13,R12    ESTABLISH NEW BASE REGISTERS
+SAVEAREA DC    18F'-1'             REGISTER SAVE AREA
+         ST    R15,8(,R13)         CHAIN FOWARD SAVE AREA
+         ST    R13,4(,R15)         CHAIN BACKWARD SAVE AREA
+         LR    R13,R15             LOAD NEW BASE REGISTER
+         LA    R12,4095(,R13)      LOAD SECOND BASE REGISTER
+         LA    R12,1(,R12)         ADD 1 TO MAKE AN EVEN 8K
+         LA    R1,8(,R1)           POINT TO TAPE UNIT
+         CLI   0(R1),X'FF'         MAKE SURE HE SAYS SOMETHING
+         BE    NOTHING
+         LM    R7,R9,=A(CUUTAB,12,CUUEND)  LOAD UP SCAN REGISTERS
+SCANLOOP EQU   *
+         CLC   0(8,R7),0(R1)         DO THEY MATCH
+         BE    DONE
+         BXLE  R7,R8,SCANLOOP      KEEP TRYING
+NOTHING  DMSERR  TEXT='Format is FBASENSE vcuu - where vcuu 190-199',  X
+               LET=E,NUM=21
+         LA    R15,21
+         B     EXIT
+DONE     EQU   *
+         L     R0,8(,R7)           GET THE UNIT ADDRESS INTO R5
+         LA    R1,SENCCW           GET ADDRESS OF SENSE CCW
+         DIAG  R0,R1,X'20'         ISSUE GENERAL TAPE I/O
+         BC    CC0,CN3
+         TRC 13,'Permanent I/O Error',GOTO=ERROR,NUM=120
+         TRC 5,'Device is busy or has interrupt pending',GOTO=ERROR,   C
+               NUM=121
+         TRC 3,'Wrong length record detected',GOTO=ERROR,NUM=122
+         TRC 2,'UNIT exception bit in device status byte',GOTO=ERROR,  C
+               NUM=123
+         TRC 1,'Device is not attached',GOTO=ERROR,NUM=124
+         TRC 0,'Bad return code',MASK=7,GOTO=ERROR,NUM=125
+CN3      EQU   *
+*
+* Sense byte 0  (Unit checks)
+         TSB SBYTE,0,0,'Command reject'
+         TSB SBYTE,0,1,'Intervention required/not ready'
+         TSB SBYTE,0,2,'Parity error'
+         TSB SBYTE,0,3,'Equipment check'
+         TSB SBYTE,0,4,'Data check'
+         TSB SBYTE,0,5,'Data overrun'
+* Sense byte 1
+         TSB SBYTE,1,0,'Permanent error'
+         TSB SBYTE,1,1,'Block size exception on Define Extent command'
+         TSB SBYTE,1,3,'Permanent failure in alt. storage director'
+         TSB SBYTE,1,5,'Locate command tried to violate extent limits'
+         TSB SBYTE,1,6,'Drive is write inhibited'
+         TSB SBYTE,1,7,'Operation incomplete'
+* Sense byte 2
+         TSB SBYTE,3,0,'Uncorrectable data check on write command'
+         TSB SBYTE,3,1,'Correctable data check'
+         TSB SBYTE,3,3,'Usage statistics requires off-loading'
+*
+         LA    R15,0
+         B     EXIT
+ERROR    LA    R15,20
+EXIT     L     R13,4(,R13)             * GET CALLER'S SAVE AREA PTR
+         RETURN (14,12),RC=(15)
+*
+CC0      EQU   8
+CC1      EQU   4
+CC2      EQU   2
+CC3      EQU   1
+CUUTAB   DS   0D
+         DC   CL8'190',X'00000190'
+         DC   CL8'191',X'00000191'
+         DC   CL8'192',X'00000192'
+         DC   CL8'193',X'00000193'
+         DC   CL8'194',X'00000194'
+         DC   CL8'195',X'00000195'
+         DC   CL8'196',X'00000196'
+         DC   CL8'197',X'00000197'
+         DC   CL8'198',X'00000198'
+         DC   CL8'199',X'00000199'
+CUUEND   EQU  *-12
+SBYTE    DC    3D'0'
+SENCCW   CCW   4,SBYTE,SILI,24
+         EQUATES
+         REGEQU
+         END

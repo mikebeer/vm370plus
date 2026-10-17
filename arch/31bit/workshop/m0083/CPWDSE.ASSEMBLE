@@ -1,0 +1,19 @@
+DSE      TITLE 'CPWATCH:                                 * * P S A * *' 00001000
+         PSA                                                            00002000
+         TITLE 'CPWATCH:                    REAL DEVICE CONTROL BLOCKS' 00003000
+         COPY  RBLOKS                                                   00004000
+         TITLE 'CPWATCH:                        NETWORK CONTROL BLOCKS' 00004100
+         COPY  NETWORK                                                  00004200
+         TITLE 'CPWATCH:                           * * V M B L O K * *' 00005000
+         COPY  VMBLOK                                                   00006000
+         TITLE 'CPWATCH:                         * * S Y S L O C S * *' 00007000
+         SYSLOCS                                                        00008000
+         TITLE 'CPWATCH:                                 E Q U A T E S' 00009000
+         COPY  EQU                                                      00010000
+         TITLE 'CPWATCH:                       * * D E V T Y P E S * *' 00011000
+         COPY  DEVTYPES                                                 00012000
+         TITLE 'CPWATCH:                   C P W A T C H   D S E C T S' 00013000
+         COPY CPWPRM                                                    00014000
+         COPY CPWDSC                                                    00015000
+         CPWSUP                                                         00016000
+         END                                                            00017000

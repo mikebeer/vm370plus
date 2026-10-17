@@ -1,0 +1,24 @@
+         MACRO
+         SPNEST &W
+         GBLA  &SPNNEST,&SPMNEST,&SPNFIG
+         GBLB  &SPNESTL
+         AIF   ('&W' NE 'IN').B10
+&SPNNEST    SETA  &SPNNEST+1
+&SPNFIG  SETA  &SPNFIG+1      NUMBER OF FIGURES.
+         AIF   (&SPNNEST LE &SPMNEST).A50
+&SPMNEST    SETA  &SPNNEST
+.A50     AGO   .E10
+.B10     AIF   ('&W' NE 'OUT').C10
+         AIF   (&SPNNEST GT 0).B40
+         MNOTE 8,'NESTING UNDERFLOW - TOO MANY ENDS.'
+         AGO   .E10
+.B40     ANOP
+&SPNNEST    SETA  &SPNNEST-1
+         AGO   .E10
+.C10     MNOTE 8,'SPNEST ? &W'
+.E10     ANOP                 EXIT
+         AIF   (NOT &SPNESTL).E30
+         MNOTE *,'N&SPNNEST'
+.E30     ANOP
+         MEND
+//

@@ -1,0 +1,452 @@
+.cs 1 on
+TBROWSE (LOCAL CMS COMMAND)
+.sp  1
+TBROWSE is used to scan tapes in a full-screen BROWSE-like environment.
+.sp 2
+.cs 1 off
+.cs 2 on
+.fo off
+.bx 1 12 40
+  TBROWSE    <maxblock< cuu>>
+.bx off
+.fo on
+.sp 1
+.tr ¬ 40
+.of 11
+.fo off
+Defaults - maxblock - 4240
+cuu¬¬¬¬¬¬¬- 181
+.fo on
+.of
+.sp 2
+.cs 2 off
+.cs 3 on
+.of 9
+maxblock¬is the largest block this program should encounter in the
+current file. Upper limit is memory size (up to 16m)
+.sp 1
+.of 9
+cuu¬¬¬¬¬¬is the virtual address of the tape to be scanned (181-184).
+.of
+.sp 2
+TBROWSE SUBCOMMANDS:
+.sp 1
+Several subcommands are available to help you TBROWSE a tape.
+Valid subcommands are:
+.sp 2
+QUIT SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  QUIT
+.bx off
+.fo on
+.sp 1
+Use the QUIT subcommand to exit immediately from TBROWSE leaving the
+tape positioned
+following the last block viewed. The QUIT subcommand closes any printer
+spool file opened by the PRINT subcommand.
+.sp 2
+CP,CMS SUBCOMMANDS
+.sp 1
+.fo off
+.bx 1 12 40
+  CP
+  CMS
+.bx off
+.fo on
+.sp 1
+Use the CP, CMS subcommands to enter respectively into CP
+(return with 'B') or CMS
+(return with 'RETURN').
+.sp 2
+PRINT SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  PRINT
+.bx off
+.fo on
+.sp 1
+Use the PRINT subcommand to print the current screen of data
+on the
+virtual printer (00E).
+'*** END OF BLOCK ***' is printed highlighted as on screen.
+Note that the printer spool file is only closed when the QUIT subcommand
+is executed. If TBROWSE is terminated prematurely, issue the CMS "finis"
+command to close the file.
+.sp 2
+DISK SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  DISK       < n < fn < ft < fm >>>>
+.bx off
+.fo on
+.sp 1
+Use the DISK subcommand to copy blocks, starting with the one currently
+displayed, on to the CMS file "fn ft fm". If not specified the default
+fileid is "TBROWSE CMSUT1 A1"  Files are copied using the current mode
+and ASCII translation settings. If the mode becomes invalid or an error
+is encountered, the DISK function will terminate
+and TBROWSE will display the block that couldn't be written.
+.sp 1
+.of 9
+n¬¬¬¬¬¬¬¬specifies how many blocks to dump. The default is one.
+.of
+.sp 2
+SAVE SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  SAVE       < fn < ft < fm >>>
+.bx off
+.fo on
+.sp 1
+The SAVE subcommand behaves like the DISK command except that all blocks
+are copied from the one currently displayed until the end-of-file.
+.sp 2
+V SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  V          <n>
+.bx off
+.fo on
+.sp 1
+Use the V subcommand to set the first column displayed.
+The setting applies to the block currently
+displayed and all following blocks. The L and R subcommands give
+similar capability.
+.sp 1
+.of 9
+n¬¬¬¬¬¬¬¬is the starting column. The default is one.
+.of
+.sp 2
+MODE SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  MODE       <F <n>|V|VB|U>
+.bx off
+.fo on
+.sp 1
+Use the MODE subcommand to set the formatting mode of the blocks read
+starting with the one currently displayed.
+.sp 1
+.of 9
+F¬¬¬¬¬¬¬¬will set fixed (blocked) mode.
+.sp 1
+.in 9
+.of 9
+n¬¬¬¬¬¬¬¬is the LRECL to be used in F mode. The default is 80.
+.in
+.sp 1
+.of 9
+V¬¬¬¬¬¬¬¬will set variable mode. The length of each block will
+be taken from information in the record.
+.sp 1
+.of 9
+VB¬¬¬¬¬¬¬will set variable blocked mode. The logical record length
+and the block length will be taken from information in the record.
+.sp 1
+.of 9
+U¬¬¬¬¬¬¬¬will set undefined block mode. The physical block will be
+treated as a single record.
+This mode is chosen when ever another mode does not apply.
+.of
+.sp 1
+.il 3
+Modes U and V display the current record such that it
+wraps around from line to line.
+Modes F and VB, on the other hand, display one logical record per line
+with truncation occuring if the record plus the display
+column is greater then the console line width.
+.sp 2
+FSR SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  FSR        <n>
+.bx off
+.fo on
+.sp 1
+Use the FSR subcommand to advance the tape one or more blocks.
+If end of file
+is sensed, the last block of the file is displayed.
+.sp 1
+.of 9
+n¬¬¬¬¬¬¬¬specifies how many blocks to skip. The default is one.
+.of
+.sp 2
+BSR SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  BSR        <n>
+.bx off
+.fo on
+.sp 1
+Use the BSR subcommand to move the tape back one or more blocks.
+If end of file
+is sensed, the first block of the file is displayed.
+.sp 1
+.of 9
+n¬¬¬¬¬¬¬¬specifies how many blocks to move. The default is one.
+.of
+.sp 2
+FSF SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  FSF        <n>
+.bx off
+.fo on
+.sp 1
+Use the FSF subcommand to advance the tape to the next file
+and display the first block of that file.
+If end of tape
+is sensed, the last file on the tape is displayed.
+.sp 1
+.of 9
+n¬¬¬¬¬¬¬¬specifies how many files to skip. The default is one.
+.of
+.sp 2
+BSF SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  BSF        <n>
+.bx off
+.fo on
+.sp 1
+Use the BSF subcommand to move the tape to the previous file
+and display the first block of that file.
+If start of tape
+is sensed, the first file on the tape is displayed.
+.sp 1
+.of 9
+n¬¬¬¬¬¬¬¬specifies how many files to move. The default is one.
+.of
+.sp 2
+REW SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  REW
+.bx off
+.fo on
+.sp 1
+Use the REW subcommand to rewind the tape and display the first
+block of the first file.
+.sp 2
+TOP SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  TOP
+.bx off
+.fo on
+.sp 1
+Use the TOP subcommand to move the tape to the first block
+in the current file.
+.sp 2
+BOT SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+  BOT
+.bx off
+.fo on
+.sp 1
+Use the BOT subcommand to move the tape to the last block
+in the current file.
+.sp 2
+F, FH SUBCOMMANDS
+.sp 1
+.fo off
+.bx 1 12 40
+  F
+  FH
+.bx off
+.fo on
+.sp 1
+Use the F subcommand to advance within a block to the next
+screenful of
+records. If less than a screen of records remains, the
+message '*** END OF BLOCK ***' is displayed following the
+last record.
+The FH subcommand is identical to the F subcommand except
+that only half a screen of records is skipped.
+.sp 2
+B, BH SUBCOMMANDS
+.sp 1
+.fo off
+.bx 1 12 40
+  B
+  BH
+.bx off
+.fo on
+.sp 1
+Use the B subcommand to move within a block to the previous
+screenful of
+records. If less than a screen of records remains, the
+message '*** END OF BLOCK ***' is displayed following the
+last record.
+The BH subcommand is identical to the B subcommand except
+that only half a screen of records is skipped.
+.sp 2
+RESET SUBCOMMANDS
+.sp 1
+.fo off
+.bx 1 12 40
+  RESET
+.bx off
+.fo on
+.sp 1
+Use the RESET subcommand to reset the display start column
+and the top of screen record number to 1.
+.sp 2
+L SUBCOMMANDS
+.sp 1
+.fo off
+.bx 1 12 40
+  L          <n>
+.bx off
+.fo on
+.sp 1
+Use the L subcommand to move the display column to the left.
+.sp 1
+.of 9
+n¬¬¬¬¬¬¬¬is the number of columns to move. The default is the screen
+width.
+.of
+.sp 2
+R SUBCOMMANDS
+.sp 1
+.fo off
+.bx 1 12 40
+  R          <n>
+.bx off
+.fo on
+.sp 1
+Use the R subcommand to move the display column to the right.
+.sp 1
+.of 9
+n¬¬¬¬¬¬¬¬is the number of columns to move. The default is the screen
+width.
+.of
+.sp 2
+HEX SUBCOMMANDS
+.sp 1
+.fo off
+.bx 1 12 40
+  HEX        <ON|OFF>
+.bx off
+.fo on
+.sp 1
+Use the HEX subcommand to set hexadecimal display mode.
+.sp 1
+.of 9
+ON¬¬¬¬¬¬¬will causerecords/blocks
+to be displayed in hexadecimal format.
+.sp 1
+.of 9
+OFF¬¬¬¬¬¬will cause records/blocks to be displayed in
+character format.
+.sp 1
+.of 9
+nothing¬¬HEX with no parm will toggle the option.
+.of
+.sp 2
+ASCII SUBCOMMANDS
+.sp 1
+.fo off
+.bx 1 12 40
+  ASCII      <ON|OFF>
+.bx off
+.fo on
+.sp 1
+Use the ASCII subcommand to alter the ASCII translation on input setting.
+.sp 1
+.of 9
+ON¬¬¬¬¬¬¬will set the ASCII translate on input mode so
+all records/blocks displayed will be translated from ASCII to EBCDIC.
+.sp 1
+.of 9
+OFF¬¬¬¬¬¬will reset the ASCII translate on input mode so
+all records/blocks displayed will not be translated from ASCII to EBCDIC.
+.sp 1
+.of 9
+nothing¬¬ASCII with no parm will toggle the option.
+.of
+.sp 2
+n SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+   n
+.bx off
+.fo on
+.sp 1
+Type a number as a subcommand to set the top of screen record.
+.sp 2
+= SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+   =
+.bx off
+.fo on
+.sp 1
+The = subcommand repeats the last command.  The last
+command entered will be executed again.
+.sp 2
+? SUBCOMMAND
+.sp 1
+.fo off
+.bx 1 12 40
+   ?
+.bx off
+.fo on
+.sp 1
+The ? subcommand displays the last command entered.
+The command will be executed only if the
+user presses the ENTER key.
+.sp 2
+& PREFIX FUNCTION
+.sp 1
+The & character can be used as a prefix for TBROWSE subcommands to
+leave the subcommand in the display area after execution; this allows
+for repetitive execution.
+.sp 2
+.fo off
+Most of the subcommands are accessible by PA/PF keys as follows:
+.sp 1
+.bx 11 21 31
+.sp 1
+            PA1  CP   PA2 CMS
+.sp 1
+.bx off
+.sp 1
+.bx 5 16 27 38
+.sp 1
+       1  BSR    2  FSR     3  QUIT
+.sp 1
+.bx
+.sp 1
+       4  L      5  R       6  RESET
+.sp 1
+.bx
+.sp 1
+       7  F      8  B       9  DISK
+.sp 1
+.bx
+.sp 1
+       10 BSF    11 FSF     12 PRINT
+.sp 1
+.bx off
+.sp 1
+NOTE: PF13..PF24 are mapped onto PF1..PF12
+.fo on
+.cs 3 off

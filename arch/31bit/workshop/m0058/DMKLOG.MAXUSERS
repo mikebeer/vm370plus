@@ -1,0 +1,11 @@
+./ I 04200000          $ 4210000 10000                03/23/83 14:02:47
+         L     R1,ASYSLC      REFERENCE SYSLOCS INFORMATION    MAXUSERS
+         USING SYSLOCS,R1     ...                              MAXUSERS
+         LA    R0,1           SET R0 = 1                       MAXUSERS
+         CL    R0,DMKSYSMA    ONLY ONE USER ALLOWED ON ?       MAXUSERS
+         BE    ERROR51        IF YES, DON'T GO ANY FARTHER     MAXUSERS
+         DROP  R1                                              MAXUSERS
+./ I 11760000          $ 11770000 10000               03/23/83 14:02:47
+ERROR51  LA    R2,51          MAXIMUM USERS EXCEEDED           MAXUSERS
+         B     ERRJOIN1       GO PROCESS THE ERROR             MAXUSERS
+         SPACE  ,                                              MAXUSERS

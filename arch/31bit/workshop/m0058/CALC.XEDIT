@@ -1,0 +1,14 @@
+&TRACE OFF
+***********************************************************************
+*                                                                     *
+* XEDIT INTERFACE TO 'CALC' EXEC THAT TRAPS EXEC2 ABEND (NUMERIC      *
+* OVERFLOW) AND DISPLAYS ERROR MESSAGE WITHOUT TYPING THE ERROR.      *
+*                                                                     *
+*                                                                     *
+* WRITTEN BY YOSSIE SILVERMAN, W.I.C.C, LAST UPDATE 23/7/83.          *
+*                                                                     *
+***********************************************************************
+EXEC CALC XEDIT&ARGSTRING
+&RC = &RC
+&IF &RC = 10013 MSG WISCAL000E NUMERIC OVERFLOW.
+&EXIT 0

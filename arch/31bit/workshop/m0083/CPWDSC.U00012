@@ -1,0 +1,9 @@
+./ I 02991000          $ 2994000 3000                 12/17/81 13:15:49
+CPTPGTTU DS    F                        TEMP DISK PAGES USED  *MARTEN01 02991100
+CPTPGTTM DS    F                        TEMP DISK PAGES MAX   *MARTEN01 02991200
+./ I 03081000          $ 3082000 1000                 12/17/81 13:15:49
+         SPACE 3                                              *MARTEN01 03081100
+*              FROM DMKPGT                                    *MARTEN01 03081200
+CPAPGTTU DS    F                                              *MARTEN01 03081300
+CPAPGTTM DS    F                                              *MARTEN01 03081400
+         SPACE 1                                              *MARTEN01 03081500

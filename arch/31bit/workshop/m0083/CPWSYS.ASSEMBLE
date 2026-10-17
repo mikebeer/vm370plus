@@ -1,0 +1,796 @@
+CPW      TITLE '                                        CPWATCH'        00001000
+         COPY  CPWPRM                                                   00002000
+SYS      MODULE PRINT=YES                                               00003000
+         EJECT                                                          00004000
+*********************************************************************** 00005000
+*              DISPLAY LOW CORE AND SYSTEM STUFF.                       00006000
+*********************************************************************** 00007000
+         SPACE 1                                                        00008000
+SYSDCP   PROC  BEGIN                                                    00009000
+         L     R8,ACPWSECT                                              00010000
+         USING CPWSECT,R8                                               00011000
+         IF R8,Z,THEN  IF DATA AREA NOT ALLOCATED, ALLOCATE & INIT.     00012000
+            LA   R0,CPWSECTL                                            00013000
+            SVC  SVCGETM                                                00014000
+            LR   R8,R1                                                  00015000
+            ST   R8,ACPWSECT                                            00016000
+            SPACE 1                                                     00017000
+            XC   CPWSECT(256),CPWSECT                                   00018000
+            XC   CPWSECT+256(CPWSECTL-256),CPWSECT+256                  00019000
+            ZAP  CPACTV,=P'0'                                           00020000
+            ZAP  CPINACT,=P'0'                                          00021000
+            ZAP  CPSLEEP,=P'0'                                          00022000
+            ZAP  CPQ1,=P'0'                                             00023000
+            ZAP  CPQ2,=P'0'                                             00024000
+            ZAP  CPQ3,=P'0'                                             00025000
+            ZAP  CPEL,=P'0'                                             00026000
+            SPACE 3                                                     00027000
+*              PICK UP ADDRESSES FROM SYM TABLE.                        00028000
+            L   R4,ASYMBUFF                                             00029000
+            USING SYMTAB,R4                                             00030000
+            DO WHILE,CLC,SYMNAME,ZEROS,NE                               00031000
+               IF CLC,SYMNAME,=C'DMKPTRPR',EQ,THEN                      00032000
+                  MVC CPAPTRPR,SYMADDR                                  00033000
+               IF END                                                   00034000
+               IF CLC,SYMNAME,=C'DMKPTRFF',EQ,THEN                      00035000
+                  MVC CPAPTRFF,SYMADDR                                  00036000
+               IF END                                                   00037000
+               IF CLC,SYMNAME,=C'DMKPTRSS',EQ,THEN                      00038000
+                  MVC CPAPTRSS,SYMADDR                                  00039000
+               IF END                                                   00040000
+               IF CLC,SYMNAME,=C'DMKPTRSC',EQ,THEN                      00041000
+                  MVC CPAPTRSC,SYMADDR                                  00042000
+               IF END                                                   00043000
+               SPACE 1                                                  00044000
+               LA  R4,SYMLEN(,R4)                                       00045000
+            DO END                                                      00046000
+            DROP R4                                                     00047000
+         IF END                                                         00048000
+         EJECT                                                          00049000
+PAG      DCPLIST PSA,(PFXB,PREFIXB),(XAPP,LPUADDRX),                   +00050000
+               (PGW,PAGELOAD),                                         +00051000
+               (CPIDL,IDLEWAIT),(,IDLEWAIT+4),                         +00052000
+               (CPPAG,PAGEWAIT),(,PAGEWAIT+4),                         +00053000
+               (CPION,IONTWAIT),(,IONTWAIT+4),                         +00054000
+               (CPROB,PROBTIME),(,PROBTIME+4),                         +00055000
+               (CPPGRI,PGREAD),(CPPGWRI,PGWRITE),                      +00056000
+               (CPSVC,PSASVCCT)                                         00057000
+         DCP   PAG,BASE=0                                               00058000
+         SPACE 1                                                        00059000
+         MVC CPGLOAD,PGW                                                00060000
+         MVC CPGRATE,PGW+2                                              00061000
+         SPACE 1                                                        00062000
+         LM  R0,R1,CPIDLED                                              00063000
+         DSUB R0,CPIDL                                                  00064000
+         MVC CPIDLED,CPIDL                                              00065000
+         SRDL R0,12                                                     00066000
+         ST   R1,CPIDLEF                                                00067000
+         SPACE 1                                                        00068000
+         LM  R0,R1,CPPAGED                                              00069000
+         DSUB R0,CPPAG                                                  00070000
+         MVC CPPAGED,CPPAG                                              00071000
+         SRDL R0,12                                                     00072000
+         ST  R1,CPPAGEF                                                 00073000
+         SPACE 1                                                        00074000
+         LM  R0,R1,CPIONTD                                              00075000
+         DSUB R0,CPION                                                  00076000
+         MVC CPIONTD,CPION                                              00077000
+         SRDL  R0,12                                                    00078000
+         ST    R1,CPIONTF                                               00079000
+         SPACE 1                                                        00080000
+         LM    R0,R1,CPPROBD                                            00081000
+         DSUB  R0,CPROB                                                 00082000
+         MVC   CPPROBD,CPROB                                            00083000
+         SRDL  R0,12                                                    00084000
+         ST    R1,CPPROBF                                               00085000
+         SPACE 1                                                        00086000
+         L     R1,CPSVC                                                 00087000
+         S     R1,CPSVCCT                                               00088000
+         ST    R1,CPSVCF                                                00089000
+         MVC   CPSVCCT,CPSVC                                            00090000
+         SPACE 3                                                        00091000
+*                             PICK UP ATTACHED PROCESSOR GOOD STUFF.    00092000
+         MVC XPREFIXB,PFXB                                              00093000
+*        MVC   XAPSTAT1,XAPP+(APSTAT1-LPUADDRX)  DONE LATER             00094000
+*        MVC   XAPSTAT2,XAPP+(APSTAT2-LPUADDRX)                         00095000
+         IF TM,XAPP+(APSTAT1-LPUADDRX),APUOPER,O,THEN                   00096000
+            L   R4,XPREFIXB   A(AP PSA)                                 00097000
+            SPACE 1                                                     00098000
+            DCP   PAG,BASE=(R4)                                         00099000
+            SPACE 1                                                     00100000
+            LM  R0,R1,APIDLED                                           00101000
+            DSUB R0,CPIDL                                               00102000
+            MVC APIDLED,CPIDL                                           00103000
+            SRDL R0,12                                                  00104000
+            ST   R1,APIDLEF                                             00105000
+            SPACE 1                                                     00106000
+            LM  R0,R1,APPAGED                                           00107000
+            DSUB R0,CPPAG                                               00108000
+            MVC APPAGED,CPPAG                                           00109000
+            SRDL R0,12                                                  00110000
+            ST  R1,APPAGEF                                              00111000
+            SPACE 1                                                     00112000
+            LM  R0,R1,APIONTD                                           00113000
+            DSUB R0,CPION                                               00114000
+            MVC APIONTD,CPION                                           00115000
+            SRDL  R0,12                                                 00116000
+            ST    R1,APIONTF                                            00117000
+            SPACE 1                                                     00118000
+            LM    R0,R1,APPROBD                                         00119000
+            DSUB  R0,CPROB                                              00120000
+            MVC   APPROBD,CPROB                                         00121000
+            SRDL  R0,12                                                 00122000
+            ST    R1,APPROBF                                            00123000
+            SPACE 1                                                     00124000
+            L     R1,CPSVC                                              00125000
+            S     R1,APSVCCT                                            00126000
+            ST    R1,APSVCF                                             00127000
+            MVC   APSVCCT,CPSVC                                         00128000
+         IF END                                                         00129000
+         IF TM,XAPP+APSTAT1-LPUADDRX,APUOPER,Z,OR,                     +00130000
+               TM,XAPSTAT1,APUOPER,O,THEN NO VALID DIFFERENCES.         00131000
+            XC  APIDLEF,APIDLEF CLEAR ANY DIFFERENCES - THEY'RE WRONG.  00132000
+            XC  APPAGEF,APPAGEF                                         00133000
+            XC  APIONTF,APIONTF                                         00134000
+            XC  APPROBF,APPROBF                                         00135000
+            XC  APSVCF,APSVCF                                           00136000
+         IF END                                                         00137000
+         MVC   XAPSTAT1,XAPP+(APSTAT1-LPUADDRX) NOW MOVE IN CORRECT     00138000
+         MVC   XAPSTAT2,XAPP+(APSTAT2-LPUADDRX)     STATUS VALUES.      00139000
+         SPACE 3                                                        00140000
+         L     R1,CPPGRI      TOTAL PAGE READS TO DATE.                 00141000
+         L     R2,CPGREAD                                               00142000
+         ST    R1,CPGREAD                                               00143000
+         SR    R1,R2                                                    00144000
+         ST    R1,CPDPGR      INCREASE IN PAGE READS                    00145000
+         SPACE 1                                                        00146000
+         L     R1,CPPGWRI     TOTAL PAGE WRITES TO DATE.                00147000
+         L     R2,CPGWRITE                                              00148000
+         ST    R1,CPGWRITE                                              00149000
+         SR    R1,R2                                                    00150000
+         ST    R1,CPDPGW      INCREASE                                  00151000
+         SPACE 3                                                        00152000
+         L     R7,AASYSLC                                               00153000
+LOCLST   DCPLIST SYSLOCS,(NON,DMKSYSNM),(NMA,DMKSYSMA),                +00154000
+               (NMU,DMKSYSMU),(NDI,DMKSYSND)                            00155000
+         DCP   LOCLST,BASE=(R7)                                         00156000
+         SPACE 1                                                        00157000
+         MVC   CPUSRS,NON                                               00158000
+         MVC   CPDIAL,NDI                                               00159000
+         MVC   CPMAXA,NMA                                               00160000
+         MVC   CPMAXU,NMU                                               00161000
+         SPACE 1                                                        00162000
+         MVC CPFREE,ADSPNP    FETCH FREE PAGES.                         00163000
+         OI  CPFREE,X'80'                                               00164000
+         LA  R0,0                                                       00165000
+         LA  R1,CPFREE                                                  00166000
+         SVC SVCDCP                                                     00167000
+         SPACE 3                                                        00168000
+*              PAGING STUFF                                             00169000
+         MVC CPDPTRPR,CPTPTRPR          SAVE OLD TOTAL                  00170000
+         MVC CPTPTRPR,CPAPTRPR          MOVE IN  ADDRESS                00171000
+         MVC CPDPTRFF,CPTPTRFF                                          00172000
+         MVC CPTPTRFF,CPAPTRFF                                          00173000
+         MVC CPDPTRSS,CPTPTRSS                                          00174000
+         MVC CPTPTRSS,CPAPTRSS                                          00175000
+         MVC CPTPTRSC,CPAPTRSC                                          00176000
+         SPACE 1                                                        00177000
+         XC    CPTPTR00,CPTPTR00        ZERO OFFSET                     00178000
+         OI  CPTPTRSC,X'80'   MARK END.                                 00179000
+         SR  R0,R0                                                      00180000
+         LA  R1,CPTPTR00                                                00181000
+         SVC SVCDCP                                                     00182000
+         SPACE 1                                                        00183000
+*                             CALCULATE DIFFERENCES WHERE SIGNIFICANT.  00184000
+         L   R1,CPTPTRPR                                                00185000
+         S   R1,CPDPTRPR                                                00186000
+         ST  R1,CPDPTRPR                                                00187000
+         SPACE 1                                                        00188000
+         L   R1,CPTPTRFF                                                00189000
+         S   R1,CPDPTRFF                                                00190000
+         ST  R1,CPDPTRFF                                                00191000
+         SPACE 1                                                        00192000
+         L   R1,CPTPTRSS                                                00193000
+         S   R1,CPDPTRSS                                                00194000
+         ST  R1,CPDPTRSS                                                00195000
+         SPACE 1                                                        00196000
+         SPACE 3                                                        00197000
+         IF CP,SNAPS,=P'1',EQ,THEN (SOME THINGS WON'T BE REAL)          00198000
+            XC  CPIDLEF,CPIDLEF         MAIN PROCESSOR                  00199000
+            XC  CPPAGEF,CPPAGEF                                         00200000
+            XC  CPIONTF,CPIONTF                                         00201000
+            XC  CPPROBF,CPPROBF                                         00202000
+            SPACE 1                                                     00203000
+            XC  APIDLEF,APIDLEF         ATTACHED PROCESSOR              00204000
+            XC  APPAGEF,APPAGEF                                         00205000
+            XC  APIONTF,APIONTF                                         00206000
+            XC  APPROBF,APPROBF                                         00207000
+            SPACE 1                                                     00208000
+            XC  CPDPTRPR,CPDPTRPR                                       00209000
+            XC  CPDPTRFF,CPDPTRFF                                       00210000
+            XC  CPDPTRSS,CPDPTRSS                                       00211000
+            XC  CPDPGR,CPDPGR                                           00212000
+            XC  CPDPGW,CPDPGW                                           00213000
+         IF END                                                         00214000
+         PROC  END                                                      00215000
+         EJECT                                                          00216000
+*********************************************************************** 00217000
+*              B U I L D   S Y S T E M   P A G E                        00218000
+*********************************************************************** 00219000
+*              SYSTEM PAGE.                                             00220000
+SYSPAGE  PROC  BEGIN                                                    00221000
+         L     R8,ACPWSECT                                              00222000
+         USING CPWSECT,R8                                               00223000
+         SPACE 1                                                        00224000
+   DATA                                                                 00225000
+SCRSECT  DSECT                                                          00226000
+         ORG   SCRLINE3                                                 00227000
+         SPACE 1                                                        00228000
+*              CPU USAGE COLUMN                                         00229000
+CPUCOL   DS    CL21                                                     00230000
+         ORG   CPUCOL+2*L'SCRLINE                                       00231000
+OPROB    DS    CL17'Problem 999% 999%'                                  00232000
+         ORG   CPUCOL+3*L'SCRLINE                                       00233000
+OPAG     DS    CL17'Page Wait 999%'                                     00234000
+         ORG   CPUCOL+4*L'SCRLINE                                       00235000
+OIO      DS    CL17'I/O Wait 999%'                                      00236000
+         ORG   CPUCOL+5*L'SCRLINE                                       00237000
+OIDL     DS    CL17'Idle Wait 999%'                                     00238000
+         ORG   CPUCOL+6*L'SCRLINE                                       00239000
+OVERH    DS    CL17'Overhead 999%'                                      00240000
+         SPACE 1                                                        00241000
+         ORG   CPUCOL+8*L'SCRLINE                                       00242000
+OCPUB    DS    CL17'CPU Busy 999%'                                      00243000
+         ORG   CPUCOL+9*L'SCRLINE                                       00244000
+OCPUI    DS    CL17'CPU Idle 999%'                                      00245000
+         SPACE 1                                                        00246000
+         ORG   CPUCOL+11*L'SCRLINE                                      00247000
+OTOTLI   DS    CL17'TOTAL, APU+CPU:'                                    00248000
+         ORG   OTOTLI+L'SCRLINE                                         00249000
+OPROBF   DS    CL17'PROB 999%'                                          00250000
+         ORG   OPROBF+L'SCRLINE                                         00251000
+OTOTF    DS    CL17'BUSY 999%'                                          00252000
+         SPACE 1                                                        00253000
+         ORG   CPUCOL+15*L'SCRLINE                                      00254000
+SVCRATE  DS    CL17'SVC      99999'                                     00255000
+         ORG                                                            00256000
+         SPACE 6                                                        00257000
+*        STORAGE COLUMN                                                 00258000
+         ORG   CPUCOL+L'CPUCOL                                          00259000
+STORCOL  DS    CL21                                                     00260000
+         ORG   STORCOL+2*L'SCRLINE                                      00261000
+REALCORE DS    CL17'REAL CORE 99999K'                                   00262000
+         ORG   STORCOL+3*L'SCRLINE                                      00263000
+FREECORE DS    CL17'FREE CORE 99999K'                                   00264000
+         ORG   STORCOL+5*L'SCRLINE                                      00265000
+PAGER    DS    CL17'PAGE TURN 9999/s'                                   00266000
+         ORG   STORCOL+6*L'SCRLINE                                      00267000
+PAGEL    DS    CL17'PAGE LOAD 999%'                                     00268000
+         ORG   STORCOL+8*L'SCRLINE                                      00269000
+PAGEREQ  DS    CL17'PAGE REQ 999.9/s'                                   00270000
+         ORG   STORCOL+9*L'SCRLINE                                      00271000
+STEALS   DS    CL17'STEALS 999.9/s'                                     00272000
+         ORG   STORCOL+10*L'SCRLINE                                     00273000
+FLUSHES  DS    CL17'FLUSHES 999.9/s'                                    00274000
+         ORG   STORCOL+11*L'SCRLINE                                     00275000
+PAGEREC  DS    CL17'RECLAIMS 999.9/s'                                   00276000
+         ORG   STORCOL+13*L'SCRLINE                                     00277000
+SRES     DS    CL17'RES SHARE 99999K'                                   00278000
+         ORG                                                            00279000
+         SPACE 6                                                        00280000
+*              QUEUES COLUMN                                            00281000
+         ORG   STORCOL+L'STORCOL                                        00282000
+QUECOL   DS    CL21                                                     00283000
+         ORG   QUECOL+2*L'SCRLINE                                       00284000
+LOGGON   DS    CL17'LOGGED ON 9999'                                     00285000
+         ORG   QUECOL+3*L'SCRLINE                                       00286000
+DIALLED  DS    CL17'DIALLED 9999'                                       00287000
+         ORG   QUECOL+5*L'SCRLINE                                       00288000
+ACTIVE   DS    CL17'ACTIVE 9999'                                        00289000
+         ORG   QUECOL+6*L'SCRLINE                                       00290000
+INACTIVE DS    CL17'INACTIVE 9999'                                      00291000
+         ORG   QUECOL+7*L'SCRLINE                                       00292000
+ASLEEP   DS    CL17'ASLEEP 9999'                                        00293000
+         ORG   QUECOL+9*L'SCRLINE                                       00294000
+QUE1     DS    CL17'QUEUE1 99999'                                       00295000
+         ORG   QUECOL+10*L'SCRLINE                                      00296000
+QUE2     DS    CL17'QUEUE2 99999'                                       00297000
+         ORG   QUECOL+11*L'SCRLINE                                      00298000
+QUE3     DS    CL17'QUEUE3 99999'                                       00299000
+         ORG   QUECOL+12*L'SCRLINE                                      00300000
+QUEL     DS    CL17'ELIGIBLE 99999'                                     00301000
+         ORG                                                            00302000
+         SPACE 6                                                        00303000
+*              CHANNELS COLUMN                                          00304000
+         ORG   QUECOL+L'QUECOL                                          00305000
+CHANCOL  DS    CL17'CHANNELS'                                           00306000
+         ORG   CHANCOL+2*L'SCRLINE                                      00307000
+CHAN0L   DS    CL17'CHAN 0   9999/s'                                    00308000
+         ORG                                                            00309000
+*        (NOTE THAT CHANNELS COULD EXTEND DOWN FOR 16 LINES)            00310000
+         SPACE 6                                                        00311000
+*              CPU IDENTIFICATION MESSAGE.                              00312000
+         ORG   SCREEND-2*L'SCRLINE                                      00313000
+         DS    CL26                                                     00314000
+CPUI     DC    C'CPU MODEL XXXX SERIAL XXXXXX'                          00315000
+         ORG   CPUI+10                                                  00316000
+CPUMODL  DS    CL4                                                      00317000
+         DS    CL8                                                      00318000
+CPUSERL  DS    CL6                                                      00319000
+         SPACE 2                                                        00320000
+*              VM IDENTIFICATION MESSAGE.                               00321000
+         ORG   SCREEND-L'SCRLINE                                        00322000
+         DS    CL14                                                     00323000
+CPSYSREL DS    CL(L'CPREL)                                              00324000
+CPUP     DC    C' HAS BEEN UP .... DAYS .. HOURS .. MIN'                00325000
+         ORG   CPUP+13                                                  00326000
+CPUPD    DS    CL4                                                      00327000
+         DS    CL6                                                      00328000
+CPUPH    DS    CL2                                                      00329000
+         DS    CL7                                                      00330000
+CPUPM    DS    CL2                                                      00331000
+         ORG                                                            00332000
+         SPACE 3                                                        00333000
+         PROC                                                           00334000
+         L     R9,=V(DSPSYS)                                            00335000
+         USING DSPSECT,R9                                               00336000
+         SR    R10,R10                                                  00337000
+         IF CP,LISTNRS,=P'0',GT,THEN                                    00338000
+            OI  DSPFLAGS,DSPNEW                                         00339000
+            SPACE 1                                                     00340000
+            LR  R1,R9                                                   00341000
+            LR  R0,R10                                                  00342000
+            CALL NEWSCR                                                 00343000
+            LR  R10,R0        NEW SCREEN.                               00344000
+            USING SCRSECT,R10                                           00345000
+            DATA                                                        00346000
+SYSTIT      DC  C'CPWATCH SYSTEM STATUS'                                00347000
+SYSOFS      EQU  (80-L'SYSTIT)/2                                        00348000
+            PROC                                                        00349000
+            MVC SCREEN+SYSOFS(L'SYSTIT),SYSTIT                          00350000
+            EJECT                                                       00351000
+*              CPU USAGE COLUMN.                                        00352000
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     00353000
+               MVC CPUCOL,=CL(L'CPUCOL)'Usage:   APU  CPU'              00354000
+            IF ELSE                                                     00355000
+               MVC CPUCOL,=CL(L'CPUCOL)'CPU Usage'                      00356000
+            IF END                                                      00357000
+            SPACE 1                                                     00358000
+            MVC OPROB,=CL(L'OPROB)'Problem'                             00359000
+            L   R1,CPPROBF    PROBLEM STATE, IN USEC.                   00360000
+            SR  R0,R0                                                   00361000
+            D   R0,SNAPINT    / CLOCK, IN MILLISECONDS                  00362000
+            SR  R0,R0                                                   00363000
+            A   R1,=F'5'      ROUND OFF TENTHS OF PERCENT               00364000
+            D   R0,=F'10'                                               00365000
+            CALL DECIT                                                  00366000
+            MVC OPROB+L'OPROB-3-1(3),28-3(R13)                          00367000
+            MVI OPROB+L'OPROB-1,C'%'                                    00368000
+            SPACE 1                                                     00369000
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     00370000
+               L   R1,APPROBF                                           00371000
+               SR  R0,R0                                                00372000
+               D   R0,SNAPINT                                           00373000
+               SR  R0,R0                                                00374000
+               A   R1,=F'5'                                             00375000
+               D   R0,=F'10'                                            00376000
+               CALL DECIT                                               00377000
+               MVC OPROB+L'OPROB-5-3(3),28-3(R13)                       00378000
+            IF END                                                      00379000
+            SPACE 1                                                     00380000
+            MVC OPAG,=CL(L'OPAG)'Page Wait'                             00381000
+            L   R1,CPPAGEF                                              00382000
+            SR  R0,R0                                                   00383000
+            D   R0,SNAPINT                                              00384000
+            SR  R0,R0                                                   00385000
+            A   R1,=F'5'                                                00386000
+            D   R0,=F'10'                                               00387000
+            CALL DECIT                                                  00388000
+            MVC OPAG+L'OPAG-3-1(3),28-3(R13)                            00389000
+            MVI OPAG+L'OPAG-1,C'%'                                      00390000
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     00391000
+               L   R1,APPAGEF                                           00392000
+               SR  R0,R0                                                00393000
+               D   R0,SNAPINT                                           00394000
+               SR  R0,R0                                                00395000
+               A   R1,=F'5'                                             00396000
+               D   R0,=F'10'                                            00397000
+               CALL DECIT                                               00398000
+               MVC OPAG+L'OPAG-5-3(3),28-3(R13)                         00399000
+            IF END                                                      00400000
+            SPACE 1                                                     00401000
+            MVC OIO,=CL(L'OPROB)'I/O Wait'                              00402000
+            L   R1,CPIONTF                                              00403000
+            SR  R0,R0                                                   00404000
+            D   R0,SNAPINT                                              00405000
+            SR  R0,R0                                                   00406000
+            A   R1,=F'5'                                                00407000
+            D   R0,=F'10'                                               00408000
+            CALL DECIT                                                  00409000
+            MVC OIO+L'OIO-3-1(3),28-3(R13)                              00410000
+            MVI OIO+L'OIO-1,C'%'                                        00411000
+            SPACE 1                                                     00412000
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     00413000
+               L   R1,APIONTF                                           00414000
+               SR  R0,R0                                                00415000
+               D   R0,SNAPINT                                           00416000
+               SR  R0,R0                                                00417000
+               A   R1,=F'5'                                             00418000
+               D   R0,=F'10'                                            00419000
+               CALL DECIT                                               00420000
+               MVC OIO+L'OIO-5-3(3),28-3(R13)                           00421000
+            IF END                                                      00422000
+            SPACE 1                                                     00423000
+            MVC OIDL,=CL(L'OIDL)'Idle Wait'                             00424000
+            L   R1,CPIDLEF                                              00425000
+            SR  R0,R0                                                   00426000
+            D   R0,SNAPINT                                              00427000
+            SR  R0,R0                                                   00428000
+            A   R1,=F'5'                                                00429000
+            D   R0,=F'10'                                               00430000
+            CALL DECIT                                                  00431000
+            MVC OIDL+L'OIDL-3-1(3),28-3(R13)                            00432000
+            MVI OIDL+L'OIDL-1,C'%'                                      00433000
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     00434000
+               SPACE 1                                                  00435000
+               L   R1,APIDLEF                                           00436000
+               SR  R0,R0                                                00437000
+               D   R0,SNAPINT                                           00438000
+               SR  R0,R0                                                00439000
+               A   R1,=F'5'                                             00440000
+               D   R0,=F'10'                                            00441000
+               CALL DECIT                                               00442000
+               MVC OIDL+L'OIDL-5-3(3),28-3(R13)                         00443000
+            IF END                                                      00444000
+            SPACE 1                                                     00445000
+            MVC OVERH,=CL(L'OVERH)'Overhead'                            00446000
+            SPACE 1                                                     00447000
+            L   R1,SNAPINT    WALL CLOCK TIME                           00448000
+            M   R0,=F'1000'   CONVERT TO USEC                           00449000
+            S   R1,CPPROBF    LESS PROBLEM STATE                        00450000
+            S   R1,CPPAGEF    LESS PAGE WAIT                            00451000
+            S   R1,CPIONTF    LESS I/O WAIT                             00452000
+            S   R1,CPIDLEF    LESS IDLE WAIT                            00453000
+            A   R1,=F'5'      ROUND                                     00454000
+            D   R0,=F'10'     BACK TO MSEC*100                          00455000
+            SR  R0,R0                                                   00456000
+            D   R0,SNAPINT    EXPRESS AS A PERCENTAGE.                  00457000
+            CALL DECIT                                                  00458000
+            MVC OVERH+L'OVERH-3-1(3),28-3(R13)                          00459000
+            MVI OVERH+L'OVERH-1,C'%'                                    00460000
+            SPACE 1                                                     00461000
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     00462000
+               L   R1,SNAPINT    WALL CLOCK TIME                        00463000
+               M   R0,=F'1000'   CONVERT TO USEC                        00464000
+               S   R1,APPROBF    LESS PROBLEM STATE                     00465000
+               S   R1,APPAGEF    LESS PAGE WAIT                         00466000
+               S   R1,APIONTF    LESS I/O WAIT                          00467000
+               S   R1,APIDLEF    LESS IDLE WAIT                         00468000
+               A   R1,=F'5'      ROUND                                  00469000
+               D   R0,=F'10'     BACK TO MSEC*100                       00470000
+               SR  R0,R0                                                00471000
+               D   R0,SNAPINT    EXPRESS AS A PERCENTAGE.               00472000
+               CALL DECIT                                               00473000
+               MVC OVERH+L'OVERH-5-3(3),28-3(R13)                       00474000
+            IF END                                                      00475000
+            SPACE 3                                                     00476000
+            MVC OCPUI,=CL(L'OCPUI)'CPU Idle'                            00477000
+            L   R3,CPPAGEF    LESS PAGE WAIT                            00478000
+            A   R3,CPIONTF    LESS I/O WAIT                             00479000
+            A   R3,CPIDLEF    LESS IDLE WAIT                            00480000
+            A   R3,=F'5'      ROUND                                     00481000
+            SR  R2,R2                                                   00482000
+            D   R2,=F'10'     BACK TO MSEC*100                          00483000
+            SR  R2,R2                                                   00484000
+            D   R2,SNAPINT    EXPRESS AS A PERCENTAGE.                  00485000
+            LR  R1,R3                                                   00486000
+            CALL DECIT                                                  00487000
+            MVC OCPUI+L'OCPUI-3-1(3),28-3(R13)                          00488000
+            MVI OCPUI+L'OCPUI-1,C'%'                                    00489000
+            SPACE 3                                                     00490000
+            MVC OCPUB,=CL(L'OCPUB)'CPU Busy'                            00491000
+            LA  R1,100        COMPLEMENT IDLE PCT.                      00492000
+            SR  R1,R3                                                   00493000
+            CALL DECIT                                                  00494000
+            MVC OCPUB+L'OCPUB-3-1(3),28-3(R13)                          00495000
+            MVI OCPUB+L'OCPUB-1,C'%'                                    00496000
+            SPACE 1                                                     00497000
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     00498000
+               L   R3,APPAGEF    LESS PAGE WAIT                         00499000
+               A   R3,APIONTF    LESS I/O WAIT                          00500000
+               A   R3,APIDLEF    LESS IDLE WAIT                         00501000
+               A   R3,=F'5'      ROUND                                  00502000
+               SR  R2,R2                                                00503000
+               D   R2,=F'10'     BACK TO MSEC*100                       00504000
+               SR  R2,R2                                                00505000
+               D   R2,SNAPINT    EXPRESS AS A PERCENTAGE.               00506000
+               LR  R1,R3                                                00507000
+               CALL DECIT                                               00508000
+               MVC OCPUI+L'OCPUI-5-3(3),28-3(R13)                       00509000
+               SPACE 1                                                  00510000
+               LA  R1,100        COMPLEMENT IDLE PCT.                   00511000
+               SR  R1,R3                                                00512000
+               CALL DECIT                                               00513000
+               MVC OCPUB+L'OCPUB-5-3(3),28-3(R13)                       00514000
+               SPACE 3                                                  00515000
+            IF END                                                      00516000
+            L   R1,CPSVCF                                               00517000
+            A   R1,APSVCF                                               00518000
+            IF R1,NZ,THEN                                               00519000
+               MVC SVCRATE,=CL(L'SVCRATE)'SVC''s'                       00520000
+               L   R1,CPSVCF                                            00521000
+               M   R0,=F'20000'                                         00522000
+               D   R0,SNAPINT                                           00523000
+               LA  R1,1(,R1)                                            00524000
+               SRA R1,1                                                 00525000
+               CALL DECIT1D                                             00526000
+               MVC SVCRATE+L'SVCRATE-5-2(5),28-5(R13)                   00527000
+               MVC SVCRATE+L'SVCRATE-2(2),=C'/s'                        00528000
+               SPACE 1                                                  00529000
+               IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                  00530000
+                  L   R1,APSVCF                                         00531000
+                  M   R0,=F'20000'                                      00532000
+                  D   R0,SNAPINT                                        00533000
+                  LA  R1,1(,R1)                                         00534000
+                  SRA R1,1                                              00535000
+                  CALL DECIT1D                                          00536000
+                  MVC SVCRATE+L'SVCRATE-7-5(5),28-5(R13)                00537000
+               IF END                                                   00538000
+            IF END                                                      00539000
+            SPACE 3                                                     00540000
+            IF TM,XAPSTAT1,APUOPER+APUNONLN,NZ,THEN                     00541000
+               MVC OTOTLI,=CL(L'OTOTLI)'Total, APU+CPU:'                00542000
+               MVC OPROBF,=CL(L'OPROBF)'Problem'                        00543000
+               L   R1,CPPROBF    PROBLEM STATE, IN USEC.                00544000
+               A   R1,APPROBF                                           00545000
+               SR  R0,R0                                                00546000
+               D   R0,SNAPINT    / CLOCK, IN MILLISECONDS               00547000
+               SR  R0,R0                                                00548000
+               A   R1,=F'5'      ROUND OFF TENTHS OF PERCENT            00549000
+               D   R0,=F'10'                                            00550000
+               CALL DECIT                                               00551000
+               MVC OPROBF+L'OPROBF-3-1(3),28-3(R13)                     00552000
+               MVI OPROBF+L'OPROBF-1,C'%'                               00553000
+               SPACE 1                                                  00554000
+               MVC OTOTF,=CL(L'OTOTF)'Busy'                             00555000
+*                             CALCULATE IDLE TIME                       00556000
+               L   R3,SNAPINT (ONCE FOR MAIN PROCESSOR)                 00557000
+               AR  R3,R3      (ONCE FOR ATTACHED PROCESSOR)             00558000
+               M   R2,=F'1000'          CONVERT TO MICROSECONDS.        00559000
+               SPACE 1                                                  00560000
+               SL  R3,CPPAGEF    LESS PAGE WAIT                         00561000
+               SL  R3,APPAGEF                                           00562000
+               SL  R3,CPIONTF    LESS I/O WAIT                          00563000
+               SL  R3,APIONTF                                           00564000
+               SL  R3,CPIDLEF    LESS IDLE WAIT                         00565000
+               SL  R3,APIDLEF                                           00566000
+               SPACE 1                                                  00567000
+               AL  R3,=F'5'      ROUND                                  00568000
+               SR  R2,R2                                                00569000
+               D   R2,=F'10'     BACK TO MSEC*100                       00570000
+               SR  R2,R2                                                00571000
+               D   R2,SNAPINT    EXPRESS AS A PERCENTAGE (MAX 200%)     00572000
+               LR  R1,R3                                                00573000
+               CALL DECIT                                               00574000
+               MVC OTOTF+L'OTOTF-3-1(3),28-3(R13)                       00575000
+               MVI OTOTF+L'OTOTF-1,C'%'                                 00576000
+            IF END                                                      00577000
+            SPACE 3                                                     00578000
+*                 STORAGE COLUMN.                                       00579000
+            MVC   STORCOL,=CL(L'STORCOL)'STORAGE'                       00580000
+            SPACE 1                                                     00581000
+            MVC   REALCORE,=CL(L'REALCORE)'Real Core'                   00582000
+            L     R1,CORESIZE                                           00583000
+            SRL R1,10            CONVERT TO K                           00584000
+            CALL DECIT                                                  00585000
+            MVC   REALCORE+L'REALCORE-5-1(5),28-5(R13)                  00586000
+            MVI   REALCORE+L'REALCORE-1,C'K'                            00587000
+            SPACE 1                                                     00588000
+            MVC   FREECORE,=CL(L'FREECORE)'Free Core'                   00589000
+            L     R1,CPFREE                                             00590000
+            SLA   R1,2        CONVERT PAGES -->K                        00591000
+            CALL DECIT                                                  00592000
+            MVC   FREECORE+L'FREECORE-5-1(5),28-5(R13)                  00593000
+            MVI FREECORE+L'FREECORE-1,C'K'                              00594000
+            SPACE 1                                                     00595000
+            MVC PAGER,=CL(L'PAGER)'Page Rate'                           00596000
+            LH  R1,CPGRATE                                              00597000
+            CALL DECIT                                                  00598000
+            MVC PAGER+L'PAGER-4-2(4),28-4(R13)                          00599000
+            MVC PAGER+L'PAGER-2(2),=CL2'/s'                             00600000
+            SPACE 6                                                     00601000
+            MVC PAGEL,=CL(L'PAGEL)'Page Load'                           00602000
+            LH  R1,CPGLOAD                                              00603000
+            CALL DECIT                                                  00604000
+            MVC PAGEL+L'PAGEL-3-1(3),28-3(R13)                          00605000
+            MVI PAGEL+L'PAGEL-1,C'%'                                    00606000
+            SPACE 1                                                     00607000
+            MVC PAGEREQ,=CL(L'PAGEREQ)'Page Req'                        00608000
+            L   R1,CPDPGR     PAGE READS EXECUTED.                      00609000
+            A   R1,CPDPTRPR   PAGES RECLAIMED FROM FLUSH LIST           00610000
+            M   R0,=F'20000'                                            00611000
+            D   R0,SNAPINT                                              00612000
+            LA  R1,1(,R1)                                               00613000
+            SRA R1,1                                                    00614000
+            CALL DECIT1D                                                00615000
+            MVC PAGEREQ+L'PAGEREQ-7-2(7),28-7(R13)                      00616000
+            MVC PAGEREQ+L'PAGEREQ-2(2),=C'/s'                           00617000
+            SPACE 3                                                     00618000
+            MVC STEALS,=CL(L'STEALS)'Steals'                            00619000
+            L   R1,CPDPTRSS                                             00620000
+            M   R0,=F'20000'                                            00621000
+            D   R0,SNAPINT                                              00622000
+            LA  R1,1(,R1)                                               00623000
+            SRA R1,1                                                    00624000
+            CALL DECIT1D                                                00625000
+            MVC STEALS+L'STEALS-7-2(7),28-7(R13)                        00626000
+            MVC STEALS+L'STEALS-2(2),=C'/s'                             00627000
+            SPACE 1                                                     00628000
+            MVC FLUSHES,=CL(L'FLUSHES)'Flushes'                         00629000
+            L   R1,CPDPTRFF                                             00630000
+            M   R0,=F'20000'                                            00631000
+            D   R0,SNAPINT                                              00632000
+            LA  R1,1(,R1)                                               00633000
+            SRA R1,1                                                    00634000
+            CALL DECIT1D                                                00635000
+            MVC FLUSHES+L'FLUSHES-7-2(7),28-7(R13)                      00636000
+            MVC FLUSHES+L'FLUSHES-2(2),=C'/s'                           00637000
+            SPACE 1                                                     00638000
+            MVC PAGEREC,=CL(L'PAGEREC)'Reclaimed'                       00639000
+            L   R1,CPDPTRPR                                             00640000
+            M   R0,=F'20000'                                            00641000
+            D   R0,SNAPINT                                              00642000
+            LA  R1,1(,R1)                                               00643000
+            SRA R1,1                                                    00644000
+            CALL DECIT1D                                                00645000
+            MVC PAGEREC+L'PAGEREC-5-2(5),28-5(R13)                      00646000
+            MVC PAGEREC+L'PAGEREC-2(2),=C'/s'                           00647000
+            SPACE 1                                                     00648000
+            MVC SRES,=CL(L'SRES)'Share Res'                             00649000
+            L   R1,CPTPTRSC                                             00650000
+            SLA R1,2          PAGES -> K                                00651000
+            CALL DECIT                                                  00652000
+            MVC SRES+L'SRES-7-1(7),28-7(R13)                            00653000
+            MVI SRES+L'SRES-1,C'K'                                      00654000
+            SPACE 1                                                     00655000
+            EJECT                                                       00656000
+*              QUEUES COLUMN.                                           00657000
+            MVC QUECOL,=CL(L'QUECOL)'QUEUES'                            00658000
+            SPACE 1                                                     00659000
+            MVC LOGGON,=CL(L'LOGGON)'Logged On'                         00660000
+            L   R1,CPUSRS                                               00661000
+            CALL DECIT                                                  00662000
+            MVC LOGGON+L'LOGGON-4(4),28-4(R13)                          00663000
+            SPACE 1                                                     00664000
+            MVC DIALLED,=CL(L'DIALLED)'Dialled'                         00665000
+            L   R1,CPDIAL                                               00666000
+            CALL DECIT                                                  00667000
+            MVC DIALLED+L'DIALLED-4(4),28-4(R13)                        00668000
+            SPACE 1                                                     00669000
+            MVC ACTIVE,=CL(L'ACTIVE)'Active'                            00670000
+            CVB R1,CPACTV                                               00671000
+            CALL DECIT                                                  00672000
+            MVC ACTIVE+L'ACTIVE-4(4),28-4(R13)                          00673000
+            SPACE 1                                                     00674000
+            MVC INACTIVE,=CL(L'INACTIVE)'Inactive'                      00675000
+            CVB R1,CPINACT                                              00676000
+            CALL DECIT                                                  00677000
+            MVC INACTIVE+L'INACTIVE-4(4),28-4(R13)                      00678000
+            SPACE 1                                                     00679000
+            MVC ASLEEP,=CL(L'ASLEEP)'Asleep'                            00680000
+            CVB R1,CPSLEEP                                              00681000
+            CALL DECIT                                                  00682000
+            MVC ASLEEP+L'ASLEEP-4(4),28-4(R13)                          00683000
+            SPACE 1                                                     00684000
+            MVC QUE1,=CL(L'QUE1)'Queue 1'                               00685000
+            EDITD QUE1,CPQ1,LENGTH=5                                    00686000
+            MVC QUE2,=CL(L'QUE2)'Queue 2'                               00687000
+            EDITD QUE2,CPQ2,LENGTH=5                                    00688000
+         AIF   (NOT &BSEP).NBSEP1                                       00689000
+            MVC QUE3,=CL(L'QUE3)'Queue 3'                               00690000
+            EDITD QUE3,CPQ3,LENGTH=5                                    00691000
+.NBSEP1  ANOP                                                           00692000
+            MVC QUEL,=CL(L'QUEL)'Eligible'                              00693000
+            EDITD QUEL,CPEL,LENGTH=5                                    00694000
+         SPACE 3                                                        00695000
+*              CHANNELS.                                                00696000
+            MVC CHANCOL,=CL(L'CHANCOL)'CHANNEL SIOs'                    00697000
+            SPACE 1                                                     00698000
+            LA  R4,CHAN0L                                               00699000
+            SR  R5,R5         OFFSET INTO CHANNEL BUCKETS               00700000
+            SR  R6,R6         CHANNEL COUNTER                           00701000
+            SR  R7,R7         TOTAL SIO ACCUMULATOR                     00702000
+            DO WHILE,CH,R6,=Y(16),LT                                    00703000
+               L  R1,CPCHF(R5)          ACCUMULATE.                     00704000
+               A  R1,CPCHT(R5)                                          00705000
+               ST R1,CPCHT(R5)                                          00706000
+               IF R1,NZ,THEN                                            00707000
+                  MVC 0(L'CHAN0L,R4),=CL(L'CHAN0L)'Chan 0'              00708000
+                  EX  R6,OI   OR IN CHANNEL                             00709000
+OI                OI  5(R4),0 EXECUTED.                                 00710000
+                  SPACE 1                                               00711000
+*                 DISPLAY DIFFERENCE.                                   00712000
+                  L   R1,CPCHF(R5)                                      00713000
+                  AR  R7,R1   ACCUMULATE                                00714000
+                  SPACE 1                                               00715000
+                  M   R0,=F'2000'     1000 - MSEC, 2 FOR ROUNDING       00716000
+*                 IF C,R0,SNAPINT,LT,THEN                               00717000
+                     D   R0,SNAPINT                                     00718000
+*                 IF ELSE                                               00719000
+*                    SR  R1,R1                                          00720000
+*                 IF END                                                00721000
+                  LA  R1,1(,R1)                                         00722000
+                  SRA R1,1                                              00723000
+                  SPACE 1                                               00724000
+                  CALL DECIT                                            00725000
+                  MVC L'CHAN0L-4-2(4,R4),28-4(R13)                      00726000
+                  MVC L'CHAN0L-2(2,R4),=C'/s'                           00727000
+                  SPACE 1                                               00728000
+                  LA  R4,L'SCRLINE(,R4) NEXT LINE.                      00729000
+               IF END                                                   00730000
+               SPACE 1                                                  00731000
+               LA  R5,4(,R5)  NEXT CHANNEL BUCKET OFFSET                00732000
+               LA  R6,1(,R6)  NEXT CHANNEL NUMBER.                      00733000
+            DO END                                                      00734000
+            SPACE 1                                                     00735000
+*              SYSTEM SIO'S                                             00736000
+            LA  R4,L'SCRLINE(,R4)     ONE BLANK LINE.                   00737000
+            MVC 0(L'CHAN0L,R4),=CL(L'CHAN0L)'System'                    00738000
+            MVC L'CHAN0L-2(2,R4),=C'/s'                                 00739000
+            LR  R1,R7                                                   00740000
+            M   R0,=F'2000'                                             00741000
+            D   R0,SNAPINT                                              00742000
+            LA  R1,1(,R1)                                               00743000
+            SRA R1,1                                                    00744000
+            CALL DECIT                                                  00745000
+            MVC L'CHAN0L-4-2(4,R4),28-4(R13)                            00746000
+            LA  R4,L'SCRLINE(,R4)       NEXT LINE                       00747000
+            SPACE 6                                                     00748000
+*              CP UP TIME MSG.                                          00749000
+            MVC   CPSYSREL,CPREL                                        00750000
+            MVC CPUP,=C' HAS BEEN UP .... DAYS .. HOURS .. MIN'         00751000
+            SPACE 1                                                     00752000
+            LM    R0,R1,THISCLOK                                        00753000
+            SL    R0,CPSTART                                            00754000
+            SL    R1,CPSTART+4                                          00755000
+            BC    B'0011',*+6                                           00756000
+            BCTR  R0,0                                                  00757000
+            SRDL  R0,12           CP WAS UP FOR N USEC                  00758000
+            D     R0,=F'60000000' UP FOR N MINUTES.                     00759000
+            SPACE 1                                                     00760000
+            SR  R0,R0                                                   00761000
+            D   R0,=F'60'     MIN, HOURS                                00762000
+            CVD R0,DWORK                                                00763000
+            UNPK CPUPM,DWORK                                            00764000
+            OI   CPUPM+L'CPUPM-1,C'0'                                   00765000
+            SPACE 1                                                     00766000
+            SR  R0,R0                                                   00767000
+            D   R0,=F'24'     DAYS, HOURS.                              00768000
+            CVD R0,DWORK                                                00769000
+            UNPK CPUPH,DWORK                                            00770000
+            OI  CPUPH+L'CPUPH-1,C'0'                                    00771000
+            SPACE 1                                                     00772000
+            CALL DECIT                                                  00773000
+            STCM R1,B'1111',CPUPD                                       00774000
+            SPACE 1                                                     00775000
+*              CPU ID                                                   00776000
+            MVC CPUI,=C'CPU MODEL XXXX SERIAL XXXXXX'                   00777000
+            MVC CPUMODL,CPUMOD                                          00778000
+            MVC CPUSERL,CPUSER#                                         00779000
+            SPACE 1                                                     00780000
+            LR  R0,R10                                                  00781000
+            LR  R1,R9                                                   00782000
+            CALL LASTSCR                                                00783000
+         IF END                                                         00784000
+         PROC  END                                                      00785000
+         EJECT                                                          00786000
+*********************************************************************** 00787000
+*              V M / 3 7 0   D S E C T S.                             * 00788000
+*********************************************************************** 00789000
+         SPACE 1                                                        00790000
+         PSA                                                            00791000
+         COPY  RBLOKS                                                   00792000
+         COPY  VMBLOK                                                   00793000
+         SYSLOCS                                                        00794000
+         SPACE 12                                                       00795000
+         END                                                            00796000

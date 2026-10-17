@@ -1,0 +1,665 @@
+DSP TITLE 'CPWDSP -                                DISPLAY CHAIN, ETC.' 00001000
+         COPY  CPWPRM                                                   00002000
+DSP      MODULE                                                         00003000
+*---------------------------------------------------------------------- 00004000
+*              SET DATE IN MENU PANEL                                   00005000
+*---------------------------------------------------------------------- 00006000
+         SPACE 1                                                        00007000
+IMENU    PROC BEGIN                                                     00008000
+         L     R1,=A(CPWDSPDT)                                          00009000
+         L     R2,=V(CPWASM)  LAST ASSEMBLY DATE AND TIME               00010000
+         MVC   0(L'CPWDSPDT,R1),0(R2)                                   00011000
+         PROC END                                                       00012000
+         SPACE 3                                                        00013000
+         EJECT                                                          00014000
+*********************************************************************** 00015000
+*              SERVICE ROUTINES.                                        00016000
+*********************************************************************** 00017000
+         SPACE 2                                                        00018000
+*        GET THE NEXT SCREEN (EMPTY) OF A DISPLAY.                      00019000
+*        ENTER WITH R1 -> DSPSECT FOR THIS DISPLAY.                     00020000
+*              R0 -> CURRENT SCRSECT, OR = 0 IF FIRST.                  00021000
+*        EXIT WITH R0 -> NEW SCRSECT FOR THIS DISPLAY.                  00022000
+NEWSCR   PROC  BEGIN                                                    00023000
+         LR    R9,R1          SAVE DSPSECT                              00024000
+         USING DSPSECT,R9                                               00025000
+         LR    R8,R0         SAVE SCRSECT.                              00026000
+         IF R8,NZ,THEN ADDING ANOTHER SCREEN..                          00027000
+            USING SCRSECT,R8                                            00028000
+            L   R10,SCRNEXT                                             00029000
+            DROP R8                                                     00030000
+         IF ELSE                                                        00031000
+            L   R10,DSPFSCR                                             00032000
+            ZAP DSPSCRC,=P'0' ZERO PAGES SO FAR.                        00033000
+         IF END                                                         00034000
+         IF R10,Z,THEN WE NEED ANOTHER PAGE.                            00035000
+            ICM R10,B'1111',ADSPFREE     GET ONE OFF FREE CHAIN.        00036000
+            IF NZ,THEN THERE IS ONE.                                    00037000
+*              UNHOOK IT FROM FREE CHAIN.                               00038000
+               MVC ADSPFREE,SCRNEXT-SCRSECT(R10)                        00039000
+               SPACE 1                                                  00040000
+            IF ELSE  WE HAVE TO MAKE ANOTHER FROM FREE STORAGE.         00041000
+*                    GET SPACE.                                         00042000
+               LA  R0,SCRSECTL                                          00043000
+               SVC SVCGETM                                              00044000
+               LR  R10,R1                                               00045000
+            IF END                                                      00046000
+            USING SCRSECT,R10                                           00047000
+            XC  SCRNEXT,SCRNEXT                                         00048000
+            DROP R10                                                    00049000
+         IF END                                                         00050000
+         SPACE 1                                                        00051000
+*              CHAIN OFF OLD SCREEN, IF ANY.                            00052000
+         IF R8,NZ,THEN                                                  00053000
+            ST  R10,SCRNEXT-SCRSECT(,R8)                                00054000
+            MVC SCRMORE-SCRSECT(L'SCRMORE,R8),=CL(L'SCRMORE)'MORE'      00055000
+         IF ELSE                                                        00056000
+            ST  R10,DSPFSCR                                             00057000
+         IF END                                                         00058000
+         MVC SCRMORE-SCRSECT(L'SCRMORE,R10),BLANKL                      00059000
+         SPACE 1                                                        00060000
+*              BUILD TOP LINE.                                          00061000
+         USING SCRSECT,R10                                              00062000
+         LA    R2,SCREEN                                                00063000
+         LA    R3,L'SCREEN                                              00064000
+         IF R8,NZ,THEN                                                  00065000
+            L   R4,DSPFSCR                                              00066000
+            LA  R4,SCREEN-SCRSECT(,R4)                                  00067000
+            LA  R5,SCRMORE-SCREEN       PROPAGATE LINE 1.               00068000
+         IF ELSE                                                        00069000
+            SR  R4,R4                                                   00070000
+            SR  R5,R5                                                   00071000
+         IF END                                                         00072000
+         ICM R5,B'1000',=X'40'          PAD WITH BLANKS.                00073000
+         MVCL  R2,R4                                                    00074000
+*              MOVE IN TIME, ETC.                                       00075000
+         MVC   SCRTIME,CTIME                                            00076000
+         MVC   SCRDATE,CDATE                                            00077000
+         MVC   SCRINTVL,INTVL                                           00078000
+         SPACE 1                                                        00079000
+*              COUNT IT AND DISPLAY COUNT                               00080000
+         AP    DSPSCRC,=P'1'                                            00081000
+         MVC   SCRPAGN,=X'40202120'                                     00082000
+         ED    SCRPAGN,DSPSCRC                                          00083000
+         SPACE 1                                                        00084000
+         LR    R0,R10                                                   00085000
+         PROC  END,RETURN=(0)                                           00086000
+         EJECT                                                          00087000
+*---------------------------------------------------------------------- 00088000
+*        DROP REMAINING SCREENS FROM DISPLAY.                           00089000
+*---------------------------------------------------------------------- 00090000
+*        ENTER WITH R1 -> DSPSECT,                                      00091000
+*              R0 -> LAST CCWSECT USED, OR = 0 IF NONE.                 00092000
+*        RETURN REGS UNCHANGED,                                         00093000
+*              REMAINING SCREENS RETURNED TO FREE CHAIN,                00094000
+*              NO DEVICE CCW POINTERS POINTING TO DELETED SCREENS.      00095000
+LASTSCR  PROC  BEGIN                                                    00096000
+         LR    R9,R1                                                    00097000
+         USING DSPSECT,R9                                               00098000
+         LR    R10,R0                                                   00099000
+         USING SCRSECT,R10                                              00100000
+         SPACE 1                                                        00101000
+         IF R10,Z,THEN KNOCK ALL LISTNERS OFF THIS DISPLAY.             00102000
+         IF ELSE              JUST OFF SCREENS.                         00103000
+            LR  R8,R10        SAVE LAST SCREEN ADDRESS.                 00104000
+            L   R10,SCRNEXT                                             00105000
+            LR  R6,R10        LAST DROPPED SCREEN ADDRESS.              00106000
+            DO WHILE,R10,NZ                                             00107000
+*                   MAKE SURE NOBODY'S POINTING TO HIM.                 00108000
+  AGO .NODROP                                                           00109000
+              LA    R7,DEVICES                                          00110000
+              USING DEVSECT,R7                                          00111000
+              DO WHILE,CLC,DEVADDR,HEXFS,NE                             00112000
+                 IF C,R10,DEVPAG,EQ,THEN                                00113000
+*                   NOTE THAT DEVPAG IS NORMALLY MANIPULATED BY IOINTER 00114000
+*                   WHICH MAY INTERRUPT US.                             00115000
+                    LR  R2,R10          GO BACK TO LAST REMAINING PAGE. 00116000
+                    LR  R3,R8                                           00117000
+                    CS  R2,R3,DEVPAG (IF IT DOESN'T GO, IGNORE)         00118000
+                  IF END                                                00119000
+                  LA  R7,DEVNEXT                                        00120000
+               DO END                                                   00121000
+               DROP R7                                                  00122000
+.NODROP ANOP                                                            00123000
+               LR  R6,R10     HE'S DONE SUCCESSFULLY.                   00124000
+               L   R10,SCRNEXT   AND PROCESS NEXT ONE.                  00125000
+            DO END                                                      00126000
+            DROP R10                                                    00127000
+            IF R6,NZ,THEN WE HAVE DROPPED SOME SCREENS                  00128000
+*              ATTACH CHAIN, ENTIRE, AT HEAD OF FREE CHAIN.             00129000
+               MVC SCRNEXT-SCRSECT(L'SCRNEXT,R6),ADSPFREE               00130000
+               MVC ADSPFREE,SCRNEXT-SCRSECT(R8)                         00131000
+            IF END                                                      00132000
+            USING SCRSECT,R8                                            00133000
+            XC SCRNEXT,SCRNEXT                                          00134000
+         IF END                                                         00135000
+         SPACE 3                                                        00136000
+         PROC  END                                                      00137000
+         EJECT                                                          00138000
+*********************************************************************** 00139000
+*              BUILD CLOCK SCREEN.                                      00140000
+*********************************************************************** 00141000
+         SPACE 1                                                        00142000
+CLOCK    PROC  BEGIN                                                    00143000
+         SPACE 1                                                        00144000
+         L     R9,=A(DSPCLOCK)                                          00145000
+         USING DSPSECT,R9                                               00146000
+         L     R10,DSPFSCR                                              00147000
+         USING SCRSECT,R10                                              00148000
+         SPACE 1                                                        00149000
+         IF (CLC,SCRTIME(5),CTIME,NE,OR,                               +00150000
+               TM,DSPFLAGS,DSPNEW,O),AND,                              +00151000
+               CP,LISTNRS,=P'0',GT,THEN                                 00152000
+            SPACE 1                                                     00153000
+            OI    DSPFLAGS,DSPNEW FLAG AS NEW SCREEN.                   00154000
+            SPACE 1                                                     00155000
+*              INITIALIZE SCREEN.                                       00156000
+            LA    R2,SCREEN                                             00157000
+            LA    R3,L'SCREEN                                           00158000
+            SR    R4,R4                                                 00159000
+            SR    R5,R5                                                 00160000
+            ICM   R5,B'1000',BLANKL                                     00161000
+            MVCL R2,R4                                                  00162000
+            MVC SCRTIME(5),CTIME                                        00163000
+            MVC SCRDATE,CDATE                                           00164000
+            SPACE 3                                                     00165000
+            SR    R1,R1          REL LINE NUMBER.                       00166000
+            LA    R3,SCRTIME       SOURCE                               00167000
+            LA    R4,5           NUMBER OF BYTES.                       00168000
+            LA    R8,SCREEN+400+6          BEGIN OF OUTPUT AREA.        00169000
+*              IF LEADING BLANK, RE-CENTRE OUTPUT.                      00170000
+            IF CLI,0(R3),C' ',EQ,THEN                                   00171000
+               LA  R3,1(,R3)                                            00172000
+               BCTR R4,0                                                00173000
+               LA  R8,7(,R8)                                            00174000
+            IF END                                                      00175000
+            LA    R9,12          LOOP CONTROL - NUMBER OF LINES.        00176000
+CLOOP       EQU   *                                                     00177000
+               CALL BLOKLTR,LOCAL=YES                                   00178000
+               SPACE 1                                                  00179000
+               LA  R1,1(,R1)     NEXT LINE                              00180000
+               LA  R8,80(,R8)                                           00181000
+            BCT   R9,CLOOP                                              00182000
+            SPACE 1                                                     00183000
+         IF END                                                         00184000
+         SPACE 1                                                        00185000
+         PROC  END                                                      00186000
+         SPACE 12                                                       00187000
+*                                                                       00188000
+* OPERATION OF THE BLOCK LETTER GENERATION SUBROUTINE -                 00189000
+*                                                                       00190000
+* ENTRY CONDITIONS -                                                    00191000
+*                                                                       00192000
+*        GPR1  = RELATIVE LINE NUMBER OF THE 12 LINE MATRIX (0-11)      00193000
+*        GPR3  = ADDRESS OF THE CHARACTER STRING TO BE TRANSLATED       00194000
+*        GPR4  = NUMBER OF CHARACTERS TO BE TRANSLATED                  00195000
+*        GPR6  = RETURN ADDRESS                                         00196000
+*  RETURN ADDRESS CHANGED TO R14. GEO.                                  00197000
+*        GPR8  = ADDRESS OF OUTPUT AREA FOR TRANSLATION                 00198000
+*                                                                       00199000
+*        UPON ENTRY, THE OUTPUT AREA POINTED TO BY GPR8 SHOULD HAVE     00200000
+*        BEEN CLEARED TO BLANKS BY THE CALLER.  THE OUTPUT AREA MUST BE 00201000
+*        LONG ENOUGH TO HOLD 12 CHARACTERS FOR EACH CHARACTER           00202000
+*        TRANSLATED, PLUS 2 SPACES BETWEEN EACH BLOK LETTER. FOR        00203000
+*        EXAMPLE, IF 5 CHARACTERS ARE TO BE TRANSLATED, THE OUTPUT AREA 00204000
+*        FOR THE TRANSLATOR MUST BE AT LEAST (5*12)+(4*2)= 68 BYTES     00205000
+*        LONG.  IT IS THE RESPONSIBILITY OF THE CALLER TO INSURE THAT   00206000
+*        THE OUTPUT AREAS FOR THE 12 LINES ARE VERTICALLY ALIGNED ON    00207000
+*        THE PAGE WHEN THEY ARE FINALLY PRINTED                         00208000
+*                                                                       00209000
+* EXIT CONDITIONS -                                                     00210000
+*                                                                       00211000
+*        NORMAL -                                                       00212000
+*        THE OUTPUT AREA IS FILLED WITH A LINE OF CHARACTERS, ONE       00213000
+*        GROUP OF 12 FOR EACH OF THE LETTERS TRANSLATED                 00214000
+*                                                                       00215000
+*        ERROR -                                                        00216000
+*        NONE                                                           00217000
+*                                                                       00218000
+* REGISTER USAGE -                                                      00219000
+*                                                                       00220000
+*        GPR0  = CHARACTER REGISTER - HOLDS THE CHARACTER TO BE TRANS-  00221000
+*                LATED                                                  00222000
+*        GPR1  = RELATIVE LINE NUMBER (0-11) IN MATRIX                  00223000
+*        GPR2  - NOT USED                                               00224000
+*        GPR3  = ADDRESS OF NEXT LETTER TO TRANSLATE                    00225000
+*        GPR4  = NUMBER OF LETTERS REMAINING TO BE TRANSLATED           00226000
+*        GPR5  = SHIFT REGISTER FOR PATTERN DETERMINATION               00227000
+*        GPR6  = RETURN ADDRESS                                         00228000
+*        GPR7  - NOT USED                                               00229000
+*        GPR8  = ADDRESS OF LOCATION FOR NEXT 12 BYTE PATTERN           00230000
+*        GPR9  = INDEX REGISTER FOR LINE AND PATTERN TABLES             00231000
+*        GPR10 = INDEX FOR NEXT BYTE STORE ADDRESS                      00232000
+*        GPR11-13 - NOT USED                                            00233000
+*        GPR14,15 - BXLE LOOP CONTROL                                   00234000
+*                                                                       00235000
+*        NOTE THAT GPR14-0 ARE SAVED AND RESTORED, REGISTERS 3-5 AND    00236000
+*        8-10 WILL BE DESTROYED, AND THE OTHERS WILL BE UNCHANGED       00237000
+*   NOTE THAT NO REGS ARE NOW DESTROYED. GEO.                           00238000
+*                                                                       00239000
+         EJECT                                                          00240000
+*                                                                       00241000
+* NOTES -                                                               00242000
+*                                                                       00243000
+*        THIS ROUTINE IS AN ADAPTATION OF THE OS/360 MODULE 'IEFSD095   00244000
+*        BLOCK LETTER AND NUMBER ROUTINE'                               00245000
+*                                                                       00246000
+* OPERATION -                                                           00247000
+*                                                                       00248000
+*        1. THE PATTERN TO BE STORED FOR A GIVEN LETTER                 00249000
+*           OR NUMBER IS DETERMINED BY INDEXING INTO A PATTERN TABLE    00250000
+*           BASED ON THE HEXADECIMAL VALUE OF THE CHARACTER.  WHEN      00251000
+*           THE PROPER ENTRY IS FOUND, IT IS FURTHER INDEXED BY THE     00252000
+*           RELATIVE LINE NUMBER THAT IS BEING PRODUCED.  THE RESULTING 00253000
+*           NUMBER IS USED TO INDEX INTO A BIT TABLE WHERE EACH ENTRY   00254000
+*           IS TWELVE BITS LONG AND INDICATES VIA A ONE OR ZERO BIT     00255000
+*           WHETHER OR NOT A CHARACTER IS TO BE STORED IN A COLUMN OF   00256000
+*           OF THAT ROW OF THE MATRIX                                   00257000
+*                                                                       00258000
+*        2. THE BIT MAP IS INSERTED INTO THE HIGH ORDER HALFWORD        00259000
+*           OF A REGISTER, WHICH IS THEN SHIFTED AND TESTED VIA A BXH   00260000
+*           LOOP.  IF A ONE BIT IS SHIFTED INTO THE HIGH ORDER (0)      00261000
+*           POSITION OF THE REGISTER, A CHARACTER IS STORED IN THE      00262000
+*           CORRESPONDING COLUMN OF THE MATRIX; IF NO BIT IS SHIFTED,   00263000
+*           NO CHARACTER IS STORED                                      00264000
+*                                                                       00265000
+*        3. AS THE REGISTER IS SHIFTED AND TESTED, THE COLUMN INDEX IS  00266000
+*           INCREMENTED AND ALWAYS POINTS TO THE NEXT POSITION TO BE    00267000
+*           FILLED; THEREFOR, IF NO CHARACTER IS STORED, THE COLUMN     00268000
+*           REMAINS BLANK                                               00269000
+*                                                                       00270000
+*        4. AFTER THE 12TH COLUMN HAS BEEN PROCESSED, THE TRANSLATION   00271000
+*           COUNT IS DECREMENTED AND TESTED AND ANY FURTHER LETTERS ARE 00272000
+*           TRANSLATED IN THE SAME MANNER                               00273000
+*                                                                       00274000
+*.                                                                      00275000
+         EJECT                                                          00276000
+BLOKLTR  PROC  BEGIN      GENERATE BLOCK LETTERS FOR THE PAGE SEPARATOR 00277000
+         SPACE 2                                                        00278000
+* GEO    STM   R14,R0,SAVEWRK2     SAVE REGS 14, 15, AND 0              00279000
+*        STM   R14,R12,12(R13)                                    GEO   00280000
+         SR    R0,R0               CLEAR CHARACTER REGISTER             00281000
+         LA    R14,1               GENERAL INCREMENT REGISTER           00282000
+         LA    R15,11              OFFSET OF LAST MATRIX CHARACTER      00283000
+GETCHAR  SR    R10,R10             OFFSET OF 1ST MATRIX CHARACTER       00284000
+         IC    R0,0(,R3)           PICK UP NEXT CHARACTER               00285000
+         LR    R9,R0               AND SAVE IT                          00286000
+         O     R9,=A(X'C0')        FORCE INTO THE RANGE OF UPPER CASE   00287000
+         S     R9,=A(X'C0')   AND BACK UP FOR IT.                       00288000
+         IC    R9,CHARTABL(R9)       GET OFFSET FOR CHARACTER PATTERN   00289000
+*        IC    R9,CHARTABL-X'C0'(R9) GET OFFSET FOR CHARACTER PATTERN   00290000
+         LTR   R5,R9               WAS CHARACTER A BLANK?               00291000
+         BZ    NEXTCHAR            YES -- SKIP TO NEXT CHARACTER        00292000
+         AR    R5,R5               MULTIPLY OFFSET BY 2                 00293000
+         LA    R5,CHARPATN-12(R5)  AND POINT TO CHARACTER PATTERN       00294000
+         IC    R9,0(R1,R5)         GET OFFSET INTO LINE PATTERN TABLE   00295000
+         LH    R5,LINEPATN(R9)     AND GET LINE PATTERN IN R5           00296000
+         SLL   R5,19               SHIFT LINE PATTERN INTO BITS 1-12    00297000
+         AR    R5,R14              AND INSERT LOW ORDER 1               00298000
+         SPACE 3                                                        00299000
+BLOKLOOP BXH   R5,R5,*+8           TEST FOR A ONE BIT SHIFTED INTO HIGH 00300000
+*              ORDER POSITION -- IF BIT WAS SHIFTED, BRANCH WILL NOT    00301000
+*              BE TAKEN, SINCE RESULTING SUM IS NEGATIVE, AND A CHAR-   00302000
+*        ACTER WILL BE STORED. IF BIT WAS NOT SHIFTED, SUM WILL BE POS- 00303000
+*        ITIVE, AND ONE GREATER THAN LAST VALUE IN R5                   00304000
+         STC   R0,0(R10,R8)        STORE MATRIX CHARACTER               00305000
+         BXLE  R10,R14,BLOKLOOP    POINT TO SLOT FOR NEXT CHAR          00306000
+*                                  ACTER, AND LOOP 11 MORE TIMES        00307000
+NEXTCHAR AR    R3,R14              POINT TO NEXT CHARACTER TO TRANSLATE 00308000
+         LA    R8,14(,R8)          POINT TO NEXT SLOT IN WORKAREA       00309000
+         BCT   R4,GETCHAR          GET NEXT CHARACTER, IF THERE IS ONE  00310000
+         SPACE 2                                                        00311000
+* GEO    LM    R14,R15,SAVEWRK2    RESTORE REGISTERS 14 AND 15          00312000
+* GEO    BR    R6                  AND RETURN TO CALLER                 00313000
+*        LM    R14,R12,12(R13)                                    GEO   00314000
+*        BR    R14                                                GEO   00315000
+         EJECT                                                          00316000
+         DATA                                                           00317000
+CHARTABL EQU   *  TABLE OF OFFSETS INTO CHARPATN TABLE --               00318000
+*              SINCE EACH ENTRY IN THE CHARPATN TABLE IS 12 BYTES,      00319000
+*              THESE INDICES ARE REALLY ONLY HALF AS BIG AS THE ACTUAL  00320000
+*              OFFSET.  AFTER THE INDEX IS FOUND, IT IS MULTIPLIED BY 2 00321000
+         SPACE 3                                                        00322000
+         DC    X'00'               BLANK                                00323000
+         DC    AL1(((A-XX)/2),((B-XX)/2),((C-XX)/2),((D-XX)/2))         00324000
+         DC    AL1(((E-XX)/2),((F-XX)/2),((G-XX)/2),((H-XX)/2))         00325000
+         DC    AL1((I-XX)/2)                                            00326000
+         DC    7X'00'              UNDEFINED GRAPHICS - FORCED TO       00327000
+*                                  BLANKS                               00328000
+         DC    AL1(((J-XX)/2),((K-XX)/2),((L-XX)/2),((M-XX)/2))         00329000
+         DC    AL1(((N-XX)/2),((O-XX)/2),((P-XX)/2),((Q-XX)/2))         00330000
+         DC    AL1((R-XX)/2)                                            00331000
+         DC    8X'00'              UNDEFINED GRAPHICS - FORCED TO       00332000
+*                                  BLANKS                               00333000
+         DC    AL1(((S-XX)/2),((T-XX)/2),((U-XX)/2),((V-XX)/2))         00334000
+         DC    AL1(((W-XX)/2),((X-XX)/2),((Y-XX)/2),((Z-XX)/2))         00335000
+         DC    6X'00'              UNDEFINED GRAPHICS - FORCED TO       00336000
+*                                  BLANKS                               00337000
+         DC    AL1(((ZERO-XX)/2),((ONE-XX)/2),((TWO-XX)/2))             00338000
+         DC    AL1(((THREE-XX)/2),((FOUR-XX)/2),((FIVE-XX)/2))          00339000
+         DC    AL1(((SIX-XX)/2),((SEVEN-XX)/2),((EIGHT-XX)/2))          00340000
+         DC    AL1((NINE-XX)/2)                                         00341000
+         DC    AL1((COLON-XX)/2)                                  GEO   00342000
+         DC    5X'00'                                             GEO   00343000
+* GEO    DC    6X'00'              UNDEFINED GRAPHICS - FORCED TO       00344000
+*                                  BLANKS                               00345000
+         SPACE 3                                                        00346000
+*********************************************************************** 00347000
+*                                                                     * 00348000
+*        FOLLOWING IS THE CHARACTER PARM LIST CONTAINING 444 BYTES    * 00349000
+*        WHERE EACH BYTE IS THE OFF SET FROM L1 IN THE LINE PARAMETER * 00350000
+*        LIST WHERE ONE LINE PATTERN OF A PARTICULAL CHARACTER IS     * 00351000
+*        STORED . A CHARACTER IS REPRESENTED BY 12 ORDERED LINE       * 00352000
+*        PATTERNS .FOR EXAMPLE A IS REPRESENTED BY THE  FOLLOWING     * 00353000
+*        ORDERED LINE PATTERNS  L2,L1,L5,L5,L5,L1,L1,L5,L5,L5,L5,L5   * 00354000
+*        AND WILL APPEAR ON THE PRINTER AS FOLLOWS                    * 00355000
+*                                                                     * 00356000
+*                             AAAAAAAAAA                              * 00357000
+*                            AAAAAAAAAAAA                             * 00358000
+*                            AA        AA                             * 00359000
+*                            AA        AA                             * 00360000
+*                            AA        AA                             * 00361000
+*                            AAAAAAAAAAAA                             * 00362000
+*                            AAAAAAAAAAAA                             * 00363000
+*                            AA        AA                             * 00364000
+*                            AA        AA                             * 00365000
+*                            AA        AA                             * 00366000
+*                            AA        AA                             * 00367000
+*                            AA        AA                             * 00368000
+*                                                                     * 00369000
+*********************************************************************** 00370000
+CHARPATN EQU   *                                                        00371000
+XX       EQU   *-12                JUST FOR EASE OF TYPING              00372000
+A        DC    X'020008080800000808080808'                              00373000
+B        DC    X'2C000808322A2A320808002C'                              00374000
+C        DC    X'020008262626262626080002'                              00375000
+D        DC    X'282A32080808080808322A28'                              00376000
+E        DC    X'000026262668682626260000'                              00377000
+F        DC    X'000026262668682626262626'                              00378000
+G        DC    X'020008262626343408080002'                              00379000
+H        DC    X'080808080800000808080808'                              00380000
+I        DC    X'020214141414141414140202'                              00381000
+J        DC    X'66660A0A0A0A0A0A3A3A686A'                              00382000
+K        DC    X'08322E3C3A36363A3C2E3208'                              00383000
+L        DC    X'262626262626262626260000'                              00384000
+M        DC    X'083E40424446080808080808'                              00385000
+N        DC    X'086C6E484A464E5052540876'                              00386000
+O        DC    X'000008080808080808080000'                              00387000
+P        DC    X'2C00080808002C2626262626'                              00388000
+Q        DC    X'020008080808084E50522C56'                              00389000
+R        DC    X'2C00080808002C3A3C2E3208'                              00390000
+S        DC    X'02000826585A5C5E64080002'                              00391000
+T        DC    X'000014141414141414141414'                              00392000
+U        DC    X'080808080808080808080002'                              00393000
+V        DC    X'080808080808083062206014'                              00394000
+W        DC    X'080808080808464442403E08'                              00395000
+X        DC    X'080830622060602062300808'                              00396000
+Y        DC    X'080830622060141414141414'                              00397000
+Z        DC    X'00001070120A147216742400'                              00398000
+ZERO     DC    X'040208080808080808080204'                              00399000
+ONE      DC    X'140C0E141414141414140202'                              00400000
+TWO      DC    X'020008646410121416180000'                              00401000
+THREE    DC    X'02000864641A1A6464080002'                              00402000
+FOUR     DC    X'061C1E202224001212121212'                              00403000
+FIVE     DC    X'0000262626282A106464002C'                              00404000
+SIX      DC    X'02000826262C000808080002'                              00405000
+SEVEN    DC    X'002C2E120A14141414141414'                              00406000
+EIGHT    DC    X'020008083004043008080002'                              00407000
+NINE     DC    X'020008080800006464080002'                              00408000
+COLON    DC    X'4C4C4C60604C4C60604C4C4C'                        GEO   00409000
+         SPACE 3                                                        00410000
+*********************************************************************** 00411000
+*                                                                     * 00412000
+*        FOLLOWING IS THE LINE PARAMETER LIST CONTAINING 60           * 00413000
+*        DISTINCT LINE PATTERNS . IF THE BIT IS ON THE CHARACTER      * 00414000
+*        WILL BE PRINTED, AND IF THE BIT IS OFF THE PRINTING OF         00415000
+*        THE CHARACTER IS SUPPRESSED . A COMBINATION OF 12 LINE       * 00416000
+*        PATTERNS ( AS SPECIFIED IN THE CHARACTER REPRESENTATION      * 00417000
+*        LIST ) REPRESENTS EITHER A BLANK , A LETTER FROM A TO Z,     * 00418000
+*        OR A NUMBER FROM 0 TO 9 .                                    * 00419000
+*                                                                     * 00420000
+*********************************************************************** 00421000
+LINEPATN DS    0F                                                       00422000
+L1       DC    BL2'111111111111'                                        00423000
+L2       DC    BL2'011111111110'                                        00424000
+L3       DC    BL2'001111111100'                                        00425000
+L4       DC    BL2'000000111000'                                        00426000
+L5       DC    BL2'110000000011'                                        00427000
+L6       DC    BL2'000000110000'                                        00428000
+L7       DC    BL2'000011100000'                                        00429000
+L8       DC    BL2'000111100000'                                        00430000
+L9       DC    BL2'000000000110'                                        00431000
+L10      DC    BL2'000000011000'                                        00432000
+L11      DC    BL2'000001100000'                                        00433000
+L12      DC    BL2'000110000000'                                        00434000
+L13      DC    BL2'011000000000'                                        00435000
+L14      DC    BL2'000000011110'                                        00436000
+L15      DC    BL2'000001111000'                                        00437000
+L16      DC    BL2'000011011000'                                        00438000
+L17      DC    BL2'000110011000'                                        00439000
+L18      DC    BL2'001100011000'                                        00440000
+L19      DC    BL2'011111111111'                                        00441000
+L20      DC    BL2'110000000000'                                        00442000
+L21      DC    BL2'111111111000'                                        00443000
+L22      DC    BL2'111111111100'                                        00444000
+L23      DC    BL2'111111111110'                                        00445000
+L24      DC    BL2'110000001100'                                        00446000
+L25      DC    BL2'011000000110'                                        00447000
+L26      DC    BL2'110000000110'                                        00448000
+L27      DC    BL2'110000011111'                                        00449000
+L28      DC    BL2'111111100000'                                        00450000
+L29      DC    BL2'110001100000'                                        00451000
+L30      DC    BL2'110000110000'                                        00452000
+L31      DC    BL2'110000011000'                                        00453000
+L32      DC    BL2'111000000111'                                        00454000
+L33      DC    BL2'111100001111'                                        00455000
+L34      DC    BL2'110110011011'                                        00456000
+L35      DC    BL2'110011110011'                                        00457000
+L36      DC    BL2'110001100011'                                        00458000
+L37      DC    BL2'110110000011'                                        00459000
+L38      DC    BL2'110011000011'                                        00460000
+L39      DC    BL2'000000000000'                                        00461000
+L40      DC    BL2'110000110011'                                        00462000
+L41      DC    BL2'110000011011'                                        00463000
+L42      DC    BL2'110000001111'                                        00464000
+L43      DC    BL2'110000000111'                                        00465000
+L44      DC    BL2'011111111011'                                        00466000
+L45      DC    BL2'111000000000'                                        00467000
+L46      DC    BL2'011111111100'                                        00468000
+L47      DC    BL2'001111111110'                                        00469000
+L48      DC    BL2'000000000111'                                        00470000
+L49      DC    BL2'000011110000'                                        00471000
+L50      DC    BL2'001100001100'                                        00472000
+L51      DC    BL2'000000000011'                                        00473000
+L52      DC    BL2'001111111111'                                        00474000
+L53      DC    BL2'111111110000'                                        00475000
+L54      DC    BL2'011111100000'                                        00476000
+L55      DC    BL2'111000000011'                                        00477000
+L56      DC    BL2'111100000011'                                        00478000
+L57      DC    BL2'000000001100'                                        00479000
+L58      DC    BL2'000011000000'                                        00480000
+L59      DC    BL2'001100000000'                                        00481000
+L60      DC    BL2'110000000001'                                        00482000
+         PROC                                                           00483000
+         SPACE 3                                                        00484000
+         PROC END                                                       00485000
+         EJECT                                                          00486000
+CPWDSP   CSECT                                                          00487000
+*---------------------------------------------------------------------- 00488000
+*              SERVICE ROUTINES                                         00489000
+*---------------------------------------------------------------------- 00490000
+*  MUST BE CALLED FROM MAIN LINE.                                       00491000
+         SPACE 3                                                        00492000
+*              BITIT                                                    00493000
+*        CONVERT BYTE IN LOW ORDER POSITION OF R1                       00494000
+*        TO CHARACTER BIT EQUIVALENT IN R0, R1.                         00495000
+         SPACE 1                                                        00496000
+         ENTRY BITIT                                                    00497000
+         DS    0H                                                       00498000
+BITIT    EQU   *-20                                                     00499000
+         USING BITIT,R15                                                00500000
+         N     R1,F00255                                                00501000
+         SLDL  R0,31          BIT 7                                     00502000
+         SRL   R1,7                                                     00503000
+         SRDL  R0,1           BIT 6                                     00504000
+         SRL   R1,7                                                     00505000
+         SRDL  R0,1           BIT 5                                     00506000
+         SRL   R1,7                                                     00507000
+         SRDL  R0,4           LEAVE BIT 0                               00508000
+         SLL   R0,7                                                     00509000
+         SLDL  R0,1           BIT 1                                     00510000
+         SLL   R0,7                                                     00511000
+         SLDL  R0,1           BIT 2                                     00512000
+         SLL   R0,7                                                     00513000
+         SLDL  R0,1           BIT 3 (R0 FINISHED)                       00514000
+         SRL   R1,7           REPOSITION AND FINISH R1                  00515000
+         SPACE 1                                                        00516000
+         STM   R14,R1,12(R13)                                           00517000
+         OC    20(8,R13),CZEROS                                         00518000
+         LM    R0,R1,20(R13)                                            00519000
+         SPACE 1                                                        00520000
+         BR    R14                                                      00521000
+         DROP  R15                                                      00522000
+         SPACE 3                                                        00523000
+*              CONVERT BINARY NUMBER IN R1 TO EXTERNAL HEX REPRESENTATN 00524000
+*        ENTER R1 = VALUE TO BE CONVERTED.                              00525000
+*        EXIT R0,R1=CHARACTER HEX EQUIVALENT.                           00526000
+         ENTRY HEXIT                                                    00527000
+         DS    0H                                                       00528000
+HEXIT    EQU   *-20                                                     00529000
+         USING HEXIT,R15                                                00530000
+         ST    R1,12(,R13)                                              00531000
+         UNPK  20(9,R13),12(5,R13)                                      00532000
+         TR    20(8,R13),HEXTAB                                         00533000
+         SPACE 1                                                        00534000
+         STM   R14,R15,12(R13)                                          00535000
+         LM    R0,R1,20(R13)                                            00536000
+         BR    R14                                                      00537000
+         DROP  R15                                                      00538000
+         EJECT                                                          00539000
+*              CONVERT BINARY NUMBER IN R1 TO EXTERNAL DECIMAL.         00540000
+*        ENTER R1 = VALUE TO BE CONVERTED.                              00541000
+*        EXIT R0,R1 CONTAIN CHARACTER VALUE.                            00542000
+         ENTRY DECIT,DECIT1D,DECIT2D                                    00543000
+         DS    0H                                                       00544000
+DECIT    EQU   *-20                                                     00545000
+         USING DECIT,R15                                                00546000
+         IF R2,=F'9999999',GT,OR,R2,=F'-999999',LT,THEN                 00547000
+            MVC   20(8,R13),=8C'*'                                      00548000
+         IF ELSE                                                        00549000
+            CVD R1,28(,R13)                                             00550000
+            MVC 19(9,R13),=X'40202020206B202120'                        00551000
+            LA  R1,19+9-1(,R13)                                         00552000
+            EDMK 19(9,R13),28+8-4(R13)                                  00553000
+            IF M,THEN                                                   00554000
+               BCTR R1,0                                                00555000
+               MVI 0(R1),C'-'                                           00556000
+            IF END                                                      00557000
+         IF END                                                         00558000
+         SPACE 1                                                        00559000
+         STM   R14,R15,12(R13)          FOR THE RECORD.                 00560000
+         LM    R0,R1,20(R13)  DROP LEADING BLANK.                       00561000
+         SPACE 1                                                        00562000
+         BR    R14                                                      00563000
+         DROP  R15                                                      00564000
+         SPACE 3                                                        00565000
+         DS    0H                                                       00566000
+DECIT1D  EQU *-20             WITH ONE DECIMAL PLACE.                   00567000
+         USING DECIT1D,R15                                              00568000
+         MVC 19(9,R13),=X'402020202021204B20'                           00569000
+         CVD R1,28(,R13)                                                00570000
+         LA  R1,19+9-3(,R13)                                            00571000
+         EDMK 19(9,R13),28+8-4(R13)                                     00572000
+         IF M,THEN                                                      00573000
+            BCTR R1,0                                                   00574000
+            MVI 0(R1),C'-'                                              00575000
+         IF END                                                         00576000
+         STM R14,R15,12(R13)                                            00577000
+         LM  R0,R1,20(R13)                                              00578000
+         BR    R14                                                      00579000
+         DROP  R15                                                      00580000
+         SPACE 3                                                        00581000
+         DS    0H                                                       00582000
+DECIT2D  EQU *-20             WITH TWO DECIMAL PLACES.                  00583000
+         USING DECIT2D,R15                                              00584000
+         MVC 19(9,R13),=X'4020202021204B2020'                           00585000
+         CVD R1,28(,R13)                                                00586000
+         LA  R1,19+9-3(,R13)                                            00587000
+         EDMK 19(9,R13),28+8-4(R13)                                     00588000
+         IF M,THEN                                                      00589000
+            BCTR R1,0                                                   00590000
+            MVI 0(R1),C'-'                                              00591000
+         IF END                                                         00592000
+         STM R14,R15,12(R13)                                            00593000
+         LM  R0,R1,20(R13)                                              00594000
+         BR    R14                                                      00595000
+         DROP  R15                                                      00596000
+         SPACE 3                                                        00597000
+*              LITERAL POOL FOR SERVICE ROUTINES.                       00598000
+         LTORG                                                          00599000
+         EJECT                                                          00600000
+*********************************************************************** 00601000
+*              DISPLAY CHAIN.                                           00602000
+*********************************************************************** 00603000
+         SPACE 1                                                        00604000
+CPWDSPS  CSECT                                                          00605000
+         ENTRY DSPLAYS                                                  00606000
+DSPLAYS  DS    0D                                                       00607000
+DSPBEGIN DSPENTRY SCRMENU,FLAGS=DSPNC                                   00608000
+DSPSYS   DSPENTRY ,                                                     00609000
+DSPTRM   DSPENTRY ,                                                     00610000
+DSPSDV   DSPENTRY ,                                                     00611000
+DSPALL   DSPENTRY ,                                                     00612000
+         PRINT GEN                                                      00613000
+DSPACT   DSPENTRY ,DSPBEGIN                                             00614000
+DSPSYA   DSPENTRY ,DSPSYA,FLAGS=DSPNC     FREE STANDING                 00615000
+DSPSYX   DSPENTRY ,DSPSYX,FLAGS=DSPNC     FREE STANDING                 00616000
+         PRINT NOGEN                                                    00617000
+DSPCLOCK DSPENTRY SCRCLOCK,DSPBEGIN     FREE STANDING                   00618000
+         EJECT                                                          00619000
+*********************************************************************** 00620000
+*              S C R E E N   B U F F E R S                              00621000
+*********************************************************************** 00622000
+         SPACE 1                                                        00623000
+*              MENU PAGE.                                               00624000
+         ENTRY SCRMENU                                                  00625000
+SCRMENU  DC    A(0,0)         NO OTHER CHAINS.                          00626000
+MENU     DS    CL1920                                                   00627000
+         ORG   MENU                                                     00628000
+M1       DC    CL80' '                                                  00629000
+M2       DC    CL80'CPWATCH &V..&M MENU '                               00630000
+M3       DC    CL80' '                                                  00631000
+M4       DC    CL80' KEY   COMMAND             ACTION    '              00632000
+M5       DC    CL80' '                                                  00633000
+M6       DC    CL80'CLEAR   DISC         Release Screen.'               00634000
+M7       DC    CL80' PA1    HOLD         Lock/Unlock screen against upd+00635000
+               ates.'                                                   00636000
+M8       DC    CL80' PA2    PAGE         Step through frames of one Dis+00637000
+               play.'                                                   00638000
+M9       DC    CL80' '                                                  00639000
+M10      DC    CL80' PF1    MENU         Return to this page.'          00640000
+M11      DC    CL80' PF2    SYS          System Status Page.'           00641000
+M12      DC    CL80' PF3    TERM         Terminal Device Page.'         00642000
+M13      DC    CL80' PF4    DEV          Non-Terminal Device Page.'     00643000
+M14      DC    CL80' PF5    ALL          All Users Status.  '           00644000
+M15      DC    CL80' PF6    ACT          Active Users Resource Usage.'  00645000
+M16      DC    CL80' PF7    SYM          CP/370 System Synonym Table, n+00646000
+               ame order.'                                              00647000
+M17      DC    CL80' PF8    SYMX         CP/370 System Synonym Table, a+00648000
+               ddress order.'                                           00649000
+M18      DC    CL80' '                                                  00650000
+M19      DC    CL80' PF12   CLOCK        Digital Clock Display.'        00651000
+M20      DC    CL80' '                                                  00652000
+M21      DC    CL80'ENTER                Go To Next Screen.'            00653000
+M22      DC    CL80' '                                                  00654000
+M23      DC    CL80' (Use the Enter Key with the Command Form.)'        00655000
+M24      DC    CL80' '                                                  00656000
+         ORG                                                            00657000
+         SPACE 3                                                        00658000
+         ORG   M2+L'M2-25                                               00659000
+CPWDSPDT DC    CL25'ASSEMBLED &SYSDATE &SYSTIME'                        00660000
+         ORG                                                            00661000
+         EJECT                                                          00662000
+SCRCLOCK DC    A(0,0)                                                   00663000
+         DS    CL1920                                                   00664000
+         END                                                            00665000

@@ -1,0 +1,7 @@
+./ I 00831000          $ 836000 5000                  10/09/84 14:51:05
+DEVNEXT  DS    A                                                        00836000
+./ R 01211000 01221000 $ 1214990 3990                 10/09/84 14:51:05
+DEVSTAMP DS    D              STCK TIME STAMP OF LAST SIO.              01213990
+         SPACE 1                                                        01216980
+DEVSECTN DS    0D             BEGIN NEXT ENTRY
+DEVSECTL EQU   DEVSECTN-DEVSECT                                         01221000

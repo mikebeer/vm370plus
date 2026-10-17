@@ -1,0 +1,63 @@
+./ I 00049000
+*              PICK UP ONLY OR MAIN PROCESSOR PSA DATA.                 00049100
+./ D 00051000
+./ R 00059000 00061000
+         SPACE 1                                                        00059100
+*              SAVE ATTACHED PROCESSOR STATUS AND LOCATION, IF ANY.     00059200
+         MVC   XPREFIXA,PFXA                                            00059300
+         MVC   XPREFIXB,PFXB                                            00059400
+         MVC   OAPSTAT1,XAPSTAT1        SAVE LAST SNAP ONE.             00059500
+         MVC   XAPSTAT1,XAPP                                            00059600
+         MVC   XAPSTAT2,XAPP+(APSTAT2-APSTAT1)                          00059700
+./ I 00091000
+*              PICK UP STUFF FROM ABSOLUTE PSA.                         00091010
+*        NOTE PREFIXA = 0 IF RUNNING UNIPROCESSOR;                      00091020
+*   IF RUNNING ATTACHED PROCESSOR, ALLOWS ACCESS TO ABSOLUTE PAGE 0     00091030
+*   FOR STUFF WHICH IS IN ABSOLUTE PAGE 0(ABSOLUTE PSA), USE PREFIXA    00091040
+*   REGARDLESS OF WHETHER WE ARE RUNNING AP OR UP - THEN IT WILL ALWAYS 00091050
+*   WORK.                                                               00091060
+ABSPSA   DCPLIST PSA,(PGW,PAGELOAD)                                     00091070
+         L     R4,XPREFIXA                                              00091080
+         DCP   ABSPSA,BASE=(R4)                                         00091090
+         SPACE 1                                                        00091100
+         MVC CPGLOAD,PGW                                                00091110
+         MVC CPGRATE,PGW+2                                              00091120
+         SPACE 3                                                        00091130
+./ R 00092100 00096000
+         IF TM,XAPSTAT1,APUOPER,O,THEN                                  00096000
+./ D 00128200 00128600
+./ R 00130000 00131000
+         IF TM,XAPSTAT1,APUOPER,Z,OR,                                  +00130000
+               TM,OAPSTAT1,APUOPER,Z,THEN NO VALID DIFFERENCES.         00131000
+./ D 00138000 00139000
+./ R 00232000
+OPROB    DS    CL17'Problem 999% 999%'                                  00232000
+./ R 00234000
+OPAG     DS    CL17'Page Wait 999%'                                     00234000
+./ R 00236000
+OIO      DS    CL17'I/O Wait 999%'                                      00236000
+./ R 00238000
+OIDL     DS    CL17'Idle Wait 999%'                                     00238000
+./ R 00240000
+OVERH    DS    CL17'Overhead 999%'                                      00240000
+./ R 00243000
+OCPUB    DS    CL17'CPU Busy 999%'                                      00243000
+./ R 00245000
+OCPUI    DS    CL17'CPU Idle 999%'                                      00245000
+./ R 00248000
+OTOTLI   DS    CL17'TOTAL, APU+CPU:'                                    00248000
+./ R 00250000
+OPROBF   DS    CL17'PROB 999%'                                          00250000
+./ R 00252000
+OTOTF    DS    CL17'BUSY 999%'                                          00252000
+./ R 00255000
+SVCRATE  DS    CL17'SVC      99999'                                     00255000
+./ R 00520000
+               MVC SVCRATE,=CL(L'SVCRATE)'SVC'                          00520000
+               MVC SVCRATE+L'SVCRATE-2(2),=C'/s'                        00520100
+               SPACE 1                                                  00520200
+./ R 00527000
+               MVC SVCRATE+L'SVCRATE-6-2(5),28-6(R13)                   00527000
+./ D 00528000
+./ R 00537000
+                  MVC SVCRATE+L'SVCRATE-8-1-6(6),28-6(R13)              00537000

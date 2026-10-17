@@ -1,0 +1,14 @@
+./ R 00321000          $ 325990 4990                  12/21/83 11:32:15
+*  MACRO LIBRARIES: DMSSP, CMSBSE, CMSLIB, OSMACRO                      00321000
+./ R 00491000 00501000 $ 500990 9990                  12/21/83 11:32:15
+*        VMFASM CPWLVL CPWLVL ... NOTE SPECIAL CONTROL FILE             00501000
+./ R 01451000          $ 1453990 2990                 12/21/83 11:32:15
+         MVC   STACKCTL,CNTRL-REC+BLDBUFF (= 'UNKNOWN')                 01453990
+         MVC   STACKSYS,SYSID-REC+BLDBUFF                               01456980
+./ R 02131000 02161000 $ 2135990 4990                 12/21/83 11:32:15
+         SPACE 1                                                        02135990
+STACKAST DC    CL2'* '                                                  02140980
+STACKCTL DC    CL8' '         CONTROL FILE                              02145970
+         DC    C' '                                                     02150960
+STACKSYS DC    CL8' '         SYSTEM ID (EG VM/370, VM/SP               02155950
+STACKID  EQU   STACKAST,*-STACKAST                                      02160940

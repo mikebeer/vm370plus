@@ -1,0 +1,114 @@
+                           Weizmann Institute of Science
+                                 VM Tools Tape
+                           -----------------------------
+
+
+Below is a list of tools for your VM system.  Each number represents
+another file on this tape.  Example: the 4th file on this tape
+contains all the stuff needed to run APLOCKS.
+
+1)  Documentation -
+    WICC     MEMO
+    WICC     DOC     (this listing)
+
+2)  ENABLE/DISABLE EXECS - These two execs enhance the capabality of
+    the ENABLE and DISABLE commands to accept a range, i.e.
+    EN 380-38F.  No CP or CMS modifications needed.
+    ENABLE   EXEC
+    DISABLE  EXEC
+
+3)  STORAGE - An assembler program to display a better indication of
+    CP storage utilization.  The CP IND "STORAGE-nnn%" only indicates
+    what percentage of storage is being utilizied by in-queue users.
+    This sometimes is not quite enough.  This program will loop
+    through all VMBLOKs and add up the total number of resident pages
+    at the present time.  This gives a better indication of what
+    percentage of storage is in use.  No CP or CMS modifications
+    needed.
+    The STORAGE EXEC serves as an example of how to call STORAGE
+    and have the results displayed in a pseudo fullscreen mode via
+    IPF's WAKEUP and CLRSCRN.  STORAGE can be called directly if you
+    do not have these modules.
+    Class E privileges required.
+    STORAGE  ASSEMBLE
+    STORAGE  MODULE
+    STORAGE  EXEC
+
+4)  APLOCKS - An assembler program to display the current status of
+    all AP/MP locks (i.e. real storage, I/O, etc.).  A recommended
+    CP modification is included in the comments in order to get
+    the full extent of locks.  This CP modification is not required.
+    Class E privileges required.
+    APLOCKS  ASSEMBLE
+    APLOCKS  MODULE
+
+5)  MAXUSERS - An assembler program to set and display the number of
+    maximum users allowed onto VM at one time.  Requires CP
+    modifications.  Requires class E privileges.
+    MAXUSERS ASSEMBLE
+    MAXUSERS MODULE
+    DMKEMA   MAXUSERS
+    DMKLOG   MAXUSERS
+    DMKLOH   MAXUSERS
+
+6)  TAPSENSE - An assembler program to return sense information about a
+    tape drive.  Excellent for debugging problem tape drives.
+    TAPSENSE ASSEMBLE
+    TAPSENSE MODULE
+
+7)  FBASENSE - An assembler program to return sense information about
+    any FBA device.
+    FBASENSE ASSEMBLE
+    FBASENSE MODULE
+
+8)  SEG - An assembler program to either load, load nonshared, find
+    or purge any segment defined in DMKSNT.  Invaluable for debugging
+    DMKSNT problems and segment overlaps.
+    SEG      ASSEMBLE
+    SEG      MODULE
+
+9)  CALC - An XEDIT and EXEC macro to allow desktop calculations from
+    within XEDIT.  Supports nested parentheses, + - / * and **.
+    Free format syntax.  No real numbers supported (i.e. 1.4).
+    CALC     XEDIT
+    CALC     EXEC
+
+10) TBROWSE - A utility exists for full screen scanning of disk files
+    (BROWSE), for full screen scanning of virtual reader files (PEEK),
+    and now a utility exists for full screen examination of files that
+    reside on tape.  File #11 must be loaded in order to reassemble
+    TBROWSE.  WISMAC must be included in GLOBAL MACLIB, and FORTSUB
+    must be included in GLOBAL TXTLIB when doing the LOAD.
+    TBROWSE  ASSEMBLE  (packed format)
+    TBROWSE  MODULE
+    TBROWSE  HELPCMSL
+
+11) MACROS - This section contains all the support code for running
+    full screen applications.
+    WISMAC   MACLIB    (required for reassembly of various modules)
+    FORTSUB  TXTLIB    (required for LOAD of various modules)
+    FORTSUB  MEMO      (explanation of what exists in FORTSUB)
+    SCREEN   ASSEMBLE  (packed format)
+
+12) SNAKE - A full screen game.  WISMAC must be included in GLOBAL
+    MACLIB in order to reassemble.
+    SNAKE    ASSEMBLE  (packed format)
+    SNAKE    MODULE
+    SNAKE    HELPGAME
+
+13) SLASH - A full screen real-time game.  WISMAC must be included
+    in GLOBAL MACLIB in order ro reassemble (file #12) and FORTSUB
+    must be included in GLOBAL TXTLIB when doing a LOAD.
+    SLASH    ASSEMBLE  (packed format)
+    SLASH    MODULE
+    SLASH    HELPGAME
+
+14) EMSG - An assembler subroutine to format message text according
+    to the receipent's EMSG setting instead of the sender's.  Requires
+    either class E or C.  EMSGTEST is an example of a call to EMSG.
+    EMSG     ASSEMBLE
+    EMSGTEST ASSEMBLE
+
+15) FORCE - An EXEC file that improves the FORCE command to accept
+    the syntax of 'FORCE ALL EXCEPT userid1 userid2 ... useridn'.
+    FORCE    EXEC

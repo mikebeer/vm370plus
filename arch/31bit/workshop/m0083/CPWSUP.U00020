@@ -1,0 +1,96 @@
+./ R 00096770          $ 96775 5                      12/03/84 13:53:46
+CMDS     DS    0CL12          TABLE OF COMMANDS.               U00020   00096775
+./ R 00167000          $ 167490 490                   12/03/84 13:53:46
+                  MVC DEVPAG,=F'0'                             U00020   00167490
+./ R 00618000 00627000 $ 619990 1990                  12/03/84 13:53:46
+                     L   R1,DEVDSP                             U00020   00619990
+                     L   R0,DEVPAG                             U00020   00621980
+                     BAL R10,SVCDSPLU FIND ACTUAL PAGE.        U00020   00623970
+./ I 00744000          $ 744300 300                   12/03/84 13:53:46
+* ENTRY: BAL R10,SVC1CGRF, R11-> DEVSECT.                      U00020   00744300
+*--------------------------------------------------------------U00020   00744600
+./ I 00745000          $ 745300 300                   12/03/84 13:53:46
+         STM   R0,R15,SVC1CGSV                                 U00020   00745300
+         SPACE 1                                               U00020   00745600
+./ R 00747500 00779000 $ 748090 590                   12/03/84 13:53:46
+         SR  R2,R2         FIND AID ENTRY.                     U00020   00748090
+         IC  R2,DEVAID GET AID                                 U00020   00748680
+         IC  R2,AIDTAB(R2) GET ENTRY NUMBER.                   U00020   00749270
+         MH  R2,=Y(L'AIDNAMES) CALCULATE ENTRY OFFSET          U00020   00749860
+         LA  R1,AIDNAMES(R2)   ENTRY LOCATION                  U00020   00750450
+         SPACE 1                                               U00020   00751040
+         IF C,R1,=A(KENTER),EQ,THEN                            U00020   00751630
+            OC  DEVDATA,BLANKS FORCE TO UPPER CASE             U00020   00752220
+         IF ELSE USE DEFINED DATA                              U00020   00752810
+            MVC DEVDATA,8(R1)                                  U00020   00753400
+         IF END                                                U00020   00753990
+         IF C,R1,=A(KCLEAR),EQ,OR,        IF ANY OF THESE KEYS,        +00754580
+               C,R1,=A(KNOAID),EQ,OR,     WE'VE PROBABLY LOST          +00755170
+               C,R1,=A(KUNKNOWN),EQ,THEN  SCREEN FORMAT.       U00020   00755760
+            OI  DEVFLAGS,DEVERAS+DEVWRQ                        U00020   00756350
+            NI  DEVFLAGS,255-DEVHOLD    NO, HE'S NOT ON HOLD   U00020   00756940
+         IF END                                                U00020   00757530
+         SPACE 1                                               U00020   00758120
+         IF CLC,DEVDATA,=CL8'HOLD',EQ,OR,      CHECK FOR LOCAL         +00760480
+               CLC,DEVDATA,=CL8'DISC',EQ,OR,   COMMANDS.               +00761070
+               CLC,DEVDATA,=CL8'QUIT',EQ,THEN                  U00020   00761660
+            IF CLC,DEVDATA,=CL8'HOLD',EQ,THEN                  U00020   00762250
+               BAL R8,HOLDSCR                                  U00020   00762840
+            IF ELSE                                            U00020   00763430
+               BAL R8,DISCONN                                  U00020   00764020
+            IF END                                             U00020   00764610
+         SPACE 3                                               U00020   00765200
+         IF ELSE              GENERAL COMMAND OR A DISPLAY NAM U00020   00765790
+            NI  DEVFLAGS,255-DEVHOLD    NO, HE'S NOT ON HOLD   U00020   00766380
+            SPACE 1                                            U00020   00766970
+            L     R0,DEVPAG                                    U00020   00767560
+            L     R1,DEVDSP                                    U00020   00768150
+            LA    R2,DEVDATA                                   U00020   00768740
+            L     R15,=A(CMDLU)                                U00020   00769330
+            BALR  R14,R15                                      U00020   00769920
+            IF    C,R1,DEVDSP,NE,OR,                           U00020  +00770510
+               C,R0,DEVPAG,NE,THEN                             U00020   00771100
+               OI  DEVFLAGS,DEVWRQ                             U00020   00771690
+               IF C,R1,DEVDSP,NE,THEN                          U00020   00772280
+                  L   R2,DEVDSP                                U00020   00772870
+                  SP DSPUSRS-DSPSECT(L'DSPUSRS,R2),=P'1'       U00020   00773460
+                  AP DSPUSRS-DSPSECT(L'DSPUSRS,R1),=P'1'       U00020   00774050
+               IF END                                          U00020   00774640
+            IF END                                             U00020   00775230
+            ST    R1,DEVDSP                                    U00020   00775820
+            ST    R0,DEVPAG                                    U00020   00776410
+         IF END                                                U00020   00777000
+./ I 00780000          $ 780500 500                   12/03/84 13:53:46
+         LM    R0,R15,SVC1CGSV                                 U00020   00780500
+./ I 00781000          $ 781500 500                   12/03/84 13:53:46
+         DROP  R11                                             U00020   00781500
+./ I 00782000          $ 782500 500                   12/03/84 13:53:46
+SVC1CGSV DS    16F                                             U00020   00782500
+./ R 00785000 00865000 $ 794990 9990                  12/03/84 13:53:46
+*------------------------------------------------------------- U00020   00794990
+*              LOCAL SCREEN MANAGEMENT COMMANDS.               U00020   00804980
+*------------------------------------------------------------- U00020   00814970
+* ENTER: BAL R8,... R11->DEVSECT. DISABLED.                    U00020   00824960
+*------------------------------------------------------------- U00020   00834950
+         USING DEVSECT,R11                                     U00020   00844940
+./ I 00882000          $ 882500 500                   12/03/84 13:53:46
+         MVC DEVPAG,=F'0'                                      U00020   00882500
+./ R 00887000 00918000 $ 896990 9990                  12/03/84 13:53:46
+         DROP  R11                                             U00020   00896990
+         SPACE 6                                               U00020   00906980
+./ I 00919000          $ 919500 500                   12/03/84 13:53:46
+         USING DEVSECT,R11                                     U00020   00919500
+./ I 00925000          $ 925500 500                   12/03/84 13:53:46
+         DROP  R11                                             U00020   00925500
+./ I 00926000          $ 926500 500                   12/03/84 13:53:46
+         USING DEVSECT,R11                                     U00020   00926500
+./ I 00930000          $ 930500 500                   12/03/84 13:53:46
+         DROP  R11                                             U00020   00930500
+./ R 00938000          $ 938090 90                    12/03/84 13:53:46
+BLANKS   DC    CL80' '                                         U00020   00938090
+         EJECT                                                 U00020   00938180
+         COPY AIDTAB                                           U00020   00938270
+         ENTRY AIDBEGIN,AIDEND                                          00938360
+         COPY AIDACT                                           U00020   00938450
+./ D 00954000 00997000                                12/03/84 13:53:46
+./ D 01033240 01033880                                12/03/84 13:53:46

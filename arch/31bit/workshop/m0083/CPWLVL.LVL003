@@ -1,0 +1,28 @@
+./ I 00781000          $ 782000 1000                  02/21/84 12:54:38
+         SPACE 1                                                        00782000
+         UNPK  PRODMAP(9),DBITMAP(5)                                    00783000
+         UNPK  PRODMAP+8(9),DBITMAP+4(5)                                00784000
+         TR    PRODMAP,HEXTAB                                           00785000
+         MVI   PRODMAP+L'PRODMAP,C' '                                   00786000
+./ R 01261000 01271000 $ 1266990 5990                 02/21/84 12:54:38
+*                             IGNORE OTHER SYSTEM CODES, PRODUCTS       01266990
+            CLC COMP-REC+INBUFF,COMP-REC+BLDBUFF                        01272980
+./ I 01456980          $ 1458980 2000                 02/21/84 12:54:38
+         MVC   STACKMAP,PRODMAP-REC+BLDBUFF                             01458980
+./ I 02051000          $ 2053000 2000                 02/21/84 12:54:38
+         SPACE 3                                                        02053000
+HEXTAB   EQU   *-240                                                    02055000
+         DC    C'0123456789ABCDEF'                                      02057000
+./ R 02091000          $ 2093990 2990                 02/21/84 12:54:38
+HDR      DC    CL80'CNTRL    SYSTEMID PRODUCT BIT MAP  VER LVL PLC   CO+02093990
+               MMENTS'                                                  02096980
+./ I 02155950          $ 2156950 1000                 02/21/84 12:54:38
+         SPACE 1                                                        02156950
+STACKMAP DS    CL16                                                     02157950
+./ R 02261000          $ 2263990 2990                 02/21/84 12:54:38
+USERID   DS    D                                                        02263990
+DBITMAP  DS    D              PROGRAM PRODUCT BIT MAP.                  02266980
+./ I 02381000          $ 2383000 2000                 02/21/84 12:54:38
+         DS    C                                                        02383000
+PRODMAP  DS    CL16                                                     02385000
+COMP     EQU   PRODMAP,*-SYSID  BOTH SYSTEM ID AND PRODUCT MUST MATCH.  02387000

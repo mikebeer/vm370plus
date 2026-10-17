@@ -1,0 +1,369 @@
+CPW      TITLE '                                        CPWATCH'        00001000
+         COPY  CPWPRM                                                   00002000
+MAN      MODULE PRINT=YES                                               00003000
+         EJECT                                                          00004000
+*********************************************************************** 00005000
+*        SYMBOL TABLE ON PAGES 4,5,AND 6                              * 00006000
+*********************************************************************** 00007000
+         SPACE 1                                                        00008000
+SYMBLD   PROC  BEGIN                                                    00009000
+         SPACE 1                                                        00010000
+*              FETCH SYSTEM SYMBOL TABLE .                              00011000
+         SPACE 1                                                        00012000
+         L     R0,F04096                                                00013000
+         SVC   SVCGETM+SVCPAGE                                          00014000
+         ST    R1,ASYMBUFF    PAGE ALIGNED BLOCK.                       00015000
+         DIAG  R1,0,X'38'     READ SYSTEM SYMBOL TABLE.                 00016000
+         SPACE 3                                                        00017000
+         STORAGE                                                        00018000
+CPEID    DS    2A                                                       00019000
+         PROC                                                           00020000
+         SPACE 1                                                        00021000
+*              GET MISC. STUFF OUT OF IT.                               00022000
+         XC  CORESIZE,CORESIZE                                          00023000
+         MVC ADSPNP,=A(0)                                               00024000
+         SPACE 3                                                        00025000
+         L     R4,ASYMBUFF                                              00026000
+         USING SYMTAB,R4                                                00027000
+         DO WHILE,CLC,SYMNAME,ZEROS,NE                                  00028000
+            IF CLC,SYMNAME,=C'DMKSYSRM',EQ,THEN                         00029000
+               MVC DWORK(4),SYMADDR                                     00030000
+               OI  DWORK,X'80'                                          00031000
+               SR  R0,R0                                                00032000
+               LA  R1,DWORK                                             00033000
+               SVC SVCDCP                                               00034000
+               MVC CORESIZE,DWORK                                       00035000
+            IF END                                                      00036000
+            SPACE 3                                                     00037000
+            IF CLC,SYMNAME,=C'DMKCPEID',EQ,THEN                         00038000
+               L   R1,SYMADDR                                           00039000
+               ST  R1,CPEID                                             00040000
+               LA  R1,4(,R1)                                            00041000
+               ST  R1,CPEID+4                                           00042000
+               OI  CPEID+4,X'80'                                        00043000
+               LA  R1,CPEID                                             00044000
+               SR  R0,R0                                                00045000
+               SVC SVCDCP                                               00046000
+               MVC CPREL,=CL12'CP R 00.0.00'                            00047000
+               MVC CPREL+5(2),CPEID                                     00048000
+               MVC CPREL+8(1),CPEID+4                                   00049000
+               MVC CPREL+10(2),CPEID+6                                  00050000
+               IF CLI,CPREL+5,C'0',EQ,THEN                              00051000
+                  MVI CPREL+5,C' '                                      00052000
+               IF END                                                   00053000
+            IF END                                                      00054000
+            SPACE 3                                                     00055000
+            IF CLC,SYMNAME,=CL8'DMKDSPNP',EQ,THEN                       00056000
+               MVC ADSPNP,SYMADDR      ADDRESS OF FREE PAGE COUNT.      00057000
+            IF END                                                      00058000
+            SPACE 3                                                     00059000
+            LA  R4,SYMNAME+SYMLEN                                       00060000
+         DO END                                                         00061000
+         DROP R4                                                        00062000
+         SPACE 1                                                        00063000
+*              SORT SYMBOL TABLE.                                       00064000
+         L     R9,=V(DSPSYA)                                            00065000
+         USING DSPSECT,R9                                               00066000
+         SPACE 1                                                        00067000
+SYMSORT  EQU   *                                                        00068000
+         L     R2,ASYMBUFF                                              00069000
+         DO WHILE,CLC,SYMLEN(L'SYMNAME,R2),ZEROS,NE                     00070000
+            LA    R3,SYMLEN(,R2)                                        00071000
+            DO WHILE,CLC,0(L'SYMNAME,R3),ZEROS,NE                       00072000
+               IF (C,R9,=V(DSPSYA),EQ,AND,                             +00073000
+               CLC,0(L'SYMNAME,R2),0(R3),GT),OR,                       +00074000
+               (C,R9,=V(DSPSYX),EQ,AND,CLC,8(4,R2),8(R3),GT),THEN       00075000
+*              IF CLC,0(L'SYMNAME,R2),0(R3),GT,THEN                     00076000
+                  XC  0(SYMLEN,R2),0(R3)                                00077000
+                  XC  0(SYMLEN,R3),0(R2)                                00078000
+                  XC  0(SYMLEN,R2),0(R3)                                00079000
+               IF END                                                   00080000
+               LA  R3,SYMLEN(,R3)                                       00081000
+            DO END                                                      00082000
+            LA  R2,SYMLEN(,R2)                                          00083000
+         DO END                                                         00084000
+         SPACE 3                                                        00085000
+*              NOW, START BUILDING SCREENS.                             00086000
+         DATA                                                           00087000
+SYMTIT   DC    C'CPWATCH SYMBOL TABLE DMKSYM'                           00088000
+SYMTITO  EQU   (80-L'SYMTIT)/2                                          00089000
+         PROC                                                           00090000
+         SPACE 1                                                        00091000
+*        L     R9,=V(DSPSYA)                                            00092000
+*        USING DSPSECT,R9                                               00093000
+         SPACE 1                                                        00094000
+         SR  R10,R10          NO SCREENS YET.                           00095000
+         SPACE 1                                                        00096000
+         OI  DSPFLAGS,DSPNC   NEVER-CHANGE PAGES.                       00097000
+         SPACE 1                                                        00098000
+         L     R5,ASYMBUFF                                              00099000
+         USING SYMTAB,R5                                                00100000
+         DO WHILE,CLC,SYMNAME,ZEROS,NE                                  00101000
+*              GET ANOTHER PAGE.                                        00102000
+            LR    R0,R10                                                00103000
+            LR    R1,R9                                                 00104000
+            CALL  NEWSCR                                                00105000
+            LR    R10,R0                                                00106000
+            USING SCRSECT,R10                                           00107000
+            SPACE 1                                                     00108000
+            MVC   SCRTIME,BLANKL TIME IS WRONG.                         00109000
+            MVC   SCRDATE,BLANKL                                        00110000
+            MVC   SCREEN+SYMTITO(L'SYMTIT),SYMTIT                       00111000
+            SPACE 1                                                     00112000
+*              NOW START BUILDING TABLE.                                00113000
+            LA    R2,SCRLINE2                                           00114000
+            USING SYMOSECT,R2                                           00115000
+            LA    R4,SYMOLAST(,R2)   BEGIN OF LAST COLUMN.              00116000
+            DO WHILE,CR,R2,R4,LE,AND,CLC,SYMNAME,ZEROS,NE               00117000
+               LA  R3,L'SCREEN-80(,R2)        END OF COLUMN.            00118000
+               DO WHILE,CR,R2,R3,LT,AND,CLC,SYMNAME,ZEROS,NE            00119000
+                  MVC SYMONAME,SYMNAME                                  00120000
+                  UNPK SYMOADDR,SYMADDR+1                               00121000
+                  TR  SYMOADDR,HEXTAB                                   00122000
+                  MVI SYMOADDR+L'SYMOADDR-1,C' '                        00123000
+                  SPACE 1                                               00124000
+                  LA  R5,SYMLEN(,R5)   NEXT INPUT                       00125000
+                  LA  R2,80(,R2)   NEXT OUTPUT LINE (MAYBE).            00126000
+               DO END                                                   00127000
+               SH  R2,=Y(L'SCREEN-80-SYMOLEN)   NEXT COLUMN.            00128000
+            DO END                                                      00129000
+         DO END                                                         00130000
+         SPACE 1                                                        00131000
+         C     R9,=V(DSPSYX)                                            00132000
+         BE    OUT                                                      00133000
+         L     R9,=V(DSPSYX)                                            00134000
+         B     SYMSORT                                                  00135000
+OUT      EQU   *                                                        00136000
+         SPACE 1                                                        00137000
+         LR  R1,R9                                                      00138000
+         LR  R0,R10                                                     00139000
+         CALL LASTSCR                                                   00140000
+         SPACE 1                                                        00141000
+         PROC  END                                                      00142000
+         EJECT                                                          00143000
+*********************************************************************** 00144000
+*              MAIN LINE PROGRAM                                      * 00145000
+*********************************************************************** 00146000
+         SPACE 1                                                        00147000
+MAIN     PROC  BEGIN                                                    00148000
+         SPACE 1                                                        00149000
+*              BUILD DIAGNOSE AREA.                                     00150000
+         L     R0,=F'4096'                                              00151000
+         SVC   SVCGETM+SVCPAGE                                          00152000
+         ST    R1,AEXDIAG                                               00153000
+         MVC   0(4,R1),=X'83230004'     DIAG R2,R3,X'4'                 00154000
+         SPACE 3                                                        00155000
+*              GET VM IPL TIME.                                         00156000
+         MVC   CPSTART,=A(STARTIME-PSA,STARTIME-PSA+4)                  00157000
+         OI    CPSTART+4,X'80'                                          00158000
+         SR    R0,R0                                                    00159000
+         LA    R1,CPSTART                                               00160000
+         SVC   SVCDCP                                                   00161000
+         SPACE 1                                                        00162000
+*              CURRENT TIME                                             00163000
+         STCK  THISCLOK                                                 00164000
+         SPACE 1                                                        00165000
+*              CPU ID.                                                  00166000
+         STIDP DWORK                                                    00167000
+         LM    R1,R2,DWORK                                              00168000
+         CALL HEXIT                                                     00169000
+         STCM R0,B'0011',CPUSER#                                        00170000
+         STCM R1,B'1111',CPUSER#+2                                      00171000
+         LR    R1,R2                                                    00172000
+         CALL HEXIT                                                     00173000
+         STCM R0,B'1111',CPUMOD                                         00174000
+         SPACE 1                                                        00175000
+*              FIND SYSLOCS.                                            00176000
+         MVC   AASYSLC,=A(ASYSLC-PSA)                                   00177000
+         OI    AASYSLC,X'80'                                            00178000
+         SR    R0,R0                                                    00179000
+         LA    R1,AASYSLC                                               00180000
+         SVC   SVCDCP                                                   00181000
+         SPACE 1                                                        00182000
+         CALL  SYMBLD          BUILD SYMBOL TABLE DISPLAY.              00183000
+         SPACE 1                                                        00184000
+         CALL RDVBLD         BUILD RDEV TABLE                           00185000
+         SPACE 1                                                        00186000
+         CALL USRBLD          BUILD USER TABLE.                         00187000
+         SPACE 1                                                        00188000
+         CALL IMENU           SET LAST ASSEMBLY TIME                    00189000
+         SPACE 6                                                        00190000
+*---------------------------------------------------------------------- 00191000
+*              MAIN LOOP - TAKE SNAPS UNTIL SHUTDOWN IS POSTED.         00192000
+*---------------------------------------------------------------------- 00193000
+         DO WHILE,TM,CPFLAG,CPSHUT,Z                                    00194000
+            SETIME &INTRV                                               00195000
+            SPACE 1                                                     00196000
+*              COUNT IT                                                 00197000
+            AP  SNAPS,=P'1'                                             00198000
+            NI  SNAPS,X'0F'   MAKE IT WRAP AROUND.                      00199000
+            SPACE 1                                                     00200000
+*              INTERVAL.                                                00201000
+            MVC LASTCLOK,THISCLOK                                       00202000
+            STCK THISCLOK                                               00203000
+            LM  R0,R1,THISCLOK                                          00204000
+            SL  R0,LASTCLOK                                             00205000
+            SL  R1,LASTCLOK+4                                           00206000
+            BC B'0011',*+6                                              00207000
+               BCTR R0,0                                                00208000
+            SRDL R0,12        INTEGER MICROCSECONDS                     00209000
+            D   R0,F01000      INTEGER MILLISECONDS.                    00210000
+            ST  R1,SNAPINT                                              00211000
+            M   R0,F00001                                               00212000
+            A   R1,F00500                                               00213000
+            D   R0,F01000                                               00214000
+            CVD R1,DWORK                                                00215000
+            MVC INTVL,=X'40202120'                                      00216000
+            ED  INTVL,DWORK+L'DWORK-2                                   00217000
+            SPACE 1                                                     00218000
+            LA  R1,DWORK                                                00219000
+            DIAG R1,0,X'C'    PSEUDO TIMER.                             00220000
+            MVC   CDATE,DWORK                                           00221000
+            MVC CDATE(2),DWORK+3                                        00222000
+            MVC CDATE+3(2),DWORK                                        00223000
+            MVC CTIME,DWORK+8                                           00224000
+            IF CLI,CTIME,C'0',EQ,THEN                                   00225000
+               MVI CTIME,C' '                                           00226000
+            IF END                                                      00227000
+            SPACE 3                                                     00228000
+*---------------------------------------------------------------------- 00229000
+*              COLLECT OTHER DATA.                                      00230000
+*---------------------------------------------------------------------- 00231000
+            CALL SYSDCP      SYSTEM STUFF.                              00232000
+            CALL DEVDCP       DEVICES.                                  00233000
+            CALL USRDCP                                                 00234000
+            SPACE 3                                                     00235000
+*---------------------------------------------------------------------- 00236000
+*              BUILD SCREENS.                                           00237000
+*---------------------------------------------------------------------- 00238000
+            CALL TRMPAGE                                                00239000
+            CALL SDVPAGE                                                00240000
+            CALL ALLUSR                                                 00241000
+            CALL ACTUSR                                                 00242000
+            CALL SYSPAGE                                                00243000
+            CALL CLOCK                                                  00244000
+            SPACE 3                                                     00245000
+*---------------------------------------------------------------------- 00246000
+*              POST FOR NEW WRITES.                                     00247000
+*---------------------------------------------------------------------- 00248000
+            L   R1,=V(DEVICES)                                          00249000
+            USING DEVSECT,R1                                            00250000
+            DO WHILE,CLC,DEVADDR,HEXFS,NE                               00251000
+               IF TM,DEVFLAGS,DEVREADY,O,AND,                          +00252000
+               TM,DEVFLAGS,DEVHOLD,Z,THEN                               00253000
+                  L   R2,DEVDSP                                         00254000
+                  USING DSPSECT,R2                                      00255000
+                  IF TM,DSPFLAGS,DSPNEW,O,THEN                          00256000
+                     OI  DEVFLAGS,DEVWRQ                                00257000
+                  IF END                                                00258000
+                  DROP R2                                               00259000
+               IF END                                                   00260000
+               SPACE 1                                                  00261000
+               LA  R1,DEVNEXT                                           00262000
+            DO END                                                      00263000
+            DROP R1                                                     00264000
+            SPACE 1                                                     00265000
+*---------------------------------------------------------------------- 00266000
+*              TURN OFF 'NEW SCREEN' FLAGS IN SCREEN STATUS.            00267000
+*---------------------------------------------------------------------- 00268000
+            L   R2,ADSPLAY                                              00269000
+            USING DSPSECT,R2                                            00270000
+            LR    R3,R2                                                 00271000
+            DO UNTIL,CR,R2,R3,EQ                                        00272000
+               NI  DSPFLAGS,255-DSPNEW                                  00273000
+               SPACE 1                                                  00274000
+               L   R2,DSPNEXT                                           00275000
+            DO END                                                      00276000
+            L   R2,ADSPCLOK                                             00277000
+            NI  DSPFLAGS,255-DSPNEW                                     00278000
+            DROP R2                                                     00279000
+            SPACE 2                                                     00280000
+*---------------------------------------------------------------------- 00281000
+*              NOW, ISSUE START I/O'S, AS NECESSARY.                    00282000
+*---------------------------------------------------------------------- 00283000
+            SVC SVCDISP                                                 00284000
+            SPACE 2                                                     00285000
+*---------------------------------------------------------------------- 00286000
+*              AND WAIT FOR NEXT TIME THROUGH.                          00287000
+*---------------------------------------------------------------------- 00288000
+            WAIT                                                        00289000
+         DO END                                                         00290000
+         EJECT                                                          00291000
+*---------------------------------------------------------------------- 00292000
+*              WRITE OUT RESULTS.                                       00293000
+*---------------------------------------------------------------------- 00294000
+         SPACE 1                                                        00295000
+         DATA                                                           00296000
+MAINM1   EQU   *                                                        00297000
+MAINDIAL DC    X'402020206B2020206B2020206B2020206B202120',C' DIALS,'   00298000
+         DC    X'15'                                                    00299000
+MAINSNAP DC    X'402020206B2020206B2020206B2020206B202120',C' SNAPS.'   00300000
+MAINM1L  EQU   *-MAINM1                                                 00301000
+         SPACE 1                                                        00302000
+MAINM2   EQU   *                                                        00303000
+MAINFAIL DC    X'402020206B2020206B2020206B2020206B202120'              00304000
+         DC    C' VMBLOK CHAIN FAILURES.'                               00305000
+         DC    X'15'                                                    00306000
+MAINM2L  EQU   *-MAINM2                                                 00307000
+         SPACE 1                                                        00308000
+         PROC                                                           00309000
+         ED    MAINDIAL,DIALS                                           00310000
+         ED    MAINSNAP,SNAPS                                           00311000
+         ED    MAINFAIL,USERFAIL                                        00312000
+         SPACE 1                                                        00313000
+         LM    R0,R1,=A(MAINM1L,MAINM1)                                 00314000
+         SVC   SVCWTO                                                   00315000
+         SPACE 1                                                        00316000
+         LM    R0,R1,=A(MAINM2L,MAINM2)                                 00317000
+         SVC   SVCWTO                                                   00318000
+         SPACE 3                                                        00319000
+         PROC  END                                                      00320000
+*********************************************************************** 00321000
+*              E Q U A T E S                                          * 00322000
+*********************************************************************** 00323000
+         SPACE 1                                                        00324000
+ENT      EQU   C''''                                                    00325000
+CLR      EQU   C'_'                                                     00326000
+PA1      EQU   C'%'                                                     00327000
+PA2      EQU   C'>'                                                     00328000
+PA3      EQU   C','                                                     00329000
+TRQ      EQU   X'01' EQU SOH - FIRST BYTE TRANSFERRED.                  00330000
+PF1      EQU   C'1'                                                     00331000
+PF2      EQU   C'2'                                                     00332000
+PF3      EQU   C'3'                                                     00333000
+PF4      EQU   C'4'                                                     00334000
+PF5      EQU   C'5'                                                     00335000
+PF6      EQU   C'6'                                                     00336000
+PF7      EQU   C'7'                                                     00337000
+PF8      EQU   C'8'                                                     00338000
+PF9      EQU   C'9'                                                     00339000
+PFA      EQU   C':'                                                     00340000
+PFB      EQU   C'#'                                                     00341000
+PFC      EQU   C'@'                                                     00342000
+         SPACE 1                                                        00343000
+         SPACE 1                                                        00344000
+TIC      EQU   X'08'                                                    00345000
+SENSE    EQU   X'04'                                                    00346000
+         SPACE 1                                                        00347000
+WRITE    EQU   X'01'          GENERAL WRITE                             00348000
+WRITERAS EQU   X'05'          WRITE, ERASING SCREEN.                    00349000
+ERASEAU  EQU   X'0F'          ERASE ALL UNPROTECTED FIELDS.             00350000
+         SPACE 1                                                        00351000
+READ     EQU   X'02'          GENERAL READ.                             00352000
+READBUFF EQU   X'02'          READ FULL BUFFER.                         00353000
+READMOD  EQU   X'06'          READ MODIFIED FIELDS ONLY.                00354000
+READINQ  EQU   X'0A'          READ INQUIRY FROM CONSOLE.                00355000
+         SPENDCHK                                                       00356000
+         EJECT                                                          00357000
+*********************************************************************** 00358000
+*              V M / 3 7 0   D S E C T S.                             * 00359000
+*********************************************************************** 00360000
+         SPACE 1                                                        00361000
+         PSA                                                            00362000
+         COPY  RBLOKS                                                   00363000
+         COPY  VMBLOK                                                   00364000
+         AGO   .DONT          SUPPRESS DSECTS UNTIL NEEDED.             00365000
+         SYSLOCS                                                        00366000
+.DONT    ANOP                                                           00367000
+         SPACE 12                                                       00368000
+         END                                                            00369000

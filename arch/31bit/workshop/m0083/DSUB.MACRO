@@ -1,0 +1,10 @@
+         MACRO
+&NAME    DSUB  &REG,&ADDR
+&NAME    SL    &REG+1,&ADDR+4
+         BC    B'0011',*+6
+         BCTR  &REG,0
+         S     &REG,&ADDR
+         BNZ   *+6
+         LTR   &REG+1,&REG+1
+         MEND
+//

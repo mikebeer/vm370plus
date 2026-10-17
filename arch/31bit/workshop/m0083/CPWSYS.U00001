@@ -1,0 +1,24 @@
+./ R 00050000
+PAG      DCPLIST PSA,(PFXB,PREFIXB),(XAPP,APSTAT1),                    +00050000
+./ I 00090000
+         SPACE 3                                                        00090010
+         L     R1,CPPGRI      TOTAL PAGE READS TO DATE.                 00090020
+         L     R2,CPGREAD                                               00090030
+         ST    R1,CPGREAD                                               00090040
+         SR    R1,R2                                                    00090050
+         ST    R1,CPDPGR      INCREASE IN PAGE READS                    00090060
+         SPACE 1                                                        00090070
+         L     R1,CPPGWRI     TOTAL PAGE WRITES TO DATE.                00090080
+         L     R2,CPGWRITE                                              00090090
+         ST    R1,CPGWRITE                                              00090100
+         SR    R1,R2                                                    00090110
+         ST    R1,CPDPGW      INCREASE                                  00090120
+./ R 00094000 00096000
+         IF TM,XAPP,APUOPER,O,THEN                                      00096000
+./ R 00130000 00131000
+         IF TM,XAPP,APUOPER,Z,OR,                                      +00130000
+               TM,XAPSTAT1,APUOPER,Z,THEN NO VALID DIFFERENCES.         00131000
+./ R 00138000 00139000
+         MVC   XAPSTAT1,XAPP                                            00138000
+         MVC   XAPSTAT2,XAPP+1                                          00139000
+./ D 00140000 00151000

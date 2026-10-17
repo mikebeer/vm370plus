@@ -1,0 +1,20 @@
+./ I 00265000          $ 265050 50                    10/30/84 12:41:29
+*--------------------------------------------------------------U00019   00265060
+*              POST NEW VMCF REQUESTS.                         U00019   00265120
+*--------------------------------------------------------------U00019   00265180
+            L   R1,AVMCU                                       U00019   00265240
+            USING VMUSECT,R1                                   U00019   00265300
+            DO WHILE,LTR,R1,R1,NZ                              U00019   00265360
+               L   R2,VMUDSP                                   U00019   00254000
+               USING DSPSECT,R2                                U00019   00255000
+               IF TM,DSPFLAGS,DSPNEW,O,THEN                    U00019   00256000
+                  LA  R3,VMULSTN     IF HE'S LISTENING         U00019   00265420
+                  LA  R4,VMUSNDNW    THEN HE WANTS SOMETHING   U00019   00265480
+                  CS  R3,R4,VMUSTAT  INDIVISIBLE COMPARE AND SWU00019   00265540
+               IF END                                          U00019   00258000
+               DROP R2                                         U00019   00259000
+               SPACE 1                                         U00019   00265600
+               L   R1,VMUFPNT                                  U00019   00265660
+            DO END                                             U00019   00265720
+            DROP R1                                            U00019   00265780
+            SPACE 2                                            U00019   00265840

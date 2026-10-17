@@ -1,0 +1,173 @@
+         TITLE 'FIND OUT WHAT IS HAPPENING TO STORAGE'
+STORAGE  CSECT
+***********************************************************************
+*                                                                     *
+*   STORAGE - A program to see what is happening to storage.          *
+*                                                                     *
+*   Description:  We are interested in how storage is being           *
+*             utilized.  DMKDSPNP has the count of total number of    *
+*             available pages for paging.  DMKFRENP has the total     *
+*             number of times the system has extended and DMKFRENP+4  *
+*             has the total number of times the system has returned   *
+*             an extended page.  Therefore, to find out how much      *
+*             storage we had to start out with:                       *
+*             STORAGE = DMKDSPNP + (DMKFRENP - DMKFRENP+4)            *
+*                                                                     *
+*             We will then chain through all the VMBLOKS and add up   *
+*             the total number of resident pages (VMPAGES).  This     *
+*             will give a better indication of how much storage       *
+*             is being really used instead of what is being returned  *
+*             by 'INDICATE LOAD'.  The value returned in the          *
+*             'STORAGE -nnn%' field only represents the running       *
+*             users (Q1, Q2, and Q3) and not a user that has just     *
+*             been dropped from queue but might still be running      *
+*             (and has his/her pages STILL resident).                 *
+*                                                                     *
+*                                                                     *
+*                                          Henry Nussbacher           *
+*            (c) Weizmann Institute of Science - 1983                 *
+***********************************************************************
+         SAVE  (14,12),,*              SAVE REGISTERS
+         BALR  R12,0                   ESTABLISH ADDRESSABILITY
+         USING *,R12                   TELL ASSEMBLER
+         LR    R11,R13                 SAVE CALLER'S SAVE AREA PTR
+         LA    R13,SAVE                LOAD MY SAVE AREA PTR
+         ST    R13,8(R11)              GIVE CALLER MY SAVE AREA PTR
+         ST    R11,4(R13)              TAKE CALLER'S SAVE AREA PTR
+         B     START                   BRANCH AROUND RETURN CODE
+SAVE     DC    9D'0'                   SAVE AREA
+START    L     R1,=A(PAGE)
+         DIAG  R1,0,X'38'              GET SYMBOL TABLE
+LOOP1    CLC   =CL8'DMKDSPNP',0(R1)    FIRST FIND TOTAL PAGES AVAILABLE
+         BE    FOUND1
+         CLC   =XL16'0000000000000000',0(R1)  ARE WE AT END OF DMKSYM?
+         BE    NOTFOUND
+         LA    R1,12(R1)               NEXT ENTRY
+         B     LOOP1
+NOTFOUND EQU   *
+         LINEDIT TEXT='Fatal error reading system symbol table'
+         L     R13,4(R13)              RESTORE CALLER'S SAVE AREA PTR
+         RETURN (14,12),RC=0           RETURN
+FOUND1   EQU   *
+         LA    R7,DMKDSPNP             BRING RESULTS TO HERE...
+         L     R5,X'8'(,R1)            BUILD UP THE DIAGNOSE LIST
+         ST    R5,DIAG$1               GET FREE STORAGE LOCK (DMKLOKFR)
+LOOP2    CLC   =CL8'DMKFRENP',0(R1)    NOW FIND THE EXTENDS
+         BE    FOUND2
+         CLC   =XL16'0000000000000000',0(R1)  ARE WE AT END OF DMKSYM?
+         BE    NOTFOUND
+         LA    R1,12(R1)               NEXT ENTRY
+         B     LOOP2
+FOUND2   EQU   *
+         L     R5,X'8'(,R1)            BUILD UP THE DIAGNOSE LIST
+         ST    R5,DIAG$2
+         LA    R5,4(,R5)               NEXT FULLWORD
+         ST    R5,DIAG$3
+         LA    R6,3                    BRING IN 3 FULLWORDS
+         LA    R5,DIAG$1               POINT TO BEGINNING OF LIST
+         DC    X'83560004'             AND GET REAL MEMORY
+*---------------------------------------------------------------------* GET00230
+* AT THIS POINT WE HAVE DMKDSPNP, AND THE 2 FULLWORDS AT DMKFRENP.    *
+* ONWARD TO THE VMBLOKS....                                           *
+* WE'LL SEARCH THROUGH THE CYCLIC CHAIN OF IN-CORE VMBLOK'S TO FIND   * GET00240
+* USERIDS.  A GOOD PLACE TO START WOULD BE OUR OWN VMBLOK. ITS        * GET00250
+* ADDRESS IS IN THE LOW-CORE LOCATION RUNUSER.                        * GET00260
+*---------------------------------------------------------------------* GET00230
+         LA    R8,0                CLEAR A REG FOR TOTAL RES PAGES
+         LA    R1,@RUNUSER                                              GET00280
+         LA    R6,1                WORD COUNT REQUESTED = 1             GET00290
+         LA    R7,RUNUSER          TARGET ADDRESS                       GET00300
+         DC    X'83160004'         GET REAL MEMORY DIAGNOSE             GET00310
+         L     R9,RUNUSER          ADDRESS OF CURRENT RUNUSER           GET00320
+USERLOOP EQU   *
+         LA    R5,X'8'(,R9)        OFFSET X'8'=NEXT VMBLOK              GET00340
+         ST    R5,DIAG$1                                                GET00350
+         LA    R5,X'154'(,R9)      OFFSET X'154'=# OF RESIDENT PAGES
+         ST    R5,DIAG$2
+         LA    R1,DIAG$1           ADDR OF LIST FOR DIAGNOSE X'04'      GET00380
+         LA    R6,2                COUNT OF FULLWORDS                   GET00390
+         LA    R7,VMBLOK           TARGET TO HOLD RESULTS               GET00400
+         DC    X'83160004'         GET REAL MEMORY                      GET00410
+         LH    R7,VMPAGES          GET RESIDENT PAGES
+         AR    R8,R7               ADD UP TOTAL RESIDENT PAGES
+*---------------------------------------------------------------------* 00001000
+*  NOW LET'S GET THE NEXT GUY ON THE CHAIN...                         * 00002000
+*---------------------------------------------------------------------* 00004000
+NEXTBLOK L     R9,VMPNT            ADDR OF NEXT VMBLOK                  GET00480
+         C     R9,RUNUSER          BACK WHERE WE STARTED?               GET00490
+         BNE   USERLOOP            NO...KEEP LOOPING
+         L     R2,DMKDSPNP
+         L     R3,DMKFRENP
+         L     R4,DMKFREXX
+         SR    R3,R4               DMKFRENP - DMKFRENP+4
+         AR    R2,R3               DMKDSPNP + (DMKFRENP - DMKFRENP+4)
+         LR    R4,R2               R4 = R2
+         SR    R4,R8               UNUSED = TOTAL - RESIDENT - EXTENDED
+         SR    R4,R3
+         LR    R1,R8               MOVE R8 TO ODD REGISTER R1
+         M     R0,=F'100'          MULTIPLY BY 100
+         DR    R0,R2               AND DIVIDE BY TOTAL NUMBER OF PAGES
+         LR    R9,R1               AND MOVE PRECENT TO R9
+*---------------------------------------------------------------------* 00001000
+*  ALL DONE... LET'S SEE WHAT WE HAVE                                 * 00002000
+*  R8 - TOTAL NUMBER OF RESIDENT PAGES                                * 00002000
+*  R2 - TOTAL NUMBER OF PAGES (DMKDSPNP + (DMKFRENP - DMKFRENP+4)     * 00002000
+*  R3 - TOTAL NUMBER OF EXTENDED PAGES  (DMKFRENP - DMKFRENP+4)       * 00002000
+*  R4 - UNUSED PAGES  (DMKDSPNP + (DMKFRENP - DMKFRENP+4) - R8)       * 00002000
+*  R9 - PERCENTAGE OF STORAGE IN USE                                  * 00002000
+*---------------------------------------------------------------------* 00004000
+         LINEDIT TEXT=' Total    Pages    Pages    Pages   Storage',COMX
+               P=NO,DOT=NO
+         LINEDIT TEXT=' pages   resident  unused  extended  util',COMP=X
+               NO,DOT=NO
+         LINEDIT TEXT='-------- -------- -------- -------- --------',COX
+               MP=NO,DOT=NO
+         LINEDIT TEXT='  ....     ....     ....     ....     ...%',SUB=X
+               (DEC,(R2),DEC,(R8),DEC,(R4),DEC,(R3),DEC,(R9)),COMP=NO,RX
+               ENT=NO,DOT=NO
+EXIT     EQU   *
+         L     R13,4(R13)              RESTORE CALLER'S SAVE AREA PTR
+         RETURN (14,12),RC=0           RETURN
+***********************************************************************
+*                                                                     *
+*        DATA AREAS                                                   *
+*                                                                     *
+***********************************************************************
+* DIAGNOSE LIST
+DIAG$1   DS    A                                                        GET00770
+DIAG$2   DS    A                                                        GET00780
+DIAG$3   DS    A                                                        GET00780
+* DIAGNOSE BRINGS RESULTS TO HERE
+         DS    0F
+DMKDSPNP DS    F'0'
+DMKFRENP DS    F'0'
+DMKFREXX DS    F'0'
+*
+@RUNUSER DC    A(824)              ADDR OF RUNUSER                      GET00730
+RUNUSER  DS    F                   REAL ADDRESS OF RUNUSER VMBLOK
+*
+VMBLOK   DS    0F
+VMPNT    DS    F'0'                NEXT VMBLOK IN CHAIN
+VMPAGES  DS    H'0'                RESIDENT PAGES
+VMPRGIL  DS    H'0'                UNUSED
+         LTORG
+         EJECT
+         ORG   STORAGE+X'1000'
+PAGE     DS    (X'1000')C
+R0       EQU   0
+R1       EQU   1
+R2       EQU   2
+R3       EQU   3
+R4       EQU   4
+R5       EQU   5
+R6       EQU   6
+R7       EQU   7
+R8       EQU   8
+R9       EQU   9
+R10      EQU   10
+R11      EQU   11
+R12      EQU   12
+R13      EQU   13
+R14      EQU   14
+R15      EQU   15
+         END

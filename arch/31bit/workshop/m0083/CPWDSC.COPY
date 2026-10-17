@@ -1,0 +1,337 @@
+*COPY  CPWDSC                                                           00001000
+*********************************************************************** 00011000
+*              STRUCTURE OF TABLE OF LOGGED ON USERS.                   00021000
+*********************************************************************** 00031000
+         SPACE 1                                                        00041000
+USRSECT  DSECT                                                          00051000
+USRNEXT  DS    A              FORWARD LINK.                             00061000
+         SPACE 1                                                        00071000
+USRDAT   EQU   *              BEGIN ACTUAL USER DATA.                   00081000
+USRBA    DS    A              VMBLOK ADDRESS.                           00091000
+USRID    DS    CL8            USERID.                                   00101000
+USRACNT  DS    CL8            ACCOUNT ID                                00111000
+USRTERM  DS    A              POINTER TO CONSOLE RDEVBLOK.              00121000
+         SPACE 1                                                        00131000
+USROTTIM DS    D              OLD TTIME VALUE.                          00141000
+USROVTIM DS    D              OLD VTIME VALUE.                          00151000
+         SPACE 1                                                        00161000
+USRTURNS DS    F              VMPGREAD+VMPGWRIT SINCE LOGON             00171000
+USRTURND DS    F              CHANGE IN USRTURNS                        00181000
+         SPACE 1                                                        00191000
+USRSIOS  DS    F VMIOCNT SINCE LOGON (NON-SPOOLING, NON-PAGING SIOS)    00201000
+USRSIOD  DS    F              CHANGE IN USRSIOS                         00211000
+         SPACE 1                                                        00221000
+USRAPAG  DS    H              VMPDRUM+VMPDISK (AUX STORAGE PAGES)       00231000
+USRRPAG  DS    H              VMPAGES (REAL CORE)                       00241000
+         SPACE 1                                                        00251000
+USRWS    DS    H              PROJECTED WORKING SET, PAGES (WMWSPROJ)   00261000
+         SPACE 1                                                        00271000
+USRCADDR DS    CL4            CONSOLE ADDRESS,IN CHARACTER FORM.        00281000
+         SPACE 1                                                        00291000
+USRVPCT  DS    F              PERCENT VIRTUAL CPU TIME USED*10, BINARY. 00301000
+USRTPCT  DS    F              PERCENT SUPVR CPU TIME USED * 10, BINARY. 00311000
+         SPACE 1                                                        00321000
+USRPRIOR DS    X              PRIORITY                                  00331000
+         SPACE 1                                                        00341000
+USRFLAGS DS    X'00'          MISCELLANEOUS FLAGS.                      00351000
+USRFND   EQU   X'80'          HE WAS FOUND LAST PASS. FOR USRDCP ONLY.  00361000
+USRACTV  EQU   X'40'          HE IS CONSIDERED ACTIVE.                  00371000
+USRFORCE EQU   X'10'          USER WILL BE FORCED.                      00381000
+USR2TIM  EQU   X'08'          HAS BEEN THROUGH BEFORE.                  00391000
+         SPACE 1                                                        00401000
+USRSTATS DS    CL12            FROM VMRSTAT IN VMBLOK.                  00411000
+         SPACE 1                                                        00421000
+         DS    0D                                                       00431000
+USRDATL  EQU   *-USRDAT       USERS DATA LENGTH.                        00441000
+USRSECTL EQU   *-USRSECT                                                00451000
+         EJECT                                                          00461000
+*********************************************************************** 00471000
+*        SYSTEM SYMBOL TABLE STRUCTURE.                               * 00481000
+*        NOTE THAT END OF TABLE IS FLAGGED BY THE NAME XL8'0'         * 00491000
+*********************************************************************** 00501000
+         SPACE 1                                                        00511000
+SYMTAB   DSECT                                                          00521000
+SYMNAME  DS    CL8                                                      00531000
+SYMADDR  DS    A                                                        00541000
+SYMLEN   EQU   *-SYMTAB                                                 00551000
+         SPACE 3                                                        00561000
+*********************************************************************** 00571000
+*              INTERNAL REAL DEVICE TABLE STRUCTURE.                  * 00581000
+*********************************************************************** 00591000
+         SPACE 1                                                        00601000
+RDVSECT  DSECT                                                          00611000
+RDVSIOT  DS    F              TOTAL SIO'S                               00621000
+RDVSIOD  DS    F              SIO'S, THIS SNAP.                         00631000
+RDVUSER  DS    A              RDEVUSER: A(VMBLOK) OF DEDICATED USER     00641000
+RDVADDR  DS    Y              DEVICE ADDRESS.                           00651000
+RDVSER   DS    CL6            DEVICE SERIAL NUMBER.                     00661000
+RDVCADDR DS    CL3            ADDRESS IN CHARACTER FORM.                00671000
+RDVSTAT  DS    CL1            RDEVSTAT                                  00681000
+RDVFLAG  DS    CL1            RDEVFLAG                                  00691000
+RDVTYPC  DS    CL1            RDEVTYPC                                  00701000
+RDVTYPE  DS    CL1            RDEVTYPE                                  00711000
+RDVTFLG  DS    CL1            RDEVTFLG FROM RDVTCTL                     00721000
+         SPACE 1                                                        00731000
+RDVNEXT  DS    0D                                                       00741000
+RDVSECTL EQU   RDVNEXT-RDVSECT                                          00751000
+         SPACE 3                                                        00761000
+*********************************************************************** 00771000
+*              CPWATCH'S VIRTUAL DEVICE TABLE                           00781000
+*********************************************************************** 00791000
+         SPACE 1                                                        00801000
+DEVSECT  DSECT                                                          00811000
+         DS    0D                                                       00821000
+*              FIXED DATA.                                              00831000
+DEVADDR  DS    Y                                                        00841000
+         SPACE 1                                                        00851000
+DEVTYPE  DS    X                                                        00861000
+DEVCONS  EQU   1                                                        00871000
+DEVPRT   EQU   2                                                        00881000
+DEVGRAF  EQU   3                                                        00891000
+         SPACE 1                                                        00901000
+DEVCADDR DS    CL3            ADDRESS, AS A CHARACTER STRING.           00911000
+         SPACE 1                                                        00921000
+*              CHANGEABLE DATA.                                         00931000
+DEVFLAGS DS    X                                                        00941000
+DEVERAS  EQU   X'80'          ISSUE WRITE/ERASE NEXT WRITE.             00951000
+DEVRDIS  EQU   X'40'          READ HAS BEEN ISSUED.                     00961000
+DEVRDCP  EQU   X'20'          READ IS COMPLETE.                         00971000
+DEVREADY EQU   X'10'          DEVICE IS READY, AS FAR AS IS KNOWN.      00981000
+DEVWRQ   EQU   X'08'          WRITE QUEUED TO DEVICE.                   00991000
+DEVHOLD  EQU   X'02'          DO NOT REWRITE THIS SCREEN.               01001000
+DEVCONN  EQU   X'01'          YES,THERE IS SOMEONE THERE.               01011000
+         SPACE 1                                                        01021000
+DEVSTAT1 DS    X              AS IN BYTE ONE OF CSW.                    01031000
+         SPACE 1                                                        01041000
+DEVINA   DS    CL14           INPUT AREA.                               01051000
+         ORG   DEVINA                                                   01061000
+*              REDEFINE FOR 3270.                                       01071000
+DEVAID   DS    C              AID CHARACTER.                            01081000
+         DS    CL2            CURSOR ADDRESS.                           01091000
+         DS    CL3            SBA, BEGIN FIELD ADDRESS.                 01101000
+DEVDATA  DS    CL(L'DEVINA-(*-DEVINA))                                  01111000
+         ORG                                                            01121000
+         SPACE 1                                                        01131000
+DEVDSP   DS    A              ADDRESS OF DISPLAY TABLE ENTRY.           01141000
+DEVPAG   DS    A              SCREEN ADDRESS.                           01151000
+         ORG   DEVDSP         REDEFINE FOR CONSOLE.                     01161000
+DEVBEGST DS    A              BEGIN OF CONSOLE STACK                    01171000
+DEVENDST DS    A              END OF CONSOLE STACK                      01181000
+         ORG                                                            01191000
+         SPACE 1                                                        01201000
+DEVNEXT  DS    0D                                                       01211000
+DEVSECTL EQU   DEVNEXT-DEVSECT                                          01221000
+         SPACE 3                                                        01231000
+*********************************************************************** 01241000
+*              DISPLAY CHAIN STRUCTURE.                               * 01251000
+*********************************************************************** 01261000
+*  NOTE THAT THIS STRUCTURE WILL ALLOW DYNAMIC ADDITION OF DISPLAYS     01271000
+*  IF THAT BECOMES DESIRABLE.                                           01281000
+         SPACE 1                                                        01291000
+DSPSECT  DSECT DESCRIBE CHAIN OF DISPLAYS.                              01301000
+DSPNEXT  DC    A(*-*)         NEXT DISPLAY.                             01311000
+DSPFSCR  DC    A(*-*)         FIRST SCREEN OF THIS DISPLAY.             01321000
+DSPSCRC  DC    PL2'0'         NUMBER OF SCREENS.                        01331000
+DSPUSRS  DC    PL2'0'         NUMBER OF LISTENERS.                      01341000
+DSPFLAGS DC    AL1(0)         MISCELLANEOUS FLAGS.                      01351000
+DSPNC    EQU   X'80'          NEVER-CHANGE DISPLAY.                     01361000
+DSPNEW   EQU   X'40'                                                    01371000
+         DS    0F                                                       01381000
+DSPSECTL EQU   *-DSPSECT                                                01391000
+         SPACE 3                                                        01401000
+*********************************************************************** 01411000
+*              SCREEN BUFFER ELEMENT STRUCTURE.                       * 01421000
+*********************************************************************** 01431000
+         SPACE 1                                                        01441000
+SCRSECT  DSECT DESCRIBE SCREEN LIST ELEMENT.                            01451000
+SCRNEXT  DS    A                                                        01461000
+         DS    A                                                        01471000
+         DS    0D                                                       01481000
+SCREEN   DS    CL1920         3270 MODEL 2                              01491000
+SCRBEG   EQU   SCREEN+10      BEGIN OF WRITTEN PART.                    01501000
+SCREEND  EQU   *                                                        01511000
+SCREENLN EQU   SCREEND-SCREEN                                           01521000
+         SPACE 1                                                        01531000
+         ORG   SCREEN                                                   01541000
+SCRLINE1 DS    CL80                                                     01551000
+SCRLINE  EQU   SCRLINE1                                                 01561000
+SCRLINE2 DS    CL80                                                     01571000
+SCRLINE3 DS    CL80                                                     01581000
+         SPACE 1                                                        01591000
+         ORG   SCRBEG                                                   01601000
+SCRINTVL DS    CL4                                                      01611000
+SCRPAGN  DS    CL4                                                      01621000
+         ORG   SCRLINE1+L'SCRLINE1-22                                   01631000
+SCRDATE  DS    CL8                                                      01641000
+         DS    C                                                        01651000
+SCRTIME  DS    CL8                                                      01661000
+         DS    C                                                        01671000
+SCRMORE  DS    CL4                                                      01681000
+         ORG                                                            01691000
+         DS    0D                                                       01701000
+SCRSECTL EQU   *-SCRSECT                                                01711000
+         SPACE 3                                                        01721000
+*---------------------------------------------------------------------- 01731000
+*              CONSECT - CONSOLE OUTPUT Q                               01741000
+*---------------------------------------------------------------------- 01751000
+CONSECT  DSECT                                                          01761000
+CONLINK  DS    A              FORWARD POINTER                           01771000
+CONLEN   DS    Y              LENGTH, THIS BLOCK                        01781000
+CONDATLN DS    Y(L'CONDATA)   ACTUAL LENGTH OF DATA.                    01791000
+CONDATA  DS    CL130          DATA TO WRITE                             01801000
+         DS    0D                                                       01811000
+CONSECTL EQU   *-CONSECT                                                01821000
+         SPACE 3                                                        01831000
+*---------------------------------------------------------------------- 01841000
+*              SVCSECT - SVC SAVE AREA SECTION.                         01851000
+*---------------------------------------------------------------------- 01861000
+SVCSECT  DSECT                                                          01871000
+SVCSPSW  DS    D                                                        01881000
+SVCSREGS DS    16F                                                      01891000
+         DS    0D                                                       01901000
+SVCSECTL EQU   *-SVCSECT                                                01911000
+         SPACE 3                                                        01921000
+*********************************************************************** 01931000
+*              SYMBOL TABLE DISPLAY STRUCTURE.                          01941000
+*********************************************************************** 01951000
+SYMOSECT DSECT                                                          01961000
+SYMONAME DS    CL8                                                      01971000
+         DS    C                                                        01981000
+SYMOADDR DS    CL7                                                      01991000
+SYMOUSE  EQU   *-1-SYMOSECT                                             02001000
+         DS    CL4                                                      02011000
+SYMOLEN  EQU   *-SYMOSECT                                               02021000
+SYMOCOL  EQU   80/SYMOLEN                                               02031000
+         SPACE 1                                                        02041000
+SYMOLAST EQU   (SYMOCOL-1)*SYMOLEN                                      02051000
+         EJECT                                                          02061000
+*---------------------------------------------------------------------- 02071000
+*              SYSTEM INFORMATION DSECT                                 02081000
+*---------------------------------------------------------------------- 02091000
+         SPACE 1                                                        02101000
+CPWSECT  DSECT                                                          02111000
+         SPACE 1                                                        02121000
+*              FIND THE ATTACHED PROCESSOR                              02131000
+XAPSTAT1 DS    X                                                        02141000
+XAPSTAT2 DS    X                                                        02151000
+OAPSTAT1 DS    X              APSTAT1, LAST SNAP.                       02161000
+         DS    1X                                                       02171000
+         SPACE 1                                                        02181000
+XPREFIXA DS    F              PREFIX OF M. P. PAGE 0.                   02191000
+XPREFIXB DS    F              PREFIX OF A. P. PAGE 0.                   02201000
+         SPACE 3                                                        02211000
+*              MAIN PROCESSOR UTILIZATION.                              02221000
+*              LAST VALUES FROM PSA.                                    02231000
+CPWSTART DS    D              STARTIME                                  02241000
+CPIDLED  DS    D              IDLEWAIT                                  02251000
+CPPAGED  DS    D              PAGEWAIT                                  02261000
+CPIONTD  DS    D              IONTWAIT                                  02271000
+CPPROBD  DS    D              PROBTIME                                  02281000
+         SPACE 1                                                        02291000
+CPSVCCT  DS    F              SVC COUNT                                 02301000
+         SPACE 1                                                        02311000
+*              DIFFERENCES IN ABOVE, IN MICROSECONDS.                   02321000
+CPUPTIM  DS    F              (DIFFERENCE FROM CURRENT CLOCK)           02331000
+CPIDLEF  DS    F              RUNNING DIFFERENCE.                       02341000
+CPPAGEF  DS    F                                                        02351000
+CPIONTF  DS    F                                                        02361000
+CPPROBF  DS    F                                                        02371000
+         SPACE 1                                                        02381000
+CPSVCF   DS    F              DIFFERENCE                                02391000
+         SPACE 3                                                        02401000
+*              ATTACHED PROCESSOR UTILIZATION.                          02411000
+*              LAST VALUES FROM ALTERNATE PSA.                          02421000
+         DS    D                                                        02431000
+APIDLED  DS    D              IDLEWAIT                                  02441000
+APPAGED  DS    D              PAGEWAIT                                  02451000
+APIONTD  DS    D              IONTWAIT                                  02461000
+APPROBD  DS    D              PROBTIME                                  02471000
+         SPACE 1                                                        02481000
+APSVCCT  DS    F              SVC COUNT                                 02491000
+         SPACE 1                                                        02501000
+*              DIFFERENCES IN ABOVE, IN MICROSECONDS.                   02511000
+         DS    F                                                        02521000
+APIDLEF  DS    F              RUNNING DIFFERENCE.                       02531000
+APPAGEF  DS    F                                                        02541000
+APIONTF  DS    F                                                        02551000
+APPROBF  DS    F                                                        02561000
+         SPACE 1                                                        02571000
+APSVCF   DS    F              DIFFERENCE                                02581000
+         SPACE 3                                                        02591000
+CPGRATE  DS    H              PAGERATE FROM PSA                         02601000
+CPGLOAD  DS    H              PAGELOAD FROM PSA                         02611000
+         SPACE 1                                                        02621000
+CPGREAD  DS    F              PGREAD FROM PSA                           02631000
+CPGWRITE DS    F              PGWRITE FROM PSA                          02641000
+CPDPGR   DS    F              DIFFERENCE IN PGREAD                      02651000
+CPDPGW   DS    F                  "       " PGWRITE                     02661000
+         SPACE 1                                                        02671000
+*              FROM DMKSYS                                              02681000
+CPUSRS   DS    F              USERS LOGGED ON (DMKSYSNM)                02691000
+CPDIAL   DS    F              USERS DIALLED (DMKSYSND)                  02701000
+CPMAXA   DS    F              MAXUSERS      (DMKSYSMA)                  02711000
+CPMAXU   DS    F              MAX EVER (DMKSYSMU)                       02721000
+         DS    0D                                                       02731000
+CPACTV   DS    PL8            ACTIVE USERS COUNT.                       02741000
+CPINACT  DS    PL8            INACTIVE USERS COUNT.                     02751000
+CPSLEEP  DS    PL8            SLEEPING USERS COUNT.                     02761000
+         SPACE 1                                                        02771000
+CPFREE   DS    F              FREE PAGE COUNT, FROM DMKDSPNP            02781000
+         SPACE 1                                                        02791000
+CPCHT    DS    16F            CHANNEL SIO COUNT, CUMULATIVE             02801000
+CPCHF    DS    16F            CHANNEL SIO COUNT, DIFFERENCE.            02811000
+         SPACE 3                                                        02821000
+CPQ1     DS    PL3            # IN QUEUE 1                              02831000
+CPQ2     DS    PL3                                                      02841000
+CPQ3     DS    PL3                                                      02851000
+CPEL     DS    PL3            ELIGIBLE                                  02861000
+         SPACE 3                                                        02871000
+*              FROM DMKPTR - PAGING STUFF                               02881000
+CPAPTRPR DS    A              A(DMKPTRPR) FROM SYM TAB                  02891000
+CPAPTRFF DS    A              A(DMKPTRFF)                               02901000
+CPAPTRSS DS    A              A(DMKPTRSS)                               02911000
+CPAPTRSC DS    A              A(DMKPTRSC)                               02921000
+         SPACE 1                                                        02931000
+*                             CURRENT CONTENTS                          02941000
+CPTPTR00 DS    A(0)           FOR SVCDCP                                02951000
+CPTPTRPR DS    A              PAGES RECLAIMED FROM FLUSH LIST           02961000
+CPTPTRFF DS    A              PAGES SWAPPED FROM FLUSH LIST             02971000
+CPTPTRSS DS    A              PAGES STOLEN FROM ACTIVE USERS            02981000
+CPTPTRSC DS    A              NUMBER OF RESIDENT SHARED PAGES.          02991000
+         SPACE 1                                                        03001000
+*                             DIFFERENCE                                03011000
+CPDPTRPR DS    A                                                        03021000
+CPDPTRFF DS    A                                                        03031000
+CPDPTRSS DS    A                                                        03041000
+         SPACE 3                                                        03051000
+*              FROM DMKSCH                                              03061000
+CPASCHPU DS    F              A(DMKSCHPU)                               03071000
+CPDSCHPU DS    F              DMKSCHPU - SUM OF PROJ W. S.              03081000
+         DS    0D                                                       03091000
+CPWSECTL EQU   *-CPWSECT                                                03101000
+         SPACE 6                                                        03111000
+*---------------------------------------------------------------------- 03121000
+*              AID TABLE DEFINITION                                     03131000
+*---------------------------------------------------------------------- 03141000
+AIDSECT  DSECT                                                          03151000
+AIDKEY   DS    AL1            AID CHARACTER.                            03161000
+AIDROUT  DS    AL3            ROUTINE ADDRESS.                          03171000
+AIDSECTL EQU   *-AIDSECT                                                03181000
+         SPACE 3                                                        03191000
+*---------------------------------------------------------------------- 03201000
+*              ENTER KEY COMMANDS.                                      03211000
+*---------------------------------------------------------------------- 03221000
+ENTSECT  DSECT                                                          03231000
+ENTNAME  DS    CL8            COMMAND WORD                              03241000
+ENTROUT  DS    AL3            ROUTINE ADDRESS                           03251000
+ENTSECTL EQU   *-ENTSECT                                                03261000
+         SPACE 6                                                        03271000
+*---------------------------------------------------------------------- 03281000
+*              CONSOLE COMMANDS                                         03291000
+*---------------------------------------------------------------------- 03301000
+         SPACE 1                                                        03311000
+CMDSECT  DSECT                                                          03321000
+CMDROUT  DS    A                                                        03331000
+CMDNAME  DS    CL8                                                      03341000
+CMDSECTL EQU   *-CMDSECT                                                03351000
+         EJECT                                                          03361000

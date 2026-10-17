@@ -1,0 +1,23 @@
+./ R 00240000          $ 240490 490                   03/19/84 10:35:55
+OVERH    DS    CL17'Supervisor 999%'                                    00240000
+./ R 00262000          $ 262490 490                   03/19/84 10:35:55
+REALCORE DS    CL17'REAL CORE 999999K'                                  00262490
+./ R 00264000          $ 264490 490                   03/19/84 10:35:55
+FREECORE DS    CL17'FREE CORE 999999K'                                  00264490
+./ R 00308000          $ 308490 490                   03/19/84 10:35:55
+CHAN0L   DS    CL17'Chan  0  9999/s'                                    00308490
+./ R 00446000          $ 446490 490                   03/19/84 10:35:55
+            MVC OVERH,=CL(L'OVERH)'Supervisor'                          00446000
+./ R 00586000          $ 586490 490                   03/19/84 10:35:55
+            MVC   REALCORE+L'REALCORE-6-1(6),28-6(R13)                  00586490
+./ R 00593000          $ 593490 490                   03/19/84 10:35:55
+            MVC   FREECORE+L'FREECORE-6-1(6),28-6(R13)                  00593490
+./ R 00708000 00710000 $ 708290 290                   03/19/84 10:35:55
+                  MVC 0(L'CHAN0L,R4),=CL(L'CHAN0L)'Chan  0'             00708290
+                  LR  R1,R6   CHANNEL NUMBER.                           00708580
+                  MH  R1,=AL2(L'CHANLBL) OFFSET INTO TABLE.             00708870
+                  LA  R1,CHANLBL(R1) ABS LOC OF ENTRY                   00709160
+                  MVC 5(L'CHANLBL,R4),0(R1)                             00709450
+                  DATA                                                  00709740
+CHANLBL           DC    CL2' 0',C' 1 2 3 4 5 6 7 8 9101112131415'       00710030
+                  PROC                                                  00710320

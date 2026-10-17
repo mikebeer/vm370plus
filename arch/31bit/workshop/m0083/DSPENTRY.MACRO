@@ -1,0 +1,21 @@
+         MACRO                                                          00010000
+&NAME    DSPENTRY &CCW,&NEXT,&FLAGS=0                                   00020000
+         ENTRY &NAME                                                    00030000
+         AIF   (T'&NEXT NE 'O').SPN                                     00040000
+&NAME    DC    A(@&SYSNDX)                                              00050000
+         AGO   .SPD                                                     00060000
+.SPN     ANOP                                                           00070000
+&NAME    DC    A(&NEXT)                                                 00080000
+.SPD     ANOP                                                           00090000
+         AIF   (T'&CCW NE 'O').SPC                                      00100000
+         DC    A(0)                                                     00110000
+         DC    PL2'0'         # OF SCREENS.                             00120000
+         AGO   .SPZ                                                     00130000
+.SPC     DC    A(&CCW)                                                  00140000
+         DC    PL2'1'         # OF SCREENS.                             00150000
+.SPZ     ANOP                                                           00160000
+         DC    PL2'0'         # OF LISTENERS.                           00170000
+         DC    AL1(&FLAGS)                                              00180000
+         DC    3AL1(0)                                                  00190000
+@&SYSNDX DS    0F             FOLLOWING.                                00200000
+         MEND                                                           00210000

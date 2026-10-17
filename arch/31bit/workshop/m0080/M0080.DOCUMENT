@@ -1,0 +1,15 @@
+
+This new version aides in recovering ERASEd disk files, and in salvaging
+data from bad HDAs.
+
+There are now commands to:
+
+1) Search for disk blocks containing specified text strings or pointer
+   block numbers.
+
+2) Create a file from a disk block. This allows one to retreive data
+   from a file that has been erased.
+
+3) Copy a minidisk block-by-block to another minidisk. This is useful
+   if some heads of an HDA are bad. We used it recently to recover most
+   of the files on a minidisk on a bad HDA.

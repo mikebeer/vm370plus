@@ -1,0 +1,61 @@
+:DOCNUM.0058
+:TITLE.WIOS VM TOOLS
+:BODY
+Weizmann Institute of Science VM Tools.  A collection of tools for
+supporting VM and enhancing it's capabilities.  Included are:  1. ENABLE/
+DISABLE execs; 2. Storage Utilization Display; 3. AP/MP Locks Display;
+4. Set Maximum Number of VM Users; 5. Tape Sensing Program; 6. FBA Sensing
+Program; 7. Segment (DMKSNT) Display; 8. Desk Top Calculator for XEDIT; 9.
+Full Screen Tape Browsing and Loading Utility; 10. 2 Full Screen Games-
+Snakes and Slash; 11. EMSG- (for server machines), FORMAT MSG, MSGNOH,
+WNG TEXT according to recipient EMSG setting instead of sender's; 11.
+FORCE exec to implement FORCE ALL CODE.  For further details review the
+M0058 DOCUMENT file.
+:AUTHOR.Henry Nussbacher
+Yossie Silverman
+Lawrence Kalman
+:ADDRESS
+:ALINE.Weizmann Institute of Science
+:ALINE.Computer Center
+:ALINE.Rechovot, Israel  76100
+:ALINE.054-82988
+:EADDRESS
+:FILE.CALC     XEDIT    B1 V         71         14          1
+:FILE.FORTSUB  TXTLIB   B1 F         80        382         31
+:FILE.TBROWSE  MODULE   B1 V      11616          3         12
+:FILE.TAPSENSE MODULE   B1 V       4664          3          5
+:FILE.STORAGE  MODULE   B1 V       8192          2          9
+:FILE.SNAKE    MODULE   B1 V       3188          3          4
+:FILE.SLASH    MODULE   B1 V       4492          3          5
+:FILE.SEG      MODULE   B1 V       1096          3          2
+:FILE.MAXUSERS MODULE   B1 V       8192          2          9
+:FILE.FBASENSE MODULE   B1 V       1560          3          2
+:FILE.APLOCKS  MODULE   B1 V       8192          2          9
+:FILE.FORTSUB  MEMO     B1 V         80        463         22
+:FILE.DMKLOH   MAXUSERS B1 F         80         27          3
+:FILE.DMKLOG   MAXUSERS B1 F         80         11          2
+:FILE.DMKEMA   MAXUSERS B1 F         80          2          1
+:FILE.WISMAC   MACLIB   B1 F         80        693         55
+:FILE.TBROWSE  HELPLOCA B1 V         73        452         10
+:FILE.SNAKE    HELPGAME B1 F         80         77          7
+:FILE.SLASH    HELPGAME B1 F         80         69          6
+:FILE.STORAGE  EXEC     B1 V         71         17          1
+:FILE.FORCE    EXEC     B1 F        255        115         29
+:FILE.ENABLE   EXEC     B1 V         77         97          4
+:FILE.DISABLE  EXEC     B1 V         77         97          4
+:FILE.CALC     EXEC     B1 V         79        205          7
+:FILE.M0058    DOCUMENT B1 F         80        114         10
+:FILE.TESTEMSG ASSEMBLE B1 F         80         33          4
+:FILE.TBROWSE  ASSEMBLE B0 F       1024         65         66
+:FILE.TAPSENSE ASSEMBLE B0 F         80        218         18
+:FILE.STORAGE  ASSEMBLE B2 F         80        173         15
+:FILE.SNAKE    ASSEMBLE B0 F       1024         28         29
+:FILE.SLASH    ASSEMBLE B0 F       1024         15         16
+:FILE.SEG      ASSEMBLE B1 F         80        104          9
+:FILE.SCREEN   ASSEMBLE B0 F       1024         18         19
+:FILE.MAXUSERS ASSEMBLE B2 F         80        154         13
+:FILE.FBASENSE ASSEMBLE B0 F         80        132         11
+:FILE.EMSG     ASSEMBLE B1 F         80        160         13
+:FILE.APLOCKS  ASSEMBLE B2 F       1024         19         20
+:DATE.84 02 14
+:BLOCKS.37

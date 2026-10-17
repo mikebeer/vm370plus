@@ -1,0 +1,127 @@
+         MACRO
+         SPRED0 &C,&O2,&O3,&O4,&O5,&O6,&T=*,&F=
+.* SYSLIST2 - N:
+.* <<OPRN> OP1 <OP2 <OP3>>> MASK
+.* IF ONLY MASK SPECIFIED, JUST GENERATES BRANCH MASK.
+         LCLA  &I,&OFF,&OP1,&OP2,&OP3
+         LCLC  &OP,&W
+.*
+         AIF   (&C EQ 1).J40  MASK ONLY.
+.*
+&I       SETA  1
+.A05     ANOP
+&W       SETC  'CLC CLI C   CH  TM  CP  TRT CLM LTR CLCLCR  SPM CLR LTD+
+               RCDR LTERCER CL  CD  CE  TS  TIO CS  CDS '(&I,4)
+         AIF   ('&W     '(1,5) EQ '&O2     '(1,5)).A10 - OPERATION.
+&I       SETA  &I+4
+         AIF   (&I LT 96).A05
+&I       SETA  1
+&OFF     SETA  0              NO OPERATION SPECIFIED.
+         AGO   .A20
+.*
+.A10     ANOP
+&OP      SETC  '&O2'
+&OFF     SETA  1
+&I       SETA  2
+.A20     ANOP
+.*
+.B10     ANOP
+         AIF   ('&OP' NE '').J10      GO DO IT.
+.* FIGURE OUT OPERATION.
+         AIF   (T'&O2 EQ 'N').B20
+         AIF   (T'&O2 NE 'U').C10
+&I       SETA  1
+.B15     ANOP
+&W       SETC   'R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10R11R12R13R14R15F0 F2 +
+               F4 F6 '(&I,3)
+         AIF   ('&W    '(1,4) EQ '&O2    '(1,4)).B20
+&I       SETA  &I+3
+         AIF   (&I LT 60).B15
+         AGO   .C10
+.*             FIRST IS REG
+.B20     ANOP
+         AIF   (&C-1 NE 1).B30
+&OP      SETC  'LTR'
+         AIF   ('&O2'(1,1) NE 'F').J10
+&OP      SETC  'LTDR'
+         AGO   .J10
+.B30     AIF   (&C-1 NE 2).B50
+         AIF   (T'&O3 EQ 'N').B33
+&I       SETA  1
+.B31     ANOP
+&W       SETC   'R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10R11R12R13R14R15F0 F2 +
+               F4 F6 '(&I,3)
+         AIF   ('&W    '(1,4) EQ '&O3    '(1,4)).B33
+&I       SETA  &I+3
+         AIF   (&I LT 60).B31
+         AGO   .B40
+.*             RR INST.
+.B33     ANOP
+&OP      SETC  'R'
+         AIF   ('&O2'(1,1) NE 'F').B35
+&OP      SETC  'DR'
+.B35     AIF   ('&O2' EQ '&O3').B37
+&OP      SETC  'C&OP'
+         AGO   .J10
+.B37     ANOP
+&OP      SETC  'LT&OP'
+         AGO   .J10
+.B40     ANOP                 RX, RS INST.
+&OP      SETC  'C'
+         AIF   (T'&O3 EQ 'A' OR T'&O3 EQ 'F').J10
+         AIF   ('&O3'(1,2) EQ '=A' OR '&O3'(1,2) EQ '=F').J10
+&OP      SETC  'CH'
+         AIF   (T'&O3 EQ 'H' OR T'&O3 EQ 'Y').J10
+         AIF   ('&O3'(1,2) EQ '=H' OR '&O3'(1,2) EQ '=Y').J10
+&OP      SETC  'CE'
+         AIF   (T'&O3 EQ 'E' OR '&O3'(1,2) EQ '=E').J10
+&OP      SETC  'CE'
+         AIF   (T'&O3 EQ 'D' OR '&O3'(1,2) EQ '=D').J10
+         AGO   .M10
+.B50     ANOP  3-OPERAND INST.
+&OP      SETC  'CLM'
+         AGO   .J10
+.C10     AIF   (&C GT 4).M10
+         AIF   (T'&O2 EQ 'C' OR '&O2'(1,2) EQ '=C').C15
+         AIF   (T'&O2 EQ 'X' OR '&O2'(1,2) EQ '=X').C15
+         AIF   (T'&O2 NE 'Z' AND '&O2'(1,2) NE '=Z').D10
+.C15     ANOP
+&OP      SETC  'CLC'
+         AIF   ('&O2'(1,1) EQ '=').J10  LITERALS.
+         AIF   (T'&O3 NE 'N').J10
+.*       CLI, TM ?
+&OP      SETC  'TM'
+         AIF   ('&O4' EQ 'O' OR '&O4' EQ 'NO').J10
+         AIF   ('&O4' EQ 'Z' OR '&O4' EQ 'NZ' OR '&O4' EQ 'M').J10
+&OP      SETC  'CLI'
+         AGO   .J10
+.*
+.D10     AIF   (T'&O2 EQ 'P' OR '&O2'(1,2) EQ '=P').D20
+         AIF   (T'&O3 NE 'P' AND '&O2'(1,2) NE '=P').E10
+.D20     ANOP
+&OP      SETC  'CP'
+         AGO   .J10
+.E10     MNOTE 0,'UNRECOGNISABLE OPERATION.  CLC ASSUMED.'
+&OP      SETC  'CLC'
+.*       AGO   .J10
+.*             FINALLY - DO IT.
+.J10     ANOP
+         AIF   (&C-&OFF GT 4).M10
+         AIF   (&C-&OFF-1 NE 3).J20
+         &OP   &SYSLIST(2+&OFF),&SYSLIST(3+&OFF),&SYSLIST(4+&OFF)
+         AGO   .J40
+.J20     AIF   (&C-&OFF-1 NE 2).J30
+         &OP   &SYSLIST(2+&OFF),&SYSLIST(3+&OFF)
+         AGO   .J40
+.J30     AIF   ('&OP' EQ 'TS' OR '&OP' EQ 'SPM' OR '&OP' EQ 'TIO').J35
+         &OP   &SYSLIST(2+&OFF),&SYSLIST(2+&OFF)
+         AGO   .J40
+.J35     &OP   &SYSLIST(2+&OFF)
+.J40     ANOP
+.J41     SPRED1 &SYSLIST(&C+1),T=&T,F=&F
+         MEXIT
+.M10     ANOP
+         MNOTE 8,'PREDICATE &C ELEMENTS OF &O2 &O3 &O4 &O5 &O6, T=&T, F+
+               =&F.'
+         MEND
+//

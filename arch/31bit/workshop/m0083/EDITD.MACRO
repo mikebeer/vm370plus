@@ -1,0 +1,19 @@
+         MACRO
+&NAME    EDITD &O,&I,&SIGN=NO,&DEC=0,&LENGTH=
+&NAME    ZAP   12(8,R13),&I
+         MVC   20(8,R13),=X'4020202020202120'
+         AIF   ('&SIGN' EQ 'NO').NOSIGN1
+         LA    R1,27(,R13)
+         EDMK  20(8,R13),16(R13)
+         BNM   *+10
+         BCTR  R1,0
+         MVI   0(R1),C'-'
+         AGO   .SIGN1
+.NOSIGN1 ED    20(8,R13),16(R13)
+.SIGN1   AIF   (T'&LENGTH EQ 'O').DEFLN
+         MVC   &O+L'&O-&LENGTH.(&LENGTH),28-&LENGTH.(R13)
+         AGO   .NODEFLN
+.DEFLN   MVC   &O,28-L'&O.(R13)
+.NODEFLN ANOP
+         MEND
+//

@@ -1,0 +1,10 @@
+./ R 00608000 00618000 $ 608990 990                   10/22/84 08:46:16
+DSPBEGIN DSPENTRY MENU,SCRMENU,,FLAGS=DSPNC                    U00018   00608000
+DSPSYS   DSPENTRY SYS                                          U00018   00609000
+DSPTRM   DSPENTRY TRM                                          U00018   00610000
+DSPSDV   DSPENTRY DEV                                          U00018   00611000
+DSPALL   DSPENTRY ALL                                          U00018   00612000
+DSPACT   DSPENTRY ACT                                          U00018   00614000
+DSPSYA   DSPENTRY SYMA,FLAGS=DSPNC                             U00018   00615000
+DSPSYX   DSPENTRY SYMX,FLAGS=DSPNC                             U00018   00616000
+DSPCLOCK DSPENTRY CLOCK,SCRCLOCK,DSPBEGIN                      U00018   00618000

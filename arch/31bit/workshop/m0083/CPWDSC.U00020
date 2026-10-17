@@ -1,0 +1,4 @@
+./ R 01151000          $ 1155990 4990                 11/02/84 09:19:56
+DEVPAG   DS    A              SCREEN NUMBER OFFSET                      01155990
+./ R 01243520 01244240 $ 1243910 390                  11/02/84 09:19:56
+         COPY  VMUMSGID       MESSAGE ID DEFINITIONS.                   01244240

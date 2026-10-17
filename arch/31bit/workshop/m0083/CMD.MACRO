@@ -1,0 +1,9 @@
+         MACRO                                                          CMD00010
+&NAME    CMD   &V                                                       CMD00020
+         LCLA  &L                                                       CMD00030
+&L       SETA  K'&V-1                                                   CMD00040
+         LA    0,&L                                                     CMD00050
+         LA    1,=CL&L.&V                                               CMD00060
+         DIAG  1,0,8                                                    CMD00070
+         MEND                                                           CMD00080
+//

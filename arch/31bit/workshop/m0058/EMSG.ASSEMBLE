@@ -1,0 +1,160 @@
+EMSG     TITLE 'EMSG  -  FORMAT EMSG ACCORDING TO MSG RECIPIENT'        00001000
+         SPACE                                                          00002000
+* AUTHOR - L.S. KALMAN - WEIZMANN INSTITUTE OF SCIENCE - 05/27/83       00003000
+*                                                                       00004000
+* ENTRY CONDITIONS -                                                    00005000
+*   R14 POINTS TO A DIAGNOSE X'5C' INSTRUCTION (AS DESCRIBED BELOW).    00006000
+*   R15 CONTAINS THE ENTRY POINT ADDRESS.                               00007000
+*                                                                       00008000
+* THE DIAGNOSE X'5C' INSTRUCTION POINTED TO BY R14 HAS THE FOLLOWING    00009000
+* DIFERENCES AS COMPARED TO THE STANDARD FORM -                         00010000
+*   1) RX CANNOT BE R13, R14 OR R15.                                    00011000
+*   2) RY CANNOT BE R14 OR R15.                                         00012000
+*   3) RX+1 CONTAINS THE ADDRESS OF A USERID.                           00013000
+*                                                                       00014000
+* OPERATION -                                                           00015000
+*   IF THE ISSUER HAS CP PRIVILEGE CLASS C OR E AND IF THE 8-BYTE FIELD 00016000
+*   POINTED TO BY RX+1 IS A VALID LOGGED-ON USERID, ERROR MESSAGE       00017000
+*   EDITING IS PERFORMED IN ACCORDANCE TO THE SETTING OF THE EMSG       00018000
+*   FUNCTION OF THAT USERID, OTHERWISE THE EMSG SETTING OF THE CALLER   00019000
+*   IS USED.                                                            00020000
+*                                                                       00021000
+* EXIT CONDITIONS -                                                     00022000
+*   RX AND RY MAY BE MODIFIED AS PER THE STANDARD DIAGNOSE FUNCTION     00023000
+*   RETURN IS TO THE LOCATION 4(R14)                                    00024000
+*   R15 CONTAINS THE FOLLOWING RETURN CODE -                            00025000
+*     0 ERROR MESSAGE EDITING PERFORMED ACCORDING TO THE SPECIFIED      00026000
+*     USER.  NON-ZERO REFLECTS THE CP RETURN CODE THAT PREVENTED THE    00027000
+*     ERROR MESSAGE EDITING.  EDITING DONE ACCORDING TO THE CALLER.     00028000
+*   IF RX AND/OR RY ARE INCORRECTLY SPECIFIED, RETURN IS TO 1(R14),     00029000
+*     WHICH WILL CAUSE A SPECIFICATION EXCEPTION.                       00030000
+*                                                                       00031000
+* REQUIRED MACLIB - DMKSP                                               00032000
+         SPACE                                                          00033000
+EMSG     CSECT ,                                                        00034000
+         USING *,R15                                                    00035000
+         STM   R0,R13,REGSAVE     SAVE REGISTERS                        00036000
+         SR    R4,R4                                                    00037000
+         IC    R4,1(,R14)         RX AND RY                             00038000
+         SRDL  R4,4               RY IN R3                              00039000
+         SRL   R5,28                                                    00040000
+         CH    R4,=AL2(13)        RX LE 12                              00041000
+         BNL   SPECERR            NO                                    00042000
+         CH    R5,=AL2(13)        RY LE 13                              00043000
+         BH    SPECERR            NO                                    00044000
+         SPACE                                                          00045000
+         SLDL  R4,2               INDEX RX AND RY IN REGSAVE            00046000
+         SPACE                                                          00047000
+*LOCATE VMBLOK OF INTENDED RECIPIENT                                    00048000
+         SPACE                                                          00049000
+         L     R1,REGSAVE+4(R4)   RX+1                                  00050000
+         CLC   0(3,R1),=CL3'OP'   CP OPERATOR (BY ABBREVIATED NAME)?    00051000
+         BE    LOCATEOP           YES                                   00052000
+         MVC   CPCMND+4(8),0(R1)  RECIPIENT                             00053000
+         LA    R0,CPCMND          POINT TO COMMAND                      00054000
+         LA    R2,L'CPCMND        COMMAND LENGTH                        00055000
+         ICM   R2,B'1000',=X'40'  INDICATE RESPONSE TO BUFFER           00056000
+         LA    R1,EBUFFER         RESPONSE AREA                         00057000
+         LA    R3,L'EBUFFER       RESPONSE AREA LENGTH                  00058000
+         DIAG  R0,R2,X'08'        ISSUE CP LOCATE COMMAND               00059000
+         ST    R2,RETCODE         RETURN CODE                           00060000
+         LTR   R2,R2                                                    00061000
+         BNZ   EXIT1              LOCATE FAILED                         00062000
+         CLC   =C'VMBLOK = ',EBUFFER   DID IT WORK?                     00063000
+         BNE   EXIT1                   NO                               00064000
+         TR    EBUFFER+9(7),HEXTAB     GET ADDRESS IN BINARY            00065000
+         PACK  CPCONSTS+1(4),EBUFFER+9(7) WITH PACK INSTRUCTION         00066000
+         L     R1,CPCONSTS             PACKED ADDRESS OF VMBLOCK        00067000
+         B     GETLEVEL                                                 00068000
+         SPACE                                                          00069000
+*LOCATE VMBLOK OF CP OPERATOR FROM PSA                                  00070000
+         SPACE                                                          00071000
+LOCATEOP DS    0H                                                       00072000
+         XC    RETCODE,RETCODE    SUCCESS ASSUMED                       00073000
+         USING PSA,R0                                                   00074000
+         LA    R2,ASYSOP          POINTER TO CP OPERATOR'S VMBLOK       00075000
+         DROP  R0                                                       00076000
+         ST    R2,CPCONSTS             REAL ADDRESS                     00077000
+         LA    R0,CPCONSTS             ADDRESS OF LIST                  00078000
+         LA    R1,1                    NUMBER OF ENTRIES                00079000
+         LR    R2,R0                   RESULT FIELD                     00080000
+         MVC   GETREAL,=X'83010004'    DIAG R0,R1,X'04' GET REAL STORAG 00081000
+         EX    0,GETREAL               DIAG IS IN IMPURE PAGE           00082000
+         L     R1,CPCONSTS             ADDRESS OF VMBLOCK               00083000
+         SPACE                                                          00084000
+*GET VMMLEVEL FIELD FROM VMBLOK                                         00085000
+         SPACE                                                          00086000
+GETLEVEL DS    0H                                                       00087000
+         LA    R2,((VMMLEVEL-VMBLOK)/4)*4(R1) MESSAGE LEVEL             00088000
+         ST    R2,CPCONSTS             REAL ADDRESS                     00089000
+         LA    R0,CPCONSTS             ADDRESS OF LIST                  00090000
+         LA    R1,1                    NUMBER OF ENTRIES                00091000
+         LR    R2,R0                   RESULT FIELD                     00092000
+         MVC   GETREAL,=X'83010004'    DIAG R0,R1,X'04' GET REAL STORAG 00093000
+         EX    0,GETREAL               DIAG IS IN IMPURE PAGE           00094000
+         SPACE                                                          00095000
+*DETERMINE WHAT PART, IF ANY, OF MESSAGE TO SEND                        00096000
+         SPACE                                                          00097000
+         L     R2,REGSAVE(R4)     RX (ADDRESS OF MESSAGE)               00098000
+         L     R3,REGSAVE(R5)     RY (LENGTH OF MESSAGE)                00099000
+         TM    CPCONSTS+(VMMLEVEL-VMBLOK)-((VMMLEVEL-VMBLOK)/4)*4,VMMSGX00100000
+               ON                 EMSG OFF?                             00101000
+         BO    ENDTST1            NO                                    00102000
+         SR    R3,R3              YES, DON'T SEND ANY MESSAGE           00103000
+         B     ENDTSTS                                                  00104000
+ENDTST1  DS    0H                                                       00105000
+         TM    CPCONSTS+(VMMLEVEL-VMBLOK)-((VMMLEVEL-VMBLOK)/4)*4,VMMCOX00106000
+               DE+VMMTEXT         CHECK MSG SETTINGS                    00107000
+         BO    EXIT0              BOTH MSG AND CODE, DON'T CHANGE       00108000
+         BM    ENDTST2            MSG OR CODE                           00109000
+         SR    R3,R3              NO TEXT NO CODE                       00110000
+         B     ENDTSTS                                                  00111000
+ENDTST2  DS    0H                                                       00112000
+         TM    CPCONSTS+(VMMLEVEL-VMBLOK)-((VMMLEVEL-VMBLOK)/4)*4,VMMCOX00113000
+               DE                 CODE ONLY?                            00114000
+         BO    ENDTST3            YES                                   00115000
+         LA    R2,11(,R2)         NO, SKIP CODE                         00116000
+         SH    R3,=H'11'          REDUCE COUNT ACCORDINGLY              00117000
+         B     ENDTSTS                                                  00118000
+ENDTST3  LA    R3,10              LENGTH IS CODE ONLY                   00119000
+         SPACE                                                          00120000
+ENDTSTS  DS    0H                                                       00121000
+         ST    R2,REGSAVE(R4)     RX (ADDRESS OF MESSAGE)               00122000
+         ST    R3,REGSAVE(R5)     RY (LENGTH OF MESSAGE)                00123000
+         SPACE                                                          00124000
+EXIT0    LM    R0,R13,REGSAVE     RESTORE REGISTERS                     00125000
+         L     R15,RETCODE        RETURN CODE                           00126000
+         B     4(R14)             NORMAL RETURN                         00127000
+         SPACE                                                          00128000
+EXIT1    LM    R0,R13,REGSAVE     RESTORE REGISTERS                     00129000
+         L     R15,RETCODE        RETURN CODE                           00130000
+         BR    R14                EXECUTE STANDARD DIAGNOSE             00131000
+         SPACE                                                          00132000
+SPECERR  LM    R0,R13,REGSAVE     RESTORE REGISTERS                     00133000
+         B     1(R14)             CAUSE SPECIFICATION EXCEPTION         00134000
+         DROP                                                           00135000
+         TITLE 'EMSG - FORMAT EMSG ACCORDING TO RECIPIENT - PURE DATA'  00136000
+HEXTAB   DC    256X'0F'           CHARACTER TO HEX DIGITS               00137000
+         ORG   HEXTAB+X'81'       LOWER A .. F                          00138000
+         DC    X'FAFBFCFDFEFF'                                          00139000
+         ORG   HEXTAB+X'C1'       UPPER A .. F                          00140000
+         DC    X'FAFBFCFDFEFF'                                          00141000
+         ORG   HEXTAB+X'F0'       DIGIT 0 .. 9                          00142000
+         DC    X'F0F1F2F3F4F5F6F7F8F9'                                  00143000
+         ORG   ,                                                        00144000
+         SPACE                                                          00145000
+         LTORG                                                          00146000
+         TITLE 'EMSG - FORMAT EMSG - IMPURE DATA'                       00147000
+REGSAVE  DS    14F           REGISTER SAVE AREA                         00148000
+RETCODE  DS    F             RETURN CODE                                00149000
+CPCONSTS DS    2F            INFORMATION FROM VMBLOK, 2ND WORD IS GUARD 00150000
+GETREAL  DS    F             PLACE FOR DIAGNOSE X'04' INSTR             00151000
+EBUFFER  DS    CL80          BUFFER FOR RESPONSE TO CP COMMANDS         00152000
+CPCMND   DC    C'LOC XXXXXXXX' LOCATE COMMAND                           00153000
+         SPACE                                                          00154000
+         COPY  EQU                                                      00155000
+         SPACE                                                          00156000
+         PSA                                                            00157000
+         SPACE                                                          00158000
+         COPY  VMBLOK                                                   00159000
+         END                                                            00160000

@@ -1,0 +1,4 @@
+./ R 00871000          $ 872990 1990                  10/30/84 12:41:29
+AVMCU    DC    A(0)           CHAIN OF VMCF USER BLOCKS.       U00019   00872990
+VMCSOS   DC    F'0'           COUNT OF OUTSTANDING VMCF INTERRUU00019   00874980
+         DC    2A(0)          FUTURE                           U00019   00876970

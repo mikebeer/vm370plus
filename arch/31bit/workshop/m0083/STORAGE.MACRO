@@ -1,0 +1,6 @@
+         MACRO                                                          S  00860
+         STORAGE                                                        S  00870
+         GBLC  &PROCN                                                   S  00880
+&PROCN.S DSECT                                                          S  00890
+         MEND                                                           S  00900
+//

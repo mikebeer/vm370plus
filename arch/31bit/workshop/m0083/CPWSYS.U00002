@@ -1,0 +1,11 @@
+./ R 00050000
+PAG      DCPLIST PSA,(PFXA,PREFIXA),(PFXB,PREFIXB),(XAPP,APSTAT1),     +00050000
+./ I 00092000
+         MVC XPREFIXA,PFXA                                              00092100
+./ I 00128000
+            SPACE 1                                                     00128100
+            L     R1,XPREFIXA PICK UP STUFF FROM ABSOLUTE PSA           00128200
+            DCP   PAG,BASE=(R1)                                         00128300
+            SPACE 1                                                     00128400
+            MVC CPGLOAD,PGW                                             00128500
+            MVC CPGRATE,PGW+2                                           00128600

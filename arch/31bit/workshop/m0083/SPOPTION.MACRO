@@ -1,0 +1,19 @@
+         MACRO
+         SPOPTION
+         GBLB  &SPGENR,&SPNESTL
+         LCLA  &I
+.A10     AIF   (&I GT N'&SYSLIST).A80
+&I       SETA  &I+1
+         AIF   ('&SYSLIST(&I)' NE 'GEN').A11
+&SPGENR  SETB  1
+.A11     AIF   ('&SYSLIST(&I)' NE 'NOGEN').A12
+&SPGENR  SETB  0
+.A12     AIF   ('&SYSLIST(&I)' NE 'NEST').A13
+&SPNESTL SETB  1
+.A13     AIF   ('&SYSLIST(&I)' NE 'NONEST').A14
+&SPNESTL SETB  0
+.A14     ANOP
+         AGO   .A10
+.A80     ANOP
+         MEND
+//

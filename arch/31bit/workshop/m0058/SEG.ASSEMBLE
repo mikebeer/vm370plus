@@ -1,0 +1,104 @@
+SEGMENT  START
+         LR    R12,R15
+         USING SEGMENT,R12
+         ST    R14,SAVRET
+         LA    R5,8(,R1)             OPTION FROM PLIST
+         CLI   0(R5),FENCE           DID WE HIT X'FF'?
+         BE    ERROR                 NOTHING WAS SPECIFIED
+CHECK1   CLC   0(8,R5),=CL8'LOAD'    WAS LOAD ASKED FOR?
+         BNE   CHECK2                NOPE, KEEP TRYING
+         LA    R3,X'00'              YES, SET UP FOR 'LOAD SHARED'
+         B     AOK                   AND GET THE SEGMENT NAME
+CHECK2   CLC   0(8,R5),=CL8'LOADN'   WAS A LOAD NONSHARED ASKED FOR?
+         BNE   CHECK3                NOPE, KEEP TRYING
+         LA    R3,X'04'              YES, SET UP FOR 'LOAD NONSHARED'
+         B     AOK                   AND GET THE SEGMENT NAME
+CHECK3   CLC   0(8,R5),=CL8'FIND'    WAS A FINDSYS ASKED FOR?
+         BNE   CHECK4                NOPE, KEEP TRYING
+         LA    R3,X'0C'              YES, SET UP FOR 'FINDSYS'
+         B     AOK                   AND GET THE SEGMENT NAME
+CHECK4   CLC   0(8,R5),=CL8'PURGE'   WAS A PURGESYS ASKED FOR?
+         BNE   ERROR                 NOPE, THAT WAS HIS LAST CHANCE
+         LA    R3,X'08'              YES, SET UP FOR 'PURGESYS'
+         B     AOK                   AND GET THE SEGMENT NAME
+******** ERROR ROUTINES ********
+ERROR    LINEDIT TEXT='Syntax is "SEGMENT OPTION SEGNAME" where:',     X
+               DOT=NO
+         LINEDIT TEXT='OPTION is either: LOAD, LOADN, FIND OR PURGE',  X
+               DOT=NO
+         LINEDIT TEXT='SEGNAME is the name of a valid segment',DOT=NO
+         LA    R15,4                 LOAD A RETURN CODE
+         B     EXIT                  AND LEAVE
+ERROR64  EQU   *
+         LINEDIT TEXT='Diagnose 64 error, RC=....',SUB=(DEC,(R3)),     X
+               DOT=NO
+         LINEDIT TEXT='44=segment does not exist; 177=paging error',   X
+               DOT=NO
+         LR    R15,R3                LOAD THE RETURN CODE
+         B     EXIT
+EXIT     L     R14,SAVRET            FIND OUT WHERE TO GO BACK TO
+         BR    R14                   AND GO THERE
+******** DO THE DIAGNOSE ********
+AOK      LA    R6,8(,R5)             GET NEXT OPTION
+         CLI   0(R6),FENCE           DID WE GET X'FF'
+         BE    ERROR                 EXPLAIN IT TO HIM
+         DIAG  R6,R3,X'64'           DO THE DIAGNOSE
+         BC    2,ERROR64             DIAGNOSE ERROR
+         BC    8,SUCCESS             ALL AROUND
+* ENTER HERE IF IT'S NOT A COMPLETE SUCCESS OR A COMPLETE FAILURE,
+* I.E. IT WORKED PARTIALLY
+* FIRST CHECK IF IT'S A PURGESYS
+         CLC   0(8,R5),=CL8'PURGE'   WAS PURGESYS ASKED FOR?
+         BNE   ONWARD1
+         LINEDIT TEXT='Segment is not there to be purged',DOT=NO
+         LA    R15,1                 LOAD AN RC
+         B     EXIT
+ONWARD1  CLC   0(8,R5),=CL8'FIND'    WAS FINDSYS ASKED FOR?
+         BNE   ONWARD2
+         LINEDIT TEXT='Segment not found at ........ to ........',     X
+               SUB=(HEX,(R6),HEX,(R3)),DOT=NO
+         LA    R15,1                 LOAD AN RC
+         B     EXIT
+ONWARD2  CLC   0(8,R5),=CL8'LOAD'    WAS SHARED LOAD ASKED FOR?
+         BNE   ONWARD3
+         LINEDIT TEXT='Storage overlayed by shared segment loaded at', X
+               DOT=NO
+         LINEDIT TEXT='........ to ........',SUB=(HEX,(R6),HEX,(R3)),  X
+               DOT=NO
+         LA    R15,1                 LOAD AN RC
+         B     EXIT
+* HAD BETTER BE A LOAD NONSHARED...
+ONWARD3  LINEDIT TEXT='Storage overlayed by nonshared segment loaded', X
+               DOT=NO
+         LINEDIT TEXT='at ........ to ........',                       X
+               SUB=(HEX,(R6),HEX,(R3)),DOT=NO
+         LA    R15,1                 LOAD AN RC
+         B     EXIT
+******* HERE ON A CONDITION CODE = 0
+SUCCESS  EQU   *
+         CLC   0(8,R5),=CL8'LOAD'    WAS LOAD ASKED FOR?
+         BNE   NEXT1
+         LINEDIT TEXT='Shared segment loaded at ........',             X
+               SUB=(HEX,(R6)),DOT=NO
+         LA    R15,0                 CLEAR RETURN CODE
+         B     EXIT                  AND SAY BYE BYE
+NEXT1    CLC   0(8,R5),=CL8'LOADN'   WAS NONSHARED LOAD ASKED FOR?
+         BNE   NEXT2
+         LINEDIT TEXT='Nonshared segment loaded at ........',          X
+               SUB=(HEX,(R6)),DOT=NO
+         LA    R15,0                 CLEAR RC
+         B     EXIT                  AND SAY BYE
+NEXT2    CLC   0(8,R5),=CL8'FIND'    WAS FINDSYS ASKED FOR?
+         BNE   NEXT3
+         LINEDIT TEXT='Segment found at ........ to ........',         X
+               SUB=(HEX,(R6),HEX,(R3)),DOT=NO
+         LA    R15,0                 CLEAR RC
+         B     EXIT                  AND SAY BYE
+* IT HAS TO BE PURGE...WHAT ELSE IS LEFT?
+NEXT3    LINEDIT TEXT='Segment purged',DOT=NO
+         LA    R15,0                 CLEAR RC
+         B     EXIT                  AND SAY BYE
+SAVRET   DC    F'-1'
+FENCE    EQU   X'FF'
+         REGEQU
+         END   SEGMENT

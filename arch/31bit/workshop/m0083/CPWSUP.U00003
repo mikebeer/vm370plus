@@ -1,0 +1,2 @@
+./ R 00709000
+         IF =C'STOP',CONCMD,EQ,OR,=C'CMS',CONCMD,EQ,THEN                00709000

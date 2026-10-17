@@ -1,0 +1,48 @@
+         PUSH  PRINT                                                    00001000
+         PRINT ON                                                       00002000
+*               ***************************************               * 00003000
+*               *                                     *               * 00004000
+*               *        C P W A T C H   3 . 3        *               * 00005000
+*               *                                     *               * 00006000
+*               *                                     *               * 00007000
+*               *        COPYRIGHT 1978, 1980         *               * 00008000
+*               *                                     *               * 00009000
+*               *        COMINCO LTD.                 *               * 00010000
+*               *        TRAIL B.C.,                  *               * 00011000
+*               *        CANADA V1R 4C3               *               * 00012000
+*               *                                     *               * 00013000
+*               *        AUTHOR:  G. D. GEORGE.       *               * 00014000
+*               *                                     *               * 00015000
+*               *                                     *               * 00016000
+*               ****************************************                00017000
+         POP   PRINT                                                    00018000
+         SPACE 3                                                        00019000
+*---------------------------------------------------------------------- 00020000
+* CPWATCH                                                               00021000
+*              ASSEMBLY PARAMETERS.                                     00022000
+*---------------------------------------------------------------------- 00023000
+         GBLA  &USRTABS,&DYNAM,&INTRV                                   00024000
+         GBLB  &BSEP,&EDGAR,&COMINCO                                    00025000
+         GBLC &V,&M                                                     00026000
+&V       SETC  ' 3'           VERSION OF CPWATCH.                       00027000
+&M       SETC  '3'            MODIFICATION LEVEL.                       00028000
+         SPACE 2                                                        00029000
+&USRTABS SETA  130            MAX. NO. OF LOGGED-ON USERS TO KEEP TRACK 00030000
+&DYNAM   SETA  32             K OF DYNAMIC STORAGE.                     00031000
+&INTRV   SETA  10             SECONDS BETWEEN SNAPS.                    00032000
+         SPACE 2                                                        00033000
+&BSEP    SETB  1    BASIC SYSTEMS EXTENSIONS (5748-XX8) INSTALLED       00034000
+&EDGAR   SETB  0    USE EDGAR INTERFACE ON CONSOLE - NOT SUPPORTED YET. 00035000
+&COMINCO SETB  0    ENABLE LOCAL COMINCO PECULIARITIES.                 00036000
+         SPACE 3                                                        00037000
+*        &USRTABS - MAKE SURE THAT IT IS > USUAL MAX NO OF USERS.       00038000
+*              DYNAMIC OVERFLOW CODE IS INCLUDED, BUT IT WILL CAUSE     00039000
+*              PAGING PERFORMANCE DEGRADATION.                          00040000
+*                                                                       00041000
+*        &DYNAM - IF THIS OVERFLOWS, IT SHOULD FAIL CATASTROPHICALLY.   00042000
+*                                                                       00043000
+*        &INTERV - SECONDS BETWEEN EACH SNAP.                           00044000
+*                                                                       00045000
+*                                                                       00046000
+         PRINT ON,NOGEN                                                 00047000
+ TITLE '                                       CPWATCH, VERSION &V..&M' 00048000

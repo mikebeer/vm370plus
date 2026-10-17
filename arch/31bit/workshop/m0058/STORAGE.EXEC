@@ -1,0 +1,17 @@
+&TRACE OFF
+***********************************************************************
+*                                                                     *
+*     DRIVER EXEC TO CALL STORAGE MODULE.  IN ORDER TO EXIT, TYPE     *
+*     '*' AND HIT ENTER.  IF YOU DO NOT HAVE IPF 'WAKEUP', STORAGE    *
+*     MAY BE CALLED DIRECTLY.                                         *
+*                                HENRY NUSSBACHER - 1983              *
+***********************************************************************
+-TOP
+CLRSCRN
+STORAGE
+SET CMSTYPE HT
+WAKEUP AT +00:01
+&SAVERC = &RC
+SET CMSTYPE RT
+&IF &SAVERC = 6 &EXIT
+&GOTO -TOP

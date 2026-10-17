@@ -1,0 +1,131 @@
+         MACRO
+         DO    &OP1,&OP2
+         GBLB  &SPGENR
+         GBLC  &CLABEL        LABEL FOR INNER MACRO COMMUNICATION.
+         LCLA  &I,&J,&K,&I0,&J0,&BEG,&END
+         LCLC  &T,&F,&TI,&FI,&SW
+         AIF   (NOT &SPGENR).A10
+         PUSH  PRINT
+         PRINT ON,GEN
+.A10     ANOP
+         AIF   ('&OP1' EQ 'WHILE' OR '&OP1' EQ 'UNTIL').A20
+         AIF   ('&SYSLIST(N'&SYSLIST)' EQ 'BEGIN').A20
+         AIF   ('&OP1' EQ 'END' AND N'&SYSLIST EQ 1).A20
+         AGO   .E10           INVALID.
+.A20     ANOP
+         AIF   ('&OP1' NE 'UNTIL').B10
+         B     @D&SYSNDX.UT
+.B10     AIF   ('&SYSLIST(N'&SYSLIST)' EQ 'BEGIN').B30
+         AIF   ('&OP1' NE 'WHILE' AND '&OP1' NE 'UNTIL').D10
+         AIF   (N'&SYSLIST NE 1).B12
+         MNOTE 8,'NO PREDICATE FOR DO &SYSLIST(1).'
+.B12     ANOP
+.*             GENERATE LABELS AND TEST ENTRANCE.
+         SPLABEL PUSH,@D&SYSNDX.ND,@D&SYSNDX.TS
+         AIF   ('&OP1' NE 'WHILE').B15
+         SPLABEL PUSH,@D&SYSNDX.WH
+         AGO   .B17
+.B15     SPLABEL PUSH,@D&SYSNDX.UT
+.B17     SPLABEL PUSH,@D&SYSNDX.ND
+@D&SYSNDX.TS DS    0H
+         SPNEST IN
+         AIF   ('&OP2' EQ 'TEST').F10
+.*             GENERATE (COMPARE) AND BRANCH TEST FOR WHILE,UNTIL,BEGIN
+.B30     ANOP
+&BEG     SETA  2
+&END     SETA  N'&SYSLIST
+         AIF   ('&SYSLIST(N'&SYSLIST)' NE 'BEGIN').B40
+&BEG     SETA  1
+&END     SETA  N'&SYSLIST-1
+.B40     SPLABEL POP
+&F       SETC  '&CLABEL'      ND
+         SPLABEL POP
+&T       SETC  '&CLABEL'      WH, UT
+.* NOTE WE MUST NEGATE TEST IF 'DO UNTIL'
+         AIF   ('&CLABEL'(7,2) NE 'UT').B47
+&T       SETC  '&F'
+&F       SETC  '&CLABEL'
+.B47     SPLABEL PUSH,&CLABEL - NEED IT TO GENERATE WH OR UT TARGET IF
+         SPARSE &SYSLIST(1),&SYSLIST(2),&SYSLIST(3),&SYSLIST(4),       +
+               &SYSLIST(5),&SYSLIST(6),&SYSLIST(7),&SYSLIST(8),        +
+               &SYSLIST(9),&SYSLIST(10),                               +
+               &SYSLIST(11),&SYSLIST(12),&SYSLIST(13),&SYSLIST(14),    +
+               &SYSLIST(15),&SYSLIST(16),&SYSLIST(17),&SYSLIST(18),    +
+               &SYSLIST(19),&SYSLIST(20),                              +
+               &SYSLIST(21),&SYSLIST(22),&SYSLIST(23),&SYSLIST(24),    +
+               &SYSLIST(25),&SYSLIST(26),&SYSLIST(27),&SYSLIST(28),    +
+               &SYSLIST(29),&SYSLIST(30),                              +
+               &SYSLIST(31),&SYSLIST(32),&SYSLIST(33),&SYSLIST(34),    +
+               &SYSLIST(35),&SYSLIST(36),&SYSLIST(37),&SYSLIST(38),    +
+               &SYSLIST(39),&SYSLIST(40),                              +
+               &SYSLIST(41),&SYSLIST(42),&SYSLIST(43),&SYSLIST(44),    +
+               &SYSLIST(45),&SYSLIST(46),&SYSLIST(47),&SYSLIST(48),    +
+               &SYSLIST(49),&SYSLIST(50),                              +
+               &SYSLIST(51),&SYSLIST(52),&SYSLIST(53),&SYSLIST(54),    +
+               &SYSLIST(55),&SYSLIST(56),&SYSLIST(57),&SYSLIST(58),    +
+               &SYSLIST(59),&SYSLIST(60),                              +
+               &SYSLIST(61),&SYSLIST(62),&SYSLIST(63),&SYSLIST(64),    +
+               &SYSLIST(65),&SYSLIST(66),&SYSLIST(67),&SYSLIST(68),    +
+               &SYSLIST(69),&SYSLIST(70),                              +
+               &SYSLIST(71),&SYSLIST(72),&SYSLIST(73),&SYSLIST(74),    +
+               &SYSLIST(75),&SYSLIST(76),&SYSLIST(77),&SYSLIST(78),    +
+               &SYSLIST(79),&SYSLIST(80),                              +
+               &SYSLIST(81),&SYSLIST(82),&SYSLIST(83),&SYSLIST(84),    +
+               &SYSLIST(85),&SYSLIST(86),&SYSLIST(87),&SYSLIST(88),    +
+               &SYSLIST(89),&SYSLIST(90),                              +
+               &SYSLIST(91),&SYSLIST(92),&SYSLIST(93),&SYSLIST(94),    +
+               &SYSLIST(95),&SYSLIST(96),&SYSLIST(97),&SYSLIST(98),    +
+               &SYSLIST(99),&SYSLIST(100),                             +
+               &SYSLIST(101),&SYSLIST(102),&SYSLIST(103),&SYSLIST(104),+
+               &SYSLIST(105),&SYSLIST(106),&SYSLIST(107),&SYSLIST(108),+
+               &SYSLIST(109),&SYSLIST(110),                            +
+               &SYSLIST(111),&SYSLIST(112),&SYSLIST(113),&SYSLIST(114),+
+               &SYSLIST(115),&SYSLIST(116),&SYSLIST(117),&SYSLIST(118),+
+               &SYSLIST(119),&SYSLIST(120),                            +
+               &SYSLIST(121),&SYSLIST(122),&SYSLIST(123),&SYSLIST(124),+
+               &SYSLIST(125),&SYSLIST(126),&SYSLIST(127),&SYSLIST(128),+
+               &SYSLIST(129),&SYSLIST(130),                            +
+               &SYSLIST(131),&SYSLIST(132),&SYSLIST(133),&SYSLIST(134),+
+               &SYSLIST(135),&SYSLIST(136),&SYSLIST(137),&SYSLIST(138),+
+               &SYSLIST(139),&SYSLIST(140),                            +
+               &SYSLIST(141),&SYSLIST(142),&SYSLIST(143),&SYSLIST(144),+
+               &SYSLIST(145),&SYSLIST(146),&SYSLIST(147),&SYSLIST(148),+
+               &SYSLIST(149),&SYSLIST(150),                            +
+               &SYSLIST(151),&SYSLIST(152),&SYSLIST(153),&SYSLIST(154),+
+               &SYSLIST(155),&SYSLIST(156),&SYSLIST(157),&SYSLIST(158),+
+               &SYSLIST(159),&SYSLIST(160),                            +
+               &SYSLIST(161),&SYSLIST(162),&SYSLIST(163),&SYSLIST(164),+
+               &SYSLIST(165),&SYSLIST(166),&SYSLIST(167),&SYSLIST(168),+
+               &SYSLIST(169),&SYSLIST(170),                            +
+               &SYSLIST(171),&SYSLIST(172),&SYSLIST(173),&SYSLIST(174),+
+               &SYSLIST(175),&SYSLIST(176),&SYSLIST(177),&SYSLIST(178),+
+               &SYSLIST(179),&SYSLIST(180),                            +
+               &SYSLIST(181),&SYSLIST(182),&SYSLIST(183),&SYSLIST(184),+
+               &SYSLIST(185),&SYSLIST(186),&SYSLIST(187),&SYSLIST(188),+
+               &SYSLIST(189),&SYSLIST(190),                            +
+               &SYSLIST(191),&SYSLIST(192),&SYSLIST(193),&SYSLIST(194),+
+               &SYSLIST(195),&SYSLIST(196),                            +
+               BEG=&BEG,END=&END,T=&T,F=&F
+         SPLABEL POP
+&CLABEL  DS    0H
+         AGO   .F10
+.D10     AIF   ('&OP1' NE 'END').E10
+         SPLABEL POP
+         AIF   ('&CLABEL'(1,2) EQ '@D' AND '&CLABEL'(7,2) EQ 'TS').D15
+         MNOTE 8,'DO NEST ERROR. EXPECTED "TEST" LABEL, GOT &CLABEL.'
+.D15     ANOP
+         B     &CLABEL
+         SPLABEL POP
+         AIF   ('&CLABEL'(1,2) EQ '@D' AND '&CLABEL'(7,2) EQ 'ND').D20
+         MNOTE 8,'DO NEST ERROR. EXPECTED "END" LABEL, GOT &CLABEL.'
+.D20     ANOP
+&CLABEL  EQU   *
+         SPNEST OUT
+         AGO   .F10
+.E10     MNOTE 8,'INVALID DO-TYPE'
+         AGO   .F10
+.F10     AIF   (NOT &SPGENR).F20
+         POP   PRINT
+.F20     ANOP
+         MEND
+//

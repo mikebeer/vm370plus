@@ -1,0 +1,69 @@
+Rules for the game - SLASH
+.sp
+.il 3
+SLASH is a realtime video game meant for 3270's.  The game board is a
+visual  representation of  an  area of  space in  which  bombs (#)   are
+scattered randomly at the start and remain stationary for the duration of
+the game or until they are destroyed, whichever comes first.
+.sp
+.il 3
+Aside from the  bombs there is a  plane (@)  which has  the following
+rules of motion:
+.il 3
+whenever the  plane strikes  the wall  it rebounds  by reversing  its
+direction;
+.il 3
+whenever a plane strikes  a '\' or a '/' it changes  its course by 90
+degrees;
+.il 3
+whenever the plane strikes a bomb, the bomb is destroyed.
+.sp
+.il 3
+At the start  of the game there are  no SLASHes on the  board and the
+plane will just fly  back and forth across the screen.    To add SLASHes
+press PA1 for  '\',  or,  PA2 for '/',   and a SLASH will  appear at the
+plane's  current  location  causing  the   latter  to  change  direction
+immediately.   An occupied  position on the screen (one with  a SLASH in
+it)  cannot be changed by placing a new  SLASH in it.   The plane may go
+into a loop from which no exit is possible.
+.sp
+.il 3
+If you find  yourself breathless you may freeze the  game by pressing
+SYS-REQ, To resume the game press SYS-REQ again.   Pressing ENTER at any
+point  in the  game  other  then freeze  mode  will  terminate the  game
+immediately.   Due  to the  speed of the  program the  CLEAR key  is not
+handled very successfully, try to refrain from using it unless CP erases
+the screen in order to display a message,  in which case,  after looking
+at the message, you should press CLEAR or PA2.
+.sp
+.of 8
+NOTICE: If the game "hangs up" at some point press SYS-REQ to resume the
+game.
+.of
+.sp
+.il 3
+When the game is  invoked you may specify how many  bombs you want (1
+to 100) as the first parameter to the program.  The score isn't adjusted
+accordingly,  so try to use the default (30).   The score of the game is
+calculated as follows:
+.sp
+.fo off
+.in 3
+   4 points awarded for every bomb destroyed;
+   1 point deducted for every 60 "seconds" of game time;
+   1 point deducted for every SLASH used.
+.in
+.fo on
+.sp
+.il 3
+When all  the bombs have  been destroyed the  game will stop  and the
+final screen will stay put until you  cause an interrupt with any of the
+ENTER, PFs, PAs etc.. keys.
+.sp
+.il 3
+The game SLASH will  work on any 3277 or 3278  device and will adjust
+itself to the maximum display area on the given device.
+.sp
+.fo off
+   Written for your enjoyment by: Yossie Silverman, W.I.C.C, Israel.
+.fo on

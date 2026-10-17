@@ -1,0 +1,463 @@
+ASCEBC - translate ASCII character string to EBCDIC
+       CALL ASCEBC(LENGTH,BUFF1<,BUFF2>)
+       where
+       LENGTH is the length in bytes of the ASCII string to be translated.
+       BUF1 is source string. If BUF2 is not specified, it will also contain the
+              output EBCDIC string.  BUFF1 should be  DIMENSIONed to be at least
+              LENGTH bytes long.
+       BUF2 is  an  optional  string  to contain  the  EBCDIC  output  and,   if
+              specified, should be at least length bytes long.
+
+CLEAR  - clear a 3270 screen.
+       CALL CLEAR
+
+CMSARG - pass a parameter list to a FORTRAN program.
+       CALL CMSARG (PARM1,PARM2,...)
+       where:  PARM1,PARM2,...  are REAL*8 variables  to contain the parameters.
+       CMS modules  generally are able  to accept  an invocation arglist  in the
+       form of a tokenized parameter list.  FORTRAN main programs, however, lack
+       the  capability of  accepting invocation  parameters.    This routine  is
+       intended to be  called from a FORTRAN  main program in order  to retrieve
+       the invocation PLIST,  and to pass the parameters Each element in the CMS
+       PLIST is passed to the location specified by the corresponding element in
+       the FORTRAN argument list.   If the PLIST is shorter, unused locations in
+       the FORTRAN list are filled with ZFFFFFFFFFFFFFFFF.   If the FORTRAN list
+       is shorter, the remaining PLIST elements are not transferred.   Note that
+       the first PLIST element is the command name.
+
+CORE - in-core formatted READ/WRITE.
+       CALL CORE(A,LENGTH)
+       A      is an array  name defining the buffer  to be read from  or written
+              into.   After CORE  is called,   the  next FORTRAN  READ or  WRITE
+              statement executed will be treated as a dummy and the data will be
+              read  from or  written to  the buffer  A according  to the  format
+              specified in the READ or WRITE statement.
+       LENGTH is the integer length in bytes of the buffer A.
+                                    __ _____
+              Example 1 stores variables A, I and B(4) into array X using FORMAT
+              1 then reads the data back into variables IA1,  IA2,  K,  CODE and
+              B(1) through B(10) according to FORMAT 2.
+                REAL*8 CODE
+                DIMENSION X(30), B(10)
+                ..
+                CALL CORE(X,120)
+                WRITE(20,1) A, I, (B(4), L=1,8)
+          1     FORMAT(F10.4, I2, 3X, 'ARRAY', 8A4)
+                CALL CORE(X,120)
+                READ 2, IA1, IA2, K, CODE, (B(L), L=1,10)
+          2     FORMAT(I5, 1X, I4, I2, A8, 10(A1, 2X))
+                ..
+       Example 2 uses CORE to re-read data  from an input data card according to
+       a number specified on the card.
+                DIMENSION DATA(19)
+                ..
+          100   READ 1, NF, (DATA(I), I=1,19)
+          1     FORMAT(I4, 19A4)
+                GO TO (101, 102, 103, 104, 105, 106), NF
+                ...
+          104   CALL CORE(DATA, 76)
+                READ(1, 2) ND, A, B, C, D
+          2     FORMAT(I6, 4F10.0)
+                ..
+
+DATTIM - get DATE and TIME of day.
+       CALL DATTIM(DATE,TIME)
+       DATE  is a REAL*8 variable that will  contain the eight character date in
+              MM/DD/YY format.
+       TIME is a REAL*8  variable that will contain the eight  character time in
+              HH:MM:SS format.
+
+DIAG - issue a CP diagnose command.
+       CALL DIAG(CODE, Rx, Rx+1, Ry, Ry+1, R15, &1, &2, &3)
+       where
+       CODE is function as defined in VM/SP System Programmer's Guide.
+       Rx, Rx+1, Ry, Ry+1 are the arguments to DIAG.
+       R15 is set to the value of R15 at end  of diagnose.   The value in R15 is
+              also returned as an integer function result when DIAG is called as
+              a function.
+       &1, &2, &3 are returns taken depending on condition code set by diagnose:
+              0=RETURN, 1..3=RETURN n.
+The argument list may  be truncated on the right of  all unneeded arguments (e.g
+R15).   Since all arguments present are set to  a new value at the conclusion of
+the DIAG instruction there should be only variables in the formal parameter list
+not constants.   Unneeded parameters (e.g.  Rx+1) should not be constants either
+but rather a dummy integer value (e.g. IDUM1).
+Example:
+       INTEGER IAD,LEN/160/          length of buffer
+       REAL*8 AREA(20)               buffer
+       IAD=IADDR(AREA)               address of buffer
+       CALL DIAG(0,IAD,IDUM1,LEN)    DIAG X'00' - store extended
+                                                  identification
+
+       INTEGER RX,RX1,RY,RY1
+       LOGICAL*1 COMMAND(7),RETURN(8192),RYFLAG
+       EQUIVALENCE (RYFLAG,RY)
+       DATA /'Q','U','E','R','Y',' ','P'/
+       RX=IADDR(COMMAND)
+       RX1=IADDR(RETURN)
+       RY=7
+       RYFLAG=64
+       RY1=8192
+       CALL DIAG(RX,RX1,RY,RY1,&10)
+       GOTO 20
+10     RY=8192
+20     CONTINUE
+
+EBCASC - translate EBCDIC character string to ASCII
+       CALL EBCASC(LENGTH,BUFFER1<,BUFFER2>)
+       where
+       LENGTH is the length in bytes of the EBCDIC string to be translated.
+       BUFFER1 is  source string.  If  BUFFER2 is  not specified,  it  will also
+              contain the output ASCII string.  BUFFER1 should be DIMENSIONed to
+              be at least LENGTH bytes long.
+       BUFFER2  is an  optional  string to  contain the  ASCII  output and,   if
+              specified, should be at least length bytes long.
+
+FSCLOS - close an open disk file.
+       CALL FSCLOS(FID,RC,&?)
+       where
+       FID is a REAL*8 array of  at least 3 elements.  The first  element is the
+              filename, the second is the filetype and the third is the filemode
+              letter and number (e.g. 'a1')
+       RC is the return code from CMS.
+       &? is an optional alternate return taken when RC <> 0.
+
+FSERAS - erase a disk file.
+       CALL FSERAS(FID,RC,&?)
+       where
+       FID is a REAL*8 array of  at least 3 elements.  The first  element is the
+              filename, the second is the filetype and the third is the filemode
+              letter and number (e.g. 'a1').
+       RC is the return code from CMS.
+       &? is an optional alternate return taken when RC <> 0.
+
+FSREAD - read a record from a disk file into a buffer.
+       CALL FSREAD(FID,BUFFER,LENGTH,RECFM,RECNO,NOREC,RLEN,RC,&?)
+       where
+       FID is a REAL*8 array of  at least 3 elements.  The first  element is the
+              filename, the second is the filetype and the third is the filemode
+              letter and number (e.g. 'a1').
+       BUFFER is the array to contain the record(s) read.
+       LENGTH is the length of BUFFER in bytes.
+       RECFM is either 'F' for fixed length records or 'V' for variable.
+       RECNO is is the integer record number at which to start reading.   Giving
+              a RECNO of zero means to read the next record.
+       NOREC is the number of records to read.   Giving a NOREC which is greater
+              than  one  implies  that  BUFFER will  be  contain  NOREC  logical
+              records, i.e., blocked input/output.
+       RLEN is the actual length of data read.
+       RC contains the return code from cms.
+       &? is an optional alternate return taken when RC <> 0.
+
+FSSTAT - determine if a disk file exists.
+       CALL FSSTAT(FID,NREC,RECFM,LRECL,AFID,RC,?&)
+       where
+       FID is a REAL*8 array of  at least 3 elements.  The first  element is the
+              filename, the second is the filetype and the third is the filemode
+              letter and number (e.g. 'a1').
+       NREC is the record count for the file (if it exists).
+       RECFM will contain  either 'F' for fixed  length record files or  'V' for
+              variable.
+       LRECL is the length of the longest record in the file.
+       AFID is a  REAL*8 array  of at least  3 elements  which will  contain the
+              filename,  filetype and filemode of the  data set found by FSSTAT.
+              This allows use of an asterisk for one or more elements of FID.
+       RC will contain
+          0 if the file is found on a disk accessed in r/w mode.
+          1 if it  is is found on  a disk accessed as  a r/o extension of  a r/w
+          disk.
+          2 if the file is found on a disk accessed in r/o mode.
+          3 if it  is is found on  a disk accessed as  a r/o extension of  a r/o
+          disk.
+          20 if there is an invalid character in FID.
+          24 if there is an invalid filemode.
+          28 if the file specified in FID is not found.
+          36 if the disk specified in FID is not accessed.
+       &? is an optional alternate return taken when RC <> 0.
+
+FSWRIT - write to a disk file from a buffer.
+       CALL FSWRIT(FID,BUFFER,LENGTH,RECFM,RECNO,NOREC,RC,&?)
+       where
+       FID is a REAL*8 array of  at least 3 elements.  The first  element is the
+              filename, the second is the filetype and the third is the filemode
+              letter and number (e.g. 'a1')
+       BUFFER is the array to be written.
+       LENGTH is the length of BUFFER in bytes.
+       RECFM is either 'F' for fixed length records or 'V' for variable.
+       RECNO is is the integer record number at which to start writing.   Giving
+              a RECNO of zero means to start writing at the next record.
+       NOREC is the number of records to write.  Giving a NOREC which is greater
+              than one implies  that BUFFER will be divided  into NOREC records,
+              i.e., blocked input/output.
+       RC contains the return code from cms.
+       &? is an optional alternate return taken when RC <> 0.
+
+IADDR - return memory address of FORTRAN variable.
+       I=IADDR(variablename)
+       This  may be  used in  conjunction with  DIAG or  SVC202 routines.    The
+       variable may be  a scalar or array or  array element and may  reside in a
+       COMMON block.
+
+PUTSCR - semi-fullscreen output to 3270 terminals.
+       CALL PUTSCR(SCREEN, LENGTH, .TRUE./.FALSE., LINNUM)
+       Where
+       SCREEN is an array with the screen in character format.  The only control
+              characters allowed are 3270 start field (SF)  commands.  The lines
+              should be padded to the linewidth of the screen with blanks.
+       LENGTH is the length in characters of the screen image.
+       .TRUE./.FALSE.   determine whether the screen will be erased prior to the
+              write  operation (it  is  advised to  erase  the  screen on  first
+              write).
+       LINNUM is the line to  start display on - first line  is line 1.  Display
+              may not fall through to the  command input area,  though a display
+              directly on the command input area is permitted.
+
+QUR    Query Unit Record
+       CALL QUR(CUU, LINE, LENGTH, &1, &2). where:
+       QUR will create a cp command line  which,  when executed,  will reset the
+       spooling characteristics  of the  UR device  at the  supplied address  to
+       their current state (at QUR invocation time).
+
+       CUU    is address of virtual unit record device (x'00e' etc.).
+       LINE   is output  array of length LENGTH  which will hold the  cp command
+              generated by QUR.
+       LENGTH is on input total  length of LINE and on output  length of command
+              which resides in LINE.
+       The two possible alternate returns are:
+       1      the  array LINE  was to  small to  hold the  entire command;   its
+              contents are undefined.
+       2      the device at CUU either doesn't exist or is not a UR.
+
+RAN9   To obtain a uniform random number
+       X = RAN9(0)   (for real numbers in the range 0. to 1.)
+       I = RAN9(0)   (for integers in the range 0 to 2**31-1)
+           The function RAN9 must be declared to be of type integer in a FORTRAN
+           calling program if integer results are desired.
+       An entire array  can be filled with  random numbers with one  call to the
+       routine as follows:
+       CALL ARAN9(ARRAY,NUMBER) (to store "NUMBER" real values
+                                 in ARRAY)
+       CALL IRAN9(IARRAY,NUMBER) (to store "NUMBER" integers
+                                  in IARRAY)
+       Both the fixed point integer result and  the floating point result may be
+       obtained with one call as follows:
+              COMMON /XRAN9/XDUMMY(2),FRAN9,NRAN9   (FORTRAN)
+              CALL PRAN9
+              After the call to PRAN9,  FRAN9 and NRAN9 will contain the updated
+              random numbers.
+       One may  initialize a  sequence of random  numbers with  his own  seed as
+       follows:
+       CALL RAN9A(INIT)   (INIT is any positive non-zero integer)
+
+RDTAPE FORTRAN interface to CMS RDTAPE macro.
+       CALL RDTAPE(BUFFER,LENGTH,DEVICE,MODE,RLEN,RC,&?)
+       where
+       BUFFER is an array to which will  receive the block read.   BUFFER should
+              be  DIMENSIONed in  the  calling program  sufficient  to hold  the
+              maximum possible block and should be at least LENGTH bytes long.
+       LENGTH is the length of the largest block to be read.
+       DEVICE is 'TAP1', 'TAP2', 'TAP3' or 'TAP4' representing virtual addresses
+              181-184.
+       MODE is an integer  variable set by the calling program  according to the
+              following table:
+
+                       9 TRACK                 7 TRACK
+                  6250 |1600 | 800         800 | 556 | 200| TRTCH
+                  _________________        _______________________
+                   211 | 195 | 203         187   123    59     OT
+                                           179   115    51     O
+                                           171   107    43     ET
+                                           163    99    35     E
+                                           147    83    19     OC
+
+       RLEN is set by RDTAPE to the integer length of the block actually read.
+       RC is set by RDTAPE to  the integer return code set by  the RDTAPE macro.
+              The user  can specify that  return be  made to an  alternate label
+              when RC is  non-zero,  by giving that label as  the 7th parameter.
+              The following return codes are normal:
+                    1 Invalid function or parameter list
+                    2 End-of-file or end-of-tape
+                    3 Permanent I/O error
+                    4 Invalid device address
+                    5 Tape not attached
+                    8 Incorrect length error
+
+SBREAK,EBREAK,TBREAK  FORTRAN interface  to  STAX  macro for  handling  terminal
+       interrupts.
+       Example:
+       LOGICAL FUNCTION TBREAK
+       .
+       .
+       CALL SBREAK
+       .
+       .
+ 10    CALL VTIME(I)
+       IF(I.EQ.200000) GOTO 40
+       IF(TBREAK(.TRUE.)) GOTO 20
+       GOTO 10
+ 20    PRINT 30,I
+       GOTO 10
+ 30    FORMAT(' ',I10)
+       .
+       .
+ 40    CALL EBREAK
+       STOP
+       END
+       The  above program  will run  in an  infinite  loop until  20 seconds  of
+       virtual CPU time have been used. If a console interrupt occurs during the
+       run  the program  will  print  out the  virtual  CPU  used so  far.   The
+       .TRUE./.FALSE.  in TBREAK is used to request the interrupt flag be turned
+       off   or   left   in   its  present   condition.    EBREAK   stands   for
+       End_BREAK_handling and SBREAK for Start_BREAK_handling, TBREAK stands for
+       Test_BREAK_condition.
+
+STIMER Is a delay routine.
+       CALL STIMER(N)
+       where N is number of hundredths of  a second to wait.  WARNING:  the user
+       must 'CP SET TIMER REAL' before calling  stimer,  or he will be stuck and
+       only '#CP IPL CMS' will get him out.
+
+SCREEN - Fullscreen management routines for high-level languages.
+       The following  routines are  defined in  this package:   SCREEN,  SCREND,
+       SCRWRI, SCRREA, SCRSRC, SCRRCS.
+SCREEN is used  to initialize  the fullscreen interrupt  handling and  to obtain
+       information regarding the physical 327x  device.  Error returnes are made
+       if device is not a 327x or interrupt handling failed.
+       CALL SCREEN(RC,RDEV,W,H)
+SCREND terminates interrupt handling for the 327x device.
+       CALL SCREND(RC)
+SCRWRI writes to the 327x device 1 to  8 arrays of characters+orders (the arrays
+       will  be  data-chained  by  the program)   with  WRITE  or  ERASE/WRI  or
+       ERASE/WRITE ALTERNATE. Error returnes in case of I/O error or CP grab the
+       screen for a priority message in non-fullscreen mode.
+       CALL SCRWRI(RC,FLAG,A,L,... );
+SCRREA reads from the screen with READ BUFFER  or READ MODIFIED (the latt can be
+       timed input - wait  n time or till interrupt from  terminal whichev comes
+       first).
+       CALL SCRREA(RC,FLAG,A,L)
+SCRSRC converts from 327x  buffer address character pair to X,   Y coordina CALL
+       SCRSRC(X,Y,S)
+SCRRCS converts from X, Y coordinates to 327x buffer address character p
+       CALL SCRRCS(X,Y,S)
+       where
+              RC is the INTEGER return code
+                       Routine                            Alternate return
+                       SCREEN:  0=No errors                            -
+                                4=HNDINT error (1)                     1
+                                8=HNDINT error (2)                     2
+                               12=Invalid device type (not 327x)       3
+                       SCREND:  0=No errors                            -
+                                4=HNDINT error (3)                     1
+                       SCRWRI:  0=No error                             -
+                                4=CP grab                              1
+                                8=Not operational                      2
+                       SCRREA:  4,8: Same as SCRWRI                    1,2
+                               12=Timer ran out, no read performed     3
+                                0,-=Residual length in 2's complement    -
+                                 (how many bytes were not read)
+              RDEV Is real device data from DIAG X'24'
+              W,H are INTEGER width and height of real (alternate) screen
+              A is character array for I/O to terminal
+              L is length of 'A'
+              FLAG specifies operation
+                          SCRWRI: >0 ERASE/WRITE ALTERNATE
+                                  =0 ERASE/WRITE
+                                  <0 WRITE
+                          SCRREA: <0 READ BUFFER
+                                  =0 READ MODIFIED upon interrupt from terminal
+                                  >0 Wait FLAG 100's of a second before
+                                     terminating READ MODIFIED no change to 'A')
+              X and Y are INTEGER coordinates on screen, origin of '0'
+              S is two byte area for buffer address
+       SCRWRI will accept  up to eight DATA/LENGTH  parms and will use  CCW DATA
+       CHAINING to write then as one to the console.  A 'WCC' Should be included
+       only in  the first DATA/LENGTH pair.    for languages that  don't support
+       variable  number of  parms e.g.   PASCAL  there are  alternate entries  -
+       SCRWRI1 .. SCRWRI8 for 1 to 8 pairs of DATA/LENGTH.
+
+SPM - disable  interrupts
+       CALL SPM
+       Calling SPM will disable the following interrupts:
+                    Fixed-Point overflow Exception
+                    Decimal overflow Exception
+                    Exponent Underflow Exception
+                    Significance Exception
+
+SVC202 - interface to CMS SVC 202.
+       CALL SVC202(R0,R1,R15,&n)
+       will use R0,R1  for SVC 202 set R15  to return code from  SVC and execute
+       'RETURN 1'  if R15 <>  0.   Use  together with 'IADDR'  routine described
+       earlier.
+
+TAPCTL interface to CMS TAPECTL macro.
+       CALL TAPCTL(FUNCTION,DEVICE,MODE,RC,&?)
+         where function is one of the following:
+                'REW' - rewind
+                'RUN' - rewind and unload
+                 ERG' - erase record gap
+                'WTM' - write tape mark (end-of-file)
+                'BSR' - backspace record
+                'BSF' - backspace file
+                'FSR' - forward space record
+                'FSF' - forward space file
+         See RDTAPE for meaning of other parameters.
+
+VTIME  - return virtual time used by job.
+       CALL VTIME(I)
+
+       Calling  VTIME  will  return  in  I  the   value  of  the  time  used  in
+       milliseconds.   VTIME may  also be declared an INTEGER  FUNCTION and used
+       so:
+       I=VTIME(J)
+       where J should be an integer variable.
+       VTIME may return ascending or descending values,  (but the the order will
+       be constant for one run. (Use IABS to get positive difference).
+
+WRTAPE interface to CMS WRTAPE macro.
+       CALL WRTAPE(BUFFER,LENGTH,DEVICE,MODE,RC,&?)
+       where BUFFER is the array of LENGTH bytes to be written.
+       See RDTAPE for description of other parameters.
+       Return code 6 may  be encountered if trying to write  to a file protected
+       tape.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

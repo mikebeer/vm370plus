@@ -1,0 +1,135 @@
+[
+ {
+  "send": "ipl 6A1",
+  "expect": "DMKCPI966I|Start \\(\\(Warm",
+  "timeout": 180,
+  "cont": true
+ },
+ {
+  "send": "/",
+  "expect": "Start \\(\\(Warm|LOGOFF AS AUTOLOG1|DISCONNECT",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Online|ONLINE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "logon maint cpcms noipl",
+  "expect": "LOGON AT|RECONNECT",
+  "timeout": 60,
+  "cont": true
+ },
+ {
+  "send": "/attach 180 to maint as 180",
+  "settle": 3
+ },
+ {
+  "term": "cp def stor 64m",
+  "expect": "STORAGE",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "ipl 290",
+  "expect": "VM Community|DMS",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "access 180 x",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "access 19f l",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "copyfile snake module x = = l (olddate",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "copyfile slash module x = = l (olddate",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "copyfile snake helpgame x snake helpcms l (olddate",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "copyfile slash helpgame x slash helpcms l (olddate",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "copyfile diskpry module x = = l (olddate",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "copyfile diskpry helpcms x = = l (olddate",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "listfile * * l (date",
+  "expect": "Ready|Unknown CP/CMS|DMS...[ST]",
+  "timeout": 300,
+  "cont": true
+ },
+ {
+  "term": "cp msg maint WS-COPIED",
+  "expect": "WS-COPIED",
+  "timeout": 30,
+  "cont": true
+ },
+ {
+  "term": "cp logoff",
+  "settle": 5
+ },
+ {
+  "send": "/detach 180 maint",
+  "settle": 3
+ },
+ {
+  "send": "/q n",
+  "expect": "MDDEB-DONE",
+  "timeout": 600,
+  "cont": true
+ },
+ {
+  "send": "/force cmsuser",
+  "settle": 5
+ },
+ {
+  "send": "/shutdown",
+  "expect": "HHCCP011I|SHUTDOWN COMPLETE",
+  "timeout": 90,
+  "cont": true
+ },
+ {
+  "send": "exit"
+ }
+]

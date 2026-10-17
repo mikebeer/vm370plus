@@ -1,0 +1,270 @@
+./ I 00220000          $ 223000 3000                  11/02/84 15:40:42
+*  LIMITATIONS:                                                U00020   00223000
+*                                                              U00020   00226000
+./ I 00410000          $ 415000 5000                  11/02/84 15:40:42
+*        R9 - DYNAMIC STORAGE BASE REGISTER.                   U00020   00415000
+./ R 00580000          $ 584990 4990                  11/02/84 15:40:42
+&NAME    ENTER &TYPE=CSECT,&SAVE=INLINE,&BASE=10,&TRACE=       U00020   00584990
+./ I 00840000          $ 841000 1000                  11/02/84 15:40:42
+         AIF   ('&SAVE(1)' EQ 'DSECT').SADS                    U00020   00841000
+         AIF   ('&SAVE' EQ 'INLINE').SAIN                      U00020   00842000
+            MNOTE 4,'SAVE= MUST BE ''INLINE'' OR ''DSECT''. ''         +00843000
+               ASSUMED.'                                       U00020   00844000
+.SAIN    ANOP                                                  U00020   00845000
+.*                                                             U00020   00846000
+./ I 00920000          $ 920600 600                   11/02/84 15:40:42
+         AGO   .SACP                                           U00020   00920600
+.SADS    ANOP                                                  U00020   00921200
+         USING &NAME,&BASE                                     U00020   00921800
+         STM   14,12,12(R13)                                   U00020   00922400
+         B     20(15)                                          U00020   00923000
+            DC    0D'0',CL8'&NAME'                             U00020   00923600
+            DC    A(@DSV&SYSNDX-&SAVE(2))                      U00020   00924200
+         LR    &BASE,15       GET ADDRESSABLE.                 U00020   00924800
+&SAVE(2) DSECT                ENTER DYNAMIC DSECT              U00020   00925400
+@DSV&SYSNDX DS  18F           DYNAMIC SAVE AREA                U00020   00926000
+&NTXSECT CSECT                RETURN TO CODE CSECT             U00020   00926600
+         L     15,16(,&BASE)                                   U00020   00927200
+         LA    15,&SAVE(2)(15)                                 U00020   00927800
+.SACP    ANOP                                                  U00020   00928400
+./ I 01370000          $ 1375000 5000                 11/02/84 15:40:42
+*BEGIN                                                         U00020   01375000
+./ R 01390000 01400000 $ 1390990 990                  11/02/84 15:40:42
+CPWCMS   START X'E000'        TRANSIENT AREA ROUTINE           U00020   01390990
+* *************************************************************U00020   01391980
+*        DEFINE DMSFREE STORAGE BEGIN.                         U00020   01392970
+* *************************************************************U00020   01393960
+SCRATCH  DSECT                                                 U00020   01394950
+BLANKS   DC    CL131' '                                        U00020   01395940
+INAREA   DC    CL80' '                                         U00020   01396930
+ERRMSG   DC    CL131' '                                        U00020   01397920
+DBUFF    DS    CL1920                                          U00020   01398910
+SBUFF    DS    CL2048                                          U00020   01399900
+         SPACE 1                                               U00020   01400890
+*              NOTE LENGTH IS CALCULATED AT END OF MODULE.     U00020   01401880
+*        EXPANSIONS OF "ENTER" MACRO WILL ADD SAVE AREAS TO    U00020   01402870
+*        THIS DSECT                                            U00020   01403860
+         EJECT                                                 U00020   01404850
+* ************************************************************ U00020   01405840
+*        BEGIN MAIN LINE PROGRAM.                              U00020   01406830
+* ************************************************************ U00020   01407820
+CPWCMS   ENTER BASE=R11,SAVE=INLINE                            U00020   01408810
+./ R 01450000 01500000 $ 1479990 29990                11/02/84 15:40:42
+         SPACE 1                                               U00020   01479990
+./ R 01630000          $ 1630990 990                  11/02/84 15:40:42
+         USING SCRATCH,R9     ADDRESS DYNAMIC AREA             U00020   01630990
+         SPACE 1                                               U00020   01631980
+         L     R1,4(,R13)                                      U00020   01632970
+         LM    R0,R1,20(R1)   PICK UP CMS' R0,R1.              U00020   01633960
+         ICALL OPTNS          ANALYSE PARAMETER LIST.          U00020   01634950
+./ I 02040000          $ 2045000 5000                 11/02/84 15:40:42
+*        CAN NO LONGER CALL DYNAMIC SAVE AREA ROUTINES.        U00020   02045000
+./ R 02160000          $ 2164990 4990                 11/02/84 15:40:42
+HOOK     ENTER SAVE=(DSECT,SCRATCH)                            U00020   02164990
+./ I 02410000          $ 2410200 200                  11/02/84 15:40:42
+* ************************************************************ U00020   02410200
+*        OPTNS: ANALYSE PLIST.                                 U00020   02410400
+* ************************************************************ U00020   02410600
+OPTNS    ENTER SAVE=(DSECT,SCRATCH)                            U00020   02410800
+         LA    R1,8(,R1)                                       U00020   02411000
+         CLI   0(R1),X'FF'                                     U00020   02411200
+         BE    OPT800                                          U00020   02411400
+         CLI   0(R1),C'('                                      U00020   02411600
+         BE    OPT400                                          U00020   02411800
+            MVC CURRSCRN,0(R1) ONLY POSITIONAL PARAMETER.      U00020   02412000
+OPT090   LA    R1,8(,R1)                                       U00020   02412200
+         CLI   0(R1),X'FF'                                     U00020   02412400
+         BE    OPT800                                          U00020   02412600
+         CLI   0(R1),C'('                                      U00020   02412800
+         BE    OPT400                                          U00020   02413000
+            B   OPT090        FLUSH REMAINING PARAMETERS.      U00020   02413200
+         SPACE 1                                               U00020   02413400
+OPT400   EQU   *              OPTION LIST.                     U00020   02413600
+         LA    R1,8(,R1)                                       U00020   02413800
+         CLI   0(R1),C')'                                      U00020   02414000
+         BE    OPT800                                          U00020   02414200
+         CLI   0(R1),X'FF'                                     U00020   02414400
+         BE    OPT800                                          U00020   02414600
+            CLC =CL8'SERVER',0(R1)                             U00020   02414800
+            BNE OPT410                                         U00020   02415000
+               MVC SERVER,8(R1)                                U00020   02415200
+               LA  R1,8(,R1)                                   U00020   02415400
+               B   OPT400     TRY FOR ANOTHER.                 U00020   02415600
+OPT410      EQU   *           NOT 'SERVER'                     U00020   02415800
+            CLC =CL8'PASSWORD',0(R1)                           U00020   02416000
+            BNE OPT420                                         U00020   02416200
+               MVC PASSWORD,8(R1)                              U00020   02416400
+               LA  R1,8(,R1)                                   U00020   02416600
+               B   OPT400                                      U00020   02416800
+OPT420      EQU   *           NOT 'PASSWORD'                   U00020   02417000
+            CLC =CL8'IDENTITY',0(R1)                           U00020   02417200
+            BNE OPT430                                         U00020   02417400
+               MVC IDENTITY,8(R1)                              U00020   02417600
+               B   OPT400                                      U00020   02417800
+OPT430      EQU               *                                U00020   02418000
+            SPACE 1                                            U00020   02418200
+         B     OPT400         DON'T WORRY.                     U00020   02418400
+         SPACE 1                                               U00020   02418600
+OPT800   EQU   *                                               U00020   02418800
+         EXIT  RC=0                                            U00020   02419000
+         EJECT                                                 U00020   02419200
+./ R 02450000          $ 2454990 4990                 11/02/84 15:40:42
+CONSTYPE ENTER SAVE=(DSECT,SCRATCH)                            U00020   02454990
+./ R 02590000          $ 2594990 4990                 11/02/84 15:40:42
+GETM     ENTER SAVE=INLINE                                     U00020   02594990
+./ R 02820000          $ 2824990 4990                 11/02/84 15:40:42
+FREEM    ENTER SAVE=INLINE                                     U00020   02824990
+./ R 02990000          $ 2994990 4990                 11/02/84 15:40:42
+OPCON    ENTER SAVE=(DSECT,SCRATCH)                            U00020   02994990
+./ R 03090000          $ 3094990 4990                 11/02/84 15:40:42
+         LA    R3,1920                                         U00020   03094990
+./ R 03240000          $ 3244990 4990                 11/02/84 15:40:42
+CLCON    ENTER SAVE=(DSECT,SCRATCH)                            U00020   03244990
+./ R 03410000          $ 3414990 4990                 11/02/84 15:40:42
+OPVMCF   ENTER SAVE=(DSECT,SCRATCH)                            U00020   03414990
+./ R 03470000          $ 3474990 4990                 11/02/84 15:40:42
+         LA    R3,1920                                         U00020   03474990
+./ R 03660000          $ 3664990 4990                 11/02/84 15:40:42
+AUTVMCF  ENTER SAVE=(DSECT,SCRATCH)                            U00020   03664990
+./ R 04190000          $ 4194990 4990                 11/02/84 15:40:42
+CLVMCF   ENTER SAVE=(DSECT,SCRATCH)                            U00020   04194990
+./ R 04310000          $ 4314990 4990                 11/02/84 15:40:42
+UNAUT    ENTER SAVE=(DSECT,SCRATCH)                            U00020   04314990
+./ R 04440000          $ 4444990 4990                 11/02/84 15:40:42
+WAITER   ENTER SAVE=(DSECT,SCRATCH)                            U00020   04444990
+./ R 04770000          $ 4774990 4990                 11/02/84 15:40:42
+HOLDIT   ENTER SAVE=(DSECT,SCRATCH)                            U00020   04774990
+./ I 04980000          $ 4980200 200                  11/02/84 15:40:42
+* *************************************************************U00020   04980200
+* PFKEYS: DISPLAY PFKEY ASSIGNMENTS.                           U00020   04980400
+* *************************************************************U00020   04980600
+PFKEYS   ENTER SAVE=(DSECT,SCRATCH)                            U00020   04980800
+*              ENTER HOLD STATUS.                              U00020   04981000
+         OI    WORK,HOLD                                       U00020   04981200
+         SPACE 1                                               U00020   04981400
+         ICALL UNAUT       UNAUTHORIZE.                        U00020   04981600
+         SPACE 1                                               U00020   04981800
+*              CLEAR SCREEN BUFFER.                            U00020   04982000
+         L     R2,DBUFFA                                       U00020   04982200
+         L     R3,DBUFFM                                       U00020   04982400
+         SR    R4,R4                                           U00020   04982600
+         SR    R5,R5                                           U00020   04982800
+         ICM   R5,8,=X'40'                                     U00020   04983000
+         MVCL R2,R4                                            U00020   04983200
+         SPACE 1                                               U00020   04983400
+*              LOAD WITH PFKEY ACTION TABLE.                   U00020   04983600
+         L     R2,DBUFFA                                       U00020   04983800
+         LA    R3,1920                                         U00020   04984000
+         ST    R3,DBUFFL                                       U00020   04984200
+         AR    R3,R2          END + 1.                         U00020   04984400
+         SPACE 1                                               U00020   04984600
+         MVC   28(30,R2),=CL30'CPWCMS PFKEY ACTION TABLE'      U00020   04984800
+         MVC   8+80(16,R2),=CL16'PFKEY   ACTION'               U00020   04985000
+         SPACE 1                                               U00020   04985200
+         LA    R2,2*80(,R2)     START ON THIRD LINE.           U00020   04985400
+         SPACE 1                                               U00020   04985600
+         LA    R4,AIDBEGIN                                     U00020   04985800
+         LA    R5,AIDEND                                       U00020   04986000
+         SPACE 1                                               U00020   04986200
+PFK110   CR    R4,R5                                           U00020   04986400
+         BNL   PFK160                                          U00020   04986600
+            CR    R2,R3                                        U00020   04986800
+            BNL   PFK140                                       U00020   04987000
+               MVC 8(L'AIDNAMES,R2),0(R4)                      U00020   04987200
+               SPACE 1                                         U00020   04987400
+               LA  R2,80(,R2)                                  U00020   04987600
+               LA  R4,L'AIDNAMES(,R4)                          U00020   04987800
+               B   PFK110                                      U00020   04988000
+PFK140      EQU   *              END OF COLUMN                 U00020   04988200
+            S   R2,=A(1920-80+24)                              U00020   04988400
+*           B     PFK110                                       U00020   04988600
+PFK160   EQU   *              END OF AIDTABLE ENTRIES.         U00020   04988800
+         SPACE 1                                               U00020   04989000
+         OI  WORK,NEWSCR      POST A NEW SCREEN.               U00020   04989200
+         SPACE 1                                               U00020   04989400
+         EXIT RC=(15)                                          U00020   04989600
+         EJECT                                                 U00020   04989800
+./ R 05020000          $ 5024990 4990                 11/02/84 15:40:42
+RS       ENTER SAVE=(DSECT,SCRATCH)                            U00020   05024990
+./ I 05280000          $ 5281000 1000                 11/02/84 15:40:42
+         CLC   =CL8'PFKEYS',8(R1)                              U00020   05281000
+         BNE   RS170                                           U00020   05282000
+            ICALL PFKEYS      LOCAL FUNCTION: DISPLAY PFKEYS.  U00020   05283000
+            B   RS500                                          U00020   05284000
+RS170    EQU   *                                               U00020   05285000
+         SPACE 1                                               U00020   05286000
+./ I 05390000          $ 5393000 3000                 11/02/84 15:40:42
+         B     RS900                                           U00020   05393000
+         SPACE 1                                               U00020   05396000
+./ I 05400000          $ 5405000 5000                 11/02/84 15:40:42
+*        B     RS900                                           U00020   05405000
+./ R 05520000          $ 5524990 4990                 11/02/84 15:40:42
+CMD      ENTER SAVE=(DSECT,SCRATCH)                            U00020   05524990
+./ D 05570000 05640000                                11/02/84 15:40:42
+./ R 05710000          $ 5714990 4990                 11/02/84 15:40:42
+VMCSX    ENTER SAVE=(DSECT,SCRATCH)                            U00020   05714990
+./ R 05820000          $ 5824990 4990                 11/02/84 15:40:42
+               MSGID=VMUXREQ,FLDA=(R3),LENA=(R2)               U00020   05824990
+./ R 06530000          $ 6534990 4990                 11/02/84 15:40:42
+WS       ENTER SAVE=(DSECT,SCRATCH)                            U00020   06534990
+./ R 06970000          $ 6974990 4990                 11/02/84 15:40:42
+WRITER   ENTER SAVE=(DSECT,SCRATCH)                            U00020   06974990
+./ R 07320000          $ 7324990 4990                 11/02/84 15:40:42
+WRITEU   ENTER SAVE=(DSECT,SCRATCH)                            U00020   07324990
+./ R 07530000          $ 7534990 4990                 11/02/84 15:40:42
+READMOD  ENTER SAVE=(DSECT,SCRATCH)                            U00020   07534990
+./ R 07710000 07720000 $ 7715990 5990                 11/02/84 15:40:42
+            MH  R2,=Y(L'AIDNAMES) CALCULATE ENTRY OFFSET       U00020   07715990
+            LA  R1,AIDNAMES(R2)   ENTRY LOCATION               U00020   07721980
+./ R 07840000          $ 7844990 4990                 11/02/84 15:40:42
+            C   R1,=A(KUNKNOWN)    UNKNOWN KEY ?               U00020   07844990
+./ R 08140000          $ 8144990 4990                 11/02/84 15:40:42
+DIAGIO   ENTER SAVE=(DSECT,SCRATCH)                            U00020   08144990
+./ R 09260000          $ 9264990 4990                 11/02/84 15:40:42
+RESTORE  ENTER SAVE=(DSECT,SCRATCH)                            U00020   09264990
+./ R 10670000          $ 10674990 4990                11/02/84 15:40:42
+         CLC   VMCMMID,=A(VMUISHUT)     SHUTDOWN MESSAGE.      U00020   10674990
+./ R 10690000          $ 10694990 4990                11/02/84 15:40:42
+         CLC   VMCMMID,=A(VMUIPSWD)     INVALID PASSWORD MESSAGU00020   10694990
+./ R 10710000          $ 10714990 4990                11/02/84 15:40:42
+         CLC   VMCMMID,=A(VMUIPROT)     INVALID PROTOCOL LEVEL U00020   10714990
+./ I 11110000          $ 11113000 3000                11/02/84 15:40:42
+         CLC   VMCMMID,=A(VMUSDATA)     SEND DATA FOR THIS FUN U00020   11113000
+         BNE   EXTIGN                                          U00020   11116000
+./ D 11160000                                         11/02/84 15:40:42
+./ R 11180000          $ 11184990 4990                11/02/84 15:40:42
+               MSGID=VMUSDATA,FLDA=(R2),LENA=(R3)              U00020   11184990
+./ R 12470000 13450000 $ 12669990 199990              11/02/84 15:40:42
+         EJECT                                                 U00020   12669990
+         COPY  AIDTAB                                          U00020   12869980
+         COPY  AIDACT                                          U00020   13069970
+./ R 13780000          $ 13784990 4990                11/02/84 15:40:42
+EIA      DC    X'C11140C11240C113' ERASE INPUT BUT DONT FREEKB U00020   13784990
+./ R 13940000          $ 13940790 790                 11/02/84 15:40:42
+         SPACE 1                                               U00020   13940790
+         DC    0D'0',8C'>'                                     U00020   13941580
+CMDBEG   DS    0D                                              U00020   13942370
+IDENTITY DC    CL8' '                                          U00020   13943160
+PASSWORD DC    CL8' '                                          U00020   13943950
+CMDCMD   DC    CL8'SYS'                                        U00020   13944740
+CMDDATA  EQU   CMDBEG,*-CMDBEG                                 U00020   13945530
+         DC    8C'<'                                           U00020   13946320
+         SPACE 1                                               U00020   13947110
+CURRSCRN DC    CL8'SYS'       DEFAULT.                         U00020   13947900
+         SPACE 1                                               U00020   13948690
+./ I 13950000          $ 13955000 5000                11/02/84 15:40:42
+         SPACE 1                                               U00020   13955000
+./ I 13960000          $ 13965000 5000                11/02/84 15:40:42
+         SPACE 1                                               U00020   13965000
+./ D 14040000 14140000                                11/02/84 15:40:42
+./ I 14170000          $ 14172000 2000                11/02/84 15:40:42
+ENABLE   EQU   X'FD'                                           U00020   14172000
+DISABLE  EQU   X'00'                                           U00020   14174000
+         SPACE 1                                               U00020   14176000
+         COPY  VMUMSGID                                        U00020   14178000
+./ D 14190000 14200000                                11/02/84 15:40:42
+./ I 14250000          $ 14252000 2000                11/02/84 15:40:42
+         SPACE 3                                               U00020   14252000
+SCRATCH  DSECT                HOW MUCH SPACE DO WE NEED ?      U00020   14254000
+         DS    0D             FORCE ALIGNMENT.                 U00020   14256000
+SCRATCHL EQU   *-SCRATCH                                       U00020   14258000

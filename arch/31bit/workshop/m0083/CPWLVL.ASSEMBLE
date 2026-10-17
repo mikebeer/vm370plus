@@ -1,0 +1,257 @@
+LVL      TITLE 'CP LEVEL CHECKING ROUTINE'                              00001000
+*********************************************************************** 00011000
+*                                                                       00021000
+*  PROGRAM NAME:  CPWLVL                                                00031000
+*                                                                       00041000
+*  PROGRAM FUNCTION:  SELECTS CORRECT CONTROL FILE FOR CP LEVEL         00051000
+*                                                                       00061000
+*  PROGRAMMED BY:  GARY GEORGE                    DATE: 20DEC83         00071000
+*                                                                       00081000
+*  STATUS: DEVELOPMENT                                                  00091000
+*                                                                       00101000
+*  INSTALLATION: WORKERS' COMPENSATION BOARD OF ALBERTA                 00111000
+*                                                                       00121000
+*  ENVIRONMENT:                                                         00131000
+*        VM/370, VM/BSEP, VM/SP, VM/HPO, ETC.                           00141000
+*                                                                       00151000
+*  ATTRIBUTES: CMS USER AREA. CMS/BOTH                                  00161000
+*                                                                       00171000
+*  PROGRAM USE:                                                         00181000
+*        DOES DIAGNOSE 0 TO DETERMINE SYSTEM AND RELEASE.               00191000
+*        ATTEMPTS TO DETERMINE APPROPRIATE CNTRL FILE                   00201000
+*        FROM FILE 'CPWLVL DATA *'                                      00211000
+*                                                                       00221000
+* OPERATION:                                                            00231000
+*        CPWLVL TYPE - TYPES RELEASE LEVEL, CONTROL FILE.               00241000
+*        CPWLVL STACK - TYPES ABOVE, THEN STACKS                        00251000
+*                             "* CNTRL" RECORD.                         00261000
+*        CPWLVL WRITE XXXXX - ADDS A RECORD, CURRENT LEVEL,             00271000
+*                             CONTROL FILE "XXXXX"                      00281000
+*                                                                       00291000
+*  FILES:      CPWLVL DATA A2                                           00301000
+*                                                                       00311000
+*  MACRO LIBRARIES: DMSXXX, CMSLIB, OSMACRO                             00321000
+*                                                                       00331000
+*  COPY CODE:                                                           00341000
+*        NONE                                                           00351000
+*                                                                       00361000
+*  CALLS TO OTHER ROUTINES:                                             00371000
+*        CMS FILE SYSTEM; DIAGNOSE 0; ATTN.                             00381000
+*                                                                       00391000
+*  DATA AREAS:                                                          00401000
+*                                                                       00411000
+*  REGISTER USAGE:                                                      00421000
+*        R1 - A(PARAMETER LIST)                                         00431000
+*        R11 - CALLER'S PLIST.                                          00441000
+*        R12 - BASE REGISTER                                            00451000
+*        R14, R15 - PROGRAM LINKAGE.                                    00461000
+*                                                                       00471000
+*  MAINTAINENCE:                                                        00481000
+*        GLOBAL MACLIB DMSSP CMSBSE CMSLIB OSMACRO                      00491000
+*        ASSEMBLE CPWLVL (PRINT NORLD NOESD)                            00501000
+*        LOAD CPWLVL (CLEAR                                             00511000
+*        GENMOD CPWLVL MODULE A2 (ALL)                                  00521000
+*                                                                       00531000
+*  MODIFICATION HISTORY:                                                00541000
+*                                                                       00551000
+*********************************************************************** 00561000
+         PRINT NOGEN                                                    00571000
+         EJECT                                                          00581000
+CPWLVL   START X'20000'                                                 00591000
+         SAVE (14,12),,*                                                00601000
+         LR    R12,R15                                                  00611000
+         USING CPWLVL,R12                                               00621000
+         LR    R11,R1                                                   00631000
+         SPACE 1                                                        00641000
+         MVC   FSCB+8(8),0(R11)         ENSURE CORRECT FILE NAME.       00651000
+         SPACE 1                                                        00661000
+*              BUILD THIS CP'S RECORD                                   00671000
+         LA    R10,BLDBUFF                                              00681000
+         USING REC,R10                                                  00691000
+         LA    R2,DIAG                                                  00701000
+         LA    R3,DIAGL                                                 00711000
+         DIAG  R2,R3,0                                                  00721000
+         SPACE 1                                                        00731000
+         MVC   RECD,BLANKS                                              00741000
+         SPACE 1                                                        00751000
+         MVC   CNTRL,=CL8'UNKNOWN'                                      00761000
+         SPACE 1                                                        00771000
+         MVC   SYSID,DSYSID                                             00781000
+         SPACE 1                                                        00791000
+         SR    R3,R3                                                    00801000
+         IC    R3,DVER                                                  00811000
+         CVD   R3,DWORD                                                 00821000
+         UNPK  VER,DWORD                                                00831000
+         OI    VER+L'VER-1,C'0'                                         00841000
+         SPACE 1                                                        00851000
+         SR    R3,R3                                                    00861000
+         IC    R3,DLVL                                                  00871000
+         CVD   R3,DWORD                                                 00881000
+         UNPK  LVL,DWORD                                                00891000
+         OI    LVL+L'LVL-1,C'0'                                         00901000
+         SPACE 1                                                        00911000
+         SR    R3,R3                                                    00921000
+         IC    R3,DPLC                                                  00931000
+         CVD   R3,DWORD                                                 00941000
+         UNPK  PLC,DWORD                                                00951000
+         OI    PLC+L'PLC-1,C'0'                                         00961000
+         SPACE 1                                                        00971000
+         MVI   AST,C'*'                                                 00981000
+         DROP  R10                                                      00991000
+         SPACE 3                                                        01001000
+         CLC   =CL8'STACK',8(R11)                                       01011000
+         BE    INQ                                                      01021000
+         CLC   =CL8'TYPE',8(R11)                                        01031000
+         BE    INQ                                                      01041000
+         CLC   =CL8'WRITE',8(R11)                                       01051000
+         BE    UPD                                                      01061000
+         LINEDIT TEXT='INVALID ACTION ........',                       +01071000
+               SUB=(CHAR8A,8(R11))                                      01081000
+         RETURN (14,12),RC=24                                           01091000
+         EJECT                                                          01101000
+*********************************************************************** 01111000
+*              INQ: LOOK UP OUR CONTROL FILE                            01121000
+*********************************************************************** 01131000
+INQ      EQU   *                                                        01141000
+FSREAD      FSREAD FSCB=FSCB,ERROR=ENDFILE                              01151000
+*                             IGNORE COMMENT AND INCOMPLETE RECORDS.    01161000
+            CLI   INBUFF,C'*'                                           01171000
+            BE    FSREAD                                                01181000
+            CLC   CNTRL-REC+INBUFF,BLANKS NO CONTROL FILE NAME ?        01191000
+            BE   FSREAD                                                 01201000
+            CLC   SYSID-REC+INBUFF,BLANKS NO SYSTEM NAME ?              01211000
+            BE   FSREAD                                                 01221000
+            CLC =CL8'UNKNOWN',CNTRL-REC+INBUFF                          01231000
+            BE   FSREAD                                                 01241000
+            SPACE 1                                                     01251000
+*                             IGNORE OTHER SYSTEM CODES                 01261000
+            CLC SYSID-REC+INBUFF,SYSID-REC+BLDBUFF                      01271000
+            BNE FSREAD                                                  01281000
+            SPACE 1                                                     01291000
+*                             IGNORE FUTURE RELEASES.                   01301000
+            CLC LVLID-REC+INBUFF,LVLID-REC+BLDBUFF VALID ?              01311000
+            BH  FSREAD BR NO.                                           01321000
+            SPACE 1                                                     01331000
+*                      IF ONE SELECTED ALREADY, WHICH IS A BETTER FIT ? 01341000
+            CLC LVLID-REC+SELBUFF,BLANKS     FOUND ONE ALREADY ?        01351000
+            BE  SEL                          BR NO, THIS IS FIRST.      01361000
+            CLC LVLID-REC+SELBUFF,LVLID-REC+INBUFF BETTER FIT ?         01371000
+            BH  FSREAD                       BR NO, CONTINUE            01381000
+SEL            MVC SELBUFF,INBUFF SELECT THIS RECORD.                   01391000
+            B   FSREAD                                                  01401000
+ENDFILE  EQU   *                                                        01411000
+         SPACE 1                                                        01421000
+*              COMPLETE THE RESULTS.                                    01431000
+         LA    R9,28          RETCODE; PRESUME NO FIND.                 01441000
+         MVC   STACKCTL,CNTRL-REC+BLDBUFF                               01451000
+         CLC LVLID-REC+SELBUFF,BLANKS FOUND ONE ?                       01461000
+         BE  NOFIND        NO, DEFAULT                                  01471000
+            SR  R9,R9         RETCODE                                   01481000
+            MVC   STACKCTL,CNTRL-REC+SELBUFF                            01491000
+            MVC CNTRL-REC+BLDBUFF,BLANKS                                01501000
+NOFIND   EQU   *                                                        01511000
+         SPACE 1                                                        01521000
+*              TYPE SELECTION.                                          01531000
+         WRTERM HDR,80                                                  01541000
+         LTR   R9,R9                                                    01551000
+         BNZ   NOSEL                                                    01561000
+            WRTERM SELBUFF,80                                           01571000
+NOSEL    EQU   *                                                        01581000
+         WRTERM BLDBUFF,80                                              01591000
+         SPACE 1                                                        01601000
+*              AND STACK IT IF REQUESTED.                               01611000
+         CLC   =CL8'STACK',8(R11)       DID HE WANT IT STACKED ?        01621000
+         BNE   INQRET                                                   01631000
+            CNOP 0,4                                                    01641000
+            BAL   R1,STACKIT                                            01651000
+            DC    CL8'ATTN',CL4'LIFO'                                   01661000
+            DC    AL1(L'STACKID),AL3(STACKID),2F'-1'                    01671000
+STACKIT     SVC   202                                                   01681000
+            DC    AL4(*+4)                                              01691000
+INQRET   EQU   *                                                        01701000
+         SPACE 1                                                        01711000
+         LR    R15,R9                                                   01721000
+         RETURN (14,12),RC=(15)                                         01731000
+         EJECT                                                          01741000
+*********************************************************************** 01751000
+*              UPD: ADD AN ENTRY TO OUR CONTROL FILE                    01761000
+*********************************************************************** 01771000
+UPD      EQU   *                                                        01781000
+         SPACE 1                                                        01791000
+*              ADD TO END OF FILE                                       01801000
+         FSOPEN FSCB=FSCB,ERROR=NEWFILE                                 01811000
+            B   FSPOINT                                                 01821000
+NEWFILE  MVC   FSCB+24(2),=C'A2'                                        01831000
+FSPOINT  EQU   *                                                        01841000
+         FSPOINT FSCB=FSCB,WRPNT=-1                                     01851000
+         SPACE 1                                                        01861000
+*              CONTROL FILE IS NOT KNOWN AT THIS TIME.                  01871000
+         CLI   16(R11),X'FF'  DID HE SPECIFY CONTROL FILE ?             01881000
+         BE    NOCTRL                                                   01891000
+         CLI   16(R11),C'('   DID HE SPECIFY CONTROL FILE ?             01901000
+         BE    NOCTRL                                                   01911000
+         CLI   16(R11),C')'   DID HE SPECIFY CONTROL FILE ?             01921000
+         BE    NOCTRL                                                   01931000
+            MVC   CNTRL-REC+BLDBUFF,16(R11)                             01941000
+NOCTRL   EQU   *                                                        01951000
+         SPACE 1                                                        01961000
+         WRTERM BLDBUFF,80                                              01971000
+         FSWRITE FSCB=FSCB,BUFFER=BLDBUFF                               01981000
+         SPACE 1                                                        01991000
+         RETURN (14,12),RC=(15)                                         02001000
+         EJECT                                                          02011000
+*********************************************************************** 02021000
+*              STORAGE                                                  02031000
+*********************************************************************** 02041000
+         LTORG                                                          02051000
+         SPACE 6                                                        02061000
+FSCB     FSCB  'CPWLVL DATA *',RECFM=F,BSIZE=80,BUFFER=INBUFF           02071000
+         SPACE 1                                                        02081000
+HDR      DC    CL80'CNTRL    SYSTEMID VER LVL PLC   COMMENTS'           02091000
+SELBUFF  DC    CL80' '                                                  02101000
+INBUFF   DC    CL80' '                                                  02111000
+BLDBUFF  DC    CL80' '                                                  02121000
+         SPACE 1                                                        02131000
+STACKID  DS    0CL10                                                    02141000
+         DC    CL2'* '                                                  02151000
+STACKCTL DC    CL8' '                                                   02161000
+         SPACE 1                                                        02171000
+BLANKS   DC    CL80' '                                                  02181000
+         SPACE 1                                                        02191000
+DIAG     DS    0D             DIAGNOSE 0 AREA.                          02201000
+DSYSID   DS    CL8            SYSTEM ID, EG 'VM/370', 'VM/SP'           02211000
+DVER     DS    X              VERSION                                   02221000
+DLVL     DS    X              LEVEL                                     02231000
+DPLC     DS    X              PLC                                       02241000
+         DS    XL5                                                      02251000
+         DS    2D                                                       02261000
+DIAGL    EQU   *-DIAG                                                   02271000
+         SPACE 1                                                        02281000
+DWORD    DS    D                                                        02291000
+         EJECT                                                          02301000
+*********************************************************************** 02311000
+*              DSECTS                                                   02321000
+*********************************************************************** 02331000
+REC      DSECT                FORMAT OF CPWLVL DATA                     02341000
+RECD     DS    0CL80                                                    02351000
+CNTRL    DS    CL8            CONTROL FILE NAME                         02361000
+         DS    C                                                        02371000
+SYSID    DS    CL8            SYSTEM ID FROM DIAGNOSE 0                 02381000
+         DS    C                                                        02391000
+LVLID    DS    0CL11          WHOLE LEVEL ID.                           02401000
+VER      DS    ZL3                                                      02411000
+         DS    C                                                        02421000
+LVL      DS    ZL3                                                      02431000
+         DS    C                                                        02441000
+PLC      DS    ZL3                                                      02451000
+         DS    C                                                        02461000
+AST      DS    C'*'                                                     02471000
+         DS    C                                                        02481000
+COMNT    DS    CL(RECD+L'RECD-*)' '                                     02491000
+         EJECT                                                          02501000
+*********************************************************************** 02511000
+*              EQUATES                                                  02521000
+*********************************************************************** 02531000
+         REGEQU                                                         02541000
+         SPACE 3                                                        02551000
+         END   CPWLVL                                                   02561000

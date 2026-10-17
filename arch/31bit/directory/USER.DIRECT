@@ -280,6 +280,7 @@ USER MAINT CPCMS 16M 256M ABCDEFGH                                      02340000
  SPOOL 00C 2540 READ A                                                  02380000
  SPOOL 00D 2540 PUNCH A                                                 02390000
  SPOOL 00E 1403 A                                                       02400000
+ DEDICATE 250 190                                                               
 *        cuu type adr num volser mode readpw   writepw  multpw          02410000
  MDISK   191 3350 201 030 VM50-4 MR   ALL      WRITE    MULT            02420000
  MDISK   199 3350 361 050 VM50-2 MR   ALL      WRITE    MULT            02420000

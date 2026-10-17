@@ -1,0 +1,20 @@
+./ R 00018000
+USRSTART EQU   *                                                        00017010
+         L     R1,ACPWSECT                                              00017020
+         USING CPWSECT,R1                                               00017030
+         ZAP   CPACTV,=P'0'                                             00017040
+         ZAP   CPINACT,=P'0'                                            00017050
+         ZAP   CPSLEEP,=P'0'                                            00017060
+         SPACE 1                                                        00017070
+         ZAP CPQ1,=P'0'                                                 00017080
+         ZAP   CPQ2,=P'0'                                               00017090
+         ZAP   CPQ3,=P'0'                                               00017100
+         ZAP   CPEL,=P'0'                                               00017110
+         DROP  R1                                                       00017120
+         SPACE 1                                                        00017130
+         MVC   AFRSTUSR,=A(RUNUSER-PSA)                                 00018000
+./ D 00026000 00037000
+./ I 00039000
+         SPACE 1                                                        00039100
+./ R 00111000
+*              WTO 'SECOND TIME THROUGH'                                00111000

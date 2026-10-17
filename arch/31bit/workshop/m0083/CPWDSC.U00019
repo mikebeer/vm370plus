@@ -1,0 +1,58 @@
+./ R 01241000          $ 1241090 90                   10/31/84 13:41:34
+* *************************************************************U00019   01241090
+*              VMCF USER RECORD STRUCTURE                      U00019   01241180
+* *************************************************************U00019   01241270
+VMUSECT  DSECT                CMS USER COMMUNICATING WITH VMCF U00019   01241360
+VMULEN   DC    A(VMUSECTL)    SIZE OF BLOCK                    U00019   01241450
+VMUFPNT  DC    A(*-*)         CHAIN LIST FORWARD POINTER.      U00019   01241540
+VMUNAME  DC    CL8'********'  CMS USERID                       U00019   01241630
+VMUIDNT  DC    CL8' '         IDENTITY - NOT IMPLEMENTED.      U00019   01241720
+VMUPSWD  DC    CL8' '         PASSWORD - NOT IMPLEMENTED.      U00019   01241810
+VMUDSP   DC    V(DSPSYS)      ADDRESS OF DISPLAY TABLE ENTRY.  U00019   01241900
+VMUPAG   DC    A(0)           SCREEN ADDRESS.                  U00019   01241990
+VMUSTAT  DC    A(VMUMET)      VMCF COMMUNICATION STATUS.       U00019   01242080
+VMUMET   EQU   0              JUST MET: WE HAVE HEARD FROM THIS        +01242170
+                              CUSTOMER FOR THE FIRST TIME.     U00019   01242260
+VMULSTN  EQU   1              LISTENING: CUSTOMER IS EXPECTING FRESH   +01242350
+                              DATA WHEN AVAILABLE.             U00019   01242440
+VMUSNDNW EQU   2              SEND NOW: CUSTOMER WANTS DISPLAY SENT    +01242530
+                              AT ONCE.                         U00019   01242620
+VMUINCP  EQU   3              INCOMPLETE: DATA SENT, BUT FINAL         +01242710
+                              INTERRUPT NOT RECEIVED YET       U00019   01242800
+VMUNOT   EQU   4              NOT LISTENING: USER IS NOT EXPECTING AN  +01242890
+                              UPDATE, FOR WHATEVER REASON.     U00019   01242980
+         SPACE 1                                               U00019   01243070
+VMUCOUNT DC    F'0'           NO OF SCREENS SENT.              U00019   01243160
+         DS    0D             FORCE ALIGNMENT                  U00019   01243250
+VMUSECTL EQU   *-VMUSECT      TOTAL LENGTH                     U00019   01243340
+         SPACE 2                                               U00019   01243430
+*              VMCF MESSAGE ID'S.                              U00019   01243520
+VMUXREQ  EQU   3              SENDX ID FOR CLIENT TO REQUEST   U00019   01243610
+VMUSDATA EQU   4              SEND ID FOR SERVER TO SEND DATA  U00019   01243700
+VMUISHUT EQU   256            IDENT ID FOR SERVER TO SAY "I AM         +01243790
+                              SHUTTING DOWN"                   U00019   01243880
+VMUIPSWD EQU   260            IDENT ID FOR SERVER TO REJ. PASSWU00019   01243970
+VMUIPROT EQU   264            IDENT ID FOR SERVER TO REJ. PROTOCOL     +01244060
+                              LEVEL                            U00019   01244150
+         SPACE 3                                               U00019   01244240
+* *************************************************************U00019   01244330
+*              VMCF INTERRUPT HEADER SENDX AREA                U00019   01244420
+* *************************************************************U00019   01244510
+         COPY  VMCBLOKS                                        U00019   01244600
+VMCMHDR  DSECT                                                 U00019   01244690
+         ORG   VMCMBUF                                         U00019   01244780
+VMCIDNT  DS    CL8            IDENTITY - NOT USED              U00019   01244870
+VMCPSWD  DS    CL8            PASSWORD - NOT USED              U00019   01244960
+VMCCMD   DS    CL8            COMMAND (NORMALLY DISPLAY NAME RQU00019   01245050
+         DS    0D                                              U00019   01245140
+VMCL     EQU   *-VMCMHDR      BYTES REQUIRED FOR INTERRUPT AREAU00019   01245230
+VMCDWRD  EQU   VMCL/8         TOTAL LENGTH, DWORDS.            U00019   01245320
+         SPACE 3                                               U00019   01245410
+***************************************************************U00019   01245500
+./ R 01381000          $ 1381990 990                  10/31/84 13:41:34
+         DC    AL3(0)         SPARE                            U00019   01381990
+DSPNAME  DC    CL8'********'  NAME OF DISPLAY                  U00019   01382980
+DSPSTCK  DC    D'0'           STCK TIME OF LAST UPDATE.        U00019   01383970
+DSPDATA  DC    A(*-*)         DEVICE INDEPENDENT DATA STRUCTUREU00019   01384960
+         DC    F'0'           SPARE                            U00019   01385950
+         DS    0D                                              U00019   01386940

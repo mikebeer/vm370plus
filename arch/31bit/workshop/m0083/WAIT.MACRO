@@ -1,0 +1,5 @@
+         MACRO                                                          S  00910
+&NAME    WAIT                                                           S  00920
+&NAME    SVC   SVCWAIT                                                  S  00930
+         MEND                                                           S  00940
+//

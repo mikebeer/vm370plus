@@ -1,0 +1,21 @@
+         MACRO                                                          S  01320
+&LABEL   DCP   &NAME,&BASE=(R0),&ERROR=                                 S  01330
+         AIF   (T'&LABEL EQ 'O').NOLAB                                  S  01340
+&LABEL   DS    0H                                                       S  01350
+.NOLAB   AIF   ('&BASE' EQ '(R0)').OK                                   S  01360
+         AIF   ('&BASE'(1,1) EQ '(').REG                                S  01370
+         LA    R0,&BASE                                                 S  01380
+         AGO   .OK                                                      S  01390
+.REG     LR    R0,&BASE                                                 S  01400
+.OK      LA    R1,&NAME.D                                               S  01410
+         MVC   0(&NAME.L,R1),&NAME.P                                    S  01420
+         SVC   SVCDCP                                                   S  01430
+         AIF   (T'&ERROR EQ 'O').NOERR
+         AIF   ('&ERROR' EQ '*').ACCEPT
+         BNZ   &ERROR
+.ACCEPT  MEXIT
+.NOERR   BZ    *+18
+         DC    H'0'
+         DC    CL12'*DCP*&LABEL'
+         MEND                                                           S  01440
+//

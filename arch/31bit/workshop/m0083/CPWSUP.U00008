@@ -1,0 +1,53 @@
+./ I 00747000          $ 747500 500                   08/19/81 11:22:30
+         TR    DEVAID,PFTRTAB FOLD PFKEYS.                              00747500
+./ R 01004000          $ 1004000 1000                 08/19/81 11:22:30
+*        TEST REQUEST ON A LOCAL 3270 DEVICE RESULTS IN X'60' = C'-',   01004000
+./ I 01016000          $ 1016500 500                  08/19/81 11:22:30
+SCNR     EQU   C'X'           HAND SCANNER.                             01016500
+./ R 01033000          $ 1033000 20                   08/19/81 11:22:30
+PF13     EQU   C'A'                                                     01033000
+PF14     EQU   C'B'                                                     01033020
+PF15     EQU   C'C'                                                     01033040
+PF16     EQU   C'D'                                                     01033060
+PF17     EQU   C'E'                                                     01033080
+PF18     EQU   C'F'                                                     01033100
+PF19     EQU   C'G'                                                     01033120
+PF20     EQU   C'H'                                                     01033140
+PF21     EQU   C'I'                                                     01033160
+PF22     EQU   C'¢'                                                     01033180
+PF23     EQU   C'.'                                                     01033200
+PF24     EQU   C'<'                                                     01033220
+         SPACE 3                                                        01033240
+***********************************************************************
+*        TRANSLATE TABLE TO FOLD PF13-24 INTO PF1-12
+*              FOLD PF13-PF24 INTO PF1-PF12                             01033260
+***********************************************************************
+PFTRTAB  DC    256AL1(NINTR)       UNRECOGNISED = NOAID                 01033280
+         ORG   PFTRTAB+ENT    ENTER KEY                                 01033300
+         DC    AL1(ENT)                                                 01033320
+         ORG   PFTRTAB+RDR    OPERATOR ID CARD                          01033340
+         DC    AL1(ENT)       MAP INTO ENTER                            01033360
+         ORG   PFTRTAB+SCNR   HAND SCANNER                              01033380
+         DC    AL1(ENT)       MAP INTO ENTER                            01033400
+         ORG   PFTRTAB+PEN    LIGHT PEN HIT                             01033420
+         DC    AL1(ENT)       MAP INTO ENTER.                           01033440
+         ORG   PFTRTAB+TRQ    TEST REQ/SYS REQ                          01033460
+         DC    AL1(TRQ)                                                 01033480
+         ORG   PFTRTAB+PA1                                              01033500
+         DC    AL1(PA1)       MAP INTO SELF                             01033520
+         ORG   PFTRTAB+CLR    CLEAR KEY                                 01033540
+         DC    AL1(CLR)                                                 01033560
+         ORG   PFTRTAB+PA2    PA 2 (CNCL)                               01033580
+         DC    AL1(PA2)                                                 01033600
+         ORG   PFTRTAB+PA3    PA 3                                      01033620
+         DC    AL1(PA3)                                                 01033640
+         ORG   PFTRTAB+PF1         PF1-9                                01033660
+         DC    AL1(PF1,PF2,PF3,PF4,PF5,PF6,PF7,PF8,PF9)                 01033680
+         ORG   PFTRTAB+PF10        PF10-12                              01033700
+         DC    AL1(PF10,PF11,PF12)                                      01033720
+         ORG   PFTRTAB+PF13        PF13-21                              01033740
+         DC    AL1(PF1,PF2,PF3,PF4,PF5,PF6,PF7,PF8,PF9)                 01033760
+         ORG   PFTRTAB+PF22        PF22-24                              01033780
+         DC    AL1(PF10,PF11,PF12)                                      01033800
+         ORG                                                            01033820
+         EJECT                                                          01033840

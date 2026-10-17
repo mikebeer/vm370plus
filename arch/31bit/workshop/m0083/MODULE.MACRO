@@ -1,0 +1,24 @@
+         MACRO                                                          00001000
+&NAME    MODULE &PRINT=NO                                               00011000
+         GBLB  &BSEP,&EDGAR                                             00021000
+         GBLC  &SECTP,&SECTD,&V,&M                                      00031000
+         LCLB  &PRINTNG                                                 00041000
+ TITLE 'CPW&NAME -                             CPWATCH, VERSION &V..&M' 00051000
+&PRINTNG SETB  ('&PRINT' NE 'NO')                                       00061000
+&SECTP   SETC  'CPW&NAME'                                               00071000
+&SECTD   SETC  'CPW&NAME.S'                                             00081000
+&SECTP   CSECT                                                          00091000
+         DC    C'**',CL8'&SECTP',C'**'                                  00101000
+&SECTD   CSECT                                                          00111000
+         DC    C'**',CL8'&SECTD',C'**'                                  00121000
+         PUSH  PRINT                                                    00131000
+         AIF   (NOT &PRINTNG).NOPRT1                                    00141000
+         PRINT ON,GEN                                                   00151000
+.NOPRT1  ANOP                                                           00161000
+         COPY  CPWDSC                                                   00171000
+         COPY  EQU                                                      00181000
+&SECTP   CSECT                                                          00191000
+         CPWSUP                                                         00201000
+         POP   PRINT                                                    00211000
+&SECTP   CSECT                                                          00221000
+         MEND                                                           00231000

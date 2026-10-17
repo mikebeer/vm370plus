@@ -1,0 +1,6 @@
+         MACRO                                                          S  00820
+         DATA                                                           S  00830
+         GBLC  &SECTD
+&SECTD   CSECT                                                          S  00840
+         MEND                                                           S  00850
+//

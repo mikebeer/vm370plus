@@ -1,0 +1,154 @@
+         TITLE 'SET AND DISPLAY MAXUSERS'
+STORAGE  CSECT
+***********************************************************************
+*                                                                     *
+*   MAXUSERS - A program to set and display maxusers for VM.          *
+*                                                                     *
+*   DESCRIPTION:  This program requires that VM14768 not be           *
+*             installed on your system.  That apar affects DMKLOG,    *
+*             DMKLOH and DMKEMA and removes maxuser support from CP,  *
+*             leaving the DMKSYSMA alone in SYSLOCS.  Who can figure  *
+*             IBM out?  You can still use this program to set and     *
+*             display DMKSYSMA but nothing will happen if VM14768     *
+*             is on your system.                                      *
+*             In addition, once you have 'reapplied' VM14768, you     *
+*             will find that if MAXUSERS is set and the operator      *
+*             does an AUTOLOG, your system will come down with a      *
+*             PRG005.  The best alternative is to apply VM14768 and   *
+*             to also apply the MAXUSERS CP mods included with this   *
+*             file.  These mods install maxusers support properly.    *
+*             You will need 'C' privileges to make this command work. *
+*                                                                     *
+*   SYNTAX  -  MAXUSERS                                               *
+*              MAXUSERS nnn                                           *
+*                                                                     *
+*             If just the word MAXUSERS is typed, the maximum         *
+*             number of users allowed onto your VM system will be     *
+*             displayed.  If the value is '0' then there is no limit. *
+*             That is the default.                                    *
+*             If you use the second form of the command - you will    *
+*             set the maximum number of users allowed on the system,  *
+*             where 'nnn' must be greater than 0.                     *
+*                                                                     *
+*                                          Henry Nussbacher           *
+*            (c) Weizmann Institute of Science - 1983                 *
+***********************************************************************
+         SAVE  (14,12),,*              SAVE REGISTERS
+         BALR  R12,0                   ESTABLISH ADDRESSABILITY
+         USING *,R12                   TELL ASSEMBLER
+         LR    R11,R13                 SAVE CALLER'S SAVE AREA PTR
+         LA    R13,SAVE                LOAD MY SAVE AREA PTR
+         ST    R13,8(R11)              GIVE CALLER MY SAVE AREA PTR
+         ST    R11,4(R13)              TAKE CALLER'S SAVE AREA PTR
+         B     START                   BRANCH AROUND RETURN CODE
+SAVE     DC    9D'0'                   SAVE AREA
+START    LA    R1,8(,R1)               POINT TO POSSIBLE PARAMETER
+         NI    MAXFLAG,255-SET-DISP    TURN OFF ANY EXISTING FLAGS
+         CLI   0(R1),FENCE             ANYTHING?
+         BE    MAX$DISP                GO DO DISPLAY
+         OI    MAXFLAG,SET             INDICATE SET
+         LR    R2,R1                   MOVE R1 TO R2
+         LA    R3,4                    SCAN FOR 4 CHARACTERS            VMD03200
+PARMLOOP EQU   *                       ENSURE VALUE IS NUMERIC          VMD03210
+         CLI   0(R2),X'40'             BLANK MEANS END OF PARM          VMD03220
+         BE    PARMCNVT                YES GO AND DETERMINE LENGTH      VMD03230
+         CLI   0(R2),C'0'              COMPARE WITH ZERO                VMD03240
+         BL    PARM$ERR                IF LOW, THEN ERROR               VMD03250
+         CLI   0(R2),C'9'              COMPARE WITH NINE                VMD03260
+         BH    PARM$ERR                IF HIGH, THEN ERROR              VMD03270
+         LA    R2,1(,R2)               BUMP TO NEXT CHARACTER           VMD03280
+         BCT   R3,PARMLOOP             AND CHECK IT OUT                 VMD03290
+PARMCNVT EQU   *                       FIND LENGTH OF PARM              VMD03300
+         SLR   R2,R1                   PLACE LENGTH OF PARM INTO R2     VMD03310
+         LA    R3,DECWORK1+8           POINT PAST RECEIVING AREA        VMD03320
+         SLR   R3,R2                   AND BACK UP TO POINT OF STORE    VMD03330
+         BCTR  R2,0                    DECREMENT BY 1 FOR THE EXECUTE   VMD03340
+         MVC   DECWORK1(8),=CL8'0'     FILL AREA WITH ZEROES            VMD03350
+         EX    R2,PARMMOVE             AND MOVE IT                      VMD03360
+         PACK  DECWORK2,DECWORK1       CONVERT TO PACKED DECIMAL        VMD03370
+         CVB   R8,DECWORK2             AND CONVERT PARM TO BINARY       VMD03380
+         C     R8,=F'0'                IS THE NUMBER MORE THAN 0?
+         BNL   COMMON                  YES, GOOD NUMBER
+         LINEDIT TEXT='MAXUSERS must be greater than or equal to 0'
+         L     R13,4(R13)              RESTORE CALLER'S SAVE AREA PTR
+         RETURN (14,12),RC=4           RETURN
+PARM$ERR EQU   *
+         LINEDIT TEXT='MAXUSERS nnn - must be numeric'
+         L     R13,4(R13)              RESTORE CALLER'S SAVE AREA PTR
+         RETURN (14,12),RC=8           RETURN
+* EXECUTED MOVE
+PARMMOVE MVC   0(*-*,R3),0(R1)         MOVE PARM DATA                   VMD03560
+MAX$DISP EQU   *                       INDICATE DISPLAY
+         OI    MAXFLAG,DISP            SET A BIT
+*                                      AND DROP DOWN TO DO DISPLAY
+*                                      TO VERIFY ALL WENT OK
+COMMON   EQU   *
+         L     R1,=A(PAGE)
+         DIAG  R1,0,X'38'              GET SYMBOL TABLE
+LOOP1    CLC   =CL8'DMKSYSNM',0(R1)    FIND 'SYSNM' SINCE 'SYSMA' NOT
+         BE    FOUND1                  IN SYMBOL TABLE
+         CLC   =XL16'0000000000000000',0(R1)  ARE WE AT END OF DMKSYM?
+         BE    NOTFOUND
+         LA    R1,12(R1)               NEXT ENTRY
+         B     LOOP1
+NOTFOUND EQU   *
+         LINEDIT TEXT='Fatal error reading system symbol table'
+         L     R13,4(R13)              RESTORE CALLER'S SAVE AREA PTR
+         RETURN (14,12),RC=12          RETURN
+FOUND1   EQU   *
+         LA    R7,DMKSYSMA             BRING RESULTS TO HERE...
+         L     R5,X'8'(,R1)            BUILD UP THE DIAGNOSE LIST
+         LA    R5,4(,R5)               POINT TO DMKSYSMA
+         ST    R5,DIAG$1               AND STORE IT FOR DIAGNOSE
+         TM    MAXFLAG,DISP            ONLY WANT DISPLAY?
+         BO    DISPLAY                 YUP, BYPASS STCP
+         LINEDIT TEXT='CP STCP ...... ........',DISP=CPCOMM,DOT=NO,RENTX
+               =NO,SUB=(HEX,(R5),HEX,(R8))
+* AND DROP DOWN AND DOUBLE CHECK THAT STCP WENT OK
+DISPLAY  EQU   *
+         LA    R6,1                    BRING IN 1 FULLWORD
+         LA    R5,DIAG$1               POINT TO BEGINNING OF LIST
+         DC    X'83560004'             AND GET REAL MEMORY
+         L     R2,DMKSYSMA             SET UP FOR DISPLAY
+         LINEDIT TEXT='Maximum number of users allowed on the system = X
+               ........',DOT=NO,SUB=(DEC,(R2)),RENT=NO
+EXIT     EQU   *
+         L     R13,4(R13)              RESTORE CALLER'S SAVE AREA PTR
+         RETURN (14,12),RC=0           RETURN
+***********************************************************************
+*                                                                     *
+*        DATA AREAS                                                   *
+*                                                                     *
+***********************************************************************
+* DIAGNOSE LIST
+DIAG$1   DS    A                                                        GET00770
+* DIAGNOSE BRINGS RESULTS TO HERE
+         DS    0F
+DMKSYSMA DS    F'0'
+DECWORK1 DS    D
+DECWORK2 DS    D
+FENCE    EQU   X'FF'
+MAXFLAG  DC    X'00'
+SET      EQU   X'80'
+DISP     EQU   X'40'
+         LTORG
+         EJECT
+         ORG   STORAGE+X'1000'
+PAGE     DS    (X'1000')C
+R0       EQU   0
+R1       EQU   1
+R2       EQU   2
+R3       EQU   3
+R4       EQU   4
+R5       EQU   5
+R6       EQU   6
+R7       EQU   7
+R8       EQU   8
+R9       EQU   9
+R10      EQU   10
+R11      EQU   11
+R12      EQU   12
+R13      EQU   13
+R14      EQU   14
+R15      EQU   15
+         END

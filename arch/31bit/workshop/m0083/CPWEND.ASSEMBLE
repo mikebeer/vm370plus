@@ -1,0 +1,186 @@
+END TITLE 'CPWEND -                  INITIALIZATION/TERMINATION MODULE' 00001000
+         COPY  CPWPRM                                                   00002000
+END      MODULE PRINT=YES                                               00003000
+         EJECT                                                          00004000
+*********************************************************************** 00005000
+*              INITIALIZATION.                                          00006000
+*********************************************************************** 00007000
+         SPACE 1                                                        00008000
+         PRINT GEN                                                      00009000
+CPWINT   PROC  BEGIN,INITIAL=YES                                        00010000
+         PRINT NOGEN                                                    00011000
+         SPACE 3                                                        00012000
+*              GRAB CONTROL OF THE MACHINE.                             00013000
+         SPACE 1                                                        00014000
+         DATA                                                           00015000
+INIT     DC    A(0),V(EXTINTER)  EXTERNAL NEW PSW.                      00016000
+         DC    A(0),V(SVCINTER)                                         00017000
+         DC    A(0),V(PGMINTER)                                         00018000
+         DC    XL8'0002000000F00030'       MCH NEW                      00019000
+         DC    A(0),V(IOINTER)                                          00020000
+         PROC                                                           00021000
+         MVC   EXTNPSW(40),INIT                                         00022000
+         SPACE 2                                                        00023000
+*---------------------------------------------------------------------- 00024000
+*        S T O R A G E   I N I T I A L I Z A T I O N                    00025000
+*---------------------------------------------------------------------- 00026000
+         SPACE 1                                                        00027000
+*              HOW BIG ARE WE ?                                         00028000
+         DIAG  R2,R3,X'60'    VM SIZE.                                  00029000
+         ST    R2,AHICORE                                               00030000
+         SPACE 1                                                        00031000
+*              FREE UP EVERYTHING WE CAN.                               00032000
+         S     R2,F04096       LAST REAL PAGE.                          00033000
+         SPACE 1                                                        00034000
+         L     R3,AHICSECT   FIRST PAGE AVAILABLE.                      00035000
+         LA    R3,4095(,R3)                                             00036000
+         N     R3,FM04096     ROUND UP.                                 00037000
+         SPACE 1                                                        00038000
+         DIAG  R3,R2,X'10'    RELPAGES.                                 00039000
+         SPACE 1                                                        00040000
+*              SET UP CONTROLLED STORAGE.                               00041000
+         L     R1,AHICSECT    FIRST AVAIL SEGMENT                       00042000
+         L     R0,AHICORE                                               00043000
+         SR    R0,R1          LENGTH TO FREE.                           00044000
+         SVC   SVCFREEM       GIVE IT TO THE BOSS.                      00045000
+         SPACE 1                                                        00046000
+*              NOW TAKE BACK DYNAMIC STORAGE                            00047000
+         L     R0,=A(&DYNAM*1024)                                       00048000
+         SVC   SVCGETM                                                  00049000
+         ST    R1,ASAVECH+4                                             00050000
+         L     R13,ASAVECH+4                                            00051000
+         USING CPWINTS,R13                                              00052000
+         AR    R1,R0                                                    00053000
+         ST    R1,ASAVECH     LAST SAVE BYTE.                           00054000
+         SPACE 1                                                        00055000
+*              SET UP NEXT AVAILABLE SAVEAREA.                          00056000
+         LR    R15,R13                                                  00057000
+         A     R15,16(,R11)                                             00058000
+         ST    R15,4(,R13)                                              00059000
+         LA    R15,ASAVECH                                              00060000
+         ST    R15,8(,R13)                                              00061000
+         MVC   0(4,R13),ASAVECH                                         00062000
+         SPACE 3                                                        00063000
+*              NOW WE CAN RUN NORMALLY.                                 00064000
+         SSM   HEXFS          ENABLE INTERRUPTS - WE'RE READY.          00065000
+         SPACE 1                                                        00066000
+*              FIX UP TIMER.                                            00067000
+         CMD   'SET TIMER REAL'                                         00068000
+         SPACE 1                                                        00069000
+*              DEFINE DEVICES.                                          00070000
+         L     R1,ADEVICES                                              00071000
+         USING DEVSECT,R1                                               00072000
+         DO WHILE,CLC,DEVADDR,HEXFS,NE                                  00073000
+            IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                              00074000
+               LH  R2,DEVADDR                                           00075000
+               DIAG R2,R3,X'24'         DEVICE TYPE AND FEATURES.       00076000
+               IF B'0001',THEN                                          00077000
+*                             DEFINE DEVICE.                            00078000
+               DATA                                                     00079000
+DEFGRAF        DC    C'DEFINE GRAF XXX'                                 00080000
+               ORG   *-3                                                00081000
+DEFADDR        DS    CL3                                                00082000
+               ORG                                                      00083000
+               PROC                                                     00084000
+               MVC DEFADDR,DEVCADDR                                     00085000
+               LA  R2,DEFGRAF                                           00086000
+               LA  R3,L'DEFGRAF                                         00087000
+               DIAG R2,R3,8                                             00088000
+               IF END                                                   00089000
+            IF END                                                      00090000
+            LA  R1,DEVNEXT                                              00091000
+         DO END                                                         00092000
+         DROP  R1                                                       00093000
+         SPACE 3                                                        00094000
+*---------------------------------------------------------------------- 00095000
+*              SAY HELLO                                                00096000
+*---------------------------------------------------------------------- 00097000
+         WTO   'CPWATCH ACTIVE'                                         00098000
+         SPACE 3                                                        00099000
+*---------------------------------------------------------------------- 00100000
+*        AND FETCH MAINLINE.                                            00101000
+*---------------------------------------------------------------------- 00102000
+         CALL  MAIN                                                     00103000
+         SPACE 3                                                        00104000
+*---------------------------------------------------------------------- 00105000
+*              LOG OUT STORAGE MANAGEMENT ACTION.                       00106000
+*---------------------------------------------------------------------- 00107000
+*              NOTE THAT THE FOLLOWING IS ONE-TIME CODE.                00108000
+         DATA                                                           00109000
+ENDMSG1  EQU   *                                                        00110000
+GETCNT   DC    X'402020206B2020206B2020206B2020206B202120'              00111000
+         DC    C' GETMAINS,'                                            00112000
+         DC    X'15'                                                    00113000
+FRECNT   DC    X'402020206B2020206B2020206B2020206B202120'              00114000
+         DC    C' FREEMAINS.'                                           00115000
+ENDMSG1L EQU   *-ENDMSG1                                                00116000
+         PROC                                                           00117000
+         ED    GETCNT,GETMAINS                                          00118000
+         ED    FRECNT,FREMAINS                                          00119000
+         SPACE 1                                                        00120000
+         LM    R0,R1,=A(ENDMSG1L,ENDMSG1)                               00121000
+         SVC   SVCWTO                                                   00122000
+         SPACE 3                                                        00123000
+*---------------------------------------------------------------------- 00124000
+*              SHUTTING DOWN CLEANUP.                                   00125000
+*---------------------------------------------------------------------- 00126000
+         L     R1,ADEVICES                                              00127000
+         USING DEVSECT,R1                                               00128000
+         DO WHILE,CLC,DEVADDR,HEXFS,NE                                  00129000
+            IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                              00130000
+*              DETACH DEVICES.                                          00131000
+               DATA                                                     00132000
+DETGRAF        DC  C'DETACH XXX'                                        00133000
+               ORG *-3                                                  00134000
+DETADDR        DS  CL3                                                  00135000
+               ORG                                                      00136000
+               PROC                                                     00137000
+               MVC DETADDR,DEVCADDR                                     00138000
+               LA  R2,DETGRAF                                           00139000
+               LA  R3,L'DETGRAF                                         00140000
+               DIAG R2,R3,8                                             00141000
+            IF END                                                      00142000
+            LA  R1,DEVNEXT                                              00143000
+         DO END                                                         00144000
+         DROP R1                                                        00145000
+         SPACE 3                                                        00146000
+*---------------------------------------------------------------------- 00147000
+*              QUIESCE CONSOLE.                                         00148000
+*---------------------------------------------------------------------- 00149000
+         SPACE 1                                                        00150000
+         L     R5,=V(CONSOLE)                                           00151000
+         USING DEVSECT,R5                                               00152000
+         DO WHILE,CLC,DEVBEGST,ZEROS,NZ                                 00153000
+               SETIME 1                                                 00154000
+               WAIT                                                     00155000
+         DO END                                                         00156000
+         SPACE 3                                                        00157000
+*---------------------------------------------------------------------- 00158000
+*              AND PACK IT IN.                                          00159000
+*---------------------------------------------------------------------- 00160000
+         LA    R2,=CL8'IPL CMS'                                         00161000
+         LA    R3,8                                                     00162000
+         DIAG  R2,R3,8                                                  00163000
+         SPACE 1                                                        00164000
+         PROC  END            SHOULD NEVER BE EXECUTED.                 00165000
+         LTORG                                                          00166000
+         SPENDCHK                                                       00167000
+         EJECT                                                          00168000
+*********************************************************************** 00169000
+*              V M / 3 7 0   D S E C T S.                             * 00170000
+*********************************************************************** 00171000
+         SPACE 1                                                        00172000
+         PSA                                                            00173000
+         COPY  RBLOKS                                                   00174000
+         COPY  VMBLOK                                                   00175000
+         AGO   .DONT          SUPPRESS DSECTS UNTIL NEEDED.             00176000
+         SYSLOCS                                                        00177000
+.DONT    ANOP                                                           00178000
+         EJECT                                                          00179000
+*---------------------------------------------------------------------- 00180000
+*              DEFINE TOP OF USED STORAGE.                              00181000
+*---------------------------------------------------------------------- 00182000
+HICSECT  CSECT                MUST NOT BE USED FOR ANYTHING ELSE.       00183000
+         SPACE 12                                                       00184000
+         SPENDCHK             ARE WE CLEAN ?                            00185000
+         END   CPWINT                                                   00186000

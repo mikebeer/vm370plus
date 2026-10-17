@@ -1,0 +1,59 @@
+./ D 00038000 00055000                                12/18/81 13:41:23
+./ R 00166000          $ 166000 10                    12/18/81 13:41:23
+*              CPU ID, SYSTEM CODE.                            U00011   00166000
+         STORAGE                                               U00011   00166010
+DIAG0    DS    8D                                              U00011   00166020
+DIAG0LN  EQU   *                                               U00011   00166030
+         PROC  ,                                               U00011   00166040
+         LA    R0,DIAG0                                        U00011   00166050
+         LA    R1,DIAG0LN                                      U00011   00166060
+         DIAG  R0,R1,0        STORE EXTENDED ID CODE           U00011   00166070
+         MVC   CPREL(8),DIAG0 USE SYSTEM NAME.                 U00011   00166080
+         IF LTR,R1,R1,Z,THEN AT SECOND LEVEL                   U00011   00166090
+             MVC CPREL(8),DIAG0+32+16 (USE USERID)             U00011   00166100
+         IF END                                                U00011   00166110
+         SPACE 1                                               U00011   00166120
+*              NOW RIGHT JUSTIFY SYSTEM CODE - MAKE IT PRETTY. U00011   00166130
+         LA    R1,CPREL+7                                      U00011   00166140
+         LA    R2,CPREL+7                                      U00011   00166150
+         LA    R3,CPREL                                        U00011   00166160
+         DO WHILE,CLI,0(R2),C' ',EQ                            U00011   00166170
+            BCTR R2,0                                          U00011   00166180
+         DO END                                                U00011   00166190
+         DO WHILE,CR,R2,R3,GE                                  U00011   00166200
+            MVC 0(1,R1),0(R2)                                  U00011   00166210
+            BCTR R1,0                                          U00011   00166220
+            BCTR R2,0                                          U00011   00166230
+         DO END                                                U00011   00166240
+         DO WHILE,CR,R1,R3,GE                                  U00011   00166250
+            MVI 0(R1),C' '                                     U00011   00166260
+            BCTR R1,0                                          U00011   00166270
+         DO END                                                U00011   00166280
+         SPACE 1                                               U00011   00166290
+*              VM VERSION NUMBER.                              U00011   00166300
+         SR    R1,R1                                           U00011   00166310
+         IC    R1,DIAG0+8 VERSION NUMBER                       U00011   00166320
+         CALL  DECIT                                           U00011   00166330
+         STCM  R1,7,CPREL+8                                    U00011   00166340
+         MVI   CPREL+11,C'.'                                   U00011   00166350
+         SPACE 1                                               U00011   00166360
+         SR    R1,R1                                           U00011   00166370
+         IC    R1,DIAG0+8+1                                    U00011   00166380
+         CALL  DECIT                                           U00011   00166390
+         STCM R1,3,CPREL+12                                    U00011   00166400
+         OC    CPREL+12(2),=C'00'                              U00011   00166410
+         MVI   CPREL+14,C'.'                                   U00011   00166420
+         SPACE 1                                               U00011   00166430
+         SR    R1,R1                                           U00011   00166440
+         IC    R1,DIAG0+8+2                                    U00011   00166450
+         CALL  DECIT                                           U00011   00166460
+         STCM R1,7,CPREL+15                                    U00011   00166470
+         OC    CPREL+15(3),=C'000'                             U00011   00166480
+         SPACE 1                                               U00011   00166490
+*              CPU TYPE AND MODEL GROUP.                       U00011   00166500
+./ I 00174000          $ 174100 100                   12/18/81 13:41:23
+         SR    R1,R1                                           U00011   00174100
+         IC    R1,DIAG0+11    REAL MODEL NUMBER                U00011   00174200
+         CALL  HEXIT                                           U00011   00174300
+         MVI   CPUMOD+4,C'-'                                   U00011   00174400
+         STC   R1,CPUMOD+5                                     U00011   00174500

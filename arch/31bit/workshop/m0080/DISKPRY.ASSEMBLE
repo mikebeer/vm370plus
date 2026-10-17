@@ -1,0 +1,685 @@
+         TITLE 'DISKPRY - EDF Disk Utility'
+DISKPRY  CSECT
+***************************************************************
+*                                                             *
+* DISKPRY - General Purpose Utility for EDF Minidisks.        *
+*           Can be used to examine and modify individual      *
+*           blocks, copy minidisks block-by-block, search     *
+*           for data in disk blocks, and recreate files       *
+*           from disk blocks.                                 *
+*                                                             *
+*           DISKPRY can be used to diagnose problems with     *
+*           crashed minidisks, retrieve files accidentally    *
+*           ERASEd, and for salvaging data from HDAs that     *
+*           are failing.                                      *
+*                                                             *
+* USER area module that must be GENMODed with the "SYSTEM"    *
+* option. See "HELP DISKPRY" for more information on how to   *
+* use DISKPRY.                                                *
+*                                                             *
+*                                                             *
+* DJOHNSON 12/11/84                                           *
+*                                                             *
+***************************************************************
+         REGEQU
+         USING DISKPRY,R12,R11,R13
+         USING NUCON,R0
+         LR    R12,R15             BASE TO R12
+         LA    R11,2048(,R12)
+         LA    R11,2048(,R11)      NEXT BASE
+         LA    R13,2048(,R11)
+         LA    R13,2048(,R13)      NEXT BASE
+         ST    R14,REG14     SAVE RETURN ADDRESS
+* PICK UP INPUT PARAMETER
+         LA    R1,8(,R1)     MOVE PAST COMMAND NAME
+         CLI   0(R1),X'FF'   GOT FENCE?
+         BNE   GOTPARM
+PARMERR  WRTERM 'What was that again?'
+         LA    R15,16
+         BR    R14
+GOTPARM  CLI   0(R1),C'?'    WANT HELP
+         BNE   NOTHELP
+TELL     WRTERM 'DISKPRY: Manipulate blocks on EDF disk.'
+         WRTERM 'Format:  DISKPRY fm'
+         LA    R15,100
+         BR    R14
+********* TRY TO FIND ACCESSED DISK AT CHOSEN MODE ****
+NOTHELP  MVC   SAVEMODE(1),0(R1) PICK UP MODE
+MODE     CLI   1(R1),C' '
+         BNE   PARMERR
+         SPACE
+SEARCH   L     R4,IADT
+         USING ADTSECT,R4
+SLOOP    LTR   R4,R4
+         BZ    NOTFOUND
+         SPACE
+TESTMODE CLC   ADTM,SAVEMODE
+         BNE   SNEXT
+         SPACE
+FOUND    TM    ADTFLG1,ADTFRO+ADTFRW  BRANCH IF DISK ACCESSED (CMS).
+         BNZ   GOTIT
+         B     NOTFOUND
+SNEXT    L     R4,ADTPTR      ON TO NEXT ADT ENTRY.
+         B     SLOOP
+         EJECT
+********* TYPE OUT STUFF ABOUT THE DISK ***************
+GOTIT    EQU   *              CORRECT ADT IS FOUND
+         MVC   FOPFN(8),=CL8' ' CLEAR
+         MVC   FOPFT(8),=CL8' ' ...
+         WRTERM 'DISKPRY:'
+         WRTERM '-------'
+         ST    R4,INADT       SAVE ADDRESS OF INPUT ADT
+         ST    R4,DISKADT     ...
+         L     R0,ADTDBSIZ    SAVE BLOCKSIZE
+         ST    R0,DISKBSIZ    BYTES
+         SRL   R0,3           AND DOUBLEWORDS
+         ST    R0,DISKDWDS    SAVE ALSO
+         L     R1,ABUF        START OF BUFFER
+         A     R1,ADTDBSIZ    ADD BUFFER SIZE
+         S     R1,=F'1'       MINUS 1
+         ST    R1,BUFEND      SAVE END OF BUFFER ADDRESS
+         L     R1,ABUF
+         A     R1,=F'511'     LAST BYTE TO DISPLAY
+         ST    R1,DISEND      SAVE
+*
+         L     R3,ADTDTA      GET DISK ADDRESS.
+         USING DEVSECT,R3
+         LINEDIT TEXT='ADT=........',SUB=(HEX,(R4)),DOT=NO
+         LINEDIT TEXT='DEV=........',SUB=(HEX,(R3)),DOT=NO
+         LH    R5,DEVADDR    PICK UP VIRTUAL ADDRESS
+         STH   R5,VADDR      AND SAVE IT
+         LINEDIT TEXT='VADDR= ....',SUB=(HEX,(R5)),DOT=NO
+         LINEDIT TEXT='DISK ORIGIN= ........',SUB=(DECA,ADTDOP),DOT=NO
+         LINEDIT TEXT='ADT FILES= .....',SUB=(DECA,ADTFSTC),DOT=NO
+         LINEDIT TEXT='ADT BLOCKS= .....',SUB=(DECA,ADTNUM),DOT=NO
+         MVC   MAXBLK,ADTNUM  REMEMBER BLOCKS ON DISK
+         LINEDIT TEXT='BLOCK SIZE= ....',SUB=(DECA,ADTDBSIZ),DOT=NO
+         CLC     ADTDBSIZ(4),=F'800' OLD FORMAT DISK?
+         BNE   EDFDISK
+         WRTERM 'Disk is not EDF format'
+         LA    R15,16
+         BR    R14
+********* FIND DIRECTOR FST ***************************
+EDFDISK  EQU   *
+         LINEDIT TEXT='DIRECTORY= ........',SUB=(HEXA,ADTFDA),DOT=NO
+         L     R5,ADTFDA     POINT TO DATA CONTROL HYPERBLOK
+         USING DCHSECT,R5
+         LA    R7,DCHDATA    1ST FST
+         USING FSTSECT,R7
+FINDDIR  CLC   FSTN,=X'0000000100000000' FIND DIRECTOR FST
+         BE    GOTDIR
+         CLC   FSTN,=X'0000000000000000' EMPTY FST?
+         BE    NODIR
+         LA    R7,FSTL2(,R7) NEXT FST
+         B     FINDDIR
+NODIR    WRTERM 'DIRECTOR FST not found'
+         B     INLOOP
+GOTDIR   LINEDIT TEXT='DIRECTOR FST=........',SUB=(HEX,(R7)),DOT=NO
+         LINEDIT TEXT='ITEMS= .....',SUB=(DECA,FSTAIC),DOT=NO
+         SR    R9,R9
+         IC    R9,FSTNLVL
+         LINEDIT TEXT='PTR LVL= ...',SUB=(DEC,(R9)),DOT=NO
+         LINEDIT TEXT='FILE ORIG=........',SUB=(DECA,FSTFOP),DOT=NO
+         LINEDIT TEXT='DATA BLK=.....',SUB=(DECA,FSTADBC),DOT=NO
+         DROP  R7
+         MVC   DIRTYP(1),SAVEMODE SET MODE TO READ
+         SR    R9,R9         BEGIN AT THE BEGINNING
+         ST    R9,DIRITEM    ..
+         ST    R9,DIRCNT     0 ITEMS READ
+         WRTERM ' '
+         B     INLOOP        begin command prompting
+         EJECT
+********* READ DIRECTOR FROM DISK **************************
+DIRLOOP  LA    R1,DIRDISK
+         SVC   202
+         DC    AL4(*+4)
+         LTR   R15,R15       ANY ERRORS AT ALL?
+         BZ    DIRFMT
+         C     R15,=F'12'    EOF?
+         BE    DIREOF
+         LR    R9,R15
+         LINEDIT TEXT='RDBUF RC=....',SUB=(DEC,(R9))
+         LR    R15,R9
+         BR    R14
+DIRFMT   EQU   *             FORMAT ENTRY
+         L     R9,DIRCNT     INC COUNTER
+         LA    R9,1(,R9)     ..
+         ST    R9,DIRCNT     ..
+         L     R9,ABUF       POINT AT DIRECTOR RECORD
+         USING FSTSECT,R9
+         SR    R10,R10       GET POINTER LEVEL
+         IC    R10,FSTNLVL   FROM FST
+*
+         CLI   FOPFT,C' '    FOP SCAN?
+         BE    DIRALL        NO, TYPE ALL ENTRIES
+         CLC   FSTN(8),FOPFN FN MATCH?
+         BNE   DIRLOOP       NO, NEXT ENTRY
+         CLC   FSTT(8),FOPFT FT MATCH?
+         BNE   DIRLOOP       NO, NEXT ENTRY
+         LINEDIT TEXTA=DIRLINE,RENT=NO,DOT=NO,COMP=NO,                 X
+               SUB=(CHARA,FSTN,CHARA,FSTT,DECA,FSTFOP,HEXA,FSTFOP,     X
+               DEC,(R10))
+         B     DIRLOOP
+*
+DIRALL   LINEDIT TEXTA=DIRLINE,RENT=NO,DOT=NO,COMP=NO,                 X
+               SUB=(CHARA,FSTN,CHARA,FSTT,DECA,FSTFOP,HEXA,FSTFOP,     X
+               DEC,(R10))
+         B     DIRLOOP       GET NEXT RECORD
+DIREOF   L     R9,DIRCNT     TYPE RECORD COUNT
+         LINEDIT TEXT='..... DIRECTOR records read',SUB=(DEC,(R9))
+         MVC   FINISFM(1),SAVEMODE
+         LA    R1,PFINIS
+         SVC   202
+         DC    AL4(*+4)
+         EJECT
+********* GET COMMAND FROM TERMINAL ************************
+INLOOP   MVC   FOPFN(8),=CL8' ' CLEAR
+         MVC   FOPFT(8),=CL8' ' ...
+         SSM   ENABLE
+         WRTERM 'Command:(READ|WRITE|MAP|EXIT|FOP|SCAN|SAVE|CMS|COPY)'
+         RDTERM INBUF,EDIT=YES    READ FROM TERMINAL
+         CLC   INBUF(4),=CL4'EXIT'     DONE?
+         BE    EXIT
+         CLC   INBUF(4),=CL4'QUIT'     ..
+         BE    EXIT
+         CLC   INBUF(5),=CL5'WRITE'    WRITE?
+         BE    WRTBLK
+         CLC   INBUF(3),=CL3'MAP'      MAP?
+         BE    DIRLOOP
+         CLC   INBUF(4),=CL4'SCAN'     SCAN?
+         BE    SCANDISK
+         CLC   INBUF(3),=CL3'FOP'      FOP SEARCH?
+         BE    FOPSCAN
+         CLC   INBUF(4),=CL4'SAVE'     SAVE?
+         BE    SAVEDISK
+         CLC   INBUF(3),=CL3'CMS'      enter SUBSET?
+         BE    CMSSUBST
+         CLC   INBUF(4),=CL4'COPY'     DISK COPY REQUEST?
+         BE    DISKCOPY
+         CLC   INBUF(4),=CL4'READ'     READ?
+         BNE   INLOOP
+         EJECT
+         WRTERM 'Enter block number to be read: (leading 0 means HEX) '
+         RDTERM INBUF,EDIT=YES
+         MVC   TOKEN(8),INBUF     PICK UP BLOCK NUMBER
+         CLC   TOKEN(1),=CL1'0'   LEADING ZERO MEANS HEX
+         BE    INHEXB             ..
+********* GET DECIMAL BLOCK NUMBER *************************
+INDEC    BAL   R10,CHARBIN   CONVERT TO BINARY
+         CLC   BINRC(4),=F'0'     NORMAL RC?
+         BE    READBLK
+         WRTERM 'Please enter a block number!'
+         B     INLOOP
+********* GET HEXIDECIMAL BLOCK NUMBER *********************
+INHEXB   BAL   R10,HEXBIN    CONVERT TO BINARY
+         CLC   BINRC(4),=F'0'     NORMAL RC?
+         BE    READBLK
+         WRTERM 'Please enter a block number!'
+         B     INLOOP
+********* READ IN SPECIFIED BLOCK NUMBER *******************
+READBLK  EQU   *
+         LINEDIT TEXT='READING BLOCK ...... (X''.....'')',             X
+               SUB=(DECA,BINARY,HEXA,BINARY),DOT=NO,RENT=NO
+         MVC   DISKADDR(4),BINARY PICK UP BLOCK ADDRESS
+         MVC   DISKADT(4),INADT SET INPUT ADT ADDRESS
+         LA    R1,DISKPL     RDTK PLIST
+         L     R15,ARDTK     ENTRY ADDRESS
+         SSM   DISABLE       NO INTERRUPTS
+         STM   R0,R15,TREGS  SAVE ALL REGS
+         BALR  R14,R15       CALL DMSDIOR
+         BZ    READOK
+         LM    R0,R14,TREGS  PUT REGS BACK
+         LINEDIT TEXT='ERROR ... READING BLOCK .....',                 x
+               SUB=(DEC,(R15),DECA,BINARY),RENT=NO
+         B     INLOOP        TRY AGAIN
+READOK   LM    R0,R15,TREGS  RESTORE REGS
+         STM   R0,R15,TREGS  SAVE ALL REGS
+********* TYPE BUFFER START AND ENTER SUBSET ***************
+         WRTERM 'Entering CMS SUBSET'
+         LINEDIT TEXT='Buffer is at ......-......',DOT=NO,             X
+               SUB=(HEXA,ABUF,HEXA,BUFEND),RENT=NO
+* TYPE OUT FRONT OF BUFFER
+         LINEDIT TEXT='D T......-......',DOT=NO,DISP=CPCOMM,           X
+               SUB=(HEXA,ABUF,HEXA,DISEND),RENT=NO
+         LA    R1,SUBSET     GO INTO CMS SUBSET
+         SVC   202           ..
+         DC    AL4(*+4)      ..
+         LM    R0,R15,TREGS  LOAD ALL REGS
+         B     INLOOP        NEXT COMMAND PLEASE
+         EJECT
+********* Return FOP for chosen file ***********************
+FOPSCAN  EQU   *
+         WRTERM 'Enter Filename:'
+         RDTERM FOPFN,EDIT=YES
+         LTR    R0,R0        null?
+         BZ     INLOOP       yes, abort command
+         WRTERM 'Enter Filetype:'
+         RDTERM FOPFT,EDIT=YES
+         LTR    R0,R0        null?
+         BZ     INLOOP       yes, abort command
+         B      DIRLOOP      go read directory from disk
+         EJECT
+********* WRITE BLOCK BUFFER AS A DISK FILE ****************
+SAVEDISK DS     0H
+         WRTERM 'Enter file format (F|V) '
+         RDTERM SAVFV,EDIT=YES
+         C      R0,=F'1'     PROPER RESPONSE
+         BNE    INLOOP       YES, ABORT COMMAND
+         CLI    SAVFV,C'F'   F?
+         BE     SAVDISK2
+         CLI    SAVFV,C'V'   V?
+         BE     SAVDISK2
+         B      INLOOP       WRONG!
+SAVDISK2 DS     0H
+         CLI    SAVFV,C'V'   NEED TO ASK LRECL?
+         BE     SAVBUFR      NOT FOR V FORMAT
+         WRTERM 'Enter file LRECL:'
+         RDTERM INBUF,EDIT=YES
+         LTR   R0,R0         INPUT LENGTH
+         BZ    INLOOP        ABORT?
+         MVC   TOKEN(8),INBUF     PICK UP BLOCK NUMBER
+         BAL   R10,CHARBIN   CONVERT TO BINARY
+         CLC   BINRC(4),=F'0'     NORMAL RC?
+         BNE   INLOOP
+         MVC   SAVLRECL(4),BINARY SET SPECIFIED LRECL
+         LINEDIT TEXT='LRECL=......',SUB=(DECA,SAVLRECL),DOT=NO
+SAVBUFR  MVC    SAVBF,ABUF   DEFAULT TO START OF BUFFER
+         WRTERM 'Enter HEX address of 1st record in block buffer,'
+         LINEDIT TEXT='(CR =.....):',SUB=(HEXA,SAVBF),DOT=NO
+         RDTERM INBUF,EDIT=YES
+         LTR   R0,R0         WANT DEFAULT?
+         BNZ   SAVADDR       NO, USE WHAT WAS GIVEN INSTEAD
+         B     SAVDISK4      ...
+SAVADDR  DS    0H
+         MVC   TOKEN(8),INBUF     PICK UP BLOCK NUMBER
+         BAL   R10,HEXBIN    CONVERT TO BINARY
+         CLC   BINRC(4),=F'0'     NORMAL RC?
+         BE    SAVDISK3
+SAVERR   WRTERM 'Invalid address!'
+         B     INLOOP
+SAVDISK3 MVC   SAVBF(4),BINARY
+SAVDISK4 LINEDIT TEXT='BUF = ...... :',SUB=(HEXA,SAVBF),DOT=NO
+         L     R10,SAVBF     Address within bounds?
+         C     R10,ABUF      ...
+         BL    SAVERR        too low?
+         C     R10,BUFEND    too high?
+         BH    SAVERR        ...
+* WRITE BLOCK TO DISK FILE
+         SR    R7,R7         ZERO RECORD COUNTER
+         L     R8,SAVBF      POINT AT FIRST RECORD
+         CLI   SAVFV,C'F'    F?
+         BE    SAVWRT1       YES, SKIP NEXT STUFF
+         SR    R9,R9
+         ST    R9,SAVLRECL   SET LATEST LRECL
+         MVC   SAVLRECL+2(2),0(R8) ..
+         LA    R8,2(,R8)     SKIP OVER LRECL
+SAVWRT1  L     R10,SAVLRECL  SET LRECL
+         LTR   R10,R10       ZERO LENGTH?
+         BZ    SAVEOF        ASSUME EOF IF SO
+         FSWRITE 'DISKPRY SAVEFILE A',ERROR=SAVERW,BUFFER=(R8),        X
+               BSIZE=(R10),RECFM=V
+         LA    R7,1(,R7)     COUNT THIS RECORD
+         B     SAVWRTN       PREPARE TO WRITE NEXT RECORD
+SAVERW   LINEDIT TEXT='ERROR ... ON WRITE',SUB=(DEC,(R15))
+         B     INLOOP
+SAVWRTN  DS    0H
+         L     R9,SAVLRECL   POINT AT NEXT RECORD
+         AR    R8,R9         BY ADDING CURRENT LENGTH
+         C     R8,BUFEND     OFF END OF BUFFER?
+         BH    SAVEOF        ...
+         CLI   SAVFV,C'F'    READY YET?
+         BE    SAVWRT1
+         SR    R9,R9
+         ST    R9,SAVLRECL   SET LATEST LRECL
+         MVC   SAVLRECL+2(2),0(R8) ..
+         LA    R8,2(,R8)     SKIP OVER LRECL
+         B     SAVWRT1
+SAVEOF   FSCLOSE 'DISKPRY SAVFILE A'
+         LINEDIT TEXT='..... RECORDS WRITTEN TO "DISKPRY SAVEFILE A"', X
+               SUB=(DEC,(R7))
+         B     INLOOP
+         EJECT
+********* ENTER CMS SUBSET *********************************
+CMSSUBST LA    R1,SUBSET     GO INTO CMS SUBSET
+         SVC   202           ..
+         DC    AL4(*+4)      ..
+         B     INLOOP        NEXT COMMAND PLEASE
+         EJECT
+********* BLOCK DISK COPY REQUEST **************************
+DISKCOPY WRTERM 'BLOCK DISK COPY REQUEST'
+         WRTERM 'ENTER OUTPUT FM:'
+         RDTERM SCANBUF      READ FM
+         C     R0,=F'1'      CORRECT LENGTH?
+         BNE   INLOOP        NOT 1, IGNORE
+         MVC   OUTFM(1),SCANBUF SAVE OUTPUT FM
+SEARCHX  L     R4,IADT       LOOK FOR ACCESSED DISK
+SLOOPX   LTR   R4,R4
+         BZ    NOOUTPUT      NOT THERE
+TESTMODX CLC   ADTM,OUTFM    IS THIS IT?
+         BNE   SNEXTX        NO, LOOK AT NEXT ONE
+         TM    ADTFLG1,ADTFRW  BRANCH IF DISK ACCESSED RW.
+         BNZ   GOTITX
+         B     NOOUTPUT      NOT ACCESSED RW
+SNEXTX   L     R4,ADTPTR      ON TO NEXT ADT ENTRY.
+         B     SLOOPX
+NOOUTPUT LINEDIT TEXT='NO RW DISK AT MODE ...',                        X
+               SUB=(CHARA,OUTFM),DOT=NO
+         B     INLOOP        NEXT COMMAND PLEASE
+         EJECT
+GOTITX   ST    R4,OUTADT     SAVE OUTPUT ADT ADDRESS
+         MVI   ADTFLG1,ADTFRO MAKE IT LOOK RO
+         LA    R10,3         START WITH BLOCK 3
+         ST    R10,BINARY    STORE IN BLOCK COUNTER
+NEXTBLK  DS    0H
+         MVC   DISKADDR(4),BINARY PICK UP BLOCK ADDRESS
+         SR    R14,R14       IS THIS BLOCK MULT OF 1000?
+         L     R15,BINARY
+         D     R14,=F'1000'
+         LTR   R14,R14       REMINDER 0?
+         BNZ   NOBLIP
+         LINEDIT TEXT='READING BLOCK ........ OF ........',            X
+               SUB=(DECA,BINARY,DECA,MAXBLK),RENT=NO
+NOBLIP   DS    0H
+         MVC   DISKADT(4),INADT SET INPUT ADT ADDRESS
+         LA    R1,DISKPL     RDTK PLIST
+         L     R15,ARDTK     ENTRY ADDRESS
+         SSM   DISABLE       NO INTERRUPTS
+         STM   R0,R15,TREGS  SAVE ALL REGS
+         BALR  R14,R15       CALL DMSDIOR
+         SSM   ENABLE
+         BZ    BREADOK
+         LM    R0,R14,TREGS  PUT REGS BACK
+         C     R15,=F'5'     END OF DISK?
+         BNE   BLKERR        NO, REAL ERROR
+         WRTERM 'All disk blocks read.'
+         B     INLOOP
+BLKERR   DS    0H
+         LINEDIT TEXT='ERROR ... READING BLOCK .....',                 x
+               SUB=(DEC,(R15),DECA,BINARY),RENT=NO
+         B     READNBLK      TRY AGAIN
+BREADOK  DS    0H            BACK TO USER KEY
+         MVC   DISKADT(4),OUTADT SET OUTPUT ADT ADDRESS
+         LA    R1,DISKPL     RDTK PLIST
+         L     R15,AWRTK     ENTRY ADDRESS
+         SSM   DISABLE       NO INTERRUPTS
+         STM   R0,R15,TREGS  SAVE ALL REGS
+         BALR  R14,R15       CALL DMSDIOW
+         BZ    WRTOKX
+         LM    R0,R14,TREGS  PUT REGS BACK
+         LINEDIT TEXT='ERROR ... WRITING BLK ....',                    x
+               SUB=(DEC,(R15),DECA,BINARY),RENT=NO
+         B     INLOOP        TRY AGAIN
+WRTOKX   LM    R0,R15,TREGS  RESTORE REGS
+READNBLK L     R10,BINARY    POINT TO NEXT BLOCK
+         LA    R10,1(,R10)   ...
+         ST    R10,BINARY
+         B     NEXTBLK       NEXT BLOCK PLEASE
+         B     INLOOP        NEXT COMMAND PLEASE
+         EJECT
+********* SCAN DISK BLOCKS FOR SPECIFIED STRING ************
+SCANDISK EQU   *
+         WRTERM 'Pointer block or Character scan (P|C)?'
+         RDTERM SCANBUF      WHICH IS IT?
+         LTR   R0,R0         ANY RESPONSE?
+         BZ    INLOOP        ABORT FOR CR
+         CLI   SCANBUF,C'C'  WANT CHAR SCAN?
+         BE    SCANCHAR      YES, DO SO
+         CLI   SCANBUF,C'P'  WANT POINTER BLOCK SCAN?
+         BNE   SCANDISK      CONFUSED, ASK AGAIN
+SCANPTR  MVI   SCANTYPE,C'P' INDICATE POINTER SCAN
+         WRTERM 'Enter Pointer Block number: (leading 0 means HEX) '
+         RDTERM INBUF,EDIT=YES
+         MVC   TOKEN(8),INBUF     PICK UP BLOCK NUMBER
+         CLC   TOKEN(1),=CL1'0'   LEADING ZERO MEANS HEX
+         BE    INHEXBX            ..
+         BAL   R10,CHARBIN   CONVERT TO BINARY
+         CLC   BINRC(4),=F'0'     NORMAL RC?
+         BE    SCANPTR2
+         WRTERM 'Please enter a number!'
+         B     INLOOP
+INHEXBX  BAL   R10,HEXBIN    CONVERT TO BINARY
+         CLC   BINRC(4),=F'0'     NORMAL RC?
+         BE    SCANPTR2
+         WRTERM 'Please enter a number!'
+         B     INLOOP
+SCANPTR2 MVC   PTRNUMB(4),BINARY  THING TO BE SCANNED FOR
+         B     SCANBLK3      GO START SCANNING
+SCANCHAR MVI   SCANTYPE,C'C' INDICATE CHAR SCAN
+         WRTERM 'Enter search string: '
+         RDTERM SCANBUF,EDIT=NO   READ SEARCH STRING
+         ST    R0,SCANLEN    STORE STRING LENGTH
+         LTR   R0,R0         ANYTHING TO SCAN?
+         BZ    INLOOP        NO, ABORT
+SCANBLK3 LA    R10,3         START WITH BLOCK 3
+         ST    R10,BINARY    STORE IN BLOCK COUNTER
+NEXTBLOK DS    0H
+         MVC   DISKADDR(4),BINARY PICK UP BLOCK ADDRESS
+         SR    R14,R14       IS THIS BLOCK MULT OF 1000?
+         L     R15,BINARY
+         D     R14,=F'1000'
+         LTR   R14,R14       REMINDER 0?
+         BNZ   NOBLIP2
+         LINEDIT TEXT='READING BLOCK ........ OF ........',            X
+               SUB=(DECA,BINARY,DECA,MAXBLK),RENT=NO
+NOBLIP2  DS    0H
+         MVC   DISKADT(4),INADT SET INPUT ADT ADDRESS
+         LA    R1,DISKPL     RDTK PLIST
+         L     R15,ARDTK     ENTRY ADDRESS
+         SSM   DISABLE       NO INTERRUPTS
+         STM   R0,R15,TREGS  SAVE ALL REGS
+         BALR  R14,R15       CALL DMSDIOR
+         SSM   ENABLE        INTERRUPTS OK
+         BZ    SREADOK
+         LM    R0,R14,TREGS  PUT REGS BACK
+         C     R15,=F'5'     END OF DISK?
+         BNE   SCANERR       NO, REAL ERROR
+         WRTERM 'All disk blocks read.'
+         B     INLOOP
+SCANERR  DS    0H
+         LINEDIT TEXT='ERROR ... READING BLOCK .....',                 x
+               SUB=(DEC,(R15),DECA,BINARY),RENT=NO
+         B     SCANNBLK      TRY AGAIN
+SREADOK  LM    R0,R15,TREGS  RESTORE REGS
+         CLI   SCANTYPE,C'C' DOING CHARACTER SCAN?
+         BE    SREADOKX      YES, CONTINUE
+         L     R9,ABUF       POINT AT START OF BUFFER
+SCNPTR   L     R10,0(,R9)    DOES THIS FULLOWRD MATCH?
+         C     R10,PTRNUMB   ...
+         BNE   SCNPTRN       NO, ADVANCE TO NEXT WORD
+         LINEDIT TEXT='MATCH FOUND IN BLOCK ...... (X''......'')',     X
+               SUB=(DECA,BINARY,HEXA,BINARY),RENT=NO
+         B     SCANNBLK      YES, READ NEXT BLOCK
+SCNPTRN  LA    R9,4(,R9)     POINT AT NEXT FULLWORD
+         C     R9,BUFEND     OFF END OF BUFFER?
+         BL    SCNPTR        NO, KEEP GOING
+         B     SCANNBLK      YES, READ NEXT BLOCK
+SREADOKX XC    TRTTAB,TRTTAB CLEAR TRT TABLE
+         SR    R6,R6         SET FOR TRT ON FIRST CHAR
+         IC    R6,SCANBUF    ...
+         LA    R15,TRTTAB(R6) ...
+         MVI   0(R15),X'FF'  ...
+         L     R7,SCANLEN    LENGTH OF STRING TO SCAN
+         S     R7,=F'1'      MINUS ONE FOR EX INSTRUCTION
+         LA    R8,SCANBUF    ADDRESS OF STRING
+         L     R9,ABUF       ADDRESS OF BUFFER
+SCANTRT  TRT   0(256,R9),TRTTAB SEE FIRST CHAR OF STRING?
+         BZ    SCANMORE      NO, LOOK AT NEXT CHUNK
+         SR    R15,R15
+SCANCLC  EX    R7,BLOCKCLC   IS THE WHOLE STRING THERE?
+         BNE   SCANMORE      FIND MATCH?
+         LINEDIT TEXT='MATCH FOUND IN BLOCK ...... (X''......'')',     X
+               SUB=(DECA,BINARY,HEXA,BINARY),RENT=NO
+         B     SCANNBLK      NOW LOOK IN NEXT BLOCK
+SCANMORE LA    R9,256(,R9)   NEXT SPOT IN BUFFER
+         C     R9,BUFEND     GONE OFF END YET?
+         BL    SCANTRT       NO, COMPARE SOME MORE
+SCANNBLK L     R10,BINARY    POINT TO NEXT BLOCK
+         LA    R10,1(,R10)   ...
+         ST    R10,BINARY
+         B     NEXTBLOK      NEXT BLOCK PLEASE
+BLOCKCLC CLC   0(0,R8),0(R1) EXECUTED CLC STRING SEARCH
+         EJECT
+********* WRITE OUT THE LAST BLOCK WE READ *****************
+WRTBLK   EQU   *
+         LINEDIT TEXT='Writing block ........',DOT=NO,                 X
+               SUB=(DECA,BINARY)
+         MVC   DISKADDR(4),BINARY PICK UP BLOCK ADDRESS
+         MVC   DISKADT(4),INADT SET INPUT ADT ADDRESS
+         LA    R1,DISKPL     RDTK PLIST
+         L     R15,AWRTK     ENTRY ADDRESS
+         SSM   DISABLE       NO INTERRUPTS
+         STM   R0,R15,TREGS  SAVE ALL REGS
+         BALR  R14,R15       CALL DMSDIOW
+         BZ    WRTOK
+         LM    R0,R14,TREGS  PUT REGS BACK
+         LINEDIT TEXT='Disk write error ....',SUB=(DEC,(R15))
+         B     INLOOP        TRY AGAIN
+WRTOK    LM    R0,R15,TREGS  RESTORE REGS
+         WRTERM 'Block rewritten successfully'
+         B     INLOOP        NEXT COMMAND PLEASE
+*
+NOTFOUND WRTERM 'FM not found'
+         LA    R15,2
+         BR    R14
+         EJECT
+********* GO BACK TO CMS ***********************************
+EXIT     L     R15,RETCODE
+         L     R14,REG14
+         BR    R14
+********* CONVERT A TOKEN TO BINARY INTEGER ***********
+CHARBIN  STM   R0,R15,TREGS CONVERT INPUT TOKEN
+         MVC   BINRC(4),=F'0'  ASSUME IT WORKED
+         SPIE  FAILURE,7       EXIT FOR BAD NUMERIC INPUT
+         SR    R1,R1             ..
+         TRT   TOKEN,FINDNNUM  FIND FIRST NON-NUMERIC
+         BNZ   ENDNUM          BRANCH IF ONE FOUND
+         LA    R1,TOKEN+8      ITS ALL NUMBERS
+ENDNUM   LA    R3,TOKEN+1      SUBTRACT OFF START OF FIELD
+         SR    R1,R3           TOKEN LENGTH
+         EX    R1,PACK         PACK INTO XPACK
+         CVB   R1,XPACK        CONVERT TO BINARY
+         ST    R1,BINARY       STORE RESULT
+         LM    R0,R15,TREGS
+         BR    R10
+XUPACK   DS    D
+XPACK    DS    D
+TOKEN    DS    CL8             INPUT TOKEN
+BINARY   DC    F'0'          OUTPUT NUMBER IN BINARY
+FINDNNUM DC    240XL1'01',10XL1'00',6XL1'01' DIGITS ONLY.
+PACK     PACK  XPACK,TOKEN(1)  PACK IT. (EXECUTED)
+*
+FAILURE  MVC   BINRC(4),=F'16'
+         BR    R14
+BINRC    DC    F'0'  RC FROM CONVERSION
+TREGS    DS    16F           REGISTER SAVE
+         EJECT
+********* CONVERT A HEX TOKEN TO BINARY INTEGER ***********
+HEXBIN   STM   R0,R15,TREGS  SAVE REGISTERS
+         MVC   INHEX(8),=CL8'00000000' INIT FIELD
+         MVC   BINRC(4),=F'0' GOOD RETCODE
+         LA    R3,INHEX+7
+         LA    R4,8           FIND NUMBER DIGITS
+         LA    R5,TOKEN+7
+PLOOP    CLI   0(R5),X'40'    A DIGIT?
+         BE    NEXDIGIT       BR IF NOT
+         MVC   0(1,R3),0(R5)  STORE IN FIELD
+         BCTR  R3,R0          POINT TO PREVIOUS DIGIT
+NEXDIGIT BCTR  R5,R0          ..
+         BCT   R4,PLOOP       LOOP
+         TRT   INHEX(8),VALHEX VALID INPUT?
+         BZ    INOK
+         WRTERM 'Invalid HEX input'
+         MVC   BINRC(4),=F'16' BAD RETCODE
+         LM    R0,R15,TREGS
+         BR    R10
+INOK     TR    INHEX,PHEX  SET CA->FA, ETC.
+         PACK  BINARY,INHEX  SAVE HEX ADDRESS
+         L     R2,BINARY     REMOVE SIGN
+         SRL   R2,4          ..
+         ST    R2,BINARY     ..
+         LM    R0,R15,TREGS
+         BR    R10
+INHEX    DC    CL8'00000000'
+* TRANSLATE TABLES
+VALHEX   DC    193X'01',6X'00'   A-F
+         DC    41X'01',10X'00',6X'01' 0-9
+PHEX     DC    193X'00',X'FAFBFCFDFEFF'
+         DC    41X'00',X'F0F1F2F3F4F5F6F7F8F9',6X'00'
+         EJECT
+********* DATA AREAS ***************************************
+MAXBLK   DS    F             BLOCKS ON DISK
+SCANTYPE DS    X             TYPE OF SCAN, P OR C
+PTRNUMB  DS    F             POINTER BLOCK NUMBER TO SCAN FOR
+DISABLE  DC    X'00'         DISABLED MASK BYTE
+ENABLE   DC    X'FF'         ENABLED MASK BYTE
+REG14    DS    F             CMS RETURN ADDRESS
+INADT    DS    F             ADDRESS OF INPUT ADT
+OUTADT   DS    F             ADDRESS OF OUTPUT ADT
+OUTFM    DC    C' ',C'   '   OUTPUT FM
+FOPFN    DS    D             FN FOR FOP SEARCH
+FOPFT    DS    D             FT FOR FOP SEARCH
+SAVFV    DS    C             SAVE FILE AS F OR V
+SAVBF    DS    F             ADDRESS OF 1ST RECORD
+SAVLRECL DS    F             RECORD LRECL(IF F FORMAT)
+SCANBUF  DS    130C          SEARCH STRING
+SCANLEN  DS    F             LENGTH OF SEARCH STRING
+         DS    0D
+SUBSET   DC    CL8'SUBSET'   PLIST TO GET TO SUBSET
+         DC    X'FFFFFFFFFFFFFFFF' A FENCE
+INBUF    DS    130C          INPUT LINE
+DIRLINE  DC    AL1(DLEN)
+DIRBGN   DC    C'FN:........ FT:........ FOP:..... '
+         DC    C'(X''.....'') PLVL: .. '
+DLEN     EQU   *-DIRBGN
+SAVEMODE DS    C             DISK FILE MODE
+VADDR    DS    H             DISK VIRTUAL ADDRESS
+RETCODE  DC    F'0'          RETURN CODE
+BUFEND   DC    F'0'          ADDR OF END OF BUFFER
+DISEND   DC    F'0'          LAST ADDRESS TO DISPLAY
+PFINIS   DC    CL8'FINIS   '
+         DC    CL8'*       '
+         DC    CL8'*       '
+FINISFM  DC    CL8'        '
+DIRCNT   DC    F'0'
+*
+         DS    0D            READ DIRECTOR PLIST
+DIRDISK  DC    CL8'RDBUF'
+         DC    XL8'0000000100000000'
+         DC    CL8'DIRECTOR'
+DIRTYP   DC    CL2'  '
+         DC    H'0'
+DIRBUF   DC    AL4(BUF)
+DIRSIZ   DC    F'64'
+         DC    C'F'
+         DC    X'20'
+         DC    H'1'
+DIRBYTES DC    F'0'
+DIRITEM  DC    F'0'
+DIRREC   DC    F'1'
+*
+DISKPL   DS    0F            PLIST FOR RDTK
+DISKBUF  DC    A(BUF)        BUFFER ADDRESS
+DISKBSIZ DC    F'0'          SIZE OF BUFFER
+DISKFLG  DC    X'80'         EXTENDED PLIST
+DISKLIST DC    AL3(DISKADDR) LIST OF DISK ADDRESSES
+DISKADT  DC    AL4(0)        PTR TO DISK ADT TO READ
+DISKFPSZ DC    F'4'          DISK POINTER SIZE
+DISKNEXT DC    F'0'          NEXT PLIST, 0=NONE
+*
+DISKADDR DC    F'0'          DISK BLOCK NUMBER TO READ
+DISKDWDS DC    F'0'          BUFFER SIZE IN DOUBLEWORDS
+DRCTBUF  DS    A
+*
+INDIR    FSCB  BUFFER=BUF
+ABUF     DC    A(BUF)
+TRTTAB   DS    CL256         USED FOR SCANNING DISK BLOCKS
+         LTORG
+         ORG   DISKPRY+12288
+BUF      DS    4096C         FILE INPUT BUFFER
+         FSCBD
+         NUCON
+         DEVSECT
+         ADT
+         DCH
+         FSTB
+         END

@@ -1,0 +1,31 @@
+         MACRO                                                          S  01020
+&NAME    DCPLIST              &DSECT                                    S  01030
+         LCLA  &I                                                       S  01040
+         LCLC  &CURSECT                                                 S  01050
+         GBLC  &SECTP,&SECTD,&PROCN                                     S  01060
+.* GENERATE PLIST AND STORAGE AREA FOR DCP MACRO.                       S  01070
+&CURSECT SETC  '&SYSECT'                                                S  01080
+&SECTD   CSECT                DATA SECTION.                             S  01090
+&NAME.P  DS    0A                                                       S  01100
+&I       SETA  2                                                        S  01110
+.LP1     AIF   (&I GT N'&SYSLIST).LP1N                                  S  01120
+         DC    A(&SYSLIST(&I,2)-&DSECT)                                 S  01130
+&I       SETA  &I+1                                                     S  01140
+         AGO   .LP1                                                     S  01150
+.LP1N    ORG   *-4                                                      S  01160
+         DC    X'80'                                                    S  01170
+         ORG                                                            S  01180
+         SPACE 1                                                        S  01190
+&PROCN.S DSECT                                                          S  01200
+&NAME.D  DS    0A                                                       S  01210
+&I       SETA  2                                                        S  01220
+.LP2     AIF   (&I GT N'&SYSLIST).LP2N                                  S  01230
+&SYSLIST(&I,1) DS A                                                     S  01240
+&I       SETA  &I+1                                                     S  01250
+         AGO   .LP2                                                     S  01260
+.LP2N    ANOP                                                           S  01270
+&NAME.L  EQU   *-&NAME.D                                                S  01280
+         SPACE 1                                                        S  01290
+&CURSECT CSECT                                                          S  01300
+         MEND                                                           S  01310
+//

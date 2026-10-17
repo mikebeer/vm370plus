@@ -1,0 +1,11 @@
+         MACRO                                                          00010000
+&NAME    DEVENTRY &ADDR,&TYPE=DEVGRAF,&IFLAG=0                          00020000
+         LCLC  &CURSECT,&LA                                             00030000
+&LA      SETC  'L'''          FOR LENGTH ATTRIBUTE.                     00040000
+&NAME    DS    0D                                                       00050000
+D&ADDR   DC    AL2(X'&ADDR')                                            00060000
+         DC    AL1(&TYPE)                                               00070000
+         DC    CL3'&ADDR'                                               00080000
+         DC    AL1(&IFLAG)    DEVICE FLAGS.                             00090000
+         DC    XL(DEVSECTL-(*-D&ADDR))'0'                               00100000
+         MEND                                                           00110000

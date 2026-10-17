@@ -1,0 +1,20 @@
+:DOCNUM.0080
+:TITLE.DISKPRY
+:BODY
+A general purpose utility for EDF minidisks.  Can be used to examine and
+modify individual blocks, copy minidisks block-by-block, search for data
+in disk blocks, and recreate files from disk blocks.  DISKPRY can be used
+to diagnose problems with crashed minidisks, retrieve files accidentally
+erased, and for salvaging data from HDAs that are failing.  For SP2 and SP3.
+:AUTHOR.Richard (Dick) Johnson
+:ADDRESS
+:ALINE.Stanford Linear Accelerator Center, P.O. Box 4349, Mail Bin 97
+:ALINE.Stanford, California 94305
+:ALINE.(415) 854-3300
+:EADDRESS
+:FILE.DISKPRY  MODULE   B1 V      16384          3         17
+:FILE.DISKPRY  HELPCMS  B1 F         80         66          6
+:FILE.M0080    DOCUMENT B1 F         80         15          2
+:FILE.DISKPRY  ASSEMBLE B1 F         80        685         54
+:DATE.85 01 29
+:BLOCKS.4

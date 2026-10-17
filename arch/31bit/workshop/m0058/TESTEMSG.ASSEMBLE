@@ -1,0 +1,33 @@
+         TITLE 'TESTEMSG - DEMONSTRATION OF EMSG SUBROUTINE'            00001000
+* AUTHOR - L.S. KALMAN - WEIZMANN INSTITUTE OF SCIENCE - 05/27/83       00002000
+         SPACE                                                          00003000
+TESTEMSG CSECT ,                                                        00004000
+         BALR  R12,0                                                    00005000
+         USING *,R12                                                    00006000
+         ST    R14,SAVER14         RETURN ADDR                          00007000
+         LA    R2,MESSAGE                                               00008000
+         LA    R3,=CL8'V99'        TEST USERID                          00009000
+         LA    R4,L'MESSAGE                                             00010000
+         L     R15,=V(EMSG)                                             00011000
+         BALR  R14,R15                                                  00012000
+*                                  THE DIAGNOSE INSTR IS SIMULATED      00013000
+         DIAG  R2,R4,X'5C'         EXECUTED ONLY IF EMSG FAILS          00014000
+         LTR   R5,R15              RC FROM EMSG                         00015000
+         BZ    ENDMSG1             OK                                   00016000
+         LINEDIT TEXT='RC FROM EMSG = ...',SUB=(DEC,(R5))               00017000
+ENDMSG1  DS    0H                                                       00018000
+         LTR   R4,R4               ANY MESSAGE LEFT?                    00019000
+         BNP   ENDMSG2             NO, SKIP SENDING MESSAGE             00020000
+         LINEDIT TEXT='MSGNOH V99 .................................',  X00021000
+               SUB=(CHARA,((R2),(R4))),DISP=CPCOMM                      00022000
+         LTR   R5,R15              RC FROM LINEDIT                      00023000
+         BZ    ENDMSG2             OK                                   00024000
+         LINEDIT TEXT='RC FROM LINEDIT = ...',SUB=(DEC,(R5))            00025000
+ENDMSG2  DS    0H                                                       00026000
+         L     R14,SAVER14                                              00027000
+         BR    R14                                                      00028000
+         SPACE                                                          00029000
+SAVER14  DS    F                                                        00030000
+MESSAGE  DC    C'XXXYYY999I THIS IS A TEST MESSAGE'                     00031000
+         REGEQU                                                         00032000
+         END                                                            00033000

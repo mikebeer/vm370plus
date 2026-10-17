@@ -1,0 +1,42 @@
+./ I 00095000          $ 95050 50                     10/31/84 14:40:28
+*              START UP VMCF                                   U00019   00095050
+*--------------------------------------------------------------U00019   00095100
+         VMCF CREG0,ON                                         U00019   00095150
+         SPACE 1                                               U00019   00095200
+         L     R2,=V(VMCIH)   VMCF INTERRUPT HEADER DESC LOC   U00019   00095250
+         LM    R2,R3,0(R2)    START ADDRESS, LENGTH.           U00019   00095300
+         VMCF AUTHORIZE,FLDA=(R2),LENA=(R3),PARM=ENDPARM       U00019   00095350
+         IF LTR,R1,R15,NZ,THEN                                 U00019   00095400
+            DATA                                               U00019   00095450
+AUTMSG      DC    C'RETCODE .... ON VMCF AUTHORIZE '           U00019   00095500
+            PROC ,                                             U00019   00095550
+            CALL DECIT                                         U00019   00095600
+            STCM R1,15,AUTMSG+9                                U00019   00095650
+            WTO  AUTMSG                                        U00019   00095700
+         IF END                                                U00019   00095750
+         SPACE 3                                               U00019   00095800
+*--------------------------------------------------------------U00019   00095850
+./ I 00146000          $ 146040 40                    10/31/84 14:40:28
+*--------------------------------------------------------------U00019   00146040
+*              SHUT DOWN VMCF                                  U00019   00146080
+*--------------------------------------------------------------U00019   00146120
+*              TERMINATE NEW INITIATIONS.                      U00019   00146160
+         VMCF  QUIESCE,PARM=ENDPARM                            U00019   00146200
+         SPACE 1                                               U00019   00146240
+*              INFORM ALL USERS WE'RE GOING DOWN.              U00019   00146280
+         L     R9,AVMCU                                        U00019   00146320
+         USING VMUSECT,R9                                      U00019   00146360
+         DO WHILE,R9,NZ                                        U00019   00146400
+            VMCF IDENTIFY,USERID=VMUNAME,PARM=ENDPARM,         U00019  +00146440
+               MSGID=VMUISHUT                                  U00019   00146480
+            SPACE 1                                            U00019   00146520
+            L   R9,VMUFPNT                                     U00019   00146560
+         DO END                                                U00019   00146600
+         SPACE 1                                               U00019   00146640
+*              AND COMPLETE TERMINATE.                         U00019   00146680
+         VMCF CREG0,OFF                                        U00019   00146720
+         SPACE 1                                               U00019   00146760
+         VMCF  UNAUTHORIZE,PARM=ENDPARM                        U00019   00146800
+         SPACE 3                                               U00019   00146840
+./ I 00166000          $ 166500 500                   10/31/84 14:40:28
+ENDPARM  DS    5D             PLIST FOR VMCF CALLS.            U00019   00166500

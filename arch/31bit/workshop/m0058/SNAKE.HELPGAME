@@ -1,0 +1,77 @@
+SNAKE - 3270 fullscreen game
+.sp
+.il 3
+The game of SNAKE is played on a board (screen) covered with numbers
+in a range which depends on the size of the board, usually in the range
+1..n, where n is from 5..9, smallest screen to largest screen. There is
+a CURSOR, otherwise known as the HEAD of the SNAKE, which is represented
+by a highlighted '*' with the terminal cursor '_' under it. The starting
+position of the cursor is random as are the values placed in every cell
+on the board.
+.sp
+.il 3
+The object of the game is to 'eat' as many cells on the board as
+possible, thus enlarging the SNAKE represented by a trail of '.' without
+overstepping the '.'s and with as few bumps into the side as possible.
+.sp
+.il 3
+Movement is accomplished by hitting the appropriate PFkeys which will
+move in one of eight directions:
+.sp
+.fo off
+        PF1,13  UL           PF2,14  U          PF3,15  UR
+        PF4,16  L                               PF6,18  R
+        PF7,19  DL           PF8,20  D          PF9,21  DR
+.fo on
+.sp
+The number of cells to move is taken from the first cell in the
+selected direction of motion. When the HEAD bumps into the side the
+alarm will sound on those terminals that have alarms, the "STATUS"
+area in the lower right hand corner will be highlighted, and the
+BUMP value on the status line will be incremented by the number of
+cells that could not be eaten, or by the highest number on the screen
+plus one if the stupid SNAKE tried to move into a wall it could plainly
+see. The EAT value on the status line will be incremented each time
+the SNAKE manages to chomp a cell. The RANK will indicate the current
+rank this SNAKE is now awarded based on how much of the screen he has
+EATen and how many BUMP points he has scored (every 30 BUMP points cause
+a reduction in one RANK).
+.sp
+.il 3
+If at any time you wish to stop playing you may strike PA1, The word
+'**END**' will appear in the STATUS area, and the game will terminate
+upon any interrupt key being depressed.
+If you want to pause in the game and come back some other time you
+should press PF5 to save the current game on disk, to return to an old
+game press PA2. CLEAR will return you to the current state of the game
+after clearing the screen.
+.sp
+.il 3
+The so called "STATUS" in the lower right hand
+corner usually has rubbish in it, but sometimes there are important things
+in it as follows:
+.sp
+.of 9
+**END**  means the end of game has been reached, either by
+the SNAKE who tried to eat himself, or by the user who struck
+PA1, or when the SNAKE has managed to DEVOUR!! the entire board.
+.of 9
+SAVED    means that the current game board and all values
+associated with it will be saved on disk for future RESTORation.
+.of 9
+RESTORED means that a game that was previously SAVEd has been
+restored.
+.of 9
+WRONGCRT means that an attempt was made to restore a game that was
+played previously on a different model 3270.
+.of 9
+$ERR ### means that an error code of ### was returned from some
+CMS macro or another.
+.of
+.sp
+.il 3
+This game will work on all 3277, 3278 models 1,2,2A,3,4,5.
+.sp
+.fo off
+    Written for your enjoyment by Yossie Silverman, W.I.C.C, Israel.
+.fo on

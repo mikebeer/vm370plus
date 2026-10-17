@@ -1,0 +1,8 @@
+./ R 00651000 00655000
+M19      DC    CL80' PF10   DISC         Release Screen.'               00650100
+M20      DC    CL80' PF12   CLOCK        Digital Clock Display.'        00651000
+M21      DC    CL80' '                                                  00652000
+M22      DC    CL80'ENTER                Go To Next Screen.'            00653000
+M23      DC    CL80' '                                                  00654000
+M24      DC    CL80' (Use the Enter Key with the Command Form.)'        00655000
+./ D 00656000

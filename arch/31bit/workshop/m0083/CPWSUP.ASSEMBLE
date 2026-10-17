@@ -1,0 +1,1048 @@
+CPW TITLE 'CPWSUP -                    CPWATCH NUCLEUS AND SUPERVISOR.' 00001000
+CPWSUP   START 0                                                        00002000
+         COPY  CPWPRM                                                   00003000
+         COPY  CPWDSC                                                   00004000
+CPWSUP   CSECT                                                          00005000
+         CPWSUP                                                         00006000
+         PRINT NOGEN                                                    00007000
+*********************************************************************** 00008000
+*              D E V I C E   T A B L E.                                 00009000
+*********************************************************************** 00010000
+         SPACE 1                                                        00011000
+         ENTRY DEVICES,CONSOLE                                          00012000
+DEVICES  DS    0D                                                       00013000
+CONSOLE  DEVENTRY 009,TYPE=DEVCONS,IFLAG=DEVCONN+DEVHOLD+DEVREADY       00014000
+PRINTER  DEVENTRY 00E,TYPE=DEVPRT,IFLAG=DEVHOLD+DEVREADY                00015000
+         DEVENTRY 040                                                   00016000
+         DEVENTRY 041                                                   00017000
+         DEVENTRY 042                                                   00018000
+         DEVENTRY 043                                                   00019000
+         DEVENTRY 044                                                   00020000
+         DEVENTRY 045                                                   00021000
+         DEVENTRY 046                                                   00022000
+         DEVENTRY 047                                                   00023000
+DEVICNT  EQU   (*-DEVICES)/DEVSECTL                                     00024000
+         DEVENTRY FFFF                                                  00025000
+         EJECT                                                          00026000
+FREEKB   DC    X'C3'                                                    00027000
+         SPACE 3                                                        00028000
+*              COMMON CCW'S.                                            00029000
+*        NOTE THAT THESE ARE MODIFIED AND USED BY ALL DEVICES, WITHOUT  00030000
+*        WAITING FOR DEVICE END.  THIS WOULD NOT BE VALID ON A REAL     00031000
+*        MACHINE, BUT UNDER VM THE CCW CHAIN IS NOLONGER USED AFTER     00032000
+*        TRANSLATION (IE AFTER SIO SIMULATION IS COMPLETED).            00033000
+GRAFWRTE CCW   WRITE,WCC,SILI+CD,L'WCC                                  00034000
+         CCW   WRITE,*-*,SILI+CC,SCREEND-SCRBEG                         00035000
+         CCW   SENSE,0,SKIP+SILI,1                                      00036000
+WCC      DC    X'C21140401DC81140C91D60'                                00037000
+         SPACE 1                                                        00038000
+GRAFIWRT CCW   WRITERAS,WCCI,SILI+CD,L'WCCI                             00039000
+         CCW   WRITERAS,*-*,SILI+CC,SCREEND-SCRBEG                      00040000
+         CCW   SENSE,0,SKIP+SILI,1                                      00041000
+WCCI     DC    X'C21140401DC8131140C91D60' (INCLUDES INSERT CURSOR).    00042000
+         SPACE 1                                                        00043000
+GRAFREAD CCW   READMOD,*-*,SILI+CC,L'DEVINA                             00044000
+         CCW   WRITE,EUA,SILI+CC,L'EUA ERASE IT, FREEKB, & RESET CURSOR 00045000
+         CCW   SENSE,0,SKIP+SILI,1                                      00046000
+EUA      DC    X'C31140401DC813124040'                                  00047000
+         SPACE 1                                                        00048000
+CONWRTE  CCW   9,*-*,SILI+CC,L'CONDATA                                  00049000
+         CCW   SENSE,0,SKIP+SILI,1                                      00050000
+         SPACE 1                                                        00051000
+CONREAD  CCW   10,CONCMD,SILI+CC,L'CONCMD                               00052000
+         CCW   SENSE,0,SKIP+SILI,1                                      00053000
+         SPACE 1                                                        00054000
+*              CONSOLE HANDLER WORK AREAS.                              00055000
+CONCMD   DC    CL80' '        CONSOLE INPUT AREA.                       00056000
+COND     DS    D                                                        00057000
+         SPACE 6                                                        00058000
+         EJECT                                                          00059000
+*---------------------------------------------------------------------- 00060000
+*              P R O G R A M   C H E C K S                              00061000
+*---------------------------------------------------------------------- 00062000
+         ENTRY PGMINTER,PGMSAVE                                         00063000
+         DS    0D                                                       00064000
+         DC    C'**PROG**'                                              00065000
+PGMSAVE  DS    16F                                                      00066000
+         SPACE 3                                                        00067000
+PGMINTER DS    0H             MINIMAL PROG CHECK HANDLER.               00068000
+         STM   R0,R15,PGMSAVE                                           00069000
+         LM    R2,R3,=A(DUMPCMD,L'DUMPCMD)                              00070000
+         DIAG R2,R3,X'8'      CP COMMAND.                               00071000
+         LM    R2,R3,=A(SPCMD,L'SPCMD)                                  00072000
+         DIAG  R2,R3,X'8'     CLOSE SPOOL FILE.                         00073000
+         SPACE 1                                                        00074000
+         LM    R2,R3,=A(SPCON,L'SPCON)                                  00075000
+         DIAG  R2,R3,X'8'     CLOSE CONSOLE FILE                        00076000
+         SPACE 1                                                        00077000
+         LM    R0,R15,PGMSAVE                                           00078000
+         MVC   RSTNWPSW,PGMOPSW         SET UP FOR A RESTART.           00079000
+         LPSW  PGMDISPS                                                 00080000
+PGMDISPS DS    0D                                                       00081000
+         DC    X'000200000F000028'                                      00082000
+         SPACE 12                                                       00083000
+         LTORG                                                          00084000
+         EJECT                                                          00085000
+*---------------------------------------------------------------------- 00086000
+*              E X T E R N A L   I N T E R R U P T S                    00087000
+*---------------------------------------------------------------------- 00088000
+         ENTRY EXTINTER                                                 00089000
+EXTINTER DS    0H                                                       00090000
+*        IF CP,LISTNRS,=P'0',NZ,THEN                                    00091000
+            NI    EXTOPSW+1,255-WAIT                                    00092000
+*        IF END                                                         00093000
+         LPSW  EXTOPSW                                                  00094000
+         SPACE 6                                                        00095000
+         LTORG                                                          00096000
+         EJECT                                                          00097000
+*********************************************************************** 00098000
+*              I / O   I N T E R R U P T   H A N D L E R              * 00099000
+*********************************************************************** 00100000
+         SPACE 1                                                        00101000
+         DC    0D'0',CL8'*IOSAVE*'                                      00102000
+IOSAVE   DS    16F                                                      00103000
+         SPACE 1                                                        00104000
+         ENTRY IOINTER                                                  00105000
+IOINTER  DS    0H                                                       00106000
+         STM   R0,R15,IOSAVE                                            00107000
+         L     R13,=A(CPWSUP+4096)                                      00108000
+         USING CPWSUP,R0,R13                                            00109000
+         SPACE 1                                                        00110000
+         LA    R5,DEVICES                                               00111000
+         USING DEVSECT,R5                                               00112000
+         SPACE 1                                                        00113000
+*---------------------------------------------------------------------- 00114000
+*              S P E C I F I C   D E V I C E   S E R V I C E            00115000
+*---------------------------------------------------------------------- 00116000
+         SPACE 1                                                        00117000
+*                             WHO IS HE ?                               00118000
+         DO WHILE,CLC,DEVADDR,IOOLD+2,LT                                00119000
+            LA  R5,DEVNEXT              NEXT ONE.                       00120000
+         DO END                                                         00121000
+         SPACE 1                                                        00122000
+*                             UPDATE HIS STATUS.                        00123000
+         IF CLC,DEVADDR,IOOLD+2,EQ,THEN WE HANDLE IT.                   00124000
+            OC  DEVSTAT1,CPCSW+4                                        00125000
+            IF TM,DEVSTAT1,DE,O,THEN                                    00126000
+               OI  DEVFLAGS,DEVREADY                                    00127000
+               IF CLI,DEVTYPE,DEVCONS,EQ,AND, CONSOLE                  +00128000
+               TM,DEVFLAGS,DEVRDIS,Z,THEN     WRITE                     00129000
+                  ICM R1,B'1111',DEVBEGST        FREE UP CONSECT        00130000
+                  IF NZ,THEN                                            00131000
+                      USING CONSECT,R1                                  00132000
+                      MVC DEVBEGST,CONLINK                              00133000
+                      LH  R0,CONLEN                                     00134000
+                      SVC SVCFREEM                                      00135000
+                      DROP R1                                           00136000
+                  IF END                                                00137000
+               IF END                                                   00138000
+            IF END                                                      00139000
+            SPACE 1                                                     00140000
+*              WAS IT READ COMPLETE ?                                   00141000
+            IF TM,DEVSTAT1,CE,O,AND,TM,DEVFLAGS,DEVRDIS,O,THEN          00142000
+               OI  DEVFLAGS,DEVRDCP POST AS COMPLETE                    00143000
+               NI  DEVFLAGS,255-DEVRDIS                                 00144000
+            IF END                                                      00145000
+            SPACE 1                                                     00146000
+*              IS HE STILL THERE ?                                      00147000
+            IF TM,DEVSTAT1,UC,O,AND, ASSUME HE'S DEAD                  +00148000
+               CLI,DEVTYPE,DEVGRAF,EQ,THEN                              00149000
+                MVI DEVSTAT1,0                                          00150000
+*              FAKE A READ/CLEAR KEY.                                   00151000
+                MVI DEVFLAGS,DEVCONN+DEVRDCP (READ COMPLETE)            00152000
+                MVI DEVAID,CLR       (AND CLEAR KEY)                    00153000
+            IF END                                                      00154000
+            SPACE  1                                                    00155000
+*              ANY INTERRUPT FROM DISCONNECTED DEVICE.                  00156000
+            IF TM,DEVFLAGS,DEVCONN,Z,THEN                               00157000
+               MVI DEVFLAGS,DEVCONN+DEVREADY                            00158000
+               MVI DEVSTAT1,0                                           00159000
+               IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                           00160000
+                  AP  DIALS,=P'1'                                       00161000
+                  NI  DIALS,X'7F'          PREVENT OVERFLOW.            00162000
+                  OI  DEVFLAGS,DEVWRQ+DEVHOLD+DEVERAS                   00163000
+                  L   R3,ADSPLAY                                        00164000
+                  USING DSPSECT,R3                                      00165000
+                  AP  DSPUSRS,=P'1'                                     00166000
+                  MVC DEVPAG,DSPFSCR                                    00167000
+                  DROP R3                                               00168000
+                  ST  R3,DEVDSP                                         00169000
+                  IF CP,LISTNRS,Z,THEN    WAKE UP AT ONCE.              00170000
+                     NI  IOOLD+1,255-WAIT WAKE UP.                      00171000
+                  IF END                                                00172000
+                  AP  LISTNRS,=P'1'                                     00173000
+               IF END                                                   00174000
+            IF END                                                      00175000
+            SPACE 1                                                     00176000
+            NI  DEVSTAT1,ATTN           ALL WE NEED NOW IS ATTENTION.   00177000
+         IF END                                                         00178000
+         DROP R5                                                        00179000
+         SPACE 1                                                        00180000
+         XC    CPCSW,CPCSW    THIS INTERRUPT HAS BEEN HANDLED           00181000
+         SPACE 2                                                        00182000
+*---------------------------------------------------------------------- 00183000
+*              A L L   D E V I C E S   S E R V I C E S                  00184000
+*---------------------------------------------------------------------- 00185000
+         SPACE 1                                                        00186000
+*                             ISSUE ANY OUTSTANDING SIOS.               00187000
+         SVC   SVCDISP        DISPATCH NEXT.                            00188000
+         SPACE 3                                                        00189000
+         LM    R0,R15,IOSAVE                                            00190000
+         LPSW  IOOLD                                                    00191000
+         EJECT                                                          00192000
+*********************************************************************** 00193000
+*              SVC HANDLER                                            * 00194000
+*********************************************************************** 00195000
+         SPACE 1                                                        00196000
+         DS    0D                                                       00197000
+         DC    CL8'*SVSAVE*'                                            00198000
+SVCSAVE  DS    5CL(SVCSECTL)                                            00199000
+SVCSAVEL EQU   *-SVCSECTL                                               00200000
+         SPACE 1                                                        00201000
+SVCS12   DC    F'0'                                                     00202000
+         SPACE 1                                                        00203000
+SVCSPTR  DC    A(SVCSAVE-SVCSECTL)      BEGIN -1                        00204000
+SVCSMAX  DC    A(SVCSAVEL)    LAST SAVE AREA.                           00205000
+         SPACE 1                                                        00206000
+SVCERPSW DS    0D                                                       00207000
+         DC    X'0002000000E00020'                                      00208000
+         SPACE 1                                                        00209000
+         ENTRY SVCINTER                                                 00210000
+SVCINTER DS    0H                                                       00211000
+         CLC   SVCSPTR,SVCSMAX          HAVE WE ANOTHER SAVEAREA ?      00212000
+         BNL   SVCERR         TOO DEEP.                                 00213000
+         SPACE 1                                                        00214000
+*              FETCH SAVE AREA.                                         00215000
+         ST    R12,SVCS12                                               00216000
+         L     R12,SVCSPTR                                              00217000
+         LA    R12,SVCSECTL(,R12)       NEXT SAVE AREA.                 00218000
+         ST    R12,SVCSPTR                                              00219000
+         USING SVCSECT,R12                                              00220000
+         STM   R0,R15,SVCSREGS                                          00221000
+         MVC   SVCSREGS+4*R12(4),SVCS12                                 00222000
+         MVC   SVCSPSW,SVCOLD                                           00223000
+         SPACE 1                                                        00224000
+         L     R13,=A(CPWSUP+4096)                                      00225000
+         USING CPWSUP,R0,R13                                            00226000
+         SPACE 1                                                        00227000
+         LH    R15,SVCSPSW+2                                            00228000
+         N     R15,X00FC                                                00229000
+         C     R15,=A(SVCMAX)                                           00230000
+         BNL   SVCERR         OVER THE END - DISABLED WAIT.             00231000
+         SPACE 1                                                        00232000
+         BAL   R14,SVCVECTR(R15)                                        00233000
+         SPACE 1                                                        00234000
+         SH    R12,=Y(SVCSECTL)         BACK UP PTR.                    00235000
+         ST    R12,SVCSPTR    AND SAVE                                  00236000
+         MVC   SVCOLD,SVCSPSW+SVCSECTL RESTORE SVC OLD.                 00237000
+         LM    R0,R15,SVCSREGS+SVCSECTL                                 00238000
+         LPSW  SVCOLD                                                   00239000
+         SPACE 3                                                        00240000
+*********************************************************************** 00241000
+*        SVC VECTOR TABLE.                                            * 00242000
+*********************************************************************** 00243000
+         SPACE 1                                                        00244000
+         PRINT ON,GEN,DATA                                              00245000
+*              NOTE THAT THIS VECTOR TABLE IS OVERLAYED LATER ON.       00246000
+* BEWARE: FOLLOWING STATEMENT GENERATES A SERIES OF ' B SVCERR'         00247000
+* INSTRUCTIONS. THE HORRIBLE TRICKEYNESS IS TO USE AN EQUATED SYMBOL    00248000
+* (SVCMAX) RATHER THAN A CONDITIONAL ASSEMBLY VARIABLE.                 00249000
+SVCVECTR DC    (SVCMAX/4)S(X'7F0'(4),SVCERR) (MUST BE ADDR BY R0)       00250000
+         PRINT ON,NOGEN,NODATA                                          00251000
+         SPACE 3                                                        00252000
+SVCERR   MVC   SVCERPSW+2(2),SVCSPSW+2                                  00253000
+         LPSW  SVCERPSW                                                 00254000
+         EJECT                                                          00255000
+*********************************************************************** 00256000
+*              SVC HANDLING ROUTINES.                                 * 00257000
+*********************************************************************** 00258000
+         SPACE 3                                                        00259000
+*---------------------------------------------------------------------- 00260000
+*              WAIT ON INTERVAL TIMER.                                  00261000
+*---------------------------------------------------------------------- 00262000
+         PRINT ON,GEN,DATA                                              00263000
+SVCWAIT  CPWSVC                                                         00264000
+         PRINT ON,NOGEN,NODATA                                          00265000
+         IF TM,CPTIMER,X'80',Z,THEN NOT EXPIRED.                        00266000
+            OI  SVCSPSW+1,WAIT          SET WAIT STATE.                 00267000
+         IF END                                                         00268000
+         BR    R14                                                      00269000
+         SPACE 3                                                        00270000
+*---------------------------------------------------------------------- 00271000
+*              SET INTERVAL TIMER.                                      00272000
+*---------------------------------------------------------------------- 00273000
+SVCTIMES CPWSVC                                                         00274000
+         M   R0,=A(300*256) SEC --> TIMER UNITS.                        00275000
+         ST  R1,CPTIMER                                                 00276000
+         BR  R14                                                        00277000
+         SPACE 3                                                        00278000
+*---------------------------------------------------------------------- 00279000
+*              QUEUE A CONSOLE WRITE REQUEST.                           00280000
+*---------------------------------------------------------------------- 00281000
+SVCWTO   CPWSVC                                                         00282000
+         LTR R4,R0            LENGTH OF DATA TO WRITE                   00283000
+         BNP SVCERR                                                     00284000
+         C   R4,=F'255'       ARBITRARY MAXIMUM.                        00285000
+         BH  SVCERR                                                     00286000
+         LA  R5,0(,R1)        ADDR OF DATA TO WRITE.                    00287000
+         SPACE 1                                                        00288000
+         LA  R0,CONDATA-CONSECT(,R4) MAX STORAGE POSSIBLE               00289000
+         SVC SVCGETM                                                    00290000
+         LR  R3,R1                                                      00291000
+         USING CONSECT,R3                                               00292000
+         STH R0,CONLEN        FOR FREEMAIN                              00293000
+         SPACE 1                                                        00294000
+         XC  CONLINK,CONLINK                                            00295000
+         SPACE 3                                                        00296000
+*              MOVE IN DATA                                             00297000
+         LA  R1,CONDATA       BEGIN OF OUTPUT.                          00298000
+         AR  R4,R5            END POINT ON INPUT                        00299000
+         DO WHILE,R5,R4,LT                                              00300000
+            IF CLC,0(2,R5),BLANKL,NE,THEN                               00301000
+               MVC 0(1,R1),0(R5)                                        00302000
+               SPACE 1                                                  00303000
+               LA  R1,1(,R1)  NEXT OUTPUT BYTE.                         00304000
+            IF END                                                      00305000
+            SPACE 1                                                     00306000
+            LA  R5,1(,R5)     NEXT INPUT BYTE.                          00307000
+         DO END                                                         00308000
+         SPACE 1                                                        00309000
+*           CALCULATE LENGTH OF MOVED DATA.                             00310000
+         BCTR R1,0            SUPPRESS POSSIBLE TRAILING BLANK.         00311000
+         IF CLI,0(R1),C' ',NE,THEN                                      00312000
+            LA  R1,1(,R1)                                               00313000
+         IF END                                                         00314000
+         LA  R0,CONDATA                                                 00315000
+         SR  R1,R0                                                      00316000
+         STH R1,CONDATLN                                                00317000
+         SPACE 2                                                        00318000
+         DROP R3                                                        00319000
+         SPACE 1                                                        00320000
+*                    CHAIN IT OFF CONSOLE OUTPUT STACK.                 00321000
+         LA  R2,CONSOLE+(DEVBEGST-DEVSECT)-(CONLINK-CONSECT)            00322000
+         USING CONSECT,R2                                               00323000
+         DO WHILE,CLC,CONLINK,ZEROS,NE                                  00324000
+            L   R2,CONLINK                                              00325000
+         DO END                                                         00326000
+         ST  R3,CONLINK                                                 00327000
+         DROP R2                                                        00328000
+         SPACE 3                                                        00329000
+         SVC   SVCDISP        AND DISPATCH IT.                          00330000
+         BR    R14                                                      00331000
+         SPACE 3                                                        00332000
+*---------------------------------------------------------------------- 00333000
+*              EXAMINE REAL STORAGE.                                    00334000
+*---------------------------------------------------------------------- 00335000
+SVCDCP   CPWSVC                                                         00336000
+         NI    SVCSPSW+4,B'11001111'     ZERO CC.                       00337000
+         SPACE 1                                                        00338000
+*                             MOVE INTO WORK AREA AND RELOCATE.         00339000
+         LR  R4,R1         INPUT ADDRESS.                               00340000
+         L   R2,AEXDIAG     OUTPUT ADDRESS.                             00341000
+         LA  R2,4(,R2)                                                  00342000
+MVLP     EQU            *                                               00343000
+            L   R5,0(,R4)     FETCH OFFSET.                             00344000
+            ALR R5,R0         RELOCATE.                                 00345000
+            LA  R5,0(,R5)     CLEAN UP HIGH ORDER.                      00346000
+            LA  R6,4(,R5)     END OF FULLWORD, + 1.                     00347000
+            C   R6,CORESIZE   IS IT A VALID CP ADDRESS ?                00348000
+            BNH MVSTOR        BRANCH IF FINE.                           00349000
+               CLC CORESIZE,ZEROS (NO, BUT IS CORESIZE VALID ?)         00350000
+               BE  MVSTOR     BR IF GETTING CORESIZE.                   00351000
+               SR  R5,R5      MAKE IT VALID                             00352000
+               OI  SVCSPSW+4,B'00110000' SET CC = 3, ERROR.             00353000
+MVSTOR      ST  R5,0(,R2)                                               00354000
+            TM   3(R4),3      WAS IT FULLWORD ALIGNED ?                 00355000
+            BZ   MVONCE       YES, FINE, SKIP.                          00356000
+               NI  3(R2),255-3          MAKE IT FULLWORD ALIGNED.       00357000
+               SPACE 1                                                  00358000
+               LA  R2,4(,R2)  AND SET UP SECOND PART.                   00359000
+               LA  R5,4(,R5)                                            00360000
+               ST  R5,0(,R2)                                            00361000
+               NI  3(R2),255-3                                          00362000
+MVONCE      EQU *                                                       00363000
+            SPACE 1                                                     00364000
+            TM  0(R4),X'80'          LAST UNIT ?                        00365000
+            BO  MVLPN      YES.                                         00366000
+            LA  R4,4(,R4)                                               00367000
+            LA  R2,4(,R2)                                               00368000
+            B   MVLP                                                    00369000
+MVLPN    EQU *                                                          00370000
+         SPACE 1                                                        00371000
+         LR    R3,R2          CALCULATE COUNT VALUE.                    00372000
+         S     R3,AEXDIAG                                               00373000
+         SRL   R3,2           COUNT.                                    00374000
+         LR    R7,R4          SAVE END ADDR.                            00375000
+         SPACE 1                                                        00376000
+         L   R2,AEXDIAG                                                 00377000
+         LA  R2,4(,R2)                                                  00378000
+         LR  R4,R2                                                      00379000
+         L   R5,AEXDIAG                                                 00380000
+         EX  0,0(,R5)      EXECUTE DIAGNOSE 4.                          00381000
+         SPACE 1                                                        00382000
+*              RETURN LOOP                                              00383000
+         L   R2,AEXDIAG                                                 00384000
+         LA  R2,4(,R2)                                                  00385000
+         LR  R4,R1                                                      00386000
+OLOOP    EQU *                                                          00387000
+            L   R6,0(,R4)     WAS FROM                                  00388000
+            N   R6,=F'3'      OFFSET FROM ALIGNMENT                     00389000
+            AR  R2,R6         BEGIN OF SOURCE DATA.                     00390000
+            SPACE 1                                                     00391000
+            MVC 0(4,R4),0(R2) MOVE REAL DATA.                           00392000
+            SPACE 1                                                     00393000
+            LA  R2,7(,R2)     COMPLETE SOURCE INCREMENT.                00394000
+            N   R2,=F'-4'     ROUND BACK TO FULLWORD.                   00395000
+            SPACE 1                                                     00396000
+            LA  R4,4(,R4)     INCREMENT DEST.                           00397000
+         CR  R4,R7            END ?                                     00398000
+         BNH   OLOOP                                                    00399000
+         SPACE 1                                                        00400000
+         BR    R14                                                      00401000
+         EJECT                                                          00402000
+*---------------------------------------------------------------------- 00403000
+*              GETMAIN REQUEST.                                         00404000
+*---------------------------------------------------------------------- 00405000
+SVCGETM  CPWSVC                                                         00406000
+*              KEEP TRACK.                                              00407000
+         AP    GETMAINS,=P'1'                                           00408000
+         NI    GETMAINS,X'0F' PREVENT OVERFLOW, USE YOUR ASHTRAY.       00409000
+         SPACE 1                                                        00410000
+*              FORCE DOUBLEWORD MULTIPLE.                               00411000
+         A     R0,F00007      ROUND UP TO DOUBLEWORD BOUNDARY.          00412000
+         N     R0,FM00008                                               00413000
+         SPACE 1                                                        00414000
+         LTR   R0,R0          ZERO OR - LENGTH ?                        00415000
+         BNP   SVCERR       FREE STORAGE ERROR.                         00416000
+         SPACE 1                                                        00417000
+*        SEARCH FOR FIRST FIT.                                          00418000
+*        NOTE SEPARATE ROUTINES FOR REGULAR AND PAGE ALLIGNED REQUESTS, 00419000
+*        FOR EFFICIENCY.                                                00420000
+         IF TM,SVCSPSW+3,SVCPAGE,Z,THEN                                 00421000
+*              REGULAR GETMAIN.                                         00422000
+            LA    R3,AFREECH     OLD SEGMENT.                           00423000
+            L     R1,0(,R3)      NEW SEGMENT.                           00424000
+            DO WHILE,R1,NZ,AND,C,R0,4(,R1),H                            00425000
+               LR  R3,R1                                                00426000
+               L   R1,0(,R3)                                            00427000
+            DO END                                                      00428000
+            SPACE 1                                                     00429000
+         IF ELSE PAGE ALLIGNED REQUEST.                                 00430000
+            LA  R3,AFREECH    OLD SEGMENT.                              00431000
+            SR  R1,R1                                                   00432000
+            SR  R5,R5         WORK.                                     00433000
+SVCGLP2        ICM R1,B'1111',0(R3)                                     00434000
+               BNP SVCERR      NO STORAGE AVAILABLE.                    00435000
+               SPACE 1                                                  00436000
+               LR  R4,R1      END OF SEGMENT.                           00437000
+               A   R4,4(,R1)  END OF SPACE.                             00438000
+               SPACE 1                                                  00439000
+               LA  R5,4095(,R1)         ROUND UP.                       00440000
+               N   R5,FM04096 BEGIN NEW PAGE                            00441000
+               SPACE 1                                                  00442000
+               SR  R4,R5      LEN - REM BYTES IN FIRST PAGE=PAGALGN LEN 00443000
+*                             NOTE MAY BE NEGATIVE.                     00444000
+               SPACE 1                                                  00445000
+               CR  R0,R4         COMPARE TO REQUESTED LEN.              00446000
+               BNH SVCGOK2       FINE - IT'LL FIT.                      00447000
+               LR  R3,R1         NO, THAT'S THE OLD ONE.                00448000
+               B   SVCGLP2                                              00449000
+SVCGOK2     EQU   *                                                     00450000
+            SPACE 1                                                     00451000
+*              R4 = PAGE ALIGNED LENGTH.                                00452000
+*              R5 -> PAGE ALIGNED BEGINNING.                            00453000
+            C   R4,4(,R1)               MUST WE FORCE ALIGNMENT ?       00454000
+            BE  SVCGNF2                                                 00455000
+               LR  R3,R1      CALC PAGEALIGN BEGIN.                     00456000
+               LR  R1,R5                                                00457000
+               SPACE 1                                                  00458000
+               ST  R4,4(,R1)  NEW LENGTH 2.                             00459000
+               SPACE 1                                                  00460000
+               LR  R2,R1      NEW LENGTH 1                              00461000
+               SR  R2,R3                                                00462000
+               ST  R2,4(,R3)                                            00463000
+               SPACE 1                                                  00464000
+               MVC 0(4,R1),0(R3) CHAIN TO NEXT SEG.                     00465000
+               SPACE 1                                                  00466000
+               ST  R1,0(,R3)  CHAIN.                                    00467000
+SVCGNF2  EQU   *                                                        00468000
+            SPACE 1                                                     00469000
+         IF END                                                         00470000
+         SPACE 1                                                        00471000
+         LTR   R1,R1                                                    00472000
+         BZ    SVCERR       NONE AVAILABLE.                             00473000
+         SPACE 1                                                        00474000
+*                             R1 -> SELECTED SEGM., R3 -> PREC. SEGM.   00475000
+*              IF WE MUST SEGMENT SEGMENT, THEN:                        00476000
+         IF C,R0,4(,R1),NE,THEN          SEGMENT.                       00477000
+            LR  R2,R1         BEGIN OF REMAINDER SEGMENT.               00478000
+            AR  R2,R0                                                   00479000
+            SPACE 1                                                     00480000
+            MVC 0(4,R2),0(R1)          CHAIN TO NEXT SEGMENT.           00481000
+            ST  R2,0(,R3)     CHAIN OFF PREC. SEGMENT.                  00482000
+            SPACE 1                                                     00483000
+            L   R3,4(,R1)     LENGTH OF REMAINDER SEGMENT.              00484000
+            SR  R3,R0                                                   00485000
+            ST  R3,4(,R2)                                               00486000
+         IF ELSE JUST DECHAIN.                                          00487000
+            MVC 0(4,R3),0(R1)                                           00488000
+         IF END                                                         00489000
+         SPACE 1                                                        00490000
+         STM  R0,R1,SVCSREGS+4*R0                                       00491000
+         SPACE 1                                                        00492000
+         BR    R14                                                      00493000
+         EJECT                                                          00494000
+*---------------------------------------------------------------------- 00495000
+*              FREEMAIN.                                                00496000
+*---------------------------------------------------------------------- 00497000
+SVCFREEM CPWSVC                                                         00498000
+*              KEEP COUNT.                                              00499000
+         AP    FREMAINS,=P'1'                                           00500000
+         NI    FREMAINS,X'0F' PREVENT OVERFLOW.                         00501000
+         SPACE 1                                                        00502000
+         AR    R0,R1          ROUND HI END DOWN.                        00503000
+         N     R0,FM00008                                               00504000
+         SPACE 1                                                        00505000
+         A     R1,F00007      ROUND LOW END UP.                         00506000
+         N     R1,FM00008                                               00507000
+         LR    R2,R0          SAVE HIGH END (+1) ADDRESS.               00508000
+         SR    R0,R1          NEW LENGTH.                               00509000
+         SPACE 1                                                        00510000
+         C     R1,AHICSECT    BELOW HIGH END OF PROGRAM ?               00511000
+         BL    SVCERR       ERROR IF YES.                               00512000
+         C     R2,AHICORE     ERROR.                                    00513000
+         BH    SVCERR                                                   00514000
+         SPACE 1                                                        00515000
+*              FIND SLOT BETWEEN TWO SEGMENTS.                          00516000
+*              R2 IS STILL HI END OF SEG +1.                            00517000
+         LA    R3,AFREECH     ANCHOR                                    00518000
+         DO WHILE,CR,R3,R2,LT,AND,R3,NZ                                 00519000
+            LR  R4,R3                                                   00520000
+            ICM R3,B'0111',1(R4)                                        00521000
+         DO END                                                         00522000
+         SPACE 1                                                        00523000
+*              CHAIN IT IN.                                             00524000
+         ST  R1,0(,R4)        CHAIN OFF LOWER SEG                       00525000
+         ST  R3,0(,R1)        CHAIN TO HIGHER SEGMENT.                  00526000
+         ST  R0,4(,R1)        AND INSERT LENGTH.                        00527000
+         SPACE 1                                                        00528000
+*              CLEAN UP HIGH END OF CHAIN.                              00529000
+         IF CR,R2,R3,EQ,THEN  AMALGAMATE THESE SEGMENTS.                00530000
+            MVC 0(4,R1),0(R3)                                           00531000
+            A   R2,4(,R3)     NEW HIGH END.                             00532000
+            SR  R2,R1         NEW LENGTH.                               00533000
+            STCM R2,B'0111',5(R1)                                       00534000
+         IF END                                                         00535000
+         SPACE 1                                                        00536000
+*              CLEAN UP LOW END.                                        00537000
+         L     R2,4(,R4)                                                00538000
+         AR  R2,R4                                                      00539000
+         LA    R2,0(,R2)                                                00540000
+         IF CR,R2,R1,EQ,THEN                                            00541000
+            MVC 0(4,R4),0(R1) CHAIN PAST.                               00542000
+            A   R2,4(,R1)     HIGH END OF SEG.                          00543000
+            SR  R2,R4         LENGTH.                                   00544000
+            STCM  R2,B'0111',5(R4)                                      00545000
+         IF END                                                         00546000
+         SPACE 1                                                        00547000
+         XC    SVCSREGS+4*R0(8),SVCSREGS+4*R0  CLEAR R0, R1 FOR CALLER. 00548000
+         SPACE 1                                                        00549000
+         BR    R14                                                      00550000
+         EJECT                                                          00551000
+*---------------------------------------------------------------------- 00552000
+*        TRACE, AND OPTIONALLY HALT PROGRAM EXECUTION.                  00553000
+*---------------------------------------------------------------------- 00554000
+SVCMARK  CPWSVC                                                         00555000
+         IF TM,CPFLAG,CPNOTRAC,Z,THEN WE ARE TRACEING.                  00556000
+            LA  R0,L'MARKCMD                                            00557000
+            LA  R1,MARKCMD                                              00558000
+            DIAG R1,R0,8                                                00559000
+            SPACE 1                                                     00560000
+            IF TM,SVCSPSW+3,SVCSTOP-SVCMARK,O,THEN                      00561000
+               SR    R15,R15      ZERO LENGTH COMMAND - GO INTO CP MODE 00562000
+               DIAG  0,R15,8                                            00563000
+            IF END                                                      00564000
+         IF END                                                         00565000
+         BR    R14                                                      00566000
+MARKCMD  DC    C'D 20.8'                                                00567000
+         EJECT                                                          00568000
+*---------------------------------------------------------------------- 00569000
+*              SERVICE COMPLETED READS, DISPATCH QUEUED I/O.            00570000
+*---------------------------------------------------------------------- 00571000
+SVCDISP  CPWSVC                                                         00572000
+         LA  R11,DEVICES                                                00573000
+         USING DEVSECT,R11                                              00574000
+         DO WHILE,CLC,DEVADDR,HEXFS,NE                                  00575000
+            SPACE 1                                                     00576000
+*              SERVICE ANY COMPLETED ATTENTION READS.                   00577000
+            IF TM,DEVFLAGS,DEVRDCP,O,THEN HE'S FINISHED A READ.         00578000
+               NI  DEVFLAGS,255-DEVRDCP                                 00579000
+               SPACE 1                                                  00580000
+               IF CLI,DEVTYPE,DEVCONS,EQ,THEN                           00581000
+                  BAL R10,SVC1CCNS                                      00582000
+               IF END                                                   00583000
+               IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                           00584000
+                  BAL R10,SVC1CGRF                                      00585000
+               IF END                                                   00586000
+            IF END                                                      00587000
+            SPACE 3                                                     00588000
+*              ISSUE ANY I/O NECESSARY.                                 00589000
+*              IS HE WAITING ?  IS THERE SOMETHING FOR HIM TO DO ?      00590000
+            IF TM,DEVFLAGS,DEVREADY,O,AND,                             +00591000
+               TM,DEVFLAGS,DEVWRQ,O,OR,TM,DEVSTAT1,ATTN,O,OR,          +00592000
+               (CLI,DEVTYPE,DEVCONS,EQ,AND,CLC,DEVBEGST,ZEROS,NE),THEN  00593000
+               SPACE 1                                                  00594000
+*              NOW IS IT A READ OR A WRITE ?  FIND CCW CHAIN.           00595000
+               IF TM,DEVSTAT1,ATTN,O,THEN ISSUE READ REGARDLESS.        00596000
+                  IF CLI,DEVTYPE,DEVCONS,EQ,THEN                        00597000
+                     MVC CONCMD,BLANKL  CLEAR INPUT LINE.               00598000
+                     LA  R2,CONREAD                                     00599000
+                  IF ELSE                                               00600000
+                     MVC DEVINA,BLANKL                                  00601000
+                     LA  R2,GRAFREAD                                    00602000
+                     LA  R0,DEVINA                                      00603000
+                     STCM R0,B'0111',1(R2)                              00604000
+                  IF END                                                00605000
+               IF ELSE WRITE REQUEST.                                   00606000
+                  IF CLI,DEVTYPE,DEVCONS,EQ,THEN                        00607000
+                     L   R2,DEVBEGST                                    00608000
+                     USING CONSECT,R2                                   00609000
+                     LA  R0,CONDATA                                     00610000
+                     STCM R0,B'0111',CONWRTE+1                          00611000
+                     MVC CONWRTE+6(2),CONDATLN                          00612000
+                     SPACE 1                                            00613000
+                     DROP R2                                            00614000
+                     LA  R2,CONWRTE                                     00615000
+                  IF END                                                00616000
+                  IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                        00617000
+                     ICM R2,B'1111',DEVPAG                              00618000
+                     IF Z,THEN                                          00619000
+                        L   R2,DEVDSP                                   00620000
+                        USING DSPSECT,R2                                00621000
+                        ICM R2,B'1111',DSPFSCR                          00622000
+                        DROP R2                                         00623000
+                        IF Z,THEN                                       00624000
+                           L   R2,=V(SCRMENU)                           00625000
+                        IF END                                          00626000
+                     IF END                                             00627000
+                     LA  R0,SCRBEG-SCRSECT(,R2) A(DATA)                 00628000
+                     IF TM,DEVFLAGS,DEVERAS,O,THEN                      00629000
+                        LA  R2,GRAFIWRT                                 00630000
+                     IF ELSE                                            00631000
+                        LA  R2,GRAFWRTE                                 00632000
+                     IF END                                             00633000
+                     STCM R0,B'0111',9(R2)                              00634000
+                  IF END                                                00635000
+                  IF CLI,DEVTYPE,DEVPRT,EQ,THEN                         00636000
+                  IF END                                                00637000
+               IF END                                                   00638000
+               SPACE 3                                                  00639000
+*              NOW ISSUE START I/O                                      00640000
+SIO            ST  R2,CPCAW                                             00641000
+               LH  R3,DEVADDR                                           00642000
+               SIO 0(R3)                                                00643000
+               BC  B'0100',SIO1                                         00644000
+               BC  B'0010',SIO2                                         00645000
+               BC  B'0001',SIO3                                         00646000
+SIO0           EQU   *        COMPLETED SUCCESSFULLY.                   00647000
+               IF TM,DEVSTAT1,ATTN,O,THEN IT'S A READ.                  00648000
+                  OI  DEVFLAGS,DEVRDIS FLAG AS ISSUED SUCCESSFULLY.     00649000
+                  NI  DEVSTAT1,255-ATTN                                 00650000
+               SPACE 1                                                  00651000
+               IF ELSE IT'S A WRITE                                     00652000
+                  NI  DEVFLAGS,255-DEVWRQ                               00653000
+                  IF CLI,DEVTYPE,DEVGRAF,EQ,THEN                        00654000
+                     NI  DEVFLAGS,255-DEVERAS                           00655000
+                  IF END                                                00656000
+               IF END                                                   00657000
+               SPACE 1                                                  00658000
+               NI  DEVFLAGS,255-DEVREADY                                00659000
+               MVI DEVSTAT1,0                                           00660000
+                  B   SIOEND                                            00661000
+               SPACE 3                                                  00662000
+SIO1           EQU *          CSW STORED.                               00663000
+               SPACE 1                                                  00664000
+               OC  DEVSTAT1,CPCSW+4                                     00665000
+               IF TM,DEVSTAT1,UC,O,THEN  (HE'S DEAD)                    00666000
+                  MVI DEVSTAT1,0                                        00667000
+                  MVI DEVFLAGS,DEVRDCP                                  00668000
+                  MVI DEVAID,CLR        SIMULATE CLEAR KEY.             00669000
+               IF END                                                   00670000
+               SPACE 1                                                  00671000
+               IF TM,DEVSTAT1,ATTN,O,THEN ASSUME WE CAN DO IT           00672000
+                  OI  DEVFLAGS,DEVREADY                                 00673000
+                  NI  DEVSTAT1,ATTN                                     00674000
+                  B   SIO   RE-ISSUE.                                   00675000
+               IF END                                                   00676000
+                  B   SIOEND                                            00677000
+               SPACE 3                                                  00678000
+SIO2           EQU *          INTERRUPT PENDING IN CHANNEL.             00679000
+*              THIS SHOULD ONLY HAPPEN WHEN INTERRUPT KEY ENTERED WHILE 00680000
+*              RUNNING DISABLED - FAIRLY RARE.                          00681000
+*                   ACTION - NONE.   COMPLETE SCAN AND I/O ATTEMPTS     00682000
+*              (ALL PENDING SIO'S WILL FAIL), THEN LOAD ENABLED PSW.    00683000
+*              INTERRUPT WILL BE ACCEPTED, AND TRIGGER NEW SCAN FOR     00684000
+*              OUTSTANDING I/O.                                         00685000
+               B              SIOEND                                    00686000
+               SPACE 3                                                  00687000
+SIO3           EQU *          HE'S A DEADER.                            00688000
+               MVI DEVSTAT1,0                                           00689000
+               MVI DEVFLAGS,DEVRDCP                                     00690000
+               MVI DEVAID,CLR                                           00691000
+*              B  SIOEND                                                00692000
+               SPACE 1                                                  00693000
+SIOEND         EQU *                                                    00694000
+            IF END            END SIO PROCESSING.                       00695000
+            SPACE 1                                                     00696000
+            LA  R11,DEVNEXT                                             00697000
+         DO END                                                         00698000
+         DROP R11                                                       00699000
+         SPACE 3                                                        00700000
+         BR    R14                                                      00701000
+         EJECT                                                          00702000
+*---------------------------------------------------------------------- 00703000
+*              SERVICE CONSOLE READ COMPLETE.                           00704000
+*---------------------------------------------------------------------- 00705000
+SVC1CCNS EQU   *                                                        00706000
+         USING DEVSECT,R11                                              00707000
+         OC  CONCMD,BLANKL FORCE UPPERCASE                              00708000
+         IF =C'SHUT',CONCMD,EQ,OR,=C'CMS',CONCMD,EQ,THEN                00709000
+            NI  IOOLD+1,255-WAIT  FORCE END OF WAIT.                    00710000
+            OI  CPFLAG,CPSHUT                                           00711000
+         IF ELSE                                                        00712000
+            LA  R2,CONCMD                                               00713000
+            LA  R3,L'CONCMD                                             00714000
+            DIAG R2,R3,8    CONSOLE FUNCTION.                           00715000
+            SPACE 1                                                     00716000
+            IF CLC,=C'DISC',CONCMD,NE,THEN                              00717000
+               MVC CONCMD,BLANKL                                        00718000
+               SPACE 1                                                  00719000
+               IF R3,Z,THEN                                             00720000
+                  MVC CONCMD(9),=CL9'RIGHT;'                            00721000
+               IF ELSE                                                  00722000
+                  CVD  R3,COND                                          00723000
+                  UNPK CONCMD(7),COND                                   00724000
+                  OI  CONCMD+6,C'0'                                     00725000
+                  MVC CONCMD(3),=C'NO('                                 00726000
+                  MVC CONCMD+7(2),=C');'                                00727000
+               IF END                                                   00728000
+               SPACE 1                                                  00729000
+*                    CHAIN IT OFF CONSOLE OUTPUT STACK.                 00730000
+               LA  R1,CONCMD                                            00731000
+               LA  R0,9                                                 00732000
+               SVC SVCWTO                                               00733000
+               SPACE 1                                                  00734000
+               MVC CONCMD,BLANKL                                        00735000
+            IF END                                                      00736000
+         IF END                                                         00737000
+         DROP R11                                                       00738000
+         SPACE 3                                                        00739000
+         BR    R10            AND CONTINUE.                             00740000
+         EJECT                                                          00741000
+*---------------------------------------------------------------------- 00742000
+*              SERVICE 3270 READS                                       00743000
+*---------------------------------------------------------------------- 00744000
+SVC1CGRF EQU   *                                                        00745000
+         USING DEVSECT,R11                                              00746000
+         SPACE 1                                                        00747000
+         IF CLI,DEVAID,ENT,NE,THEN LOOK UP AID.                         00748000
+            LM  R7,R9,=A(AIDTAB,AIDSECTL,AIDTABND-AIDSECTL)             00749000
+            USING AIDSECT,R7                                            00750000
+SVC1CLP1    EQU   *                                                     00751000
+               ICM R6,B'0111',AIDROUT                                   00752000
+               CLC DEVAID,AIDKEY                                        00753000
+               BE  AIDOK          FOUND HIM.                            00754000
+            BXLE R7,R8,SVC1CLP1                                         00755000
+            SR  R6,R6         DEFAULT ACTION, UNKNOWN KEY - IGNORE.     00756000
+AIDOK       EQU   *                                                     00757000
+            DROP R7                                                     00758000
+         SPACE 2                                                        00759000
+         IF ELSE MUST BE ENTER KEY.  LOOK UP COMMAND NAME.              00760000
+            OC  DEVDATA,BLANKL          FORCE COMMAND TO UPPER CASE.    00761000
+            SPACE 1                                                     00762000
+            LM    R7,R9,=A(ENTTAB,ENTSECTL,ENTTABND-ENTSECTL)           00763000
+            USING ENTSECT,R7                                            00764000
+ENTLOOP     EQU   *                                                     00765000
+               ICM   R6,B'0111',ENTROUT                                 00766000
+               CLC   ENTNAME,DEVDATA                                    00767000
+               BE    ENTOK                                              00768000
+            BXLE  R7,R8,ENTLOOP                                         00769000
+            SR  R6,R6 (DEFAULT FOR INVALID ENTER)                       00770000
+ENTOK       EQU   *                                                     00771000
+            DROP R7                                                     00772000
+         IF END                                                         00773000
+         SPACE 3                                                        00774000
+         IF R6,NZ,THEN                                                  00775000
+            BALR  R8,R6       CALL SELECTED ROUTINE.                    00776000
+         IF ELSE                                                        00777000
+            BAL R8,FIRSTSCR      DEFAULT IS CALL MENU.                  00778000
+         IF END                                                         00779000
+         SPACE 3                                                        00780000
+         BR  R10              RETURN TO CALLER.                         00781000
+         SPACE 3                                                        00782000
+         SPENDCHK                                                       00783000
+         EJECT                                                          00784000
+*              NEXT DISPLAY, PLEASE.                                    00785000
+NXTSCR   EQU   *              NEXT FRAME  OR DISPLAY.                   00786000
+         SPACE 1                                                        00787000
+         L   R4,DEVPAG                                                  00788000
+         USING SCRSECT,R4                                               00789000
+         L   R5,SCRNEXT                                                 00790000
+         IF R4,NZ,AND,R5,NZ,THEN                                        00791000
+            ST  R5,DEVPAG                                               00792000
+            OI  DEVFLAGS,DEVWRQ                                         00793000
+            SPACE 1                                                     00794000
+         IF ELSE   GET NEW SCREEN                                       00795000
+            L   R3,DEVDSP                                               00796000
+            USING DSPSECT,R3                                            00797000
+            L   R3,DSPNEXT                                              00798000
+            SPACE 1                                                     00799000
+            BAL R2,NEWSCR        AND SET IT.                            00800000
+         IF END                                                         00801000
+         SPACE 1                                                        00802000
+         DROP R3,R4                                                     00803000
+         SPACE 1                                                        00804000
+         BR   R8              RETURN.                                   00805000
+         SPACE 6                                                        00806000
+*              NEW SCREEN.                                              00807000
+NEWSCR   EQU   *              DROP FROM OLD, ADD TO NEW.                00808000
+*        ENTRY:                                                         00809000
+*              R2  - RETURN ADDRESS                                     00810000
+*              R3  - NEW DSPSECT                                        00811000
+*              R11 - SET (DEVSECT)                                      00812000
+         NI  DEVFLAGS,255-DEVHOLD       HE CAN'T BE.                    00813000
+         SPACE 1                                                        00814000
+         L     R1,DEVDSP                                                00815000
+         USING DSPSECT,R1                                               00816000
+         SP    DSPUSRS,=P'1'                                            00817000
+         DROP  R1                                                       00818000
+         SPACE 3                                                        00819000
+         USING DSPSECT,R3                                               00820000
+         SPACE 1                                                        00821000
+         ST    R3,DEVDSP                                                00822000
+         MVC   DEVPAG,DSPFSCR                                           00823000
+         SPACE 1                                                        00824000
+         AP    DSPUSRS,=P'1'                                            00825000
+         SPACE 1                                                        00826000
+         OI  DEVFLAGS,DEVWRQ+DEVERAS  WRITE OUT NEW SCREEN.             00827000
+         DROP R3                                                        00828000
+         SPACE 1                                                        00829000
+         BR  R2               AND RETURN                                00830000
+         SPACE 6                                                        00831000
+FIRSTSCR EQU   *                                                        00832000
+         L     R3,ADSPLAY                                               00833000
+         BAL   R2,NEWSCR                                                00834000
+         BR    R8                                                       00835000
+SYSSCR   EQU   *                                                        00836000
+         L     R3,=V(DSPSYS)                                            00837000
+         BAL   R2,NEWSCR                                                00838000
+         BR    R8                                                       00839000
+TERMSCR  EQU   *                                                        00840000
+         L     R3,=V(DSPTRM)                                            00841000
+         BAL   R2,NEWSCR                                                00842000
+         BR    R8                                                       00843000
+DEVSCR   EQU   *                                                        00844000
+         L     R3,=V(DSPSDV)                                            00845000
+         BAL   R2,NEWSCR                                                00846000
+         BR    R8                                                       00847000
+ALLSCR   EQU   *                                                        00848000
+         L     R3,=V(DSPALL)                                            00849000
+         BAL   R2,NEWSCR                                                00850000
+         BR    R8                                                       00851000
+ACTSCR   EQU   *                                                        00852000
+         L     R3,=V(DSPACT)                                            00853000
+         BAL   R2,NEWSCR                                                00854000
+         BR    R8                                                       00855000
+SYMSCRA  EQU   *                                                        00856000
+         L     R3,=V(DSPSYA)                                            00857000
+         BAL   R2,NEWSCR                                                00858000
+         BR    R8                                                       00859000
+SYMSCRX  EQU   *                                                        00860000
+         L     R3,=V(DSPSYX)                                            00861000
+         BAL   R2,NEWSCR                                                00862000
+         BR    R8                                                       00863000
+         SPACE 6                                                        00864000
+*              RELEASE THE SCREEN.                                      00865000
+DISCONN  EQU   *                                                        00866000
+         MVC DETADR,DEVCADDR  KNOCK HIM OFF                             00867000
+         LM  R3,R4,=A(DETCMD,L'DETCMD)                                  00868000
+         DIAG R3,R4,8                                                   00869000
+         SPACE 1                                                        00870000
+         MVC DEFADR,DEVCADDR  AND OPEN UP THE PORT AGAIN.               00871000
+         LM  R3,R4,=A(DEFCMD,L'DEFCMD)                                  00872000
+         DIAG R3,R4,8                                                   00873000
+         SPACE 1                                                        00874000
+         L  R3,DEVDSP                                                   00875000
+         USING DSPSECT,R3                                               00876000
+         SP  DSPUSRS,=P'1'                                              00877000
+         DROP R3                                                        00878000
+         SPACE 1                                                        00879000
+         MVI DEVFLAGS,0                                                 00880000
+         MVI DEVSTAT1,0                                                 00881000
+         MVC DEVDSP,ADSPLAY                                             00882000
+         SPACE 1                                                        00883000
+         SP  LISTNRS,=P'1'                                              00884000
+         SPACE 1                                                        00885000
+         BR    R8                                                       00886000
+         EJECT                                                          00887000
+*              NEXT FRAME, PLEASE.                                      00888000
+NXTFR    EQU   *                                                        00889000
+         OI  DEVFLAGS,DEVWRQ                                            00890000
+         SPACE 1                                                        00891000
+         L   R3,DEVDSP                                                  00892000
+         USING DSPSECT,R3                                               00893000
+         ICM R4,B'1111',DEVPAG                                          00894000
+         USING SCRSECT,R4                                               00895000
+         IF Z,THEN (THERE WASN'T ONE LAST TIME)                         00896000
+            ICM R4,B'1111',DSPFSCR                                      00897000
+         IF END                                                         00898000
+         IF NZ,THEN                                                     00899000
+            ICM R4,B'1111',SCRNEXT                                      00900000
+            IF Z,THEN                                                   00901000
+               L   R4,DSPFSCR                                           00902000
+            IF END                                                      00903000
+            ST  R4,DEVPAG                                               00904000
+         IF END                                                         00905000
+         DROP R3,R4                                                     00906000
+         SPACE 1                                                        00907000
+         BR   R8                                                        00908000
+         EJECT                                                          00909000
+*              GO TO CLOCK SCREEN.                                      00910000
+CLKSCR   EQU   *                                                        00911000
+         SPACE 1                                                        00912000
+         L   R3,ADSPCLOK                                                00913000
+         SPACE 1                                                        00914000
+         BAL R2,NEWSCR                                                  00915000
+         SPACE 1                                                        00916000
+         BR    R8   L   R3,ADSPCLOK                                     00917000
+         SPACE 12                                                       00918000
+*              HOLD THIS SCREEN.                                        00919000
+HOLDSCR  EQU   *              HOLD/RELEASE THIS SCREEN.                 00920000
+         XI  DEVFLAGS,DEVHOLD CHANGE HOLD BIT.                          00921000
+         IF Z,THEN                                                      00922000
+            OI  DEVFLAGS,DEVWRQ+DEVERAS RELEASING HOLD.                 00923000
+         IF END                                                         00924000
+         BR  R8                                                         00925000
+         SPACE 3                                                        00926000
+GOSCR    EQU   *              UNCONDITIONAL RELEASE & REWRITE.          00927000
+         NI  DEVFLAGS,255-DEVHOLD                                       00928000
+         OI  DEVFLAGS,DEVWRQ+DEVERAS                                    00929000
+         BR  R8                                                         00930000
+         SPACE 6                                                        00931000
+         SPENDCHK                                                       00932000
+         EJECT                                                          00933000
+*---------------------------------------------------------------------- 00934000
+*              L I T E R A L   P O O L                                  00935000
+*---------------------------------------------------------------------- 00936000
+         LTORG                                                          00937000
+         EJECT                                                          00938000
+*---------------------------------------------------------------------- 00939000
+*              CP COMMANDS, ETC.                                        00940000
+*---------------------------------------------------------------------- 00941000
+DETCMD   DC    C'DETACH XXX'                                            00942000
+         ORG   *-3                                                      00943000
+DETADR   DS    CL3                                                      00944000
+         ORG                                                            00945000
+DEFCMD   DC    C'DEFINE GRAF XXX'                                       00946000
+         ORG   *-3                                                      00947000
+DEFADR   DS    CL3                                                      00948000
+         ORG                                                            00949000
+DUMPCMD  DC    C'DUMP L * PROGRAM CHECK DUMP'                           00950000
+SPCMD    DC    C'SPOOL PRINT OFF CLOSE'                                 00951000
+SPCON    DC    C'SPOOL CONSOLE CLOSE'                                   00952000
+         EJECT                                                          00953000
+*---------------------------------------------------------------------- 00954000
+*              TABLE OF DISPLAY TUBE COMMANDS.                          00955000
+*---------------------------------------------------------------------- 00956000
+ENTTAB   DS    0D                                                       00957000
+         DC    CL8' ',AL3(NXTSCR)                                       00958000
+         DC    CL8'ACT',AL3(ACTSCR)                                     00959000
+         DC    CL8'ALL',AL3(ALLSCR)                                     00960000
+         DC    CL8'CLOCK',AL3(CLKSCR)                                   00961000
+         DC    CL8'DEV',AL3(DEVSCR)                                     00962000
+         DC    CL8'DISC',AL3(DISCONN)                                   00963000
+         DC    CL8'HOLD',AL3(HOLDSCR)                                   00964000
+         DC    CL8'GO',AL3(GOSCR)                                       00965000
+         DC    CL8'MENU',AL3(FIRSTSCR)                                  00966000
+         DC    CL8'PAGE',AL3(NXTFR)                                     00967000
+         DC    CL8'SYM',AL3(SYMSCRA)                                    00968000
+         DC    CL8'SYMX',AL3(SYMSCRX)                                   00969000
+         DC    CL8'SYS',AL3(SYSSCR)                                     00970000
+         DC    CL8'TERM',AL3(TERMSCR)                                   00971000
+ENTTABND EQU   *                                                        00972000
+         SPACE 3                                                        00973000
+AIDTAB   EQU   *                                                        00974000
+         DC    AL1(TRQ),AL3(CLKSCR)                                     00975000
+         DC    AL1(NINTR),AL3(CLKSCR) TRQ FROM REMOTE DIAL              00976000
+         SPACE 1                                                        00977000
+         DC    AL1(PA1),AL3(HOLDSCR)                                    00978000
+         DC    AL1(PA2),AL3(NXTFR)                                      00979000
+         DC    AL1(PA3),AL3(FIRSTSCR)                                   00980000
+         SPACE 1                                                        00981000
+         DC    AL1(CLR),AL3(DISCONN)                                    00982000
+         SPACE 1                                                        00983000
+         DC    AL1(PF1),AL3(FIRSTSCR)                                   00984000
+         DC    AL1(PF2),AL3(SYSSCR)                                     00985000
+         DC    AL1(PF3),AL3(TERMSCR)                                    00986000
+         DC    AL1(PF4),AL3(DEVSCR)                                     00987000
+         DC    AL1(PF5),AL3(ALLSCR)                                     00988000
+         DC    AL1(PF6),AL3(ACTSCR)                                     00989000
+         DC    AL1(PF7),AL3(SYMSCRA)                                    00990000
+         DC    AL1(PF8),AL3(SYMSCRX)                                    00991000
+*        DC    AL1(PF9),AL3(FIRSTSCR)                                   00992000
+*        DC    AL1(PF10),AL3(FIRSTSCR)                                  00993000
+*        DC    AL1(PF11),AL3(FIRSTSCR)                                  00994000
+         DC    AL1(PF12),AL3(CLKSCR)                                    00995000
+AIDTABND EQU   *                                                        00996000
+         EJECT                                                          00997000
+*********************************************************************** 00998000
+*              E Q U A T E S                                          * 00999000
+*********************************************************************** 01000000
+         SPACE 1                                                        01001000
+*              3270 AID CHARACTER EQUATES.                              01002000
+*        NOTE THAT USING FRAN MINOZ'S REMOTE DIAL FEATURE,              01003000
+*        TEST REQUEST ON A LOCAL 3270 DEVICE RESULTS IN X'60' = '-',    01004000
+*        NO INTERRUPT KEY PRESSED; TEST REQUEST CANNOT BE GENERATED ON  01005000
+*        A TRUE REMOTE 3270.  TEST REQUEST ON A TRUE LOCAL DIAL RESULTS 01006000
+*        IN X'01' (SOH) BEING TRANSMITTED AS THE FIRST BYTE.            01007000
+         SPACE 1                                                        01008000
+NINTR    EQU   C'-'           NO INTERRUPT KEY PRESSED.                 01009000
+ENT      EQU   C''''                                                    01010000
+CLR      EQU   C'_'                                                     01011000
+PA1      EQU   C'%'                                                     01012000
+PA2      EQU   C'>'                                                     01013000
+PA3      EQU   C','                                                     01014000
+PEN      EQU   C'='           LIGHT PEN HIT.                            01015000
+RDR      EQU   C'W'           BADGE READER (OH, REALLY ?)               01016000
+TRQ      EQU   X'01' EQU SOH - FIRST BYTE TRANSFERRED.                  01017000
+PF1      EQU   C'1'                                                     01018000
+PF2      EQU   C'2'                                                     01019000
+PF3      EQU   C'3'                                                     01020000
+PF4      EQU   C'4'                                                     01021000
+PF5      EQU   C'5'                                                     01022000
+PF6      EQU   C'6'                                                     01023000
+PF7      EQU   C'7'                                                     01024000
+PF8      EQU   C'8'                                                     01025000
+PF9      EQU   C'9'                                                     01026000
+PFA      EQU   C':'                                                     01027000
+PF10     EQU   PFA                                                      01028000
+PFB      EQU   C'#'                                                     01029000
+PF11     EQU   PFB                                                      01030000
+PFC      EQU   C'@'                                                     01031000
+PF12     EQU   PFC                                                      01032000
+         SPACE 1                                                        01033000
+         COPY  EQU                                                      01034000
+         SPACE 1                                                        01035000
+TIC      EQU   X'08'                                                    01036000
+SENSE    EQU   X'04'                                                    01037000
+         SPACE 1                                                        01038000
+WRITE    EQU   X'01'          GENERAL WRITE                             01039000
+WRITERAS EQU   X'05'          WRITE, ERASING SCREEN.                    01040000
+ERASEAU  EQU   X'0F'          ERASE ALL UNPROTECTED FIELDS.             01041000
+         SPACE 1                                                        01042000
+READ     EQU   X'02'          GENERAL READ.                             01043000
+READBUFF EQU   X'02'          READ FULL BUFFER.                         01044000
+READMOD  EQU   X'06'          READ MODIFIED FIELDS ONLY.                01045000
+READINQ  EQU   X'0A'          READ INQUIRY FROM CONSOLE.                01046000
+         SPACE 12                                                       01047000
+         END                                                            01048000

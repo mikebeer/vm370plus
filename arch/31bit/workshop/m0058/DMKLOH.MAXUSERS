@@ -1,0 +1,27 @@
+./ R 05530000          $ 5534990 4990                 04/06/83 11:50:46
+         BO    LOHO0A         YES BYPASS MAXUSERS CHECK        MAXUSERS 05534990
+./ R 05550000          $ 5554990 4990                 04/06/83 11:50:46
+         BO    LOHO0A         YES, BYPASS MAXUSERS CHECK       MAXUSERS 05550000
+./ I 05560000          $ 5570000 10000                04/06/83 11:50:46
+         L     R1,ASYSLC      IF NOT, REFERENCE SYSLOCS INFORMAMAXUSERS 05570000
+         USING SYSLOCS,R1     ...                              MAXUSERS 05580000
+         LM    R14,R15,DMKSYSNM    GET NO. USERS & NO. ALLOWED MAXUSERS 05590000
+         LTR   R15,R15             0 MEANS NO LIMIT            MAXUSERS 05600000
+         BZ    LOHO0A         ...                              MAXUSERS 05610000
+         CLR   R14,R15         OTHERWISE, CHECK AGAINST LIMIT  MAXUSERS 05620000
+         BNL   ERROR51        ERROR IF MAXIMUM USERS EXCEEDED  MAXUSERS 05630000
+         USING RDEVBLOK,R8      GET THE RDEVBLOK               MAXUSERS 05640000
+         CLC   RDEVSNA,=X'DEAF' IS THIS A SNA CCS RDEVBLOK?    MAXUSERS 05650000
+         BNE   DROP1            NO, CONTINUE NORMAL PROCESS    MAXUSERS 05660000
+         LM    R14,R15,DMKSYSLU  GET THE CURRENT NUMBER OF     MAXUSERS 05670000
+*                                USERS AND THE MAX. ALLOWED    MAXUSERS 05680000
+         LTR   R15,R15          WHAT IS THE MAXIMUM NUMBER     MAXUSERS 05690000
+*                               OF USERS FOR TODAY?            MAXUSERS 05700000
+         BZ    LOHO0A           0 MEANS NO LIMIT               MAXUSERS 05710000
+         CLR   R14,R15          IF WE HAVE REACHED LIMIT       MAXUSERS 05720000
+         BNL   ERROR51          THEN NO MORE ALLOWED ON NOW    MAXUSERS 05730000
+DROP1    EQU   *                                               MAXUSERS 05740000
+         DROP  R1                                              MAXUSERS 05750000
+./ I 10770000          $ 10780000 10000               04/06/83 11:50:46
+ERROR51  LA    R2,51          MESSAGE NUMBER EQUALS 51         MAXUSERS 10780000
+         B     ERRJOIN1       BRANCH                           MAXUSERS 10790000

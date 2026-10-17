@@ -1,0 +1,159 @@
+         MACRO
+         SPARSE &BEG=1,&END=,&T=*,&F=
+         GBLC  &CLABEL        LABEL FOR INNER MACRO COMMUNICATION.
+         LCLA  &I,&J,&I0,&J0
+         LCLC  &SW,&TI,&FI
+&I       SETA  &BEG
+.A10    AIF   (&I GT &END).C10
+&J       SETA  0
+.A20    AIF   (&I+&J GT &END).B10
+         AIF   ('&SYSLIST(&I+&J)' EQ 'AND' OR '&SYSLIST(&I+&J)' EQ 'OR'+
+               ).B10
+&J       SETA  &J+1
+         AGO   .A20
+.B10    ANOP
+         AIF   (&I+&J GE &END).B30
+         AIF   ('&SYSLIST(&I+&J)' NE 'AND').B20
+.* PREDICATE, AND.
+&TI      SETC  '*'
+&FI      SETC  '&F'
+         AGO   .B50
+.B20    AIF   ('&SYSLIST(&I+&J)' NE 'OR').B30
+.* PREDICATE, OR.
+&TI      SETC  '&T'
+&FI      SETC  '*'
+         AGO   .B50
+.B30    ANOP
+.* PREDICATE, COMPLETE.
+&TI      SETC  '&T'
+&FI      SETC  '&F'
+.*       AGO   .B50
+.B50    ANOP
+&I0      SETA  &I
+&J0      SETA  &J
+         AIF   ('&SYSLIST(&I)' NE 'NOT').B60
+&SW      SETC  '&TI'
+&TI      SETC  '&FI'
+&FI      SETC  '&SW'
+&SW      SETC  '%%%%%%%%'
+&I0      SETA  &I+1
+&J0      SETA  &J-1
+.B60    ANOP
+.B62     ANOP
+         AIF   (&J0 EQ 1 AND N'&SYSLIST(&I0) GT 1).B63 SUBLIST
+         AGO   .B67
+.B63     AIF   (&I0+&J0 GT &END).B65      NO INTERMEDIATE LABEL.
+&SW      SETC  '&I'
+         AIF   (&I GT 9).B63A
+&SW      SETC  '0&I'
+.B63A    ANOP
+&SW      SETC  '@P&SYSNDX&SW'(1,8)
+         SPLABEL PUSH,&SW
+         AIF   ('&SYSLIST(&I+&J)' NE 'AND').B64O
+         AIF   ('&SYSLIST(&I)' EQ 'NOT').B64F
+         AGO   .B64T
+.B64O    AIF   ('&SYSLIST(&I+&J)' NE 'OR').B65
+         AIF   ('&SYSLIST(&I)' NE 'NOT').B64F
+.B64T    ANOP
+&TI      SETC  '&SW'
+         AGO   .B65
+.B64F    ANOP
+&FI      SETC  '&SW'
+.B65     ANOP
+&I       SETA  &I0
+&J       SETA  &J0
+&I0      SETA  N'&SYSLIST(&I)
+        SPARSE &SYSLIST(&I,1),&SYSLIST(&I,2),&SYSLIST(&I,3),&SYSLIST(&I+
+               ,4),&SYSLIST(&I,5),&SYSLIST(&I,6),&SYSLIST(&I,7),&SYSLIS+
+               T(&I,8),&SYSLIST(&I,9),&SYSLIST(&I,10),                 +
+               &SYSLIST(&I,11),&SYSLIST(&I,12),&SYSLIST(&I,13),&SYSLIST+
+               (&I,14),&SYSLIST(&I,15),&SYSLIST(&I,16),&SYSLIST(&I,17),+
+               &SYSLIST(&I,18),&SYSLIST(&I,19),&SYSLIST(&I,20),        +
+               &SYSLIST(&I,21),&SYSLIST(&I,22),&SYSLIST(&I,23),&SYSLIST+
+               (&I,24),&SYSLIST(&I,25),&SYSLIST(&I,26),&SYSLIST(&I,27),+
+               &SYSLIST(&I,28),&SYSLIST(&I,29),&SYSLIST(&I,30),        +
+               &SYSLIST(&I,31),&SYSLIST(&I,32),&SYSLIST(&I,33),&SYSLIST+
+               (&I,34),&SYSLIST(&I,35),&SYSLIST(&I,36),&SYSLIST(&I,37),+
+               &SYSLIST(&I,38),&SYSLIST(&I,39),&SYSLIST(&I,40),        +
+               &SYSLIST(&I,41),&SYSLIST(&I,42),&SYSLIST(&I,43),&SYSLIST+
+               (&I,44),&SYSLIST(&I,45),&SYSLIST(&I,46),&SYSLIST(&I,47),+
+               &SYSLIST(&I,48),&SYSLIST(&I,49),&SYSLIST(&I,50),        +
+               &SYSLIST(&I,51),&SYSLIST(&I,52),&SYSLIST(&I,53),&SYSLIST+
+               (&I,54),&SYSLIST(&I,55),&SYSLIST(&I,56),&SYSLIST(&I,57),+
+               &SYSLIST(&I,58),&SYSLIST(&I,59),&SYSLIST(&I,60),        +
+               &SYSLIST(&I,61),&SYSLIST(&I,62),&SYSLIST(&I,63),&SYSLIST+
+               (&I,64),&SYSLIST(&I,65),&SYSLIST(&I,66),&SYSLIST(&I,67),+
+               &SYSLIST(&I,68),&SYSLIST(&I,69),&SYSLIST(&I,70),        +
+               &SYSLIST(&I,71),&SYSLIST(&I,72),&SYSLIST(&I,73),&SYSLIST+
+               (&I,74),&SYSLIST(&I,75),&SYSLIST(&I,76),&SYSLIST(&I,77),+
+               &SYSLIST(&I,78),&SYSLIST(&I,79),&SYSLIST(&I,80),        +
+               &SYSLIST(&I,81),&SYSLIST(&I,82),&SYSLIST(&I,83),&SYSLIST+
+               (&I,84),&SYSLIST(&I,85),&SYSLIST(&I,86),&SYSLIST(&I,87),+
+               &SYSLIST(&I,88),&SYSLIST(&I,89),&SYSLIST(&I,90),        +
+               &SYSLIST(&I,91),&SYSLIST(&I,92),&SYSLIST(&I,93),&SYSLIST+
+               (&I,94),&SYSLIST(&I,95),&SYSLIST(&I,96),&SYSLIST(&I,97),+
+               &SYSLIST(&I,98),&SYSLIST(&I,99),&SYSLIST(&I,100),       +
+               &SYSLIST(&I,101),&SYSLIST(&I,102),&SYSLIST(&I,103),     +
+               &SYSLIST(&I,104),&SYSLIST(&I,105),&SYSLIST(&I,106),     +
+               &SYSLIST(&I,107),&SYSLIST(&I,108),&SYSLIST(&I,109),     +
+               &SYSLIST(&I,110),                                       +
+               &SYSLIST(&I,111),&SYSLIST(&I,112),&SYSLIST(&I,113),     +
+               &SYSLIST(&I,114),&SYSLIST(&I,115),&SYSLIST(&I,116),     +
+               &SYSLIST(&I,117),&SYSLIST(&I,118),&SYSLIST(&I,119),     +
+               &SYSLIST(&I,120),                                       +
+               &SYSLIST(&I,121),&SYSLIST(&I,122),&SYSLIST(&I,123),     +
+               &SYSLIST(&I,124),&SYSLIST(&I,125),&SYSLIST(&I,126),     +
+               &SYSLIST(&I,127),&SYSLIST(&I,128),&SYSLIST(&I,129),     +
+               &SYSLIST(&I,130),                                       +
+               &SYSLIST(&I,131),&SYSLIST(&I,132),&SYSLIST(&I,133),     +
+               &SYSLIST(&I,134),&SYSLIST(&I,135),&SYSLIST(&I,136),     +
+               &SYSLIST(&I,137),&SYSLIST(&I,138),&SYSLIST(&I,139),     +
+               &SYSLIST(&I,140),                                       +
+               &SYSLIST(&I,141),&SYSLIST(&I,142),&SYSLIST(&I,143),     +
+               &SYSLIST(&I,144),&SYSLIST(&I,145),&SYSLIST(&I,146),     +
+               &SYSLIST(&I,147),&SYSLIST(&I,148),&SYSLIST(&I,149),     +
+               &SYSLIST(&I,150),                                       +
+               &SYSLIST(&I,151),&SYSLIST(&I,152),&SYSLIST(&I,153),     +
+               &SYSLIST(&I,154),&SYSLIST(&I,155),&SYSLIST(&I,156),     +
+               &SYSLIST(&I,157),&SYSLIST(&I,158),&SYSLIST(&I,159),     +
+               &SYSLIST(&I,160),                                       +
+               &SYSLIST(&I,161),&SYSLIST(&I,162),&SYSLIST(&I,163),     +
+               &SYSLIST(&I,164),&SYSLIST(&I,165),&SYSLIST(&I,166),     +
+               &SYSLIST(&I,167),&SYSLIST(&I,168),&SYSLIST(&I,169),     +
+               &SYSLIST(&I,170),                                       +
+               &SYSLIST(&I,171),&SYSLIST(&I,172),&SYSLIST(&I,173),     +
+               &SYSLIST(&I,174),&SYSLIST(&I,175),&SYSLIST(&I,176),     +
+               &SYSLIST(&I,177),&SYSLIST(&I,178),&SYSLIST(&I,179),     +
+               &SYSLIST(&I,180),                                       +
+               &SYSLIST(&I,181),&SYSLIST(&I,182),&SYSLIST(&I,183),     +
+               &SYSLIST(&I,184),&SYSLIST(&I,185),&SYSLIST(&I,186),     +
+               &SYSLIST(&I,187),&SYSLIST(&I,188),&SYSLIST(&I,189),     +
+               &SYSLIST(&I,190),                                       +
+               &SYSLIST(&I,191),&SYSLIST(&I,192),&SYSLIST(&I,193),     +
+               &SYSLIST(&I,194),&SYSLIST(&I,195),&SYSLIST(&I,196),     +
+               BEG=1,END=&I0,T=&TI,F=&FI
+         AIF   (&I+&J GT &END).B66
+         SPLABEL POP
+.*             INTEMEDIATE LABEL.
+&CLABEL  EQU   *
+.B66     AGO   .B90
+.B67     ANOP
+.*             CAN WE SAVE A BRANCH ?
+         SPLABEL POP
+         SPLABEL PUSH,&CLABEL
+         AIF   ('&TI' NE '&CLABEL' OR '&FI' EQ '*').B68A
+&TI      SETC  '*'
+         AGO   .B68B
+.B68A    AIF   ('&FI' NE '&CLABEL' OR '&TI' EQ '*').B68B
+&FI      SETC  '*'
+.B68B    ANOP
+         SPRED0 &J0,                                                   +
+               &SYSLIST(&I0),&SYSLIST(&I0+1),&SYSLIST(&I0+2),          +
+               &SYSLIST(&I0+3),&SYSLIST(&I0+4),&SYSLIST(&I0+5),        +
+               T=&TI,F=&FI
+.B90     ANOP
+&I       SETA  &I+&J+1
+         AGO   .A10
+.C10    ANOP
+         MEND
+//

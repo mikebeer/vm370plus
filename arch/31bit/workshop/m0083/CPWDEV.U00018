@@ -1,0 +1,9 @@
+./ R 00183000 00184000 $ 183390 390                   10/22/84 10:32:33
+               IF (CLI,RDVTYPC,CLASSPEC,EQ,AND,                        +00183390
+               CLI,RDVTYPE,TYP3705,EQ),OR,                             +00183780
+               (TM,RDVTYPC,CLASTERM+CLASGRAF,NZ,AND,                   +00184170
+               TM,RDVSTAT,RDEVDISA,Z),THEN  (ON LINE)                   00184560
+./ R 00312000 00313000 $ 312490 490                   10/22/84 10:32:33
+               IF (CLI,RDVTYPC,CLASSPEC,NE,OR,CLI,RDVTYPE,TYP3705,NE), +
+               AND,(TM,RDVTYPC,CLASTERM+CLASGRAF,Z,AND,                +00312000
+               TM,RDVSTAT,RDEVDISA,Z),THEN  (ON LINE)                   00313000

@@ -1,0 +1,8 @@
+         MACRO                                                          S  00950
+&NAME    SETIME &SEC                                                    S  00960
+         AIF   (T'&SEC EQ 'O').NOSEC                                    S  00970
+&NAME    LA    R1,&SEC                                                  S  00980
+.NOSEC   ANOP                                                           S  00990
+         SVC   SVCTIMES                                                 S  01000
+         MEND                                                           S  01010
+//
