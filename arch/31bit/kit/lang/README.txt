@@ -34,6 +34,8 @@ VM/370plus language disk (MAINT 19F, volume VMLANG)
   JAVAC fn        compile fn JAVA to fn CLASS (Eclipse compiler ecj 3.5.2)
   NETREXX fn      NetRexx 3.05: runs fn NRX at once; NETREXX fn COMPILE
                   makes fn CLASS (run it with JAVA fn); try NETREXX HELLO
+  ZORK            Dungeon (Zork), the MIT mainframe adventure (public-domain
+                  C version); SAVE and RESTORE use DSAVE DAT A
   NCTEST          a NICOF socket test against an echo server on the PC
                   (NICOF's proxies: nicof/nicof.sh start on the PC)
 
