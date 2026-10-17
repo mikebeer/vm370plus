@@ -1,5 +1,14 @@
-VM/370plus  --  overlay kit, 17 October 2026 (build 27)
+VM/370plus  --  overlay kit, 17 October 2026 (build 28)
 ========================================================
+
+NEW IN BUILD 28
+  - ZORK (9.13e): Dungeon, the MIT mainframe adventure, on the language
+    disk (LANG, then ZORK; SAVE writes DSAVE DAT A).
+  - The setup wizard offers to install what is missing (asking first):
+    Hercules -- on Linux by building the newest SDL Hyperion with
+    hercules-helper, or Homebrew, or the distribution's package; on macOS
+    with Homebrew -- and a tn3270 emulator (c3270/x3270).
+
 
 NEW IN BUILD 27
   - The setup wizard (9.45): vm370plus-setup.py, beside the kit parts and

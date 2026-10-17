@@ -2217,6 +2217,27 @@ Ready;
 :p.It is slow&colon. about 15 seconds a word on CMS, whose C runtime has
 no hardware floating point, and 9 in the Debian guest. For real
 questions, see ASK (Chapter 6).
+:h2.A game&colon. ZORK
+:p.:xph.ZORK:exph. starts Dungeon, the adventure that Tim Anderson, Marc
+Blank, Bruce Daniels and Dave Lebling wrote at MIT on a PDP-10 in
+1977-79, the forerunner of Infocom's Zork. It runs here in its
+public-domain C version, built for CMS and kept on the language disk
+with its text file :xph.DTEXTC DAT:exph.. :xph.SAVE:exph. writes
+:xph.DSAVE DAT A:exph., and :xph.RESTORE:exph. reads it back.
+:xph.QUIT:exph. ends the game.
+:fig.
+:xmp.
+zork
+Welcome to Dungeon.   This version created 11-MAR-91.
+You are in an open field west of a big white house with a boarded
+front door.
+There is a small mailbox here.
+>open mailbox
+  Opening the mailbox reveals:
+  A leaflet.
+:exmp.
+:figcap.West of the house, on CMS
+:efig.
 :h2.File names in C programs
 :p.Programs built with the CMS runtime (all those of this chapter) use
 Unix file names and map them to CMS files&colon. :xph.fn.ft:exph. is

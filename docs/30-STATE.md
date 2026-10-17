@@ -865,3 +865,12 @@ sends them to the Debian service setup (mail.conf, ask.conf, njeconf).
 Verified: a wizard install from CE + the b27 parts (both SHA-256 ok);
 fresh CE + b27 (kt42): RSCS autologged, TELL/NJEGATE/SENDFILE present;
 the apply path on dev (wiz2). The Debian disk's NJE logs are clean. 22 parts.
+
+## Kit b28 (17 October 2026, 05:25)
+
+9.13e (part): ZORK -- Dungeon, the public-domain C version, cross-built
+for CMS (languages/zork/mkzork.sh), ZORK MODULE and DTEXTC DAT on the
+language disk. The setup wizard offers to install Hercules (hercules-helper
+build of SDL Hyperion, Homebrew, the distribution's package) and a tn3270
+emulator. 9.13c marked done (came with 9.13b). Verified: zk1 on dev (play,
+SAVE), fresh CE + b28 (kt43: ZORK from the language disk). 22 parts.
