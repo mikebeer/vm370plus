@@ -3,7 +3,13 @@
 # links against wheezy's own glibc 2.13 (the sysroot made by
 # cobol/mkcobol-linux.sh), so the binaries run on the Debian guest as they are.
 S=${WHEEZY:-/home/claude/src/cobol/wsys}
+# wheezy's own crt1.o/crti.o/crtn.o: the cross toolchain's are glibc 2.39's,
+# whose crt1 leaves the constructors to __libc_start_main -- wheezy's 2.13
+# does not run them, so no C++ global was ever constructed (17 Oct,
+# MariaDB).  GCC looks for start files in -B<dir>/32/ for -m31.
+C=$S/vmcrt
+[ -f $C/32/Scrt1.o ] || { mkdir -p $C/32 && cp $S/usr/lib/s390-linux-gnu/crt1.o $S/usr/lib/s390-linux-gnu/Scrt1.o $S/usr/lib/s390-linux-gnu/crti.o $S/usr/lib/s390-linux-gnu/crtn.o $C/32/; }
 GI=$(s390x-linux-gnu-gcc -m31 -print-file-name=include)
-exec s390x-linux-gnu-gcc -m31 -nostdinc -isystem $GI -isystem $S/usr/include/s390-linux-gnu \
+exec s390x-linux-gnu-gcc -m31 -B$C/ -nostdinc -isystem $GI -isystem $S/usr/include/s390-linux-gnu \
   -isystem $S/usr/include --sysroot=$S -B$S/usr/lib/s390-linux-gnu -L$S/usr/lib/s390-linux-gnu \
   -L$S/lib/s390-linux-gnu -Wl,-rpath-link,$S/lib/s390-linux-gnu -no-pie "$@"

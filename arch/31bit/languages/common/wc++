@@ -4,6 +4,12 @@
 # wheezy-cxx-shim.o fill in what libstdc++ expects of a newer glibc.
 S=${WHEEZY:-/home/claude/src/cobol/wsys}
 H=$(cd $(dirname $0) && pwd)
+# wheezy's own crt1.o/crti.o/crtn.o: the cross toolchain's are glibc 2.39's,
+# whose crt1 leaves the constructors to __libc_start_main -- wheezy's 2.13
+# does not run them, so no C++ global was ever constructed (17 Oct,
+# MariaDB).  GCC looks for start files in -B<dir>/32/ for -m31.
+C=$S/vmcrt
+[ -f $C/32/Scrt1.o ] || { mkdir -p $C/32 && cp $S/usr/lib/s390-linux-gnu/crt1.o $S/usr/lib/s390-linux-gnu/Scrt1.o $S/usr/lib/s390-linux-gnu/crti.o $S/usr/lib/s390-linux-gnu/crtn.o $C/32/; }
 GI=$(s390x-linux-gnu-gcc -m31 -print-file-name=include)
 X=/usr/s390x-linux-gnu/include/c++/13
 LINK=-Wl,--no-as-needed
@@ -14,7 +20,7 @@ for a in "$@"; do shift; [ "$a" = -lgcc_s ] || set -- "$@" "$a"; done
 # $LINK (--no-as-needed) must come before the libraries, and -lrt
 # -lpthread after the shim: the static libstdc++ that the driver adds last
 # needs clock_gettime (librt in glibc 2.13) and pthread_once.
-exec s390x-linux-gnu-g++ -m31 -nostdinc -include $H/wheezy-cxx.h -isystem $X -isystem $X/s390x-linux-gnu/32 -isystem $X/backward \
+exec s390x-linux-gnu-g++ -m31 -B$C/ -nostdinc -include $H/wheezy-cxx.h -isystem $X -isystem $X/s390x-linux-gnu/32 -isystem $X/backward \
   -isystem $GI -isystem $S/usr/include/s390-linux-gnu -isystem $S/usr/include --sysroot=$S \
   -B$S/usr/lib/s390-linux-gnu -L$S/usr/lib/s390-linux-gnu -L$S/lib/s390-linux-gnu \
   -Wl,-rpath-link,$S/lib/s390-linux-gnu -no-pie -static-libstdc++ -static-libgcc $LINK "$@" ${LINK:+$H/wheezy-cxx-shim.o -lrt -lpthread}

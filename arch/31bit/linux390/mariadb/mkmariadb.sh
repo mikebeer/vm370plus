@@ -8,6 +8,10 @@
 # cross build.  Server only: InnoDB, Aria, MyISAM; no performance_schema,
 # Galera, RocksDB, Mroonga, Spider, CONNECT, S3, PAM/GSSAPI.  The server
 # links WolfSSL (bundled); the client library has no TLS (local socket).
+# Not PIE (SECURITY_HARDENED=OFF): smaller and faster code on 31-bit.  The
+# first build died at its first C++ global (decimal_zero): wc++ linked the
+# cross toolchain's glibc 2.39 crt1.o, which leaves constructors to libc;
+# wcc/wc++ now link wheezy's own start files.
 # Needs about 2.5 GB of disk.  Two hours on two CPUs.
 set -e
 W=${1:-/home/claude/src/mariadb}; HERE=$(cd $(dirname $0) && pwd)
@@ -62,7 +66,7 @@ mkdir -p $W/cross && cd $W/cross
   -DPLUGIN_PROVIDER_LZO=NO -DPLUGIN_PROVIDER_SNAPPY=NO -DPLUGIN_PROVIDER_BZIP2=NO \
   -DPLUGIN_PROVIDER_LZMA=NO -DPLUGIN_TYPE_MYSQL_JSON=NO \
   -DCURSES_LIBRARY=$T/usr/lib/libncurses.a -DCURSES_INCLUDE_PATH=$T/usr/include \
-  -DSTACK_DIRECTION=-1
+  -DSTACK_DIRECTION=-1 -DSECURITY_HARDENED=OFF
 ninja -j2
 rm -rf $W/stage; DESTDIR=$W/stage ninja install >/dev/null
 cd $W/stage/usr/local/mariadb
