@@ -1,5 +1,14 @@
-VM/370plus  --  overlay kit, 17 October 2026 (build 32)
+VM/370plus  --  overlay kit, 17 October 2026 (build 33)
 ========================================================
+
+NEW IN BUILD 33
+  - CP fix I-185: LOGOFF and DEFINE STORAGE of a machine larger than
+    16 MB now free all its page and swap tables (only the first 16
+    segments were freed: a 64M user using its storage leaked 18 tables
+    at every LOGOFF).
+  - CP fix (I-128): two segment-table lookups no longer include the
+    table length in the address (shared-page error path, V=R).
+
 
 NEW IN BUILD 32
   - CPWATCH runs again (4c), started by AUTOLOG1 as on CE: from any 3270,

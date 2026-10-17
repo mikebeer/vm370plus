@@ -1,0 +1,2 @@
+./ I 00446000 $ 00446100 100                                                    
+         N     R7,=A(SEGSTOM) WITHOUT THE LENGTH (I-128)       XA0054DK         

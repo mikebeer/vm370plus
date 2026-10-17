@@ -3917,6 +3917,23 @@ def m7decks():
     ])
     decks['DMKDRD'] = d
 
+    # I-128 leftovers (audit 17 Oct): VMSEG is the STD -- the segment
+    # table length is in its low bits -- loaded as a base with no mask.
+    # DMKVMA's BUMPSEG search (shared page changed) started up to 127
+    # bytes off; DMKBLD's HIPAGE (V=R) read the wrong STE.
+    d = Deck(XA54)
+    d.insert('00239070', first='00239071', inc=1,
+             limit=next_seq(src('DMKVMA'), '00239070'), lines=[
+        "         N     R8,=A(SEGSTOM) WITHOUT THE LENGTH (I-128)",
+    ])
+    decks['DMKVMA'] = d
+    d = Deck(XA54)
+    d.insert('00446000', first='00446100', inc=100,
+             limit=next_seq(src('DMKBLD'), '00446000'), lines=[
+        "         N     R7,=A(SEGSTOM) WITHOUT THE LENGTH (I-128)",
+    ])
+    decks['DMKBLD'] = d
+
     d = Deck(XA54)
     d.insert('00393000', first='00393100', inc=100,
              limit=next_seq(src('DMKVSJ'), '00393000'), lines=[
