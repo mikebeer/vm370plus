@@ -829,3 +829,28 @@ test t1 by dispatch and by EXEC2, EXEC 1 and REXX still run as before;
 LLAMA EXEC/LLAMA2C MODULE/LLAMATOK BIN on L, no STORIES BIN, LLAMA says
 the model is not found. LLAMA GET end to end on dev (llg2, small model).
 19 parts.
+
+## Kit b26 (16 October 2026, 23:55)
+
+9.13b NJE via Debian. NJE-II (FUNET-NJE) in the Debian guest makes
+VM/370plus NJE node VM370CE (TCPNJE, port 175; first peer PCNJE at
+10.1.1.1). CMS: CE's SENDFILE (NETDATA to RSCS with TAG node user) and
+RECEIVE; TELL user AT node. RSCS is now the gateway machine (NJEGATE EXEC
+on 19E, own 191 on VM50U1 91-100, IPL CMS, started by AUTOLOG1; CE's RSCS
+V1 is RSCSV1): it passes the cards as they are to the vmspool service nje
+(PUNCH, VMSPOOL_RAW), which sends them with NJE-II's punch -rawpun.
+Incoming: njefile (NJE-II's file exit) puts NETDATA into the reader as
+class N (njecards takes the card images out of NJE-II's spool file), other
+files as text; njemsg turns messages into CP MSG. vmspoold hands handlers
+the raw input cards (VMSPOOL_RAW). Source of NJE-II stays out of the repo
+(HUJI licence): linux390/nje/mknje.sh fetches and builds it.
+I-299 fixed: CP STK001 ~80 s after a disconnected Debian halted (I-288's
+line-break path looped from a disabled wait). I-272 cause found (paging
+space at MAINSIZE 16). The kit's VM50-2/3/4 shadows carry the base's
+TEMP/T-disk cylinders (tools/shadowrevert.py): 100 MB less.
+Verified on a fresh CE + b26 with the CTC to the PC on (kt41, KITNET=1;
+kt40 without it): AUTOLOG1 started RSCS; Debian's njed linked to PCNJE;
+CMSUSER TELL pcuser AT pcnje and SENDFILE cms exec a TO pcuser AT pcnje
+arrived on the PC (CMS EXEC, 728 lines); the PC's TELL came as CP MSG; its
+NETDATA file was RECEIVEd as NJETEST DATA A1; Debian halted, 150 s, no
+DMKDMP908I (I-299); SHUTDOWN clean. 22 parts.
