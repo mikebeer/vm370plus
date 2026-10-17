@@ -1,0 +1,37 @@
+#!/usr/bin/python3
+# vminetd -- VM/370plus: a one-service inetd for the Debian guest (wheezy has
+# no systemd socket activation).  For each TCP connection it runs COMMAND
+# with the socket as stdin and stdout, as inetd "nowait" does.
+#   vminetd PORT USER COMMAND [ARGS...]      (environment is passed on)
+# MCproject: vminetd 8080 mcp /usr/local/regina39/bin/regina \
+#              /opt/mcproject/server/dist/mcp.rexx --inetd
+import os, pwd, signal, socket, sys
+port, user, cmd = int(sys.argv[1]), sys.argv[2], sys.argv[3:]
+pw = pwd.getpwnam(user)
+# start-stop-daemon --background leaves fd 0-2 closed: give the children a
+# real stderr, else the first file they open becomes fd 2 and collects
+# every error message (MCproject's mariadb calls failed that way)
+err = os.open(os.environ.get('VMINETD_LOG', '/dev/null'), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o640)
+if err != 2: os.dup2(err, 2)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(('', port)); s.listen(16)
+os.setgid(pw.pw_gid); os.setuid(pw.pw_uid)
+signal.signal(signal.SIGCHLD, signal.SIG_IGN)      # no zombies
+while True:
+    try:
+        c, a = s.accept()
+    except (socket.error, OSError):     # EINTR and friends (Python 3.2)
+        continue
+    if os.fork() == 0:
+        s.close()
+        # an ignored SIGCHLD survives exec: the service could not wait for
+        # its own children (Regina's ADDRESS SYSTEM failed, RC -32)
+        signal.signal(signal.SIGCHLD, signal.SIG_DFL)
+        os.dup2(c.fileno(), 0); os.dup2(c.fileno(), 1)
+        os.environ['REMOTE_ADDR'] = a[0]
+        try:
+            os.execv(cmd[0], cmd)
+        finally:
+            os._exit(127)
+    c.close()

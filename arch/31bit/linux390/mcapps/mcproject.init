@@ -1,0 +1,23 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          mcproject
+# Required-Start:    $local_fs $network mariadb
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: MCproject on VM/370plus (port 8080)
+### END INIT INFO
+P=/var/run/mcproject.pid
+case "$1" in
+start)
+  echo -n "Starting MCproject: "
+  export MCP_ROOT=/opt/mcproject MCP_CONF=/etc/mcp/mcp.conf VMINETD_LOG=/var/log/mcp/inetd.log \
+    PATH=/usr/local/regina39/bin:/usr/local/mariadb/bin:/usr/local/bin:/usr/bin:/bin
+  /sbin/start-stop-daemon --start --background --make-pidfile --pidfile $P --exec /usr/bin/python3 -- \
+    /usr/local/sbin/vminetd 8080 mcp /usr/local/regina39/bin/regina /opt/mcproject/server/dist/mcp.rexx --inetd
+  echo mcproject. ;;
+stop)
+  echo -n "Stopping MCproject: "; /sbin/start-stop-daemon --stop --pidfile $P --oknodo >/dev/null; rm -f $P; echo mcproject. ;;
+restart) $0 stop; $0 start ;;
+*) echo "usage: $0 start|stop|restart"; exit 1 ;;
+esac
